@@ -1,0 +1,767 @@
+import React, { useEffect, useRef } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Animated
+} from 'react-native';
+import {
+  Sparkles,
+  Zap,
+  Star,
+  Crown,
+  Heart,
+  File,
+  Check,
+  Circle,
+  Flower2,
+  Gem,
+  Award
+} from 'lucide-react-native';
+import Colors from '@/constants/colors';
+import { useLanguageStore } from '@/store/languageStore';
+
+interface CreativeEffect {
+  id: string;
+  name: { az: string; ru: string };
+  description: { az: string; ru: string };
+  icon: React.ReactNode;
+  color: string;
+  price: number;
+  duration: number; // in days
+  type: 'glow' | 'sparkle' | 'pulse' | 'rainbow' | 'fire' | 'star' | 'frame-blinking' | 'frame-glowing' | 'frame-floral' | 'frame-diamond' | 'frame-golden' | 'frame-neon';
+  isActive?: boolean;
+}
+
+const creativeEffects: CreativeEffect[] = [
+  {
+    id: 'glow',
+    name: { az: 'Parlaq Halo', ru: 'Яркое Свечение' },
+    description: { az: 'Elanınız parlaq halo ilə diqqət çəkəcək', ru: 'Ваше объявление будет привлекать внимание ярким свечением' },
+    icon: <Sparkles size={24} color="#FFD700" />,
+    color: '#FFD700',
+    price: 1,
+    duration: 7,
+    type: 'glow'
+  },
+  {
+    id: 'sparkle',
+    name: { az: 'Parıltı Effekti', ru: 'Эффект Блеска' },
+    description: { az: 'Elanınız parıltılı animasiya ilə görünəcək', ru: 'Ваше объявление будет сверкать анимацией' },
+    icon: <Star size={24} color="#FF6B9D" />,
+    color: '#FF6B9D',
+    price: 1.5,
+    duration: 10,
+    type: 'sparkle'
+  },
+  {
+    id: 'pulse',
+    name: { az: 'Nabız Effekti', ru: 'Пульсирующий Эффект' },
+    description: { az: 'Elanınız ritmik şəkildə yanıb-sönəcək', ru: 'Ваше объявление будет ритмично пульсировать' },
+    icon: <Heart size={24} color="#FF4757" />,
+    color: '#FF4757',
+    price: 1.2,
+    duration: 5,
+    type: 'pulse'
+  },
+  {
+    id: 'rainbow',
+    name: { az: 'Göy Qurşağı', ru: 'Радужный Эффект' },
+    description: { az: 'Elanınız rəngarəng göy qurşağı ilə bəzənəcək', ru: 'Ваше объявление украсится радужными цветами' },
+    icon: <Zap size={24} color="#5F27CD" />,
+    color: '#5F27CD',
+    price: 2,
+    duration: 14,
+    type: 'rainbow'
+  },
+  {
+    id: 'fire',
+    name: { az: 'Alov Effekti', ru: 'Огненный Эффект' },
+    description: { az: 'Elanınız alov animasiyası ilə "yanacaq"', ru: 'Ваше объявление будет "гореть" огненной анимацией' },
+    icon: <File size={24} color="#FF6348" />,
+    color: '#FF6348',
+    price: 1.8,
+    duration: 12,
+    type: 'fire'
+  },
+  {
+    id: 'crown',
+    name: { az: 'Kral Tacı', ru: 'Королевская Корона' },
+    description: { az: 'Elanınız kral tacı ilə VIP görünəcək', ru: 'Ваше объявление будет выглядеть VIP с королевской короной' },
+    icon: <Crown size={24} color="#FFD700" />,
+    color: '#FFD700',
+    price: 2.5,
+    duration: 21,
+    type: 'star'
+  },
+  {
+    id: 'frame-floral',
+    name: { az: 'Güllü Çərçivə', ru: 'Цветочная Рамка' },
+    description: { az: 'Gözəl gül naxışları ilə bəzədilmiş çərçivə', ru: 'Рамка украшенная красивыми цветочными узорами' },
+    icon: <Flower2 size={24} color="#FF69B4" />,
+    color: '#FF69B4',
+    price: 0.8,
+    duration: 7,
+    type: 'frame-floral'
+  },
+  {
+    id: 'frame-glowing',
+    name: { az: 'Işıqlı Çərçivə', ru: 'Светящаяся Рамка' },
+    description: { az: 'Parlaq işıqla yanıb-sönən çərçivə effekti', ru: 'Рамка с ярким светящимся эффектом' },
+    icon: <Sparkles size={24} color="#00BFFF" />,
+    color: '#00BFFF',
+    price: 1.0,
+    duration: 10,
+    type: 'frame-glowing'
+  },
+  {
+    id: 'frame-blinking',
+    name: { az: 'Yanıb Sönən Çərçivə', ru: 'Мигающая Рамка' },
+    description: { az: 'Diqqət çəkmək üçün yanıb-sönən çərçivə', ru: 'Мигающая рамка для привлечения внимания' },
+    icon: <Zap size={24} color="#FFD700" />,
+    color: '#FFD700',
+    price: 0.9,
+    duration: 8,
+    type: 'frame-blinking'
+  },
+  {
+    id: 'frame-diamond',
+    name: { az: 'Almaz Çərçivə', ru: 'Алмазная Рамка' },
+    description: { az: 'Almaz parıltısı ilə lüks çərçivə', ru: 'Роскошная рамка с алмазным блеском' },
+    icon: <Gem size={24} color="#E6E6FA" />,
+    color: '#E6E6FA',
+    price: 1.5,
+    duration: 14,
+    type: 'frame-diamond'
+  },
+  {
+    id: 'frame-golden',
+    name: { az: 'Qızıl Çərçivə', ru: 'Золотая Рамка' },
+    description: { az: 'Klassik qızıl rəngdə zərif çərçivə', ru: 'Элегантная рамка в классическом золотом цвете' },
+    icon: <Award size={24} color="#FFD700" />,
+    color: '#FFD700',
+    price: 1.2,
+    duration: 12,
+    type: 'frame-golden'
+  },
+  {
+    id: 'frame-neon',
+    name: { az: 'Neon Çərçivə', ru: 'Неоновая Рамка' },
+    description: { az: 'Gecə klubu tərzi neon işıqlı çərçivə', ru: 'Неоновая рамка в стиле ночного клуба' },
+    icon: <Circle size={24} color="#FF1493" />,
+    color: '#FF1493',
+    price: 1.3,
+    duration: 9,
+    type: 'frame-neon'
+  }
+];
+
+interface CreativeEffectsSectionProps {
+  onSelectEffect: (effect: CreativeEffect) => void;
+  selectedEffects: CreativeEffect[];
+  title: string;
+}
+
+const EffectPreview = ({ effect, isSelected }: { effect: CreativeEffect; isSelected: boolean }) => {
+  const animatedValue = useRef(new Animated.Value(1)).current;
+  const glowValue = useRef(new Animated.Value(0)).current;
+  const pulseValue = useRef(new Animated.Value(1)).current;
+  const sparkleValue = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (!isSelected) return;
+
+    const startAnimations = () => {
+      switch (effect.type) {
+        case 'glow':
+          Animated.loop(
+            Animated.sequence([
+              Animated.timing(glowValue, {
+                toValue: 1,
+                duration: 1000,
+                useNativeDriver: false,
+              }),
+              Animated.timing(glowValue, {
+                toValue: 0,
+                duration: 1000,
+                useNativeDriver: false,
+              }),
+            ])
+          ).start();
+          break;
+        case 'pulse':
+        case 'frame-blinking':
+          Animated.loop(
+            Animated.sequence([
+              Animated.timing(pulseValue, {
+                toValue: 1.2,
+                duration: 600,
+                useNativeDriver: true,
+              }),
+              Animated.timing(pulseValue, {
+                toValue: 1,
+                duration: 600,
+                useNativeDriver: true,
+              }),
+            ])
+          ).start();
+          break;
+        case 'sparkle':
+        case 'frame-glowing':
+          Animated.loop(
+            Animated.sequence([
+              Animated.timing(sparkleValue, {
+                toValue: 1,
+                duration: 800,
+                useNativeDriver: false,
+              }),
+              Animated.timing(sparkleValue, {
+                toValue: 0,
+                duration: 800,
+                useNativeDriver: false,
+              }),
+            ])
+          ).start();
+          break;
+        case 'rainbow':
+          Animated.loop(
+            Animated.timing(animatedValue, {
+              toValue: 360,
+              duration: 3000,
+              useNativeDriver: false,
+            })
+          ).start();
+          break;
+        case 'frame-floral':
+        case 'frame-diamond':
+        case 'frame-golden':
+        case 'frame-neon':
+          Animated.loop(
+            Animated.sequence([
+              Animated.timing(sparkleValue, {
+                toValue: 1,
+                duration: 1200,
+                useNativeDriver: false,
+              }),
+              Animated.timing(sparkleValue, {
+                toValue: 0.3,
+                duration: 1200,
+                useNativeDriver: false,
+              }),
+            ])
+          ).start();
+          break;
+      }
+    };
+
+    startAnimations();
+  }, [isSelected, effect.type, animatedValue, glowValue, pulseValue, sparkleValue]);
+
+  const getAnimatedStyle = () => {
+    switch (effect.type) {
+      case 'glow':
+        return {
+          shadowColor: effect.color,
+          shadowOffset: { width: 0, height: 0 },
+          shadowOpacity: glowValue,
+          shadowRadius: glowValue.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0, 10],
+          }),
+          elevation: glowValue.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0, 10],
+          }),
+        };
+      case 'pulse':
+      case 'frame-blinking':
+        return {
+          transform: [{ scale: pulseValue }],
+          borderWidth: 2,
+          borderColor: effect.color,
+          shadowColor: effect.color,
+          shadowOffset: { width: 0, height: 0 },
+          shadowOpacity: pulseValue.interpolate({
+            inputRange: [1, 1.2],
+            outputRange: [0.3, 0.8],
+          }),
+          shadowRadius: 6,
+          elevation: 6,
+        };
+      case 'sparkle':
+      case 'frame-glowing':
+        return {
+          opacity: sparkleValue.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0.7, 1],
+          }),
+          borderWidth: 2,
+          borderColor: effect.color,
+          shadowColor: effect.color,
+          shadowOffset: { width: 0, height: 0 },
+          shadowOpacity: sparkleValue,
+          shadowRadius: sparkleValue.interpolate({
+            inputRange: [0, 1],
+            outputRange: [3, 12],
+          }),
+          elevation: sparkleValue.interpolate({
+            inputRange: [0, 1],
+            outputRange: [3, 12],
+          }),
+        };
+      case 'frame-floral':
+        return {
+          borderWidth: 3,
+          borderColor: effect.color,
+          borderStyle: 'dashed',
+          opacity: sparkleValue.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0.8, 1],
+          }),
+          shadowColor: effect.color,
+          shadowOffset: { width: 0, height: 0 },
+          shadowOpacity: sparkleValue.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0.4, 0.9],
+          }),
+          shadowRadius: 8,
+          elevation: 8,
+        };
+      case 'frame-diamond':
+        return {
+          borderWidth: 2,
+          borderColor: effect.color,
+          opacity: sparkleValue.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0.7, 1],
+          }),
+          shadowColor: '#FFFFFF',
+          shadowOffset: { width: 0, height: 0 },
+          shadowOpacity: sparkleValue.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0.5, 1],
+          }),
+          shadowRadius: sparkleValue.interpolate({
+            inputRange: [0, 1],
+            outputRange: [5, 15],
+          }),
+          elevation: sparkleValue.interpolate({
+            inputRange: [0, 1],
+            outputRange: [5, 15],
+          }),
+        };
+      case 'frame-golden':
+        return {
+          borderWidth: 3,
+          borderColor: effect.color,
+          opacity: sparkleValue.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0.8, 1],
+          }),
+          shadowColor: '#FFD700',
+          shadowOffset: { width: 0, height: 0 },
+          shadowOpacity: sparkleValue.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0.4, 0.8],
+          }),
+          shadowRadius: 10,
+          elevation: 10,
+        };
+      case 'frame-neon':
+        return {
+          borderWidth: 2,
+          borderColor: effect.color,
+          opacity: sparkleValue.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0.6, 1],
+          }),
+          shadowColor: effect.color,
+          shadowOffset: { width: 0, height: 0 },
+          shadowOpacity: sparkleValue.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0.6, 1],
+          }),
+          shadowRadius: sparkleValue.interpolate({
+            inputRange: [0, 1],
+            outputRange: [8, 20],
+          }),
+          elevation: sparkleValue.interpolate({
+            inputRange: [0, 1],
+            outputRange: [8, 20],
+          }),
+        };
+      case 'rainbow':
+        return {
+          borderWidth: 3,
+          borderColor: animatedValue.interpolate({
+            inputRange: [0, 60, 120, 180, 240, 300, 360],
+            outputRange: ['#FF0000', '#FF8000', '#FFFF00', '#00FF00', '#0080FF', '#8000FF', '#FF0000'],
+          }),
+          shadowColor: animatedValue.interpolate({
+            inputRange: [0, 60, 120, 180, 240, 300, 360],
+            outputRange: ['#FF0000', '#FF8000', '#FFFF00', '#00FF00', '#0080FF', '#8000FF', '#FF0000'],
+          }),
+          shadowOffset: { width: 0, height: 0 },
+          shadowOpacity: 0.6,
+          shadowRadius: 8,
+          elevation: 8,
+        };
+      default:
+        return {};
+    }
+  };
+
+  const renderFrameDecorations = () => {
+    if (!isSelected) return null;
+    
+    switch (effect.type) {
+      case 'frame-floral':
+        return (
+          <>
+            {/* Corner flowers */}
+            <View style={[styles.frameDecoration, { top: -6, left: -6 }]}>
+              <Flower2 size={12} color={effect.color} />
+            </View>
+            <View style={[styles.frameDecoration, { top: -6, right: -6 }]}>
+              <Flower2 size={12} color={effect.color} />
+            </View>
+            <View style={[styles.frameDecoration, { bottom: -6, left: -6 }]}>
+              <Flower2 size={12} color={effect.color} />
+            </View>
+            <View style={[styles.frameDecoration, { bottom: -6, right: -6 }]}>
+              <Flower2 size={12} color={effect.color} />
+            </View>
+            {/* Side flowers */}
+            <View style={[styles.frameDecoration, { top: -4, left: 15 }]}>
+              <Flower2 size={10} color={effect.color} />
+            </View>
+            <View style={[styles.frameDecoration, { top: -4, right: 15 }]}>
+              <Flower2 size={10} color={effect.color} />
+            </View>
+            <View style={[styles.frameDecoration, { bottom: -4, left: 15 }]}>
+              <Flower2 size={10} color={effect.color} />
+            </View>
+            <View style={[styles.frameDecoration, { bottom: -4, right: 15 }]}>
+              <Flower2 size={10} color={effect.color} />
+            </View>
+            <View style={[styles.frameDecoration, { top: 10, left: -4 }]}>
+              <Flower2 size={10} color={effect.color} />
+            </View>
+            <View style={[styles.frameDecoration, { top: 10, right: -4 }]}>
+              <Flower2 size={10} color={effect.color} />
+            </View>
+            <View style={[styles.frameDecoration, { bottom: 10, left: -4 }]}>
+              <Flower2 size={10} color={effect.color} />
+            </View>
+            <View style={[styles.frameDecoration, { bottom: 10, right: -4 }]}>
+              <Flower2 size={10} color={effect.color} />
+            </View>
+          </>
+        );
+      case 'frame-diamond':
+        return (
+          <>
+            <View style={[styles.frameDecoration, { top: -4, left: 8 }]}>
+              <Gem size={10} color={effect.color} />
+            </View>
+            <View style={[styles.frameDecoration, { top: -4, right: 8 }]}>
+              <Gem size={10} color={effect.color} />
+            </View>
+            <View style={[styles.frameDecoration, { bottom: -4, left: 8 }]}>
+              <Gem size={10} color={effect.color} />
+            </View>
+            <View style={[styles.frameDecoration, { bottom: -4, right: 8 }]}>
+              <Gem size={10} color={effect.color} />
+            </View>
+            <View style={[styles.frameDecoration, { top: 8, left: -3 }]}>
+              <Gem size={8} color={effect.color} />
+            </View>
+            <View style={[styles.frameDecoration, { top: 8, right: -3 }]}>
+              <Gem size={8} color={effect.color} />
+            </View>
+            <View style={[styles.frameDecoration, { bottom: 8, left: -3 }]}>
+              <Gem size={8} color={effect.color} />
+            </View>
+            <View style={[styles.frameDecoration, { bottom: 8, right: -3 }]}>
+              <Gem size={8} color={effect.color} />
+            </View>
+          </>
+        );
+      case 'frame-golden':
+        return (
+          <>
+            <View style={[styles.frameDecoration, { top: -4, left: 4 }]}>
+              <Star size={10} color={effect.color} />
+            </View>
+            <View style={[styles.frameDecoration, { top: -4, right: 4 }]}>
+              <Star size={10} color={effect.color} />
+            </View>
+            <View style={[styles.frameDecoration, { bottom: -4, left: 4 }]}>
+              <Star size={10} color={effect.color} />
+            </View>
+            <View style={[styles.frameDecoration, { bottom: -4, right: 4 }]}>
+              <Star size={10} color={effect.color} />
+            </View>
+            <View style={[styles.frameDecoration, { top: 8, left: -3 }]}>
+              <Star size={8} color={effect.color} />
+            </View>
+            <View style={[styles.frameDecoration, { top: 8, right: -3 }]}>
+              <Star size={8} color={effect.color} />
+            </View>
+            <View style={[styles.frameDecoration, { bottom: 8, left: -3 }]}>
+              <Star size={8} color={effect.color} />
+            </View>
+            <View style={[styles.frameDecoration, { bottom: 8, right: -3 }]}>
+              <Star size={8} color={effect.color} />
+            </View>
+          </>
+        );
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <View style={{ position: 'relative' }}>
+      <Animated.View style={[styles.effectIcon, { backgroundColor: effect.color + '20' }, getAnimatedStyle()]}>
+        {effect.icon}
+      </Animated.View>
+      {renderFrameDecorations()}
+    </View>
+  );
+};
+
+export default function CreativeEffectsSection({ onSelectEffect, selectedEffects, title }: CreativeEffectsSectionProps) {
+  const { language } = useLanguageStore();
+
+  const isEffectSelected = (effect: CreativeEffect) => {
+    return selectedEffects.some(selected => selected.id === effect.id);
+  };
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      <Text style={styles.sectionDescription}>
+        {language === 'az'
+          ? 'Elanınızı daha cəlbedici etmək üçün kreativ effektlər əlavə edin'
+          : 'Добавьте креативные эффекты, чтобы сделать ваше объявление более привлекательным'
+        }
+      </Text>
+      
+      <View style={styles.effectsGrid}>
+        {creativeEffects.map((effect) => {
+          const isSelected = isEffectSelected(effect);
+          
+          return (
+            <TouchableOpacity
+              key={effect.id}
+              style={[
+                styles.effectCard,
+                isSelected && { borderColor: effect.color, borderWidth: 2 }
+              ]}
+              onPress={() => onSelectEffect(effect)}
+            >
+              <View style={styles.effectHeader}>
+                <EffectPreview effect={effect} isSelected={isSelected} />
+                {isSelected && (
+                  <View style={[styles.selectedIndicator, { backgroundColor: effect.color }]}>
+                    <Check size={14} color="white" />
+                  </View>
+                )}
+              </View>
+              
+              <Text style={styles.effectName}>
+                {effect.name[language as keyof typeof effect.name]}
+              </Text>
+              
+              <Text style={styles.effectDescription}>
+                {effect.description[language as keyof typeof effect.description]}
+              </Text>
+              
+              <View style={styles.effectDetails}>
+                <Text style={styles.effectPrice}>
+                  {effect.price} AZN
+                </Text>
+                <Text style={styles.effectDuration}>
+                  {effect.duration} {language === 'az' ? 'gün' : 'дней'}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+      
+      {selectedEffects.length > 0 && (
+        <View style={styles.selectedEffectsContainer}>
+          <Text style={styles.selectedTitle}>
+            {language === 'az' ? 'Seçilmiş Effektlər:' : 'Выбранные эффекты:'}
+          </Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.selectedEffects}>
+            {selectedEffects.map((effect) => (
+              <View key={effect.id} style={[styles.selectedEffect, { borderColor: effect.color }]}>
+                <EffectPreview effect={effect} isSelected={true} />
+                <Text style={styles.selectedEffectName}>
+                  {effect.name[language as keyof typeof effect.name]}
+                </Text>
+                <Text style={styles.selectedEffectPrice}>
+                  {effect.price} AZN
+                </Text>
+              </View>
+            ))}
+          </ScrollView>
+          <View style={styles.totalContainer}>
+            <Text style={styles.totalText}>
+              {language === 'az' ? 'Ümumi:' : 'Итого:'} {selectedEffects.reduce((sum, effect) => sum + effect.price, 0)} AZN
+            </Text>
+          </View>
+        </View>
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: Colors.text || '#1F2937',
+    marginBottom: 8,
+  },
+  sectionDescription: {
+    fontSize: 14,
+    color: Colors.textSecondary || '#6B7280',
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  effectsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 20,
+  },
+  effectCard: {
+    width: '48%',
+    backgroundColor: Colors.card || '#FFFFFF',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: Colors.border || '#E5E7EB',
+    minHeight: 140,
+  },
+  effectHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  effectIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  frameDecoration: {
+    position: 'absolute',
+    zIndex: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 8,
+    padding: 1,
+  },
+  selectedIndicator: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  effectName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.text || '#1F2937',
+    marginBottom: 4,
+  },
+  effectDescription: {
+    fontSize: 12,
+    color: Colors.textSecondary || '#6B7280',
+    lineHeight: 16,
+    marginBottom: 8,
+    flex: 1,
+  },
+  effectDetails: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  effectPrice: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: Colors.primary || '#0E7490',
+  },
+  effectDuration: {
+    fontSize: 12,
+    color: Colors.textSecondary || '#6B7280',
+  },
+  selectedEffectsContainer: {
+    backgroundColor: Colors.card || '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 16,
+  },
+  selectedTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.text || '#1F2937',
+    marginBottom: 12,
+  },
+  selectedEffects: {
+    marginBottom: 12,
+  },
+  selectedEffect: {
+    backgroundColor: Colors.background || '#F9FAFB',
+    borderRadius: 8,
+    padding: 8,
+    marginRight: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+    minWidth: 80,
+  },
+  selectedEffectIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  selectedEffectName: {
+    fontSize: 10,
+    fontWeight: '500',
+    color: Colors.text || '#1F2937',
+    textAlign: 'center',
+    marginBottom: 2,
+  },
+  selectedEffectPrice: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: Colors.primary || '#0E7490',
+  },
+  totalContainer: {
+    borderTopWidth: 1,
+    borderTopColor: Colors.border || '#E5E7EB',
+    paddingTop: 12,
+    alignItems: 'center',
+  },
+  totalText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: Colors.primary || '#0E7490',
+  },
+});
+
+export { CreativeEffect };

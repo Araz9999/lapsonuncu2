@@ -1,0 +1,375 @@
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useLanguageStore } from '@/store/languageStore';
+import { useUserStore } from '@/store/userStore';
+import { users } from '@/mocks/users';
+import Colors from '@/constants/colors';
+import { X, Eye, EyeOff, Facebook, Chrome, MessageCircle } from 'lucide-react-native';
+
+export default function LoginScreen() {
+  const router = useRouter();
+  const { language } = useLanguageStore();
+  const { login } = useUserStore();
+  
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  
+  const handleLogin = () => {
+    if (!email || !password) {
+      return;
+    }
+    
+    // Mock login - in a real app, this would be an API call
+    // For demo purposes, we'll just log in as the first user
+    login(users[0]);
+    router.back();
+  };
+  
+  const handleClose = () => {
+    router.back();
+  };
+  
+  const handleRegister = () => {
+    router.push('/auth/register');
+  };
+  
+  const handleForgotPassword = () => {
+    router.push('/auth/forgot-password');
+  };
+
+  const handleSocialLogin = (provider: string) => {
+    // Mock social login - in a real app, this would integrate with OAuth providers
+    console.log(`Logging in with ${provider}`);
+    login(users[0]);
+    router.back();
+  };
+
+  return (
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
+    >
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
+            <X size={24} color={Colors.text} />
+          </TouchableOpacity>
+        </View>
+        
+        <View style={styles.logoContainer}>
+          <Image 
+            source={{ uri: 'https://images.unsplash.com/photo-1563013544-824ae1b704d3?q=80&w=200' }} 
+            style={styles.logo} 
+          />
+        </View>
+        
+        <Text style={styles.title}>
+          {language === 'az' ? 'Hesabınıza daxil olun' : 'Войдите в свой аккаунт'}
+        </Text>
+        
+        <View style={styles.form}>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>
+              {language === 'az' ? 'E-poçt' : 'Эл. почта'}
+            </Text>
+            <TextInput
+              style={styles.input}
+              value={email}
+              onChangeText={setEmail}
+              placeholder={language === 'az' ? 'E-poçt ünvanınız' : 'Ваш адрес эл. почты'}
+              placeholderTextColor={Colors.placeholder}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+          </View>
+          
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>
+              {language === 'az' ? 'Şifrə' : 'Пароль'}
+            </Text>
+            <View style={styles.passwordContainer}>
+              <TextInput
+                style={styles.passwordInput}
+                value={password}
+                onChangeText={setPassword}
+                placeholder={language === 'az' ? 'Şifrəniz' : 'Ваш пароль'}
+                placeholderTextColor={Colors.placeholder}
+                secureTextEntry={!showPassword}
+              />
+              <TouchableOpacity 
+                style={styles.eyeButton}
+                onPress={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? (
+                  <EyeOff size={20} color={Colors.textSecondary} />
+                ) : (
+                  <Eye size={20} color={Colors.textSecondary} />
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+          
+          <TouchableOpacity style={styles.forgotPassword} onPress={handleForgotPassword}>
+            <Text style={styles.forgotPasswordText}>
+              {language === 'az' ? 'Şifrəni unutmusunuz?' : 'Забыли пароль?'}
+            </Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[
+              styles.loginButton,
+              (!email || !password) && styles.disabledButton
+            ]} 
+            onPress={handleLogin}
+            disabled={!email || !password}
+          >
+            <Text style={styles.loginButtonText}>
+              {language === 'az' ? 'Daxil ol' : 'Войти'}
+            </Text>
+          </TouchableOpacity>
+          
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>
+              {language === 'az' ? 'və ya' : 'или'}
+            </Text>
+            <View style={styles.dividerLine} />
+          </View>
+          
+          <View style={styles.socialButtons}>
+            <TouchableOpacity 
+              style={[styles.socialButton, styles.facebookButton]}
+              onPress={() => handleSocialLogin('facebook')}
+            >
+              <Facebook size={24} color="white" />
+              <Text style={styles.socialButtonText}>Facebook</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.socialButton, styles.googleButton]}
+              onPress={() => handleSocialLogin('google')}
+            >
+              <Chrome size={24} color="white" />
+              <Text style={styles.socialButtonText}>Google</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.socialButton, styles.vkButton]}
+              onPress={() => handleSocialLogin('vk')}
+            >
+              <MessageCircle size={24} color="white" />
+              <Text style={styles.socialButtonText}>VK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+        
+        <View style={styles.footer}>
+          <View style={styles.termsNotice}>
+            <Text style={styles.termsNoticeText}>
+              {language === 'az' 
+                ? 'Daxil olmaqla siz bizim ' 
+                : 'Входя в систему, вы соглашаетесь с нашими '}
+              <TouchableOpacity onPress={() => router.push('/terms')}>
+                <Text style={styles.termsLink}>
+                  {language === 'az' ? 'istifadə şərtlərimiz' : 'условиями использования'}
+                </Text>
+              </TouchableOpacity>
+              {language === 'az' ? ' ilə razılaşırsınız' : ''}
+            </Text>
+          </View>
+          
+          <View style={styles.registerSection}>
+            <Text style={styles.footerText}>
+              {language === 'az' ? 'Hesabınız yoxdur?' : 'Нет аккаунта?'}
+            </Text>
+            <TouchableOpacity onPress={handleRegister}>
+              <Text style={styles.registerText}>
+                {language === 'az' ? 'Qeydiyyatdan keçin' : 'Зарегистрироваться'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    padding: 20,
+  },
+  header: {
+    alignItems: 'flex-end',
+  },
+  closeButton: {
+    padding: 8,
+  },
+  logoContainer: {
+    alignItems: 'center',
+    marginVertical: 30,
+  },
+  logo: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: Colors.text,
+    textAlign: 'center',
+    marginBottom: 30,
+  },
+  form: {
+    marginBottom: 30,
+  },
+  inputGroup: {
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: Colors.text,
+    marginBottom: 8,
+  },
+  input: {
+    backgroundColor: Colors.card,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    color: Colors.text,
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.card,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  passwordInput: {
+    flex: 1,
+    padding: 12,
+    fontSize: 16,
+    color: Colors.text,
+  },
+  eyeButton: {
+    padding: 12,
+  },
+  forgotPassword: {
+    alignSelf: 'flex-end',
+    marginBottom: 20,
+  },
+  forgotPasswordText: {
+    fontSize: 14,
+    color: Colors.primary,
+  },
+  loginButton: {
+    backgroundColor: Colors.primary,
+    borderRadius: 8,
+    padding: 16,
+    alignItems: 'center',
+  },
+  disabledButton: {
+    backgroundColor: Colors.border,
+  },
+  loginButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  footer: {
+    marginTop: 'auto',
+    paddingVertical: 20,
+  },
+  termsNotice: {
+    marginBottom: 16,
+    paddingHorizontal: 20,
+  },
+  termsNoticeText: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  termsLink: {
+    color: Colors.primary,
+    textDecorationLine: 'underline',
+    fontWeight: '500',
+  },
+  registerSection: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  footerText: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    marginRight: 4,
+  },
+  registerText: {
+    fontSize: 14,
+    color: Colors.primary,
+    fontWeight: '500',
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: Colors.border,
+  },
+  dividerText: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    marginHorizontal: 16,
+  },
+  socialButtons: {
+    gap: 12,
+    marginBottom: 20,
+  },
+  socialButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    gap: 8,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 3,
+  },
+  facebookButton: {
+    backgroundColor: '#1877F2',
+  },
+  googleButton: {
+    backgroundColor: '#DB4437',
+  },
+  vkButton: {
+    backgroundColor: '#0077FF',
+  },
+  socialButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+});
