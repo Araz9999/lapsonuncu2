@@ -7,7 +7,9 @@ import { useListingStore } from '@/store/listingStore';
 import { useStoreStore } from '@/store/storeStore';
 import Colors from '@/constants/colors';
 import { users } from '@/mocks/users';
-import { Star, LogOut, Heart, Settings, Bell, HelpCircle, Shield, Package, MessageCircle, ChevronRight, Wallet, Store, Trash2 } from 'lucide-react-native';
+import { Star, LogOut, Heart, Settings, Bell, HelpCircle, Shield, Package, MessageCircle, ChevronRight, Wallet, Store, Trash2, Headphones } from 'lucide-react-native';
+import LiveChatWidget from '@/components/LiveChatWidget';
+import { useSupportStore } from '@/store/supportStore';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -15,10 +17,20 @@ export default function ProfileScreen() {
   const { isAuthenticated, logout, favorites, freeAdsThisMonth, walletBalance, bonusBalance } = useUserStore();
   const { listings } = useListingStore();
   const { getUserStore } = useStoreStore();
+  const { liveChats, getAvailableOperators } = useSupportStore();
+  
+  const [showLiveChat, setShowLiveChat] = React.useState<boolean>(false);
   
   // Mock current user (first user in the list)
   const currentUser = users[0];
   const userStore = getUserStore(currentUser.id);
+  
+  // Get user's active chats for live support
+  const userChats = isAuthenticated ? liveChats.filter(chat => 
+    chat.userId === currentUser.id && chat.status !== 'closed'
+  ) : [];
+  const availableOperators = getAvailableOperators();
+  const hasActiveChat = userChats.length > 0;
   
   const favoriteListings = listings.filter(listing => favorites.includes(listing.id));
   const userListings = listings.filter(listing => listing.userId === currentUser.id);
@@ -227,6 +239,31 @@ export default function ProfileScreen() {
           <ChevronRight size={20} color={Colors.textSecondary} />
         </TouchableOpacity>
         
+        <TouchableOpacity 
+          style={styles.menuItem}
+          onPress={() => setShowLiveChat(true)}
+        >
+          <View style={styles.menuIconContainer}>
+            <Headphones size={20} color={Colors.primary} />
+          </View>
+          <View style={styles.liveChatInfo}>
+            <Text style={styles.menuItemText}>
+              {language === 'az' ? 'Canlı dəstək' : 'Живая поддержка'}
+            </Text>
+            {hasActiveChat && (
+              <Text style={styles.activeChatStatus}>
+                {userChats.length} {language === 'az' ? 'aktiv söhbət' : 'активных чата'}
+              </Text>
+            )}
+            {!hasActiveChat && availableOperators.length > 0 && (
+              <Text style={styles.operatorStatus}>
+                {availableOperators.length} {language === 'az' ? 'operator onlayn' : 'операторов онлайн'}
+              </Text>
+            )}
+          </View>
+          <ChevronRight size={20} color={Colors.textSecondary} />
+        </TouchableOpacity>
+        
         <TouchableOpacity style={styles.menuItem}>
           <View style={styles.menuIconContainer}>
             <Bell size={20} color={Colors.primary} />
@@ -283,6 +320,12 @@ export default function ProfileScreen() {
           {language === 'az' ? 'Çıxış' : 'Выход'}
         </Text>
       </TouchableOpacity>
+      
+      <LiveChatWidget
+        visible={showLiveChat}
+        onClose={() => setShowLiveChat(false)}
+        chatId={hasActiveChat ? userChats[0].id : undefined}
+      />
     </ScrollView>
   );
 }
@@ -400,6 +443,20 @@ const styles = StyleSheet.create({
   storeStatus: {
     fontSize: 12,
     color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  liveChatInfo: {
+    flex: 1,
+  },
+  activeChatStatus: {
+    fontSize: 12,
+    color: Colors.secondary,
+    marginTop: 2,
+    fontWeight: '500',
+  },
+  operatorStatus: {
+    fontSize: 12,
+    color: '#4CAF50',
     marginTop: 2,
   },
   logoutButton: {
