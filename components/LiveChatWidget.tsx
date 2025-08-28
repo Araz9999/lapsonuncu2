@@ -10,7 +10,6 @@ import {
   Image,
   Animated,
   Dimensions,
-  KeyboardAvoidingView,
   Platform,
   Keyboard
 } from 'react-native';
@@ -103,9 +102,9 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
   useEffect(() => {
     if (currentChat?.messages.length && shouldScrollToEnd) {
       setTimeout(() => {
-        scrollViewRef.current?.scrollToEnd({ animated: true });
+        scrollViewRef.current?.scrollToEnd({ animated: false });
         setShouldScrollToEnd(false);
-      }, 100);
+      }, 50);
     }
   }, [currentChat?.messages, shouldScrollToEnd]);
 
@@ -114,9 +113,10 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
       'keyboardDidShow',
       (e) => {
         setKeyboardHeight(e.endCoordinates.height);
+        // Delay scroll to ensure layout is updated
         setTimeout(() => {
-          scrollViewRef.current?.scrollToEnd({ animated: true });
-        }, 100);
+          scrollViewRef.current?.scrollToEnd({ animated: false });
+        }, 150);
       }
     );
     const keyboardDidHideListener = Keyboard.addListener(
@@ -516,10 +516,9 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
                       ref={scrollViewRef}
                       style={styles.messagesContainer}
                       showsVerticalScrollIndicator={false}
-                      maintainVisibleContentPosition={{
-                        minIndexForVisible: 0,
-                        autoscrollToTopThreshold: 10
-                      }}
+                      keyboardShouldPersistTaps="handled"
+                      keyboardDismissMode="interactive"
+                      contentContainerStyle={{ flexGrow: 1 }}
                     >
                       {currentChat.messages.map((msg) => (
                         <MessageBubble key={msg.id} msg={msg} />
@@ -541,11 +540,7 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
 
                     {/* Input */}
                     {currentChat.status !== 'closed' ? (
-                      <KeyboardAvoidingView 
-                        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-                        style={styles.inputSection}
-                      >
+                      <View style={styles.inputSection}>
                         {/* File Attachments */}
                         {showAttachments && (
                           <View style={[styles.attachmentsSection, { backgroundColor: colors.card }]}>
@@ -563,8 +558,7 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
                         <View style={[
                           styles.inputContainer, 
                           { 
-                            backgroundColor: colors.card,
-                            marginBottom: Platform.OS === 'ios' ? 0 : keyboardHeight > 0 ? 10 : 0
+                            backgroundColor: colors.card
                           }
                         ]}>
                           <TouchableOpacity
@@ -613,7 +607,7 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
                             <Send size={18} color={(message.trim() || attachments.length > 0) ? '#fff' : colors.textSecondary} />
                           </TouchableOpacity>
                         </View>
-                      </KeyboardAvoidingView>
+                      </View>
                     ) : (
                       <View style={[styles.closedChatContainer, { backgroundColor: colors.card }]}>
                         <Text style={[styles.closedChatText, { color: colors.textSecondary }]}>
@@ -661,6 +655,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     overflow: 'hidden',
+    maxHeight: height * 0.8,
   },
   minimizedContainer: {
     height: 60,
@@ -792,12 +787,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   inputSection: {
-    // No flex here to avoid taking up space
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'transparent',
   },
   messagesContainer: {
     flex: 1,
     padding: 16,
-    paddingBottom: 8,
+    paddingBottom: 80, // Space for input
   },
   messageBubble: {
     marginBottom: 16,
@@ -880,6 +879,7 @@ const styles = StyleSheet.create({
     paddingBottom: Platform.OS === 'ios' ? 16 : 16,
     borderTopWidth: 1,
     borderTopColor: 'rgba(0,0,0,0.1)',
+    backgroundColor: 'inherit',
   },
   messageInput: {
     flex: 1,
