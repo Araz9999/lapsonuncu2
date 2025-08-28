@@ -33,8 +33,8 @@ interface ThemeState {
   setDynamicColorsEnabled: (enabled: boolean) => void;
   setAdaptiveInterfaceEnabled: (enabled: boolean) => void;
   sendNotification: (title: string, body: string) => Promise<void>;
-  playNotificationSound: () => void;
-  triggerVibration: () => void;
+  playNotificationSound: () => Promise<void>;
+  triggerVibration: () => Promise<void>;
 }
 
 export const useThemeStore = create<ThemeState>()(
@@ -128,13 +128,42 @@ export const useThemeStore = create<ThemeState>()(
           }
         }
       },
-      playNotificationSound: () => {
+      playNotificationSound: async () => {
         const state = get();
         if (!state.soundEnabled) return;
         
         if (Platform.OS !== 'web') {
-          // Play notification sound
-          console.log('Playing notification sound');
+          try {
+            // Use system notification sound with haptic feedback
+            const Haptics = await import('expo-haptics');
+            await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            console.log('Playing notification sound with haptic feedback');
+          } catch (error) {
+            console.log('Failed to play notification sound:', error);
+          }
+        } else {
+          // Web fallback - create audio context beep
+          try {
+            const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = 800;
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.5);
+            
+            console.log('Playing web notification sound');
+          } catch (error) {
+            console.log('Web audio not available:', error);
+          }
         }
       },
       triggerVibration: async () => {

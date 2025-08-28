@@ -295,19 +295,9 @@ export const useCallStore = create<CallStore>((set, get) => ({
         playThroughEarpieceAndroid: false,
       });
       
-      // Create ringtone sound (using a web URL for demo)
-      const { sound: ringtone } = await Audio.Sound.createAsync(
-        { uri: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav' },
-        { shouldPlay: false, isLooping: true, volume: 0.8 }
-      );
-      
-      // Create dial tone sound
-      const { sound: dialTone } = await Audio.Sound.createAsync(
-        { uri: 'https://www.soundjay.com/misc/sounds/beep-07a.wav' },
-        { shouldPlay: false, isLooping: true, volume: 0.6 }
-      );
-      
-      set({ ringtoneSound: ringtone, dialToneSound: dialTone });
+      console.log('Audio mode configured for calls');
+      // We'll use haptic feedback instead of sound files for now
+      set({ ringtoneSound: null, dialToneSound: null });
     } catch (error) {
       console.error('Failed to initialize sounds:', error);
     }
@@ -316,41 +306,78 @@ export const useCallStore = create<CallStore>((set, get) => ({
   playRingtone: async () => {
     if (Platform.OS === 'web') return;
     
-    const { ringtoneSound } = get();
-    if (ringtoneSound) {
-      try {
-        await ringtoneSound.replayAsync();
-      } catch (error) {
-        console.error('Failed to play ringtone:', error);
-      }
+    try {
+      // Use haptic feedback for ringtone
+      const Haptics = await import('expo-haptics');
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      console.log('Playing ringtone with haptic feedback');
+      
+      // Create a repeating pattern for incoming call
+      const ringtoneInterval = setInterval(async () => {
+        try {
+          await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+        } catch (error) {
+          console.log('Haptic feedback error:', error);
+        }
+      }, 1000);
+      
+      // Store interval for cleanup
+      (get() as any).ringtoneInterval = ringtoneInterval;
+    } catch (error) {
+      console.error('Failed to play ringtone:', error);
     }
   },
   
   playDialTone: async () => {
     if (Platform.OS === 'web') return;
     
-    const { dialToneSound } = get();
-    if (dialToneSound) {
-      try {
-        await dialToneSound.replayAsync();
-      } catch (error) {
-        console.error('Failed to play dial tone:', error);
-      }
+    try {
+      // Use haptic feedback for dial tone
+      const Haptics = await import('expo-haptics');
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      console.log('Playing dial tone with haptic feedback');
+      
+      // Create a repeating pattern for outgoing call
+      const dialToneInterval = setInterval(async () => {
+        try {
+          await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        } catch (error) {
+          console.log('Haptic feedback error:', error);
+        }
+      }, 2000);
+      
+      // Store interval for cleanup
+      (get() as any).dialToneInterval = dialToneInterval;
+    } catch (error) {
+      console.error('Failed to play dial tone:', error);
     }
   },
   
   stopAllSounds: async () => {
     if (Platform.OS === 'web') return;
     
-    const { ringtoneSound, dialToneSound } = get();
+    const state = get() as any;
     
     try {
-      if (ringtoneSound) {
-        await ringtoneSound.stopAsync();
+      // Clear haptic intervals
+      if (state.ringtoneInterval) {
+        clearInterval(state.ringtoneInterval);
+        state.ringtoneInterval = null;
       }
-      if (dialToneSound) {
-        await dialToneSound.stopAsync();
+      if (state.dialToneInterval) {
+        clearInterval(state.dialToneInterval);
+        state.dialToneInterval = null;
       }
+      
+      // Stop any actual sounds if they exist
+      if (state.ringtoneSound) {
+        await state.ringtoneSound.stopAsync();
+      }
+      if (state.dialToneSound) {
+        await state.dialToneSound.stopAsync();
+      }
+      
+      console.log('All sounds and haptic patterns stopped');
     } catch (error) {
       console.error('Failed to stop sounds:', error);
     }
