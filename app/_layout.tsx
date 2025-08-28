@@ -10,7 +10,7 @@ import { useRatingStore } from '@/store/ratingStore';
 import { useCallStore } from '@/store/callStore';
 import { getColors } from '@/constants/colors';
 import IncomingCallModal from '@/components/IncomingCallModal';
-import FloatingChatButton from '@/components/FloatingChatButton';
+
 import { initializeServices, checkServicesHealth } from '@/services';
 
 export const unstable_settings = {
@@ -407,7 +407,6 @@ function RootLayoutNav() {
         />
       </Stack>
       <IncomingCallModal />
-      <FloatingChatButton />
     </>
   );
 }
