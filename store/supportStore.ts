@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { SupportTicket, SupportResponse, SupportCategory, LiveChat, LiveChatMessage, Operator, ChatNotification } from '@/types/support';
+import { useNotificationStore } from '@/store/notificationStore';
 
 interface SupportStore {
   tickets: SupportTicket[];
@@ -138,16 +139,36 @@ export const useSupportStore = create<SupportStore>((set, get) => ({
       tickets: [newTicket, ...state.tickets]
     }));
 
+    // Add notification to main notification system
+    const notificationStore = useNotificationStore.getState();
+    notificationStore.addNotification({
+      type: 'general',
+      title: 'Müraciət Göndərildi',
+      message: `"${ticketData.subject}" mövzusunda müraciətiniz qəbul edildi`,
+      data: { ticketId: newTicket.id, type: 'support_ticket' }
+    });
+
     // Simulate admin auto-response after 2 seconds
     setTimeout(() => {
       const store = get();
+      const responseMessage = ticketData.category === '1' 
+        ? 'Texniki problemlə bağlı müraciətiniz qəbul edildi. Tezliklə cavab veriləcək.'
+        : 'Müraciətiniz qəbul edildi və araşdırılır. 24 saat ərzində cavab veriləcək.';
+      
       store.addResponse(newTicket.id, {
         ticketId: newTicket.id,
         userId: 'admin',
-        message: ticketData.category === '1' 
-          ? 'Texniki problemlə bağlı müraciətiniz qəbul edildi. Tezliklə cavab veriləcək.'
-          : 'Müraciətiniz qəbul edildi və araşdırılır. 24 saat ərzində cavab veriləcək.',
+        message: responseMessage,
         isAdmin: true
+      });
+      
+      // Add notification for admin response
+      notificationStore.addNotification({
+        type: 'message',
+        title: 'Dəstək Cavabı',
+        message: responseMessage.substring(0, 50) + '...',
+        fromUserName: 'Dəstək Komandası',
+        data: { ticketId: newTicket.id, type: 'support_response' }
       });
     }, 2000);
   },
@@ -239,6 +260,15 @@ export const useSupportStore = create<SupportStore>((set, get) => ({
       }
     }, 3000);
 
+    // Add notification to main notification system
+    const notificationStore = useNotificationStore.getState();
+    notificationStore.addNotification({
+      type: 'general',
+      title: 'Yeni Dəstək Söhbəti',
+      message: `Yeni söhbət başladı: ${subject}`,
+      data: { chatId, type: 'support_chat' }
+    });
+
     // Add notification
     get().addNotification({
       chatId,
@@ -279,6 +309,23 @@ export const useSupportStore = create<SupportStore>((set, get) => ({
 
     // Add notification for new message
     if (senderType !== 'system') {
+      // Add to main notification system
+      const notificationStore = useNotificationStore.getState();
+      const chat = get().liveChats.find(c => c.id === chatId);
+      
+      if (senderType === 'operator' && chat) {
+        const operator = get().operators.find(op => op.id === senderId);
+        notificationStore.addNotification({
+          type: 'message',
+          title: 'Dəstək Mesajı',
+          message: `${operator?.name || 'Operator'}: ${message.substring(0, 50)}${message.length > 50 ? '...' : ''}`,
+          fromUserId: senderId,
+          fromUserName: operator?.name,
+          fromUserAvatar: operator?.avatar,
+          data: { chatId, type: 'support_message' }
+        });
+      }
+      
       get().addNotification({
         chatId,
         type: 'new_message',
@@ -331,6 +378,18 @@ export const useSupportStore = create<SupportStore>((set, get) => ({
       );
     }
 
+    // Add notification to main notification system
+    const notificationStore = useNotificationStore.getState();
+    notificationStore.addNotification({
+      type: 'general',
+      title: 'Operator Təyin Edildi',
+      message: `${operator?.name} sizə kömək etməyə hazırdır`,
+      fromUserId: operatorId,
+      fromUserName: operator?.name,
+      fromUserAvatar: operator?.avatar,
+      data: { chatId, operatorId, type: 'operator_assigned' }
+    });
+
     // Add notification
     get().addNotification({
       chatId,
@@ -366,6 +425,15 @@ export const useSupportStore = create<SupportStore>((set, get) => ({
       'system',
       'Söhbət bağlandı. Əlavə sualınız varsa, yenidən əlaqə saxlaya bilərsiniz.'
     );
+
+    // Add notification to main notification system
+    const notificationStore = useNotificationStore.getState();
+    notificationStore.addNotification({
+      type: 'general',
+      title: 'Söhbət Bağlandı',
+      message: 'Dəstək söhbətiniz tamamlandı',
+      data: { chatId, type: 'chat_closed' }
+    });
 
     // Add notification
     get().addNotification({
