@@ -64,7 +64,7 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
   const [priority, setPriority] = useState<'low' | 'medium' | 'high' | 'urgent'>('medium');
   const [currentChatId, setCurrentChatId] = useState<string | undefined>(chatId);
   const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(null);
-  const [shouldScrollToEnd, setShouldScrollToEnd] = useState<boolean>(false);
+  const [shouldScrollToEnd, setShouldScrollToEnd] = useState<boolean>(true);
   const [attachments, setAttachments] = useState<FileAttachment[]>([]);
   const [showAttachments, setShowAttachments] = useState<boolean>(false);
   const [keyboardHeight, setKeyboardHeight] = useState<number>(0);
@@ -102,11 +102,10 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
   useEffect(() => {
     if (currentChat?.messages.length && shouldScrollToEnd) {
       setTimeout(() => {
-        scrollViewRef.current?.scrollToEnd({ animated: false });
-        setShouldScrollToEnd(false);
-      }, 50);
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 100);
     }
-  }, [currentChat?.messages, shouldScrollToEnd]);
+  }, [currentChat?.messages.length]);
 
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener(
@@ -115,8 +114,8 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
         setKeyboardHeight(e.endCoordinates.height);
         // Delay scroll to ensure layout is updated
         setTimeout(() => {
-          scrollViewRef.current?.scrollToEnd({ animated: false });
-        }, 150);
+          scrollViewRef.current?.scrollToEnd({ animated: true });
+        }, 200);
       }
     );
     const keyboardDidHideListener = Keyboard.addListener(
@@ -168,7 +167,11 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
     setMessage('');
     setAttachments([]);
     setShowAttachments(false);
-    setShouldScrollToEnd(true);
+    
+    // Scroll to end after message is sent
+    setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+    }, 100);
     
     // Clear typing indicator
     if (typingTimeout) {
@@ -518,7 +521,12 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
                       showsVerticalScrollIndicator={false}
                       keyboardShouldPersistTaps="handled"
                       keyboardDismissMode="interactive"
-                      contentContainerStyle={{ flexGrow: 1 }}
+                      contentContainerStyle={{ paddingBottom: 20 }}
+                      onContentSizeChange={() => {
+                        setTimeout(() => {
+                          scrollViewRef.current?.scrollToEnd({ animated: true });
+                        }, 100);
+                      }}
                     >
                       {currentChat.messages.map((msg) => (
                         <MessageBubble key={msg.id} msg={msg} />
@@ -540,7 +548,7 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
 
                     {/* Input */}
                     {currentChat.status !== 'closed' ? (
-                      <View style={styles.inputSection}>
+                      <View style={[styles.inputSection, { paddingBottom: keyboardHeight > 0 ? 10 : Platform.OS === 'ios' ? 20 : 10 }]}>
                         {/* File Attachments */}
                         {showAttachments && (
                           <View style={[styles.attachmentsSection, { backgroundColor: colors.card }]}>
@@ -787,16 +795,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   inputSection: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     backgroundColor: 'transparent',
   },
   messagesContainer: {
     flex: 1,
     padding: 16,
-    paddingBottom: 80, // Space for input
+    paddingBottom: 16,
   },
   messageBubble: {
     marginBottom: 16,

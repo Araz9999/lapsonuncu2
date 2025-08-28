@@ -140,13 +140,17 @@ export const useSupportStore = create<SupportStore>((set, get) => ({
     }));
 
     // Add notification to main notification system
-    const notificationStore = useNotificationStore.getState();
-    notificationStore.addNotification({
-      type: 'general',
-      title: 'Müraciət Göndərildi',
-      message: `"${ticketData.subject}" mövzusunda müraciətiniz qəbul edildi`,
-      data: { ticketId: newTicket.id, type: 'support_ticket' }
-    });
+    try {
+      const notificationStore = useNotificationStore.getState();
+      notificationStore.addNotification({
+        type: 'general',
+        title: 'Müraciət Göndərildi',
+        message: `"${ticketData.subject}" mövzusunda müraciətiniz qəbul edildi`,
+        data: { ticketId: newTicket.id, type: 'support_ticket' }
+      });
+    } catch (error) {
+      console.log('Notification store not available:', error);
+    }
 
     // Simulate admin auto-response after 2 seconds
     setTimeout(() => {
@@ -163,13 +167,18 @@ export const useSupportStore = create<SupportStore>((set, get) => ({
       });
       
       // Add notification for admin response
-      notificationStore.addNotification({
-        type: 'message',
-        title: 'Dəstək Cavabı',
-        message: responseMessage.substring(0, 50) + '...',
-        fromUserName: 'Dəstək Komandası',
-        data: { ticketId: newTicket.id, type: 'support_response' }
-      });
+      try {
+        const notificationStore = useNotificationStore.getState();
+        notificationStore.addNotification({
+          type: 'message',
+          title: 'Dəstək Cavabı',
+          message: responseMessage.substring(0, 50) + '...',
+          fromUserName: 'Dəstək Komandası',
+          data: { ticketId: newTicket.id, type: 'support_response' }
+        });
+      } catch (error) {
+        console.log('Notification store not available:', error);
+      }
     }, 2000);
   },
 
@@ -261,13 +270,17 @@ export const useSupportStore = create<SupportStore>((set, get) => ({
     }, 3000);
 
     // Add notification to main notification system
-    const notificationStore = useNotificationStore.getState();
-    notificationStore.addNotification({
-      type: 'general',
-      title: 'Yeni Dəstək Söhbəti',
-      message: `Yeni söhbət başladı: ${subject}`,
-      data: { chatId, type: 'support_chat' }
-    });
+    try {
+      const notificationStore = useNotificationStore.getState();
+      notificationStore.addNotification({
+        type: 'general',
+        title: 'Yeni Dəstək Söhbəti',
+        message: `Yeni söhbət başladı: ${subject}`,
+        data: { chatId, type: 'support_chat' }
+      });
+    } catch (error) {
+      console.log('Notification store not available:', error);
+    }
 
     // Add notification
     get().addNotification({
@@ -310,20 +323,24 @@ export const useSupportStore = create<SupportStore>((set, get) => ({
     // Add notification for new message
     if (senderType !== 'system') {
       // Add to main notification system
-      const notificationStore = useNotificationStore.getState();
-      const chat = get().liveChats.find(c => c.id === chatId);
-      
-      if (senderType === 'operator' && chat) {
-        const operator = get().operators.find(op => op.id === senderId);
-        notificationStore.addNotification({
-          type: 'message',
-          title: 'Dəstək Mesajı',
-          message: `${operator?.name || 'Operator'}: ${message.substring(0, 50)}${message.length > 50 ? '...' : ''}`,
-          fromUserId: senderId,
-          fromUserName: operator?.name,
-          fromUserAvatar: operator?.avatar,
-          data: { chatId, type: 'support_message' }
-        });
+      try {
+        const notificationStore = useNotificationStore.getState();
+        const chat = get().liveChats.find(c => c.id === chatId);
+        
+        if (senderType === 'operator' && chat) {
+          const operator = get().operators.find(op => op.id === senderId);
+          notificationStore.addNotification({
+            type: 'message',
+            title: 'Dəstək Mesajı',
+            message: `${operator?.name || 'Operator'}: ${message.substring(0, 50)}${message.length > 50 ? '...' : ''}`,
+            fromUserId: senderId,
+            fromUserName: operator?.name,
+            fromUserAvatar: operator?.avatar,
+            data: { chatId, type: 'support_message' }
+          });
+        }
+      } catch (error) {
+        console.log('Notification store not available:', error);
       }
       
       get().addNotification({
@@ -379,16 +396,20 @@ export const useSupportStore = create<SupportStore>((set, get) => ({
     }
 
     // Add notification to main notification system
-    const notificationStore = useNotificationStore.getState();
-    notificationStore.addNotification({
-      type: 'general',
-      title: 'Operator Təyin Edildi',
-      message: `${operator?.name} sizə kömək etməyə hazırdır`,
-      fromUserId: operatorId,
-      fromUserName: operator?.name,
-      fromUserAvatar: operator?.avatar,
-      data: { chatId, operatorId, type: 'operator_assigned' }
-    });
+    try {
+      const notificationStore = useNotificationStore.getState();
+      notificationStore.addNotification({
+        type: 'general',
+        title: 'Operator Təyin Edildi',
+        message: `${operator?.name} sizə kömək etməyə hazırdır`,
+        fromUserId: operatorId,
+        fromUserName: operator?.name,
+        fromUserAvatar: operator?.avatar,
+        data: { chatId, operatorId, type: 'operator_assigned' }
+      });
+    } catch (error) {
+      console.log('Notification store not available:', error);
+    }
 
     // Add notification
     get().addNotification({
@@ -427,13 +448,17 @@ export const useSupportStore = create<SupportStore>((set, get) => ({
     );
 
     // Add notification to main notification system
-    const notificationStore = useNotificationStore.getState();
-    notificationStore.addNotification({
-      type: 'general',
-      title: 'Söhbət Bağlandı',
-      message: 'Dəstək söhbətiniz tamamlandı',
-      data: { chatId, type: 'chat_closed' }
-    });
+    try {
+      const notificationStore = useNotificationStore.getState();
+      notificationStore.addNotification({
+        type: 'general',
+        title: 'Söhbət Bağlandı',
+        message: 'Dəstək söhbətiniz tamamlandı',
+        data: { chatId, type: 'chat_closed' }
+      });
+    } catch (error) {
+      console.log('Notification store not available:', error);
+    }
 
     // Add notification
     get().addNotification({

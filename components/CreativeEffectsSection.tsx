@@ -621,19 +621,19 @@ const EffectPreview = ({ effect, isSelected }: { effect: CreativeEffect; isSelec
                   left: (i * 12) % 48,
                   top: -15,
                   opacity: animatedValue.interpolate({
-                    inputRange: [delay, delay + 0.3, delay + 0.7, Math.min(delay + 1, 1)],
+                    inputRange: [0, 0.3, 0.7, 1],
                     outputRange: [0, 1, 1, 0],
                     extrapolate: 'clamp',
                   }),
                   transform: [{
                     translateY: animatedValue.interpolate({
-                      inputRange: [delay, Math.min(delay + 1, 1)],
+                      inputRange: [0, 1],
                       outputRange: [0, 70],
                       extrapolate: 'clamp',
                     })
                   }, {
                     rotate: animatedValue.interpolate({
-                      inputRange: [delay, Math.min(delay + 1, 1)],
+                      inputRange: [0, 1],
                       outputRange: ['0deg', '360deg'],
                       extrapolate: 'clamp',
                     })
@@ -658,19 +658,19 @@ const EffectPreview = ({ effect, isSelected }: { effect: CreativeEffect; isSelec
                   left: (i * 10) % 40,
                   top: -12,
                   opacity: animatedValue.interpolate({
-                    inputRange: [delay, delay + 0.2, delay + 0.8, Math.min(delay + 1, 1)],
+                    inputRange: [0, 0.2, 0.8, 1],
                     outputRange: [0, 1, 1, 0],
                     extrapolate: 'clamp',
                   }),
                   transform: [{
                     translateY: animatedValue.interpolate({
-                      inputRange: [delay, Math.min(delay + 1, 1)],
+                      inputRange: [0, 1],
                       outputRange: [0, 65],
                       extrapolate: 'clamp',
                     })
                   }, {
                     scale: animatedValue.interpolate({
-                      inputRange: [delay, delay + 0.5, Math.min(delay + 1, 1)],
+                      inputRange: [0, 0.5, 1],
                       outputRange: [0.5, 1.2, 0.8],
                       extrapolate: 'clamp',
                     })
@@ -695,25 +695,25 @@ const EffectPreview = ({ effect, isSelected }: { effect: CreativeEffect; isSelec
                   left: (i * 11) % 44,
                   top: -15,
                   opacity: animatedValue.interpolate({
-                    inputRange: [delay, delay + 0.3, delay + 0.7, Math.min(delay + 1, 1)],
+                    inputRange: [0, 0.3, 0.7, 1],
                     outputRange: [0, 1, 0.9, 0],
                     extrapolate: 'clamp',
                   }),
                   transform: [{
                     translateY: animatedValue.interpolate({
-                      inputRange: [delay, Math.min(delay + 1, 1)],
+                      inputRange: [0, 1],
                       outputRange: [0, 68],
                       extrapolate: 'clamp',
                     })
                   }, {
                     rotate: animatedValue.interpolate({
-                      inputRange: [delay, Math.min(delay + 1, 1)],
+                      inputRange: [0, 1],
                       outputRange: ['0deg', '270deg'],
                       extrapolate: 'clamp',
                     })
                   }, {
                     scale: animatedValue.interpolate({
-                      inputRange: [delay, delay + 0.5, Math.min(delay + 1, 1)],
+                      inputRange: [0, 0.5, 1],
                       outputRange: [1, 1.3, 0.7],
                       extrapolate: 'clamp',
                     })
@@ -738,25 +738,25 @@ const EffectPreview = ({ effect, isSelected }: { effect: CreativeEffect; isSelec
                   left: (i * 9) % 36,
                   top: -10,
                   opacity: animatedValue.interpolate({
-                    inputRange: [delay, delay + 0.1, delay + 0.9, Math.min(delay + 1, 1)],
+                    inputRange: [0, 0.1, 0.9, 1],
                     outputRange: [0, 0.9, 0.9, 0],
                     extrapolate: 'clamp',
                   }),
                   transform: [{
                     translateY: animatedValue.interpolate({
-                      inputRange: [delay, Math.min(delay + 1, 1)],
+                      inputRange: [0, 1],
                       outputRange: [0, 60],
                       extrapolate: 'clamp',
                     })
                   }, {
                     translateX: animatedValue.interpolate({
-                      inputRange: [delay, delay + 0.5, Math.min(delay + 1, 1)],
+                      inputRange: [0, 0.5, 1],
                       outputRange: [0, Math.sin(i) * 8, Math.sin(i) * 4],
                       extrapolate: 'clamp',
                     })
                   }, {
                     rotate: animatedValue.interpolate({
-                      inputRange: [delay, Math.min(delay + 1, 1)],
+                      inputRange: [0, 1],
                       outputRange: ['0deg', '180deg'],
                       extrapolate: 'clamp',
                     })
@@ -781,25 +781,25 @@ const EffectPreview = ({ effect, isSelected }: { effect: CreativeEffect; isSelec
                   left: (i * 14) % 42,
                   bottom: -15,
                   opacity: animatedValue.interpolate({
-                    inputRange: [delay, delay + 0.2, delay + 0.8, Math.min(delay + 1, 1)],
+                    inputRange: [0, 0.2, 0.8, 1],
                     outputRange: [0, 0.7, 0.7, 0],
                     extrapolate: 'clamp',
                   }),
                   transform: [{
                     translateY: animatedValue.interpolate({
-                      inputRange: [delay, Math.min(delay + 1, 1)],
+                      inputRange: [0, 1],
                       outputRange: [0, -70],
                       extrapolate: 'clamp',
                     })
                   }, {
                     translateX: animatedValue.interpolate({
-                      inputRange: [delay, delay + 0.5, Math.min(delay + 1, 1)],
+                      inputRange: [0, 0.5, 1],
                       outputRange: [0, Math.cos(i) * 6, Math.cos(i) * 3],
                       extrapolate: 'clamp',
                     })
                   }, {
                     scale: animatedValue.interpolate({
-                      inputRange: [delay, delay + 0.5, Math.min(delay + 1, 1)],
+                      inputRange: [0, 0.5, 1],
                       outputRange: [0.3, 1, 1.2],
                       extrapolate: 'clamp',
                     })
