@@ -36,7 +36,9 @@ export default function HomeScreen() {
 
   useEffect(() => {
     resetFilters();
-    
+  }, [resetFilters]);
+  
+  useEffect(() => {
     // Auto refresh if enabled
     if (autoRefresh) {
       const interval = setInterval(() => {
@@ -46,7 +48,9 @@ export default function HomeScreen() {
       
       return () => clearInterval(interval);
     }
-    
+  }, [autoRefresh]);
+  
+  useEffect(() => {
     // Start the logo animation
     const animateLoop = () => {
       // Naxtap animation
@@ -138,7 +142,17 @@ export default function HomeScreen() {
     };
     
     animateLoop();
-  }, []); // Remove animation refs from dependencies to prevent infinite loop
+    
+    // Cleanup function to stop animation when component unmounts
+    return () => {
+      slideAnim.stopAnimation();
+      fadeAnim.stopAnimation();
+      scaleAnim.stopAnimation();
+      naxcivanSlideAnim.stopAnimation();
+      naxcivanFadeAnim.stopAnimation();
+      naxcivanScaleAnim.stopAnimation();
+    };
+  }, []); // Empty dependency array is correct here for one-time setup
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>

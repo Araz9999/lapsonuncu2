@@ -4,20 +4,21 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Animated,
-  Dimensions
+  Animated
 } from 'react-native';
+import { usePathname } from 'expo-router';
 import { useLanguageStore } from '@/store/languageStore';
 import { useThemeStore } from '@/store/themeStore';
 import { useUserStore } from '@/store/userStore';
 import { useSupportStore } from '@/store/supportStore';
 import { getColors } from '@/constants/colors';
-import { MessageCircle, X } from 'lucide-react-native';
+import { MessageCircle } from 'lucide-react-native';
 import LiveChatWidget from './LiveChatWidget';
 
-const { width, height } = Dimensions.get('window');
+
 
 export default function FloatingChatButton() {
+  const pathname = usePathname();
   const { language } = useLanguageStore();
   const { themeMode, colorTheme } = useThemeStore();
   const { currentUser } = useUserStore();
@@ -66,8 +67,8 @@ export default function FloatingChatButton() {
     setShowChat(true);
   };
 
-  // Don't show if no operators available and no active chats
-  if (!hasActiveChat && availableOperators.length === 0) {
+  // Don't show on home page or if no operators available and no active chats
+  if (pathname === '/' || (!hasActiveChat && availableOperators.length === 0)) {
     return null;
   }
 

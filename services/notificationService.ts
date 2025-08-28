@@ -2,6 +2,19 @@ import config from '@/constants/config';
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 
+// Configure notification behavior
+if (Platform.OS !== 'web') {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+}
+
 export interface PushNotification {
   title: string;
   body: string;
@@ -112,7 +125,7 @@ class NotificationService {
             title: notification.title,
             body: notification.body,
             data: notification.data,
-            sound: notification.sound,
+            sound: notification.sound ? 'default' : false,
             badge: notification.badge,
           },
           trigger: null,
