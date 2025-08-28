@@ -65,6 +65,7 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
   const [currentChatId, setCurrentChatId] = useState<string | undefined>(chatId);
   const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(null);
   const [shouldScrollToEnd, setShouldScrollToEnd] = useState<boolean>(true);
+  const [isScrolling, setIsScrolling] = useState<boolean>(false);
   const [attachments, setAttachments] = useState<FileAttachment[]>([]);
   const [showAttachments, setShowAttachments] = useState<boolean>(false);
   const [keyboardHeight, setKeyboardHeight] = useState<number>(0);
@@ -100,12 +101,12 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
   }, [currentChat, currentUser, markMessagesAsRead]);
 
   useEffect(() => {
-    if (currentChat?.messages.length && shouldScrollToEnd) {
+    if (currentChat?.messages.length && shouldScrollToEnd && !isScrolling) {
       setTimeout(() => {
         scrollViewRef.current?.scrollToEnd({ animated: true });
       }, 100);
     }
-  }, [currentChat?.messages.length]);
+  }, [currentChat?.messages.length, shouldScrollToEnd, isScrolling]);
 
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener(
@@ -523,9 +524,24 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
                       keyboardDismissMode="interactive"
                       contentContainerStyle={{ paddingBottom: 20 }}
                       onContentSizeChange={() => {
-                        setTimeout(() => {
-                          scrollViewRef.current?.scrollToEnd({ animated: true });
-                        }, 100);
+                        if (!isScrolling && shouldScrollToEnd) {
+                          setTimeout(() => {
+                            scrollViewRef.current?.scrollToEnd({ animated: true });
+                          }, 100);
+                        }
+                      }}
+                      onScrollBeginDrag={() => {
+                        setIsScrolling(true);
+                        setShouldScrollToEnd(false);
+                      }}
+                      onScrollEndDrag={() => {
+                        setIsScrolling(false);
+                      }}
+                      onMomentumScrollEnd={(event) => {
+                        const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+                        const isAtBottom = contentOffset.y + layoutMeasurement.height >= contentSize.height - 50;
+                        setShouldScrollToEnd(isAtBottom);
+                        setIsScrolling(false);
                       }}
                     >
                       {currentChat.messages.map((msg) => (
@@ -548,7 +564,13 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
 
                     {/* Input */}
                     {currentChat.status !== 'closed' ? (
-                      <View style={[styles.inputSection, { paddingBottom: keyboardHeight > 0 ? 10 : Platform.OS === 'ios' ? 20 : 10 }]}>
+                      <View style={[
+                        styles.inputSection, 
+                        { 
+                          paddingBottom: keyboardHeight > 0 ? Math.max(keyboardHeight - 20, 10) : Platform.OS === 'ios' ? 20 : 10,
+                          transform: keyboardHeight > 0 ? [{ translateY: -keyboardHeight + 20 }] : []
+                        }
+                      ]}>
                         {/* File Attachments */}
                         {showAttachments && (
                           <View style={[styles.attachmentsSection, { backgroundColor: colors.card }]}>

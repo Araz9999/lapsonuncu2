@@ -269,19 +269,23 @@ const EffectPreview = ({ effect, isSelected }: { effect: CreativeEffect; isSelec
       return;
     }
 
+    // Small delay to ensure proper initialization
+    const initTimeout = setTimeout(() => {
+
     const startAnimations = () => {
       switch (effect.type) {
         case 'glow':
+          glowValue.setValue(0);
           animationRef.current = Animated.loop(
             Animated.sequence([
               Animated.timing(glowValue, {
                 toValue: 1,
-                duration: 1000,
+                duration: 1200,
                 useNativeDriver: false,
               }),
               Animated.timing(glowValue, {
-                toValue: 0,
-                duration: 1000,
+                toValue: 0.3,
+                duration: 1200,
                 useNativeDriver: false,
               }),
             ])
@@ -290,16 +294,17 @@ const EffectPreview = ({ effect, isSelected }: { effect: CreativeEffect; isSelec
           break;
         case 'pulse':
         case 'frame-blinking':
+          pulseValue.setValue(1);
           animationRef.current = Animated.loop(
             Animated.sequence([
               Animated.timing(pulseValue, {
-                toValue: 1.2,
-                duration: 600,
+                toValue: 1.15,
+                duration: 800,
                 useNativeDriver: true,
               }),
               Animated.timing(pulseValue, {
                 toValue: 1,
-                duration: 600,
+                duration: 800,
                 useNativeDriver: true,
               }),
             ])
@@ -308,16 +313,17 @@ const EffectPreview = ({ effect, isSelected }: { effect: CreativeEffect; isSelec
           break;
         case 'sparkle':
         case 'frame-glowing':
+          sparkleValue.setValue(0);
           animationRef.current = Animated.loop(
             Animated.sequence([
               Animated.timing(sparkleValue, {
                 toValue: 1,
-                duration: 800,
+                duration: 1000,
                 useNativeDriver: false,
               }),
               Animated.timing(sparkleValue, {
-                toValue: 0,
-                duration: 800,
+                toValue: 0.2,
+                duration: 1000,
                 useNativeDriver: false,
               }),
             ])
@@ -329,7 +335,7 @@ const EffectPreview = ({ effect, isSelected }: { effect: CreativeEffect; isSelec
           animationRef.current = Animated.loop(
             Animated.timing(animatedValue, {
               toValue: 360,
-              duration: 3000,
+              duration: 4000,
               useNativeDriver: false,
             })
           );
@@ -339,16 +345,17 @@ const EffectPreview = ({ effect, isSelected }: { effect: CreativeEffect; isSelec
         case 'frame-diamond':
         case 'frame-golden':
         case 'frame-neon':
+          sparkleValue.setValue(0.5);
           animationRef.current = Animated.loop(
             Animated.sequence([
               Animated.timing(sparkleValue, {
                 toValue: 1,
-                duration: 1200,
+                duration: 1500,
                 useNativeDriver: false,
               }),
               Animated.timing(sparkleValue, {
-                toValue: 0.3,
-                duration: 1200,
+                toValue: 0.5,
+                duration: 1500,
                 useNativeDriver: false,
               }),
             ])
@@ -364,7 +371,7 @@ const EffectPreview = ({ effect, isSelected }: { effect: CreativeEffect; isSelec
           animationRef.current = Animated.loop(
             Animated.timing(animatedValue, {
               toValue: 1,
-              duration: 2000,
+              duration: 2500,
               useNativeDriver: false,
             })
           );
@@ -373,16 +380,17 @@ const EffectPreview = ({ effect, isSelected }: { effect: CreativeEffect; isSelec
         case 'fireworks':
         case 'confetti':
         case 'sparkle-burst':
+          sparkleValue.setValue(0);
           animationRef.current = Animated.loop(
             Animated.sequence([
               Animated.timing(sparkleValue, {
                 toValue: 1,
-                duration: 800,
+                duration: 1000,
                 useNativeDriver: false,
               }),
               Animated.timing(sparkleValue, {
                 toValue: 0,
-                duration: 1200,
+                duration: 1500,
                 useNativeDriver: false,
               }),
             ])
@@ -392,10 +400,12 @@ const EffectPreview = ({ effect, isSelected }: { effect: CreativeEffect; isSelec
       }
     };
 
-    startAnimations();
+      startAnimations();
+    }, 50);
 
     // Cleanup function
     return () => {
+      clearTimeout(initTimeout);
       if (animationRef.current) {
         animationRef.current.stop();
         animationRef.current = null;

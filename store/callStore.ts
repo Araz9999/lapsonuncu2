@@ -456,17 +456,18 @@ export const useCallStore = create<CallStore>((set, get) => ({
     if (Platform.OS !== 'web') {
       (async () => {
         try {
-          const Notifications = await import('expo-notifications');
+          const { notificationService } = await import('@/services/notificationService');
           const caller = users.find(u => u.id === randomCaller);
-          await Notifications.scheduleNotificationAsync({
-            content: {
-              title: incomingCall.type === 'video' ? 'Gələn video zəng' : 'Gələn zəng',
-              body: `${caller?.name || 'Naməlum istifadəçi'} sizə ${incomingCall.type === 'video' ? 'video ' : ''}zəng edir`,
-              sound: 'default',
-              priority: Notifications.AndroidNotificationPriority.HIGH,
-              categoryIdentifier: 'call',
-            },
-            trigger: null,
+          
+          await notificationService.sendLocalNotification({
+            title: incomingCall.type === 'video' ? 'Gələn video zəng' : 'Gələn zəng',
+            body: `${caller?.name || 'Naməlum istifadəçi'} sizə ${incomingCall.type === 'video' ? 'video ' : ''}zəng edir`,
+            sound: true,
+            data: {
+              callId,
+              type: 'incoming_call',
+              callerId: randomCaller
+            }
           });
         } catch (error) {
           console.log('Notifications not available:', error);

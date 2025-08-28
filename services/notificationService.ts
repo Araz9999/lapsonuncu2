@@ -1,18 +1,25 @@
 import config from '@/constants/config';
 import { Platform } from 'react-native';
-import * as Notifications from 'expo-notifications';
 
-// Configure notification behavior
+// Configure notification behavior only for mobile platforms
+let Notifications: any = null;
 if (Platform.OS !== 'web') {
-  Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowAlert: true,
-      shouldPlaySound: true,
-      shouldSetBadge: false,
-      shouldShowBanner: true,
-      shouldShowList: true,
-    }),
-  });
+  try {
+    Notifications = require('expo-notifications');
+    if (Notifications && Notifications.setNotificationHandler) {
+      Notifications.setNotificationHandler({
+        handleNotification: async () => ({
+          shouldShowAlert: true,
+          shouldPlaySound: true,
+          shouldSetBadge: false,
+          shouldShowBanner: true,
+          shouldShowList: true,
+        }),
+      });
+    }
+  } catch (error) {
+    console.log('Expo notifications not available:', error);
+  }
 }
 
 export interface PushNotification {
@@ -41,6 +48,11 @@ class NotificationService {
         }
         return false;
       } else {
+        if (!Notifications) {
+          console.log('Expo notifications not available');
+          return false;
+        }
+        
         const { status: existingStatus } = await Notifications.getPermissionsAsync();
         let finalStatus = existingStatus;
         
@@ -60,6 +72,11 @@ class NotificationService {
   async getExpoPushToken(): Promise<string | null> {
     if (Platform.OS === 'web') {
       console.log('Push tokens not available on web platform');
+      return null;
+    }
+
+    if (!Notifications) {
+      console.log('Expo notifications not available');
       return null;
     }
 
@@ -119,6 +136,11 @@ class NotificationService {
           console.log('Web notifications not available or permission not granted');
         }
       } else {
+        if (!Notifications) {
+          console.log('Expo notifications not available');
+          return;
+        }
+        
         console.log('Sending local notification on mobile...');
         await Notifications.scheduleNotificationAsync({
           content: {
