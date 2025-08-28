@@ -64,7 +64,7 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
   const [subject, setSubject] = useState<string>('');
   const [priority, setPriority] = useState<'low' | 'medium' | 'high' | 'urgent'>('medium');
   const [currentChatId, setCurrentChatId] = useState<string | undefined>(chatId);
-  const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [typingTimeout, setTypingTimeout] = useState<number | null>(null);
   
   const scrollViewRef = useRef<ScrollView>(null);
   const slideAnim = useRef(new Animated.Value(height)).current;
