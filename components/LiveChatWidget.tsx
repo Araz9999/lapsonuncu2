@@ -153,7 +153,18 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
     if ((!message.trim() && attachments.length === 0) || !currentChatId || !currentUser) return;
 
     const attachmentUrls = attachments.map(att => att.uri);
-    sendMessage(currentChatId, currentUser.id, 'user', message.trim() || '📎 Fayl göndərildi', attachmentUrls.length > 0 ? attachmentUrls : undefined);
+    const messageText = message.trim() || (attachments.length > 0 ? `📎 ${attachments.length} fayl göndərildi` : '');
+    
+    console.log('Sending message with attachments:', { messageText, attachmentUrls });
+    
+    sendMessage(
+      currentChatId, 
+      currentUser.id, 
+      'user', 
+      messageText, 
+      attachmentUrls.length > 0 ? attachmentUrls : undefined
+    );
+    
     setMessage('');
     setAttachments([]);
     setShowAttachments(false);
@@ -276,21 +287,41 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
           {/* Attachments */}
           {msg.attachments && msg.attachments.length > 0 && (
             <View style={styles.attachmentsContainer}>
-              {msg.attachments.map((attachment, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={[
-                    styles.attachmentPreview,
-                    { backgroundColor: isUser ? 'rgba(255,255,255,0.2)' : colors.border }
-                  ]}
-                >
-                  <Image 
-                    source={{ uri: attachment }} 
-                    style={styles.attachmentImage}
-                    resizeMode="cover"
-                  />
-                </TouchableOpacity>
-              ))}
+              {msg.attachments.map((attachment, index) => {
+                // Check if it's an image or document
+                const isImage = attachment.toLowerCase().includes('.jpg') || 
+                               attachment.toLowerCase().includes('.jpeg') || 
+                               attachment.toLowerCase().includes('.png') || 
+                               attachment.toLowerCase().includes('.gif') ||
+                               attachment.startsWith('file://') ||
+                               attachment.startsWith('content://') ||
+                               attachment.startsWith('ph://');
+                
+                return (
+                  <TouchableOpacity
+                    key={index}
+                    style={[
+                      styles.attachmentPreview,
+                      { backgroundColor: isUser ? 'rgba(255,255,255,0.2)' : colors.border }
+                    ]}
+                  >
+                    {isImage ? (
+                      <Image 
+                        source={{ uri: attachment }} 
+                        style={styles.attachmentImage}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <View style={styles.documentPreview}>
+                        <Text style={[styles.documentText, { color: isUser ? '#fff' : colors.text }]}>📄</Text>
+                        <Text style={[styles.documentName, { color: isUser ? 'rgba(255,255,255,0.8)' : colors.textSecondary }]} numberOfLines={1}>
+                          {attachment.split('/').pop() || 'Sənəd'}
+                        </Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           )}
           
@@ -520,7 +551,10 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
                           <View style={[styles.attachmentsSection, { backgroundColor: colors.card }]}>
                             <FileAttachmentPicker
                               attachments={attachments}
-                              onAttachmentsChange={setAttachments}
+                              onAttachmentsChange={(newAttachments) => {
+                                console.log('Attachments changed:', newAttachments);
+                                setAttachments(newAttachments);
+                              }}
                               maxFiles={3}
                             />
                           </View>
@@ -570,7 +604,10 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
                                 backgroundColor: (message.trim() || attachments.length > 0) ? colors.primary : colors.border
                               }
                             ]}
-                            onPress={handleSendMessage}
+                            onPress={() => {
+                              console.log('Send button pressed. Message:', message, 'Attachments:', attachments.length);
+                              handleSendMessage();
+                            }}
                             disabled={!message.trim() && attachments.length === 0}
                           >
                             <Send size={18} color={(message.trim() || attachments.length > 0) ? '#fff' : colors.textSecondary} />
@@ -924,6 +961,21 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 16,
+    textAlign: 'center',
+  },
+  documentPreview: {
+    width: 60,
+    height: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 4,
+  },
+  documentText: {
+    fontSize: 20,
+    marginBottom: 2,
+  },
+  documentName: {
+    fontSize: 8,
     textAlign: 'center',
   },
 });
