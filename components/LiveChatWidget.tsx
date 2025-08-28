@@ -23,15 +23,14 @@ import {
   Send,
   X,
   Minimize2,
-  Phone,
   Paperclip,
-  MoreVertical,
   Clock,
   CheckCircle2,
-  User,
-  Headphones
+  Headphones,
+  RefreshCw
 } from 'lucide-react-native';
-import { LiveChat, LiveChatMessage } from '@/types/support';
+import { LiveChatMessage } from '@/types/support';
+import FileAttachmentPicker, { FileAttachment } from '@/components/FileAttachmentPicker';
 
 const { width, height } = Dimensions.get('window');
 
@@ -65,6 +64,8 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
   const [priority, setPriority] = useState<'low' | 'medium' | 'high' | 'urgent'>('medium');
   const [currentChatId, setCurrentChatId] = useState<string | undefined>(chatId);
   const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [attachments, setAttachments] = useState<FileAttachment[]>([]);
+  const [showAttachments, setShowAttachments] = useState<boolean>(false);
   
   const scrollViewRef = useRef<ScrollView>(null);
   const slideAnim = useRef(new Animated.Value(height)).current;
@@ -88,13 +89,13 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
         useNativeDriver: true
       }).start();
     }
-  }, [visible]);
+  }, [visible, slideAnim]);
 
   useEffect(() => {
     if (currentChat && currentUser) {
       markMessagesAsRead(currentChat.id, currentUser.id);
     }
-  }, [currentChat?.messages.length]);
+  }, [currentChat, currentUser, markMessagesAsRead]);
 
   useEffect(() => {
     if (currentChat?.messages.length) {
@@ -122,10 +123,13 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
   };
 
   const handleSendMessage = () => {
-    if (!message.trim() || !currentChatId || !currentUser) return;
+    if ((!message.trim() && attachments.length === 0) || !currentChatId || !currentUser) return;
 
-    sendMessage(currentChatId, currentUser.id, 'user', message.trim());
+    const attachmentUrls = attachments.map(att => att.uri);
+    sendMessage(currentChatId, currentUser.id, 'user', message.trim() || '📎 Fayl göndərildi', attachmentUrls.length > 0 ? attachmentUrls : undefined);
     setMessage('');
+    setAttachments([]);
+    setShowAttachments(false);
     
     // Clear typing indicator
     if (typingTimeout) {
@@ -160,6 +164,20 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
       closeLiveChat(currentChatId);
     }
     onClose();
+  };
+
+  const handleReopenChat = () => {
+    if (!currentUser) return;
+    
+    const newChatId = startLiveChat(
+      currentUser.id,
+      'Yenidən əlaqə',
+      '5', // Other category
+      'medium'
+    );
+    
+    setCurrentChatId(newChatId);
+    setShowStartForm(false);
   };
 
   const formatTime = (date: Date) => {
@@ -226,6 +244,27 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
           ]}>
             {msg.message}
           </Text>
+          
+          {/* Attachments */}
+          {msg.attachments && msg.attachments.length > 0 && (
+            <View style={styles.attachmentsContainer}>
+              {msg.attachments.map((attachment, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={[
+                    styles.attachmentPreview,
+                    { backgroundColor: isUser ? 'rgba(255,255,255,0.2)' : colors.border }
+                  ]}
+                >
+                  <Image 
+                    source={{ uri: attachment }} 
+                    style={styles.attachmentImage}
+                    resizeMode="cover"
+                  />
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
           
           <View style={styles.messageFooter}>
             <Text style={[
@@ -442,36 +481,80 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
                     </ScrollView>
 
                     {/* Input */}
-                    {currentChat.status !== 'closed' && (
-                      <View style={[styles.inputContainer, { backgroundColor: colors.card }]}>
-                        <TextInput
-                          style={[
-                            styles.messageInput,
-                            {
-                              backgroundColor: colors.background,
-                              color: colors.text,
-                              borderColor: colors.border
-                            }
-                          ]}
-                          placeholder={language === 'az' ? 'Mesajınızı yazın...' : 'Напишите сообщение...'}
-                          placeholderTextColor={colors.textSecondary}
-                          value={message}
-                          onChangeText={handleTyping}
-                          multiline
-                          maxLength={1000}
-                        />
+                    {currentChat.status !== 'closed' ? (
+                      <>
+                        {/* File Attachments */}
+                        {showAttachments && (
+                          <View style={[styles.attachmentsSection, { backgroundColor: colors.card }]}>
+                            <FileAttachmentPicker
+                              attachments={attachments}
+                              onAttachmentsChange={setAttachments}
+                              maxFiles={3}
+                            />
+                          </View>
+                        )}
                         
+                        <View style={[styles.inputContainer, { backgroundColor: colors.card }]}>
+                          <TouchableOpacity
+                            style={[
+                              styles.attachButton,
+                              {
+                                backgroundColor: showAttachments ? colors.primary : colors.background,
+                                borderColor: colors.border
+                              }
+                            ]}
+                            onPress={() => setShowAttachments(!showAttachments)}
+                          >
+                            <Paperclip size={18} color={showAttachments ? '#fff' : colors.textSecondary} />
+                          </TouchableOpacity>
+                          
+                          <TextInput
+                            style={[
+                              styles.messageInput,
+                              {
+                                backgroundColor: colors.background,
+                                color: colors.text,
+                                borderColor: colors.border
+                              }
+                            ]}
+                            placeholder={language === 'az' ? 'Mesajınızı yazın...' : 'Напишите сообщение...'}
+                            placeholderTextColor={colors.textSecondary}
+                            value={message}
+                            onChangeText={handleTyping}
+                            multiline
+                            maxLength={1000}
+                          />
+                          
+                          <TouchableOpacity
+                            style={[
+                              styles.sendButton,
+                              {
+                                backgroundColor: (message.trim() || attachments.length > 0) ? colors.primary : colors.border
+                              }
+                            ]}
+                            onPress={handleSendMessage}
+                            disabled={!message.trim() && attachments.length === 0}
+                          >
+                            <Send size={18} color={(message.trim() || attachments.length > 0) ? '#fff' : colors.textSecondary} />
+                          </TouchableOpacity>
+                        </View>
+                      </>
+                    ) : (
+                      <View style={[styles.closedChatContainer, { backgroundColor: colors.card }]}>
+                        <Text style={[styles.closedChatText, { color: colors.textSecondary }]}>
+                          {language === 'az' 
+                            ? 'Bu söhbət bağlanıb. Yenidən yazmaq üçün yeni söhbət başladın.'
+                            : 'Этот чат закрыт. Начните новый чат, чтобы написать снова.'
+                          }
+                        </Text>
                         <TouchableOpacity
-                          style={[
-                            styles.sendButton,
-                            {
-                              backgroundColor: message.trim() ? colors.primary : colors.border
-                            }
-                          ]}
-                          onPress={handleSendMessage}
-                          disabled={!message.trim()}
+                          style={[styles.reopenButton, { backgroundColor: colors.primary }]}
+                          onPress={handleReopenChat}
                         >
-                          <Send size={18} color={message.trim() ? '#fff' : colors.textSecondary} />
+                          <RefreshCw size={16} color="#fff" />
+                          <Text style={styles.reopenButtonText}>
+                            {language === 'az' ? 'Yeni Söhbət' : 'Новый чат'}
+                          </Text>
                         </TouchableOpacity>
                       </View>
                     )}
@@ -728,12 +811,65 @@ const styles = StyleSheet.create({
     maxHeight: 100,
     marginRight: 12,
   },
+  attachButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    marginRight: 8,
+  },
   sendButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  attachmentsSection: {
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.1)',
+  },
+  attachmentsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 8,
+    gap: 8,
+  },
+  attachmentPreview: {
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  attachmentImage: {
+    width: 60,
+    height: 60,
+  },
+  closedChatContainer: {
+    padding: 16,
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.1)',
+  },
+  closedChatText: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 12,
+    lineHeight: 20,
+  },
+  reopenButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  reopenButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 6,
   },
   errorContainer: {
     flex: 1,
