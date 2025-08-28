@@ -11,7 +11,8 @@ import {
   Animated,
   Dimensions,
   KeyboardAvoidingView,
-  Platform
+  Platform,
+  Keyboard
 } from 'react-native';
 import { useLanguageStore } from '@/store/languageStore';
 import { useThemeStore } from '@/store/themeStore';
@@ -67,6 +68,7 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
   const [shouldScrollToEnd, setShouldScrollToEnd] = useState<boolean>(false);
   const [attachments, setAttachments] = useState<FileAttachment[]>([]);
   const [showAttachments, setShowAttachments] = useState<boolean>(false);
+  const [keyboardHeight, setKeyboardHeight] = useState<number>(0);
   
   const scrollViewRef = useRef<ScrollView>(null);
   const slideAnim = useRef(new Animated.Value(height)).current;
@@ -106,6 +108,29 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
       }, 100);
     }
   }, [currentChat?.messages, shouldScrollToEnd]);
+
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      'keyboardDidShow',
+      (e) => {
+        setKeyboardHeight(e.endCoordinates.height);
+        setTimeout(() => {
+          scrollViewRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+      }
+    );
+    const keyboardDidHideListener = Keyboard.addListener(
+      'keyboardDidHide',
+      () => {
+        setKeyboardHeight(0);
+      }
+    );
+
+    return () => {
+      keyboardDidHideListener.remove();
+      keyboardDidShowListener.remove();
+    };
+  }, []);
 
   const handleStartChat = () => {
     if (!currentUser || !selectedCategory || !subject.trim()) return;
@@ -454,10 +479,7 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
                 {showStartForm ? (
                   <StartChatForm />
                 ) : currentChat ? (
-                  <KeyboardAvoidingView 
-                    style={styles.chatContent}
-                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                  >
+                  <View style={styles.chatContent}>
                     {/* Messages */}
                     <ScrollView
                       ref={scrollViewRef}
@@ -488,7 +510,11 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
 
                     {/* Input */}
                     {currentChat.status !== 'closed' ? (
-                      <>
+                      <KeyboardAvoidingView 
+                        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+                        style={styles.inputSection}
+                      >
                         {/* File Attachments */}
                         {showAttachments && (
                           <View style={[styles.attachmentsSection, { backgroundColor: colors.card }]}>
@@ -500,7 +526,13 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
                           </View>
                         )}
                         
-                        <View style={[styles.inputContainer, { backgroundColor: colors.card }]}>
+                        <View style={[
+                          styles.inputContainer, 
+                          { 
+                            backgroundColor: colors.card,
+                            marginBottom: Platform.OS === 'ios' ? 0 : keyboardHeight > 0 ? 10 : 0
+                          }
+                        ]}>
                           <TouchableOpacity
                             style={[
                               styles.attachButton,
@@ -544,7 +576,7 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
                             <Send size={18} color={(message.trim() || attachments.length > 0) ? '#fff' : colors.textSecondary} />
                           </TouchableOpacity>
                         </View>
-                      </>
+                      </KeyboardAvoidingView>
                     ) : (
                       <View style={[styles.closedChatContainer, { backgroundColor: colors.card }]}>
                         <Text style={[styles.closedChatText, { color: colors.textSecondary }]}>
@@ -564,7 +596,7 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
                         </TouchableOpacity>
                       </View>
                     )}
-                  </KeyboardAvoidingView>
+                  </View>
                 ) : (
                   <View style={styles.errorContainer}>
                     <Text style={[styles.errorText, { color: colors.textSecondary }]}>
@@ -722,9 +754,13 @@ const styles = StyleSheet.create({
   chatContent: {
     flex: 1,
   },
+  inputSection: {
+    // No flex here to avoid taking up space
+  },
   messagesContainer: {
     flex: 1,
     padding: 16,
+    paddingBottom: 8,
   },
   messageBubble: {
     marginBottom: 16,
@@ -804,6 +840,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     padding: 16,
+    paddingBottom: Platform.OS === 'ios' ? 16 : 16,
     borderTopWidth: 1,
     borderTopColor: 'rgba(0,0,0,0.1)',
   },
@@ -815,7 +852,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 16,
     maxHeight: 100,
+    minHeight: 44,
     marginRight: 12,
+    textAlignVertical: 'center',
   },
   attachButton: {
     width: 44,
