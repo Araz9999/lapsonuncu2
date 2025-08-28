@@ -104,12 +104,21 @@ function RootLayoutNav() {
   useEffect(() => {
     const initSounds = async () => {
       try {
+        console.log('Starting sound initialization from layout...');
         await initializeSounds();
+        console.log('Sound initialization completed successfully');
       } catch (error) {
-        console.error('Failed to initialize sounds:', error);
+        console.error('Failed to initialize sounds in layout:', error);
+        // Continue app execution even if sound initialization fails
       }
     };
-    initSounds();
+    
+    // Delay sound initialization to ensure app is fully loaded
+    const timer = setTimeout(() => {
+      initSounds();
+    }, 1000);
+    
+    return () => clearTimeout(timer);
   }, []); // Remove initializeSounds from dependencies to prevent infinite loop
   
   // Initialize services
