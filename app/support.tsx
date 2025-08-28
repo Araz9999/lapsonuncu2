@@ -28,9 +28,13 @@ import {
   Clock,
   CheckCircle,
   AlertCircle,
-  Paperclip
+  Paperclip,
+  MessageCircle,
+  Headphones,
+  Users
 } from 'lucide-react-native';
 import FileAttachmentPicker, { FileAttachment } from '@/components/FileAttachmentPicker';
+import LiveChatWidget from '@/components/LiveChatWidget';
 
 const { width } = Dimensions.get('window');
 
@@ -39,7 +43,7 @@ export default function SupportScreen() {
   const { language } = useLanguageStore();
   const { themeMode, colorTheme } = useThemeStore();
   const { currentUser } = useUserStore();
-  const { categories, createTicket, getTicketsByUser } = useSupportStore();
+  const { categories, createTicket, getTicketsByUser, liveChats, operators, getAvailableOperators, startLiveChat } = useSupportStore();
   const colors = getColors(themeMode, colorTheme);
 
   const [selectedCategory, setSelectedCategory] = useState<string>('');
@@ -49,6 +53,8 @@ export default function SupportScreen() {
   const [showForm, setShowForm] = useState<boolean>(false);
   const [fadeAnim] = useState(new Animated.Value(0));
   const [attachments, setAttachments] = useState<FileAttachment[]>([]);
+  const [showLiveChat, setShowLiveChat] = useState<boolean>(false);
+  const [activeChatId, setActiveChatId] = useState<string | undefined>(undefined);
 
   React.useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -59,6 +65,8 @@ export default function SupportScreen() {
   }, [fadeAnim]);
 
   const userTickets = currentUser ? getTicketsByUser(currentUser.id) : [];
+  const userChats = currentUser ? liveChats.filter(chat => chat.userId === currentUser.id) : [];
+  const availableOperators = getAvailableOperators();
 
   const getCategoryIcon = (iconName: string) => {
     switch (iconName) {
@@ -341,6 +349,43 @@ export default function SupportScreen() {
                 {language === 'az' ? 'Tez əlaqə' : 'Быстрая связь'}
               </Text>
               
+              {/* Live Chat Option */}
+              <TouchableOpacity
+                style={[styles.quickAction, { backgroundColor: colors.card }]}
+                onPress={() => {
+                  if (!currentUser) {
+                    Alert.alert(
+                      language === 'az' ? 'Xəta' : 'Ошибка',
+                      language === 'az' ? 'Daxil olun' : 'Войдите в систему'
+                    );
+                    return;
+                  }
+                  setShowLiveChat(true);
+                }}
+              >
+                <View style={[styles.quickActionIcon, { backgroundColor: `${colors.primary}15` }]}>
+                  <MessageCircle size={20} color={colors.primary} />
+                </View>
+                <View style={styles.quickActionContent}>
+                  <Text style={[styles.quickActionTitle, { color: colors.text }]}>
+                    {language === 'az' ? 'Canlı dəstək' : 'Живая поддержка'}
+                  </Text>
+                  <Text style={[styles.quickActionSubtitle, { color: colors.textSecondary }]}>
+                    {language === 'az' ? 'Operatorla birbaşa söhbət' : 'Прямой чат с оператором'}
+                  </Text>
+                  {availableOperators.length > 0 && (
+                    <View style={styles.operatorStatus}>
+                      <View style={styles.onlineDot} />
+                      <Text style={[styles.operatorStatusText, { color: colors.primary }]}>
+                        {availableOperators.length} {language === 'az' ? 'operator onlayn' : 'операторов онлайн'}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+                <ChevronRight size={20} color={colors.textSecondary} />
+              </TouchableOpacity>
+              
+              {/* Traditional Ticket */}
               <TouchableOpacity
                 style={[styles.quickAction, { backgroundColor: colors.card }]}
                 onPress={() => setShowForm(true)}
@@ -359,6 +404,75 @@ export default function SupportScreen() {
                 <ChevronRight size={20} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
+
+            {/* Active Chats */}
+            {userChats.filter(chat => chat.status !== 'closed').length > 0 && (
+              <View style={styles.section}>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                  {language === 'az' ? 'Aktiv söhbətlər' : 'Активные чаты'}
+                </Text>
+                {userChats.filter(chat => chat.status !== 'closed').map((chat) => {
+                  const operator = chat.operatorId ? operators.find(op => op.id === chat.operatorId) : null;
+                  return (
+                    <TouchableOpacity
+                      key={chat.id}
+                      style={[styles.chatCard, { backgroundColor: colors.card }]}
+                      onPress={() => {
+                        setActiveChatId(chat.id);
+                        setShowLiveChat(true);
+                      }}
+                    >
+                      <View style={styles.chatHeader}>
+                        <View style={styles.chatInfo}>
+                          <Text style={[styles.chatSubject, { color: colors.text }]} numberOfLines={1}>
+                            {chat.subject}
+                          </Text>
+                          <Text style={[styles.chatDate, { color: colors.textSecondary }]}>
+                            {chat.createdAt.toLocaleDateString()}
+                          </Text>
+                        </View>
+                        <View style={styles.chatStatus}>
+                          <View style={[
+                            styles.statusBadge, 
+                            { backgroundColor: `${getStatusColor(chat.status)}20` }
+                          ]}>
+                            <View style={[
+                              styles.statusDot,
+                              { backgroundColor: getStatusColor(chat.status) }
+                            ]} />
+                            <Text style={[
+                              styles.statusText, 
+                              { color: getStatusColor(chat.status) }
+                            ]}>
+                              {language === 'az' 
+                                ? chat.status === 'waiting' ? 'Gözləyir'
+                                  : chat.status === 'active' ? 'Aktiv'
+                                  : 'Bağlı'
+                                : chat.status === 'waiting' ? 'Ожидание'
+                                  : chat.status === 'active' ? 'Активен'
+                                  : 'Закрыт'
+                              }
+                            </Text>
+                          </View>
+                          <ChevronRight size={16} color={colors.textSecondary} />
+                        </View>
+                      </View>
+                      {operator && (
+                        <View style={styles.operatorInfo}>
+                          <Headphones size={14} color={colors.textSecondary} />
+                          <Text style={[styles.operatorName, { color: colors.textSecondary }]}>
+                            {operator.name}
+                          </Text>
+                        </View>
+                      )}
+                      <Text style={[styles.messageCount, { color: colors.primary }]}>
+                        {chat.messages.length} {language === 'az' ? 'mesaj' : 'сообщений'}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
 
             {/* My Tickets */}
             {userTickets.length > 0 && (
@@ -579,6 +693,15 @@ export default function SupportScreen() {
           </ScrollView>
         )}
       </Animated.View>
+
+      <LiveChatWidget
+        visible={showLiveChat}
+        onClose={() => {
+          setShowLiveChat(false);
+          setActiveChatId(undefined);
+        }}
+        chatId={activeChatId}
+      />
     </View>
   );
 }
@@ -832,5 +955,66 @@ const styles = StyleSheet.create({
   attachmentCount: {
     fontSize: 12,
     marginLeft: 4,
+  },
+  operatorStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  onlineDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#4CAF50',
+    marginRight: 6,
+  },
+  operatorStatusText: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  chatCard: {
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  chatHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  chatInfo: {
+    flex: 1,
+  },
+  chatSubject: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  chatDate: {
+    fontSize: 12,
+  },
+  chatStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 6,
+  },
+  operatorInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  operatorName: {
+    fontSize: 12,
+    marginLeft: 4,
+  },
+  messageCount: {
+    fontSize: 12,
+    fontWeight: '500',
   },
 });
