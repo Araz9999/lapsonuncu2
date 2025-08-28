@@ -1,11 +1,12 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Animated
+  Animated,
+  Platform
 } from 'react-native';
 import {
   Sparkles,
@@ -22,6 +23,7 @@ import {
   Snowflake,
   Gift
 } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import Colors from '@/constants/colors';
 import { useLanguageStore } from '@/store/languageStore';
 
@@ -251,7 +253,8 @@ const EffectPreview = ({ effect, isSelected }: { effect: CreativeEffect; isSelec
   const glowValue = useRef(new Animated.Value(0)).current;
   const pulseValue = useRef(new Animated.Value(1)).current;
   const sparkleValue = useRef(new Animated.Value(0)).current;
-  const animationRef = useRef<any>(null);
+  const animationRef = useRef<Animated.CompositeAnimation | null>(null);
+  const rotateAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     // Stop any existing animation
@@ -331,12 +334,12 @@ const EffectPreview = ({ effect, isSelected }: { effect: CreativeEffect; isSelec
           animationRef.current.start();
           break;
         case 'rainbow':
-          animatedValue.setValue(0);
+          rotateAnim.setValue(0);
           animationRef.current = Animated.loop(
-            Animated.timing(animatedValue, {
-              toValue: 360,
-              duration: 4000,
-              useNativeDriver: false,
+            Animated.timing(rotateAnim, {
+              toValue: 1,
+              duration: 5000,
+              useNativeDriver: Platform.OS !== 'web',
             })
           );
           animationRef.current.start();
@@ -419,15 +422,14 @@ const EffectPreview = ({ effect, isSelected }: { effect: CreativeEffect; isSelec
         return {
           shadowColor: effect.color,
           shadowOffset: { width: 0, height: 0 },
-          shadowOpacity: glowValue,
+          shadowOpacity: glowValue as unknown as number,
           shadowRadius: glowValue.interpolate({
             inputRange: [0, 1],
             outputRange: [0, 10],
-          }),
-          elevation: glowValue.interpolate({
-            inputRange: [0, 1],
-            outputRange: [0, 10],
-          }),
+          }) as unknown as number,
+          elevation: 6,
+          borderWidth: 2,
+          borderColor: effect.color,
         };
       case 'pulse':
       case 'frame-blinking':
@@ -449,21 +451,15 @@ const EffectPreview = ({ effect, isSelected }: { effect: CreativeEffect; isSelec
         return {
           opacity: sparkleValue.interpolate({
             inputRange: [0, 1],
-            outputRange: [0.7, 1],
-          }),
+            outputRange: [0.85, 1],
+          }) as unknown as number,
           borderWidth: 2,
           borderColor: effect.color,
           shadowColor: effect.color,
           shadowOffset: { width: 0, height: 0 },
-          shadowOpacity: sparkleValue,
-          shadowRadius: sparkleValue.interpolate({
-            inputRange: [0, 1],
-            outputRange: [3, 12],
-          }),
-          elevation: sparkleValue.interpolate({
-            inputRange: [0, 1],
-            outputRange: [3, 12],
-          }),
+          shadowOpacity: 0.7,
+          shadowRadius: 8,
+          elevation: 6,
         };
       case 'frame-floral':
         return {
@@ -473,15 +469,12 @@ const EffectPreview = ({ effect, isSelected }: { effect: CreativeEffect; isSelec
           opacity: sparkleValue.interpolate({
             inputRange: [0, 1],
             outputRange: [0.8, 1],
-          }),
+          }) as unknown as number,
           shadowColor: effect.color,
           shadowOffset: { width: 0, height: 0 },
-          shadowOpacity: sparkleValue.interpolate({
-            inputRange: [0, 1],
-            outputRange: [0.4, 0.9],
-          }),
+          shadowOpacity: 0.6,
           shadowRadius: 8,
-          elevation: 8,
+          elevation: 6,
         };
       case 'frame-diamond':
         return {
@@ -490,21 +483,12 @@ const EffectPreview = ({ effect, isSelected }: { effect: CreativeEffect; isSelec
           opacity: sparkleValue.interpolate({
             inputRange: [0, 1],
             outputRange: [0.7, 1],
-          }),
+          }) as unknown as number,
           shadowColor: '#FFFFFF',
           shadowOffset: { width: 0, height: 0 },
-          shadowOpacity: sparkleValue.interpolate({
-            inputRange: [0, 1],
-            outputRange: [0.5, 1],
-          }),
-          shadowRadius: sparkleValue.interpolate({
-            inputRange: [0, 1],
-            outputRange: [5, 15],
-          }),
-          elevation: sparkleValue.interpolate({
-            inputRange: [0, 1],
-            outputRange: [5, 15],
-          }),
+          shadowOpacity: 0.8,
+          shadowRadius: 10,
+          elevation: 6,
         };
       case 'frame-golden':
         return {
@@ -513,15 +497,12 @@ const EffectPreview = ({ effect, isSelected }: { effect: CreativeEffect; isSelec
           opacity: sparkleValue.interpolate({
             inputRange: [0, 1],
             outputRange: [0.8, 1],
-          }),
+          }) as unknown as number,
           shadowColor: '#FFD700',
           shadowOffset: { width: 0, height: 0 },
-          shadowOpacity: sparkleValue.interpolate({
-            inputRange: [0, 1],
-            outputRange: [0.4, 0.8],
-          }),
+          shadowOpacity: 0.7,
           shadowRadius: 10,
-          elevation: 10,
+          elevation: 8,
         };
       case 'frame-neon':
         return {
@@ -530,37 +511,16 @@ const EffectPreview = ({ effect, isSelected }: { effect: CreativeEffect; isSelec
           opacity: sparkleValue.interpolate({
             inputRange: [0, 1],
             outputRange: [0.6, 1],
-          }),
+          }) as unknown as number,
           shadowColor: effect.color,
           shadowOffset: { width: 0, height: 0 },
-          shadowOpacity: sparkleValue.interpolate({
-            inputRange: [0, 1],
-            outputRange: [0.6, 1],
-          }),
-          shadowRadius: sparkleValue.interpolate({
-            inputRange: [0, 1],
-            outputRange: [8, 20],
-          }),
-          elevation: sparkleValue.interpolate({
-            inputRange: [0, 1],
-            outputRange: [8, 20],
-          }),
+          shadowOpacity: 0.9,
+          shadowRadius: 14,
+          elevation: 8,
         };
       case 'rainbow':
         return {
-          borderWidth: 3,
-          borderColor: animatedValue.interpolate({
-            inputRange: [0, 60, 120, 180, 240, 300, 360],
-            outputRange: ['#FF0000', '#FF8000', '#FFFF00', '#00FF00', '#0080FF', '#8000FF', '#FF0000'],
-          }),
-          shadowColor: animatedValue.interpolate({
-            inputRange: [0, 60, 120, 180, 240, 300, 360],
-            outputRange: ['#FF0000', '#FF8000', '#FFFF00', '#00FF00', '#0080FF', '#8000FF', '#FF0000'],
-          }),
-          shadowOffset: { width: 0, height: 0 },
-          shadowOpacity: 0.6,
-          shadowRadius: 8,
-          elevation: 8,
+          borderWidth: 0,
         };
       case 'star-rain':
       case 'heart-rain':
@@ -574,11 +534,11 @@ const EffectPreview = ({ effect, isSelected }: { effect: CreativeEffect; isSelec
           shadowOffset: { width: 0, height: 0 },
           shadowOpacity: 0.7,
           shadowRadius: 10,
-          elevation: 10,
+          elevation: 6,
           opacity: animatedValue.interpolate({
             inputRange: [0, 0.5, 1],
             outputRange: [0.8, 1, 0.8],
-          }),
+          }) as unknown as number,
         };
       case 'fireworks':
       case 'confetti':
@@ -589,23 +549,14 @@ const EffectPreview = ({ effect, isSelected }: { effect: CreativeEffect; isSelec
           transform: [{
             scale: sparkleValue.interpolate({
               inputRange: [0, 1],
-              outputRange: [1, 1.3],
-            })
+              outputRange: [1, 1.15],
+            }) as unknown as number
           }],
           shadowColor: effect.color,
           shadowOffset: { width: 0, height: 0 },
-          shadowOpacity: sparkleValue.interpolate({
-            inputRange: [0, 1],
-            outputRange: [0.3, 1],
-          }),
-          shadowRadius: sparkleValue.interpolate({
-            inputRange: [0, 1],
-            outputRange: [5, 20],
-          }),
-          elevation: sparkleValue.interpolate({
-            inputRange: [0, 1],
-            outputRange: [5, 20],
-          }),
+          shadowOpacity: 0.8,
+          shadowRadius: 12,
+          elevation: 6,
         };
       default:
         return {};
@@ -1078,11 +1029,35 @@ const EffectPreview = ({ effect, isSelected }: { effect: CreativeEffect; isSelec
     }
   };
 
+  const rainbowRing = useMemo(() => (
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        styles.rainbowRing,
+        {
+          transform: [
+            {
+              rotate: rotateAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) as unknown as string,
+            },
+          ],
+        },
+      ]}
+    >
+      <LinearGradient
+        colors={["#FF0000", "#FF7F00", "#FFFF00", "#00FF00", "#0000FF", "#4B0082", "#8B00FF", "#FF0000"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.rainbowGradient}
+      />
+    </Animated.View>
+  ), [rotateAnim]);
+
   return (
     <View style={{ position: 'relative', overflow: 'hidden' }}>
-      <Animated.View style={[styles.effectIcon, { backgroundColor: effect.color + '20' }, getAnimatedStyle()]}>
+      <Animated.View testID={`effect-icon-${effect.id}`} style={[styles.effectIcon, { backgroundColor: effect.color + '20' }, getAnimatedStyle()]}>
         {effect.icon}
       </Animated.View>
+      {effect.type === 'rainbow' && rainbowRing}
       {renderFrameDecorations()}
       {renderParticleEffects()}
     </View>
@@ -1098,7 +1073,7 @@ export default function CreativeEffectsSection({ onSelectEffect, selectedEffects
 
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle}>{title}</Text>
+      <Text testID="effects-section-title" style={styles.sectionTitle}>{title}</Text>
       <Text style={styles.sectionDescription}>
         {language === 'az'
           ? 'Elanınızı daha cəlbedici etmək üçün kreativ effektlər əlavə edin'
@@ -1112,6 +1087,7 @@ export default function CreativeEffectsSection({ onSelectEffect, selectedEffects
           
           return (
             <TouchableOpacity
+              testID={`effect-card-${effect.id}`}
               key={effect.id}
               style={[
                 styles.effectCard,
@@ -1221,6 +1197,21 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  rainbowRing: {
+    position: 'absolute',
+    top: -3,
+    left: -3,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    zIndex: 1,
+  },
+  rainbowGradient: {
+    flex: 1,
+    borderRadius: 23,
+    borderWidth: 2,
+    borderColor: 'transparent',
   },
   frameDecoration: {
     position: 'absolute',
