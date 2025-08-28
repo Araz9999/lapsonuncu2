@@ -20,34 +20,42 @@ class NotificationService {
   }
 
   async requestPermissions(): Promise<boolean> {
-    if (Platform.OS === 'web') {
-      if ('Notification' in window) {
-        const permission = await Notification.requestPermission();
-        return permission === 'granted';
+    try {
+      if (Platform.OS === 'web') {
+        if ('Notification' in window) {
+          const permission = await Notification.requestPermission();
+          return permission === 'granted';
+        }
+        return false;
+      } else {
+        const { status: existingStatus } = await Notifications.getPermissionsAsync();
+        let finalStatus = existingStatus;
+        
+        if (existingStatus !== 'granted') {
+          const { status } = await Notifications.requestPermissionsAsync();
+          finalStatus = status;
+        }
+        
+        return finalStatus === 'granted';
       }
+    } catch (error) {
+      console.error('Failed to request notification permissions:', error);
       return false;
-    } else {
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
-      let finalStatus = existingStatus;
-      
-      if (existingStatus !== 'granted') {
-        const { status } = await Notifications.requestPermissionsAsync();
-        finalStatus = status;
-      }
-      
-      return finalStatus === 'granted';
     }
   }
 
   async getExpoPushToken(): Promise<string | null> {
     if (Platform.OS === 'web') {
+      console.log('Push tokens not available on web platform');
       return null;
     }
 
     try {
+      console.log('Getting Expo push token...');
       const token = await Notifications.getExpoPushTokenAsync({
         projectId: 'your-expo-project-id',
       });
+      console.log('Expo push token obtained successfully');
       return token.data;
     } catch (error) {
       console.error('Failed to get Expo push token:', error);
@@ -86,24 +94,33 @@ class NotificationService {
   }
 
   async sendLocalNotification(notification: PushNotification): Promise<void> {
-    if (Platform.OS === 'web') {
-      if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification(notification.title, {
-          body: notification.body,
-          icon: '/assets/images/icon.png',
+    try {
+      if (Platform.OS === 'web') {
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification(notification.title, {
+            body: notification.body,
+            icon: '/assets/images/icon.png',
+          });
+          console.log('Web notification sent successfully');
+        } else {
+          console.log('Web notifications not available or permission not granted');
+        }
+      } else {
+        console.log('Sending local notification on mobile...');
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: notification.title,
+            body: notification.body,
+            data: notification.data,
+            sound: notification.sound,
+            badge: notification.badge,
+          },
+          trigger: null,
         });
+        console.log('Mobile notification sent successfully');
       }
-    } else {
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: notification.title,
-          body: notification.body,
-          data: notification.data,
-          sound: notification.sound,
-          badge: notification.badge,
-        },
-        trigger: null,
-      });
+    } catch (error) {
+      console.error('Failed to send local notification:', error);
     }
   }
 

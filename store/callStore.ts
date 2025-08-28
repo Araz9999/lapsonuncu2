@@ -282,104 +282,142 @@ export const useCallStore = create<CallStore>((set, get) => ({
   },
   
   initializeSounds: async () => {
-    if (Platform.OS === 'web') return;
+    if (Platform.OS === 'web') {
+      console.log('Sound initialization skipped for web platform');
+      return;
+    }
     
     try {
+      console.log('Initializing sounds for mobile platform...');
       const { Audio } = await import('expo-av');
       
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: false,
-        staysActiveInBackground: true,
-        playsInSilentModeIOS: true,
-        shouldDuckAndroid: true,
-        playThroughEarpieceAndroid: false,
-      });
+      if (Audio && Audio.setAudioModeAsync) {
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
+          staysActiveInBackground: true,
+          playsInSilentModeIOS: true,
+          shouldDuckAndroid: true,
+          playThroughEarpieceAndroid: false,
+        });
+        console.log('Audio mode configured successfully for calls');
+      } else {
+        console.log('Audio.setAudioModeAsync not available, using fallback');
+      }
       
-      console.log('Audio mode configured for calls');
-      // We'll use haptic feedback instead of sound files for now
       set({ ringtoneSound: null, dialToneSound: null });
     } catch (error) {
-      console.error('Failed to initialize sounds:', error);
+      console.error('Failed to initialize sounds, using fallback:', error);
+      // Set fallback values to prevent further errors
+      set({ ringtoneSound: null, dialToneSound: null });
     }
   },
   
   playRingtone: async () => {
-    if (Platform.OS === 'web') return;
+    if (Platform.OS === 'web') {
+      console.log('Ringtone playback skipped for web platform');
+      return;
+    }
     
     try {
-      // Use haptic feedback for ringtone
+      console.log('Playing ringtone with haptic feedback...');
       const Haptics = await import('expo-haptics');
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      console.log('Playing ringtone with haptic feedback');
       
-      // Create a repeating pattern for incoming call
-      const ringtoneInterval = setInterval(async () => {
-        try {
-          await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-        } catch (error) {
-          console.log('Haptic feedback error:', error);
-        }
-      }, 1000);
-      
-      // Store interval for cleanup
-      (get() as any).ringtoneInterval = ringtoneInterval;
+      if (Haptics && Haptics.notificationAsync) {
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        console.log('Initial ringtone haptic feedback played');
+        
+        // Create a repeating pattern for incoming call
+        const ringtoneInterval = setInterval(async () => {
+          try {
+            if (Haptics && Haptics.impactAsync) {
+              await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+            }
+          } catch (error) {
+            console.log('Haptic feedback interval error:', error);
+          }
+        }, 1000);
+        
+        // Store interval for cleanup
+        (get() as any).ringtoneInterval = ringtoneInterval;
+      } else {
+        console.log('Haptics not available, using console notification');
+      }
     } catch (error) {
-      console.error('Failed to play ringtone:', error);
+      console.error('Failed to play ringtone, using fallback:', error);
     }
   },
   
   playDialTone: async () => {
-    if (Platform.OS === 'web') return;
+    if (Platform.OS === 'web') {
+      console.log('Dial tone playback skipped for web platform');
+      return;
+    }
     
     try {
-      // Use haptic feedback for dial tone
+      console.log('Playing dial tone with haptic feedback...');
       const Haptics = await import('expo-haptics');
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      console.log('Playing dial tone with haptic feedback');
       
-      // Create a repeating pattern for outgoing call
-      const dialToneInterval = setInterval(async () => {
-        try {
-          await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        } catch (error) {
-          console.log('Haptic feedback error:', error);
-        }
-      }, 2000);
-      
-      // Store interval for cleanup
-      (get() as any).dialToneInterval = dialToneInterval;
+      if (Haptics && Haptics.impactAsync) {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        console.log('Initial dial tone haptic feedback played');
+        
+        // Create a repeating pattern for outgoing call
+        const dialToneInterval = setInterval(async () => {
+          try {
+            if (Haptics && Haptics.impactAsync) {
+              await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            }
+          } catch (error) {
+            console.log('Haptic feedback interval error:', error);
+          }
+        }, 2000);
+        
+        // Store interval for cleanup
+        (get() as any).dialToneInterval = dialToneInterval;
+      } else {
+        console.log('Haptics not available, using console notification');
+      }
     } catch (error) {
-      console.error('Failed to play dial tone:', error);
+      console.error('Failed to play dial tone, using fallback:', error);
     }
   },
   
   stopAllSounds: async () => {
-    if (Platform.OS === 'web') return;
+    if (Platform.OS === 'web') {
+      console.log('Sound stopping skipped for web platform');
+      return;
+    }
     
     const state = get() as any;
     
     try {
+      console.log('Stopping all sounds and haptic patterns...');
+      
       // Clear haptic intervals
       if (state.ringtoneInterval) {
         clearInterval(state.ringtoneInterval);
         state.ringtoneInterval = null;
+        console.log('Ringtone interval cleared');
       }
       if (state.dialToneInterval) {
         clearInterval(state.dialToneInterval);
         state.dialToneInterval = null;
+        console.log('Dial tone interval cleared');
       }
       
       // Stop any actual sounds if they exist
-      if (state.ringtoneSound) {
+      if (state.ringtoneSound && state.ringtoneSound.stopAsync) {
         await state.ringtoneSound.stopAsync();
+        console.log('Ringtone sound stopped');
       }
-      if (state.dialToneSound) {
+      if (state.dialToneSound && state.dialToneSound.stopAsync) {
         await state.dialToneSound.stopAsync();
+        console.log('Dial tone sound stopped');
       }
       
-      console.log('All sounds and haptic patterns stopped');
+      console.log('All sounds and haptic patterns stopped successfully');
     } catch (error) {
-      console.error('Failed to stop sounds:', error);
+      console.error('Failed to stop sounds, continuing anyway:', error);
     }
   },
   
