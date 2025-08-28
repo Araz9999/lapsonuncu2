@@ -18,7 +18,9 @@ import {
   Circle,
   Flower2,
   Gem,
-  Award
+  Award,
+  Snowflake,
+  Gift
 } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { useLanguageStore } from '@/store/languageStore';
@@ -31,7 +33,7 @@ interface CreativeEffect {
   color: string;
   price: number;
   duration: number; // in days
-  type: 'glow' | 'sparkle' | 'pulse' | 'rainbow' | 'fire' | 'star' | 'frame-blinking' | 'frame-glowing' | 'frame-floral' | 'frame-diamond' | 'frame-golden' | 'frame-neon';
+  type: 'glow' | 'sparkle' | 'pulse' | 'rainbow' | 'fire' | 'star' | 'frame-blinking' | 'frame-glowing' | 'frame-floral' | 'frame-diamond' | 'frame-golden' | 'frame-neon' | 'star-rain' | 'fireworks' | 'heart-rain' | 'rose-rain' | 'snow-fall' | 'confetti' | 'bubble-float' | 'sparkle-burst';
   isActive?: boolean;
 }
 
@@ -155,6 +157,86 @@ const creativeEffects: CreativeEffect[] = [
     price: 1.3,
     duration: 9,
     type: 'frame-neon'
+  },
+  {
+    id: 'star-rain',
+    name: { az: 'Ulduz Yağışı', ru: 'Звездный Дождь' },
+    description: { az: 'Şəkilin üzərində ulduzlar yağacaq', ru: 'Звезды будут падать поверх изображения' },
+    icon: <Star size={24} color="#FFD700" />,
+    color: '#FFD700',
+    price: 2.2,
+    duration: 15,
+    type: 'star-rain'
+  },
+  {
+    id: 'fireworks',
+    name: { az: 'Havayi Fişək', ru: 'Фейерверк' },
+    description: { az: 'Rəngarəng havayi fişək effekti', ru: 'Красочный эффект фейерверка' },
+    icon: <Sparkles size={24} color="#FF6B35" />,
+    color: '#FF6B35',
+    price: 2.8,
+    duration: 18,
+    type: 'fireworks'
+  },
+  {
+    id: 'heart-rain',
+    name: { az: 'Ürək Yağışı', ru: 'Дождь Сердец' },
+    description: { az: 'Romantik ürək yağışı animasiyası', ru: 'Романтичная анимация дождя из сердец' },
+    icon: <Heart size={24} color="#FF69B4" />,
+    color: '#FF69B4',
+    price: 2.0,
+    duration: 12,
+    type: 'heart-rain'
+  },
+  {
+    id: 'rose-rain',
+    name: { az: 'Gül Yağışı', ru: 'Дождь Роз' },
+    description: { az: 'Zərif gül yarpaqları yağışı', ru: 'Нежный дождь из лепестков роз' },
+    icon: <Flower2 size={24} color="#FF1493" />,
+    color: '#FF1493',
+    price: 2.5,
+    duration: 16,
+    type: 'rose-rain'
+  },
+  {
+    id: 'snow-fall',
+    name: { az: 'Qar Yağışı', ru: 'Снегопад' },
+    description: { az: 'Sakit qar yağışı effekti', ru: 'Спокойный эффект снегопада' },
+    icon: <Snowflake size={24} color="#87CEEB" />,
+    color: '#87CEEB',
+    price: 1.8,
+    duration: 14,
+    type: 'snow-fall'
+  },
+  {
+    id: 'confetti',
+    name: { az: 'Konfeti', ru: 'Конфетти' },
+    description: { az: 'Bayram konfeti effekti', ru: 'Праздничный эффект конфетти' },
+    icon: <Gift size={24} color="#FF6347" />,
+    color: '#FF6347',
+    price: 2.3,
+    duration: 10,
+    type: 'confetti'
+  },
+  {
+    id: 'bubble-float',
+    name: { az: 'Uçan Qabarcıqlar', ru: 'Плавающие Пузыри' },
+    description: { az: 'Yavaş-yavaş yuxarı qalxan qabarcıqlar', ru: 'Медленно поднимающиеся пузыри' },
+    icon: <Circle size={24} color="#40E0D0" />,
+    color: '#40E0D0',
+    price: 1.6,
+    duration: 11,
+    type: 'bubble-float'
+  },
+  {
+    id: 'sparkle-burst',
+    name: { az: 'Parıltı Partlayışı', ru: 'Взрыв Блесток' },
+    description: { az: 'Mərkəzdən yayılan parıltı effekti', ru: 'Эффект блесток, расходящихся от центра' },
+    icon: <Zap size={24} color="#9370DB" />,
+    color: '#9370DB',
+    price: 2.1,
+    duration: 13,
+    type: 'sparkle-burst'
   }
 ];
 
@@ -247,6 +329,37 @@ const EffectPreview = ({ effect, isSelected }: { effect: CreativeEffect; isSelec
               }),
               Animated.timing(sparkleValue, {
                 toValue: 0.3,
+                duration: 1200,
+                useNativeDriver: false,
+              }),
+            ])
+          ).start();
+          break;
+        case 'star-rain':
+        case 'heart-rain':
+        case 'rose-rain':
+        case 'snow-fall':
+        case 'bubble-float':
+          Animated.loop(
+            Animated.timing(animatedValue, {
+              toValue: 1,
+              duration: 2000,
+              useNativeDriver: false,
+            })
+          ).start();
+          break;
+        case 'fireworks':
+        case 'confetti':
+        case 'sparkle-burst':
+          Animated.loop(
+            Animated.sequence([
+              Animated.timing(sparkleValue, {
+                toValue: 1,
+                duration: 800,
+                useNativeDriver: false,
+              }),
+              Animated.timing(sparkleValue, {
+                toValue: 0,
                 duration: 1200,
                 useNativeDriver: false,
               }),
@@ -408,8 +521,312 @@ const EffectPreview = ({ effect, isSelected }: { effect: CreativeEffect; isSelec
           shadowRadius: 8,
           elevation: 8,
         };
+      case 'star-rain':
+      case 'heart-rain':
+      case 'rose-rain':
+      case 'snow-fall':
+      case 'bubble-float':
+        return {
+          borderWidth: 2,
+          borderColor: effect.color,
+          shadowColor: effect.color,
+          shadowOffset: { width: 0, height: 0 },
+          shadowOpacity: 0.7,
+          shadowRadius: 10,
+          elevation: 10,
+          opacity: animatedValue.interpolate({
+            inputRange: [0, 0.5, 1],
+            outputRange: [0.8, 1, 0.8],
+          }),
+        };
+      case 'fireworks':
+      case 'confetti':
+      case 'sparkle-burst':
+        return {
+          borderWidth: 2,
+          borderColor: effect.color,
+          transform: [{
+            scale: sparkleValue.interpolate({
+              inputRange: [0, 1],
+              outputRange: [1, 1.3],
+            })
+          }],
+          shadowColor: effect.color,
+          shadowOffset: { width: 0, height: 0 },
+          shadowOpacity: sparkleValue.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0.3, 1],
+          }),
+          shadowRadius: sparkleValue.interpolate({
+            inputRange: [0, 1],
+            outputRange: [5, 20],
+          }),
+          elevation: sparkleValue.interpolate({
+            inputRange: [0, 1],
+            outputRange: [5, 20],
+          }),
+        };
       default:
         return {};
+    }
+  };
+
+  const renderParticleEffects = () => {
+    if (!isSelected) return null;
+    
+    const particles = [];
+    const particleCount = 8;
+    
+    switch (effect.type) {
+      case 'star-rain':
+        for (let i = 0; i < particleCount; i++) {
+          particles.push(
+            <Animated.View
+              key={i}
+              style={[
+                styles.particle,
+                {
+                  left: (i * 15) % 60,
+                  top: -10 + (i * 8) % 30,
+                  opacity: animatedValue.interpolate({
+                    inputRange: [0, 0.5, 1],
+                    outputRange: [0, 1, 0],
+                  }),
+                  transform: [{
+                    translateY: animatedValue.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [-20, 60],
+                    })
+                  }]
+                }
+              ]}
+            >
+              <Star size={8} color={effect.color} />
+            </Animated.View>
+          );
+        }
+        return particles;
+      case 'heart-rain':
+        for (let i = 0; i < particleCount; i++) {
+          particles.push(
+            <Animated.View
+              key={i}
+              style={[
+                styles.particle,
+                {
+                  left: (i * 12) % 50,
+                  top: -8 + (i * 6) % 25,
+                  opacity: animatedValue.interpolate({
+                    inputRange: [0, 0.3, 0.7, 1],
+                    outputRange: [0, 1, 1, 0],
+                  }),
+                  transform: [{
+                    translateY: animatedValue.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [-15, 55],
+                    })
+                  }]
+                }
+              ]}
+            >
+              <Heart size={6} color={effect.color} />
+            </Animated.View>
+          );
+        }
+        return particles;
+      case 'rose-rain':
+        for (let i = 0; i < particleCount; i++) {
+          particles.push(
+            <Animated.View
+              key={i}
+              style={[
+                styles.particle,
+                {
+                  left: (i * 14) % 55,
+                  top: -12 + (i * 7) % 28,
+                  opacity: animatedValue.interpolate({
+                    inputRange: [0, 0.4, 0.8, 1],
+                    outputRange: [0, 1, 0.8, 0],
+                  }),
+                  transform: [{
+                    translateY: animatedValue.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [-18, 58],
+                    }),
+                    rotate: animatedValue.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: ['0deg', '180deg'],
+                    })
+                  }]
+                }
+              ]}
+            >
+              <Flower2 size={7} color={effect.color} />
+            </Animated.View>
+          );
+        }
+        return particles;
+      case 'snow-fall':
+        for (let i = 0; i < particleCount; i++) {
+          particles.push(
+            <Animated.View
+              key={i}
+              style={[
+                styles.particle,
+                {
+                  left: (i * 13) % 52,
+                  top: -10 + (i * 5) % 20,
+                  opacity: animatedValue.interpolate({
+                    inputRange: [0, 0.2, 0.8, 1],
+                    outputRange: [0, 0.8, 0.8, 0],
+                  }),
+                  transform: [{
+                    translateY: animatedValue.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [-15, 50],
+                    })
+                  }]
+                }
+              ]}
+            >
+              <Snowflake size={6} color={effect.color} />
+            </Animated.View>
+          );
+        }
+        return particles;
+      case 'bubble-float':
+        for (let i = 0; i < 6; i++) {
+          particles.push(
+            <Animated.View
+              key={i}
+              style={[
+                styles.particle,
+                {
+                  left: (i * 16) % 48,
+                  bottom: -10,
+                  opacity: animatedValue.interpolate({
+                    inputRange: [0, 0.3, 0.7, 1],
+                    outputRange: [0, 0.6, 0.6, 0],
+                  }),
+                  transform: [{
+                    translateY: animatedValue.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, -60],
+                    })
+                  }]
+                }
+              ]}
+            >
+              <Circle size={8} color={effect.color} />
+            </Animated.View>
+          );
+        }
+        return particles;
+      case 'fireworks':
+        for (let i = 0; i < 12; i++) {
+          const angle = (i * 30) * Math.PI / 180;
+          particles.push(
+            <Animated.View
+              key={i}
+              style={[
+                styles.particle,
+                {
+                  left: 20,
+                  top: 20,
+                  opacity: sparkleValue.interpolate({
+                    inputRange: [0, 0.5, 1],
+                    outputRange: [0, 1, 0],
+                  }),
+                  transform: [{
+                    translateX: sparkleValue.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, Math.cos(angle) * 25],
+                    })
+                  }, {
+                    translateY: sparkleValue.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, Math.sin(angle) * 25],
+                    })
+                  }]
+                }
+              ]}
+            >
+              <Sparkles size={4} color={['#FF6B35', '#FFD700', '#FF1493', '#00BFFF'][i % 4]} />
+            </Animated.View>
+          );
+        }
+        return particles;
+      case 'confetti':
+        for (let i = 0; i < 10; i++) {
+          particles.push(
+            <Animated.View
+              key={i}
+              style={[
+                styles.particle,
+                {
+                  left: (i * 8) % 40,
+                  top: -5,
+                  opacity: sparkleValue.interpolate({
+                    inputRange: [0, 0.3, 1],
+                    outputRange: [0, 1, 0],
+                  }),
+                  transform: [{
+                    translateY: sparkleValue.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [-10, 50],
+                    }),
+                    rotate: sparkleValue.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: ['0deg', '360deg'],
+                    })
+                  }]
+                }
+              ]}
+            >
+              <View style={[
+                styles.confettiPiece,
+                { backgroundColor: ['#FF6347', '#FFD700', '#FF69B4', '#00BFFF', '#32CD32'][i % 5] }
+              ]} />
+            </Animated.View>
+          );
+        }
+        return particles;
+      case 'sparkle-burst':
+        for (let i = 0; i < 8; i++) {
+          const angle = (i * 45) * Math.PI / 180;
+          particles.push(
+            <Animated.View
+              key={i}
+              style={[
+                styles.particle,
+                {
+                  left: 20,
+                  top: 20,
+                  opacity: sparkleValue.interpolate({
+                    inputRange: [0, 0.4, 1],
+                    outputRange: [0, 1, 0],
+                  }),
+                  transform: [{
+                    translateX: sparkleValue.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, Math.cos(angle) * 20],
+                    })
+                  }, {
+                    translateY: sparkleValue.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, Math.sin(angle) * 20],
+                    })
+                  }]
+                }
+              ]}
+            >
+              <Sparkles size={5} color={effect.color} />
+            </Animated.View>
+          );
+        }
+        return particles;
+      default:
+        return null;
     }
   };
 
@@ -524,11 +941,12 @@ const EffectPreview = ({ effect, isSelected }: { effect: CreativeEffect; isSelec
   };
 
   return (
-    <View style={{ position: 'relative' }}>
+    <View style={{ position: 'relative', overflow: 'hidden' }}>
       <Animated.View style={[styles.effectIcon, { backgroundColor: effect.color + '20' }, getAnimatedStyle()]}>
         {effect.icon}
       </Animated.View>
       {renderFrameDecorations()}
+      {renderParticleEffects()}
     </View>
   );
 };
@@ -761,6 +1179,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: Colors.primary || '#0E7490',
+  },
+  particle: {
+    position: 'absolute',
+    zIndex: 5,
+  },
+  confettiPiece: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
   },
 });
 
