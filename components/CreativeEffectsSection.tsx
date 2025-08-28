@@ -247,18 +247,32 @@ interface CreativeEffectsSectionProps {
 }
 
 const EffectPreview = ({ effect, isSelected }: { effect: CreativeEffect; isSelected: boolean }) => {
-  const animatedValue = useRef(new Animated.Value(1)).current;
+  const animatedValue = useRef(new Animated.Value(0)).current;
   const glowValue = useRef(new Animated.Value(0)).current;
   const pulseValue = useRef(new Animated.Value(1)).current;
   const sparkleValue = useRef(new Animated.Value(0)).current;
+  const animationRef = useRef<any>(null);
 
   useEffect(() => {
-    if (!isSelected) return;
+    // Stop any existing animation
+    if (animationRef.current) {
+      animationRef.current.stop();
+      animationRef.current = null;
+    }
+
+    if (!isSelected) {
+      // Reset all values when not selected
+      animatedValue.setValue(0);
+      glowValue.setValue(0);
+      pulseValue.setValue(1);
+      sparkleValue.setValue(0);
+      return;
+    }
 
     const startAnimations = () => {
       switch (effect.type) {
         case 'glow':
-          Animated.loop(
+          animationRef.current = Animated.loop(
             Animated.sequence([
               Animated.timing(glowValue, {
                 toValue: 1,
@@ -271,11 +285,12 @@ const EffectPreview = ({ effect, isSelected }: { effect: CreativeEffect; isSelec
                 useNativeDriver: false,
               }),
             ])
-          ).start();
+          );
+          animationRef.current.start();
           break;
         case 'pulse':
         case 'frame-blinking':
-          Animated.loop(
+          animationRef.current = Animated.loop(
             Animated.sequence([
               Animated.timing(pulseValue, {
                 toValue: 1.2,
@@ -288,11 +303,12 @@ const EffectPreview = ({ effect, isSelected }: { effect: CreativeEffect; isSelec
                 useNativeDriver: true,
               }),
             ])
-          ).start();
+          );
+          animationRef.current.start();
           break;
         case 'sparkle':
         case 'frame-glowing':
-          Animated.loop(
+          animationRef.current = Animated.loop(
             Animated.sequence([
               Animated.timing(sparkleValue, {
                 toValue: 1,
@@ -305,22 +321,25 @@ const EffectPreview = ({ effect, isSelected }: { effect: CreativeEffect; isSelec
                 useNativeDriver: false,
               }),
             ])
-          ).start();
+          );
+          animationRef.current.start();
           break;
         case 'rainbow':
-          Animated.loop(
+          animatedValue.setValue(0);
+          animationRef.current = Animated.loop(
             Animated.timing(animatedValue, {
               toValue: 360,
               duration: 3000,
               useNativeDriver: false,
             })
-          ).start();
+          );
+          animationRef.current.start();
           break;
         case 'frame-floral':
         case 'frame-diamond':
         case 'frame-golden':
         case 'frame-neon':
-          Animated.loop(
+          animationRef.current = Animated.loop(
             Animated.sequence([
               Animated.timing(sparkleValue, {
                 toValue: 1,
@@ -333,25 +352,28 @@ const EffectPreview = ({ effect, isSelected }: { effect: CreativeEffect; isSelec
                 useNativeDriver: false,
               }),
             ])
-          ).start();
+          );
+          animationRef.current.start();
           break;
         case 'star-rain':
         case 'heart-rain':
         case 'rose-rain':
         case 'snow-fall':
         case 'bubble-float':
-          Animated.loop(
+          animatedValue.setValue(0);
+          animationRef.current = Animated.loop(
             Animated.timing(animatedValue, {
               toValue: 1,
               duration: 2000,
               useNativeDriver: false,
             })
-          ).start();
+          );
+          animationRef.current.start();
           break;
         case 'fireworks':
         case 'confetti':
         case 'sparkle-burst':
-          Animated.loop(
+          animationRef.current = Animated.loop(
             Animated.sequence([
               Animated.timing(sparkleValue, {
                 toValue: 1,
@@ -364,12 +386,21 @@ const EffectPreview = ({ effect, isSelected }: { effect: CreativeEffect; isSelec
                 useNativeDriver: false,
               }),
             ])
-          ).start();
+          );
+          animationRef.current.start();
           break;
       }
     };
 
     startAnimations();
+
+    // Cleanup function
+    return () => {
+      if (animationRef.current) {
+        animationRef.current.stop();
+        animationRef.current = null;
+      }
+    };
   }, [isSelected, effect.type, animatedValue, glowValue, pulseValue, sparkleValue]);
 
   const getAnimatedStyle = () => {
@@ -580,144 +611,209 @@ const EffectPreview = ({ effect, isSelected }: { effect: CreativeEffect; isSelec
     switch (effect.type) {
       case 'star-rain':
         for (let i = 0; i < particleCount; i++) {
+          const delay = (i * 0.1) % 1;
           particles.push(
             <Animated.View
               key={i}
               style={[
                 styles.particle,
                 {
-                  left: (i * 15) % 60,
-                  top: -10 + (i * 8) % 30,
+                  left: (i * 12) % 48,
+                  top: -15,
                   opacity: animatedValue.interpolate({
-                    inputRange: [0, 0.5, 1],
-                    outputRange: [0, 1, 0],
+                    inputRange: [delay, delay + 0.3, delay + 0.7, Math.min(delay + 1, 1)],
+                    outputRange: [0, 1, 1, 0],
+                    extrapolate: 'clamp',
                   }),
                   transform: [{
                     translateY: animatedValue.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [-20, 60],
+                      inputRange: [delay, Math.min(delay + 1, 1)],
+                      outputRange: [0, 70],
+                      extrapolate: 'clamp',
+                    })
+                  }, {
+                    rotate: animatedValue.interpolate({
+                      inputRange: [delay, Math.min(delay + 1, 1)],
+                      outputRange: ['0deg', '360deg'],
+                      extrapolate: 'clamp',
                     })
                   }]
                 }
               ]}
             >
-              <Star size={8} color={effect.color} />
+              <Star size={6} color={effect.color} />
             </Animated.View>
           );
         }
         return particles;
       case 'heart-rain':
         for (let i = 0; i < particleCount; i++) {
+          const delay = (i * 0.15) % 1;
           particles.push(
             <Animated.View
               key={i}
               style={[
                 styles.particle,
                 {
-                  left: (i * 12) % 50,
-                  top: -8 + (i * 6) % 25,
+                  left: (i * 10) % 40,
+                  top: -12,
                   opacity: animatedValue.interpolate({
-                    inputRange: [0, 0.3, 0.7, 1],
+                    inputRange: [delay, delay + 0.2, delay + 0.8, Math.min(delay + 1, 1)],
                     outputRange: [0, 1, 1, 0],
+                    extrapolate: 'clamp',
                   }),
                   transform: [{
                     translateY: animatedValue.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [-15, 55],
+                      inputRange: [delay, Math.min(delay + 1, 1)],
+                      outputRange: [0, 65],
+                      extrapolate: 'clamp',
+                    })
+                  }, {
+                    scale: animatedValue.interpolate({
+                      inputRange: [delay, delay + 0.5, Math.min(delay + 1, 1)],
+                      outputRange: [0.5, 1.2, 0.8],
+                      extrapolate: 'clamp',
                     })
                   }]
                 }
               ]}
             >
-              <Heart size={6} color={effect.color} />
+              <Heart size={5} color={effect.color} />
             </Animated.View>
           );
         }
         return particles;
       case 'rose-rain':
         for (let i = 0; i < particleCount; i++) {
+          const delay = (i * 0.12) % 1;
           particles.push(
             <Animated.View
               key={i}
               style={[
                 styles.particle,
                 {
-                  left: (i * 14) % 55,
-                  top: -12 + (i * 7) % 28,
+                  left: (i * 11) % 44,
+                  top: -15,
                   opacity: animatedValue.interpolate({
-                    inputRange: [0, 0.4, 0.8, 1],
-                    outputRange: [0, 1, 0.8, 0],
+                    inputRange: [delay, delay + 0.3, delay + 0.7, Math.min(delay + 1, 1)],
+                    outputRange: [0, 1, 0.9, 0],
+                    extrapolate: 'clamp',
                   }),
                   transform: [{
                     translateY: animatedValue.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [-18, 58],
-                    }),
+                      inputRange: [delay, Math.min(delay + 1, 1)],
+                      outputRange: [0, 68],
+                      extrapolate: 'clamp',
+                    })
+                  }, {
                     rotate: animatedValue.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: ['0deg', '180deg'],
+                      inputRange: [delay, Math.min(delay + 1, 1)],
+                      outputRange: ['0deg', '270deg'],
+                      extrapolate: 'clamp',
+                    })
+                  }, {
+                    scale: animatedValue.interpolate({
+                      inputRange: [delay, delay + 0.5, Math.min(delay + 1, 1)],
+                      outputRange: [1, 1.3, 0.7],
+                      extrapolate: 'clamp',
                     })
                   }]
                 }
               ]}
             >
-              <Flower2 size={7} color={effect.color} />
+              <Flower2 size={6} color={effect.color} />
             </Animated.View>
           );
         }
         return particles;
       case 'snow-fall':
         for (let i = 0; i < particleCount; i++) {
+          const delay = (i * 0.08) % 1;
           particles.push(
             <Animated.View
               key={i}
               style={[
                 styles.particle,
                 {
-                  left: (i * 13) % 52,
-                  top: -10 + (i * 5) % 20,
+                  left: (i * 9) % 36,
+                  top: -10,
                   opacity: animatedValue.interpolate({
-                    inputRange: [0, 0.2, 0.8, 1],
-                    outputRange: [0, 0.8, 0.8, 0],
+                    inputRange: [delay, delay + 0.1, delay + 0.9, Math.min(delay + 1, 1)],
+                    outputRange: [0, 0.9, 0.9, 0],
+                    extrapolate: 'clamp',
                   }),
                   transform: [{
                     translateY: animatedValue.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [-15, 50],
+                      inputRange: [delay, Math.min(delay + 1, 1)],
+                      outputRange: [0, 60],
+                      extrapolate: 'clamp',
+                    })
+                  }, {
+                    translateX: animatedValue.interpolate({
+                      inputRange: [delay, delay + 0.5, Math.min(delay + 1, 1)],
+                      outputRange: [0, Math.sin(i) * 8, Math.sin(i) * 4],
+                      extrapolate: 'clamp',
+                    })
+                  }, {
+                    rotate: animatedValue.interpolate({
+                      inputRange: [delay, Math.min(delay + 1, 1)],
+                      outputRange: ['0deg', '180deg'],
+                      extrapolate: 'clamp',
                     })
                   }]
                 }
               ]}
             >
-              <Snowflake size={6} color={effect.color} />
+              <Snowflake size={5} color={effect.color} />
             </Animated.View>
           );
         }
         return particles;
       case 'bubble-float':
         for (let i = 0; i < 6; i++) {
+          const delay = (i * 0.2) % 1;
           particles.push(
             <Animated.View
               key={i}
               style={[
                 styles.particle,
                 {
-                  left: (i * 16) % 48,
-                  bottom: -10,
+                  left: (i * 14) % 42,
+                  bottom: -15,
                   opacity: animatedValue.interpolate({
-                    inputRange: [0, 0.3, 0.7, 1],
-                    outputRange: [0, 0.6, 0.6, 0],
+                    inputRange: [delay, delay + 0.2, delay + 0.8, Math.min(delay + 1, 1)],
+                    outputRange: [0, 0.7, 0.7, 0],
+                    extrapolate: 'clamp',
                   }),
                   transform: [{
                     translateY: animatedValue.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0, -60],
+                      inputRange: [delay, Math.min(delay + 1, 1)],
+                      outputRange: [0, -70],
+                      extrapolate: 'clamp',
+                    })
+                  }, {
+                    translateX: animatedValue.interpolate({
+                      inputRange: [delay, delay + 0.5, Math.min(delay + 1, 1)],
+                      outputRange: [0, Math.cos(i) * 6, Math.cos(i) * 3],
+                      extrapolate: 'clamp',
+                    })
+                  }, {
+                    scale: animatedValue.interpolate({
+                      inputRange: [delay, delay + 0.5, Math.min(delay + 1, 1)],
+                      outputRange: [0.3, 1, 1.2],
+                      extrapolate: 'clamp',
                     })
                   }]
                 }
               ]}
             >
-              <Circle size={8} color={effect.color} />
+              <View style={[
+                styles.bubble,
+                {
+                  borderColor: effect.color,
+                  backgroundColor: effect.color + '20'
+                }
+              ]} />
             </Animated.View>
           );
         }
@@ -725,59 +821,77 @@ const EffectPreview = ({ effect, isSelected }: { effect: CreativeEffect; isSelec
       case 'fireworks':
         for (let i = 0; i < 12; i++) {
           const angle = (i * 30) * Math.PI / 180;
+          const colors = ['#FF6B35', '#FFD700', '#FF1493', '#00BFFF', '#32CD32', '#FF69B4'];
           particles.push(
             <Animated.View
               key={i}
               style={[
                 styles.particle,
                 {
-                  left: 20,
-                  top: 20,
+                  left: 18,
+                  top: 18,
                   opacity: sparkleValue.interpolate({
-                    inputRange: [0, 0.5, 1],
-                    outputRange: [0, 1, 0],
+                    inputRange: [0, 0.3, 0.7, 1],
+                    outputRange: [0, 1, 1, 0],
                   }),
                   transform: [{
                     translateX: sparkleValue.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0, Math.cos(angle) * 25],
+                      inputRange: [0, 0.6, 1],
+                      outputRange: [0, Math.cos(angle) * 20, Math.cos(angle) * 30],
                     })
                   }, {
                     translateY: sparkleValue.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0, Math.sin(angle) * 25],
+                      inputRange: [0, 0.6, 1],
+                      outputRange: [0, Math.sin(angle) * 20, Math.sin(angle) * 30],
+                    })
+                  }, {
+                    scale: sparkleValue.interpolate({
+                      inputRange: [0, 0.5, 1],
+                      outputRange: [0.2, 1.5, 0.5],
                     })
                   }]
                 }
               ]}
             >
-              <Sparkles size={4} color={['#FF6B35', '#FFD700', '#FF1493', '#00BFFF'][i % 4]} />
+              <Sparkles size={3} color={colors[i % colors.length]} />
             </Animated.View>
           );
         }
         return particles;
       case 'confetti':
         for (let i = 0; i < 10; i++) {
+          const colors = ['#FF6347', '#FFD700', '#FF69B4', '#00BFFF', '#32CD32', '#FF1493', '#FFA500'];
           particles.push(
             <Animated.View
               key={i}
               style={[
                 styles.particle,
                 {
-                  left: (i * 8) % 40,
-                  top: -5,
+                  left: (i * 6) % 36,
+                  top: -8,
                   opacity: sparkleValue.interpolate({
-                    inputRange: [0, 0.3, 1],
-                    outputRange: [0, 1, 0],
+                    inputRange: [0, 0.2, 0.8, 1],
+                    outputRange: [0, 1, 1, 0],
                   }),
                   transform: [{
                     translateY: sparkleValue.interpolate({
                       inputRange: [0, 1],
-                      outputRange: [-10, 50],
-                    }),
+                      outputRange: [0, 55],
+                    })
+                  }, {
+                    translateX: sparkleValue.interpolate({
+                      inputRange: [0, 0.5, 1],
+                      outputRange: [0, Math.sin(i) * 10, Math.sin(i) * 5],
+                    })
+                  }, {
                     rotate: sparkleValue.interpolate({
                       inputRange: [0, 1],
-                      outputRange: ['0deg', '360deg'],
+                      outputRange: ['0deg', '720deg'],
+                    })
+                  }, {
+                    scale: sparkleValue.interpolate({
+                      inputRange: [0, 0.3, 1],
+                      outputRange: [0.5, 1.2, 0.8],
                     })
                   }]
                 }
@@ -785,7 +899,11 @@ const EffectPreview = ({ effect, isSelected }: { effect: CreativeEffect; isSelec
             >
               <View style={[
                 styles.confettiPiece,
-                { backgroundColor: ['#FF6347', '#FFD700', '#FF69B4', '#00BFFF', '#32CD32'][i % 5] }
+                { 
+                  backgroundColor: colors[i % colors.length],
+                  width: i % 2 === 0 ? 4 : 6,
+                  height: i % 3 === 0 ? 3 : 5,
+                }
               ]} />
             </Animated.View>
           );
@@ -800,27 +918,37 @@ const EffectPreview = ({ effect, isSelected }: { effect: CreativeEffect; isSelec
               style={[
                 styles.particle,
                 {
-                  left: 20,
-                  top: 20,
+                  left: 18,
+                  top: 18,
                   opacity: sparkleValue.interpolate({
-                    inputRange: [0, 0.4, 1],
-                    outputRange: [0, 1, 0],
+                    inputRange: [0, 0.2, 0.6, 1],
+                    outputRange: [0, 1, 1, 0],
                   }),
                   transform: [{
                     translateX: sparkleValue.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0, Math.cos(angle) * 20],
+                      inputRange: [0, 0.8, 1],
+                      outputRange: [0, Math.cos(angle) * 18, Math.cos(angle) * 25],
                     })
                   }, {
                     translateY: sparkleValue.interpolate({
+                      inputRange: [0, 0.8, 1],
+                      outputRange: [0, Math.sin(angle) * 18, Math.sin(angle) * 25],
+                    })
+                  }, {
+                    scale: sparkleValue.interpolate({
+                      inputRange: [0, 0.4, 1],
+                      outputRange: [0.3, 1.3, 0.6],
+                    })
+                  }, {
+                    rotate: sparkleValue.interpolate({
                       inputRange: [0, 1],
-                      outputRange: [0, Math.sin(angle) * 20],
+                      outputRange: ['0deg', '180deg'],
                     })
                   }]
                 }
               ]}
             >
-              <Sparkles size={5} color={effect.color} />
+              <Sparkles size={4} color={effect.color} />
             </Animated.View>
           );
         }
@@ -1188,6 +1316,12 @@ const styles = StyleSheet.create({
     width: 4,
     height: 4,
     borderRadius: 2,
+  },
+  bubble: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    borderWidth: 1,
   },
 });
 
