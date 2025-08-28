@@ -189,12 +189,36 @@ export default function SettingsScreen() {
     );
   };
 
-  const testSound = () => {
-    playNotificationSound();
+  const testSound = async () => {
+    try {
+      await playNotificationSound();
+      Alert.alert(
+        language === 'az' ? 'Test səsi' : 'Тестовый звук',
+        language === 'az' ? 'Səs testi tamamlandı' : 'Тест звука завершен'
+      );
+    } catch (error) {
+      console.error('Test sound failed:', error);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Səs testi uğursuz oldu' : 'Тест звука не удался'
+      );
+    }
   };
 
-  const testVibration = () => {
-    triggerVibration();
+  const testVibration = async () => {
+    try {
+      await triggerVibration();
+      Alert.alert(
+        language === 'az' ? 'Test vibrasiyas' : 'Тестовая вибрация',
+        language === 'az' ? 'Vibrasiya testi tamamlandı' : 'Тест вибрации завершен'
+      );
+    } catch (error) {
+      console.error('Test vibration failed:', error);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Vibrasiya testi uğursuz oldu' : 'Тест вибрации не удался'
+      );
+    }
   };
 
   const clearCache = () => {
