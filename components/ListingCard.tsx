@@ -53,8 +53,8 @@ export default function ListingCard({
   const frameGlowAnim = useRef(new Animated.Value(0)).current;
   
   // Get active discounts and campaigns - memoized to prevent infinite re-renders
-  const activeDiscounts = useMemo(() => getActiveDiscountsForListing(listing.id), [listing.id]);
-  const activeCampaigns = useMemo(() => getActiveCampaignsForListing(listing.id), [listing.id]);
+  const activeDiscounts = useMemo(() => getActiveDiscountsForListing(listing.id), [listing.id, getActiveDiscountsForListing]);
+  const activeCampaigns = useMemo(() => getActiveCampaignsForListing(listing.id), [listing.id, getActiveCampaignsForListing]);
   const hasActivePromotion = useMemo(() => 
     activeDiscounts.length > 0 ||
     activeCampaigns.length > 0 ||
@@ -221,9 +221,17 @@ export default function ListingCard({
   
   // Start animations for promotions and creative effects
   useEffect(() => {
+    let pulseAnimation: Animated.CompositeAnimation | null = null;
+    let rotateAnimation: Animated.CompositeAnimation | null = null;
+    let glowAnimation: Animated.CompositeAnimation | null = null;
+    let sparkleAnimation: Animated.CompositeAnimation | null = null;
+    let fireAnimation: Animated.CompositeAnimation | null = null;
+    let frameBlinkAnimation: Animated.CompositeAnimation | null = null;
+    let frameGlowAnimation: Animated.CompositeAnimation | null = null;
+
     if (hasActivePromotion || hasCreativeEffects) {
       // Pulse animation
-      Animated.loop(
+      pulseAnimation = Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, {
             toValue: 1.1,
@@ -236,21 +244,23 @@ export default function ListingCard({
             useNativeDriver: true,
           }),
         ])
-      ).start();
+      );
+      pulseAnimation.start();
       
       // Rotation animation for campaign badges
       if (activeCampaigns.length > 0) {
-        Animated.loop(
+        rotateAnimation = Animated.loop(
           Animated.timing(rotateAnim, {
             toValue: 1,
             duration: 3000,
             useNativeDriver: true,
           })
-        ).start();
+        );
+        rotateAnimation.start();
       }
       
       // Glow animation
-      Animated.loop(
+      glowAnimation = Animated.loop(
         Animated.sequence([
           Animated.timing(glowAnim, {
             toValue: 1,
@@ -263,13 +273,14 @@ export default function ListingCard({
             useNativeDriver: false,
           }),
         ])
-      ).start();
+      );
+      glowAnimation.start();
       
       // Creative effects animations
       if (hasCreativeEffects) {
         // Sparkle animation
         if (activeCreativeEffects.some(e => e.type === 'sparkle')) {
-          Animated.loop(
+          sparkleAnimation = Animated.loop(
             Animated.sequence([
               Animated.timing(sparkleAnim, {
                 toValue: 1,
@@ -282,12 +293,13 @@ export default function ListingCard({
                 useNativeDriver: true,
               }),
             ])
-          ).start();
+          );
+          sparkleAnimation.start();
         }
         
         // Fire animation
         if (activeCreativeEffects.some(e => e.type === 'fire')) {
-          Animated.loop(
+          fireAnimation = Animated.loop(
             Animated.sequence([
               Animated.timing(fireAnim, {
                 toValue: 1,
@@ -300,7 +312,8 @@ export default function ListingCard({
                 useNativeDriver: true,
               }),
             ])
-          ).start();
+          );
+          fireAnimation.start();
         }
         
         // Frame effects animations
@@ -309,7 +322,7 @@ export default function ListingCard({
           
           if (frameEffect?.id === 'frame-blinking') {
             // Blinking frame animation
-            Animated.loop(
+            frameBlinkAnimation = Animated.loop(
               Animated.sequence([
                 Animated.timing(frameBlinkAnim, {
                   toValue: 0.3,
@@ -322,12 +335,13 @@ export default function ListingCard({
                   useNativeDriver: false,
                 }),
               ])
-            ).start();
+            );
+            frameBlinkAnimation.start();
           }
           
           if (frameEffect?.id === 'frame-glowing' || frameEffect?.id === 'frame-neon') {
             // Glowing frame animation
-            Animated.loop(
+            frameGlowAnimation = Animated.loop(
               Animated.sequence([
                 Animated.timing(frameGlowAnim, {
                   toValue: 1,
@@ -340,19 +354,24 @@ export default function ListingCard({
                   useNativeDriver: false,
                 }),
               ])
-            ).start();
+            );
+            frameGlowAnimation.start();
           }
         }
       }
-    } else {
-      // Stop animations when no promotion or effects
-      pulseAnim.stopAnimation();
-      rotateAnim.stopAnimation();
-      glowAnim.stopAnimation();
-      sparkleAnim.stopAnimation();
-      fireAnim.stopAnimation();
-      frameBlinkAnim.stopAnimation();
-      frameGlowAnim.stopAnimation();
+    }
+
+    return () => {
+      // Clean up animations
+      pulseAnimation?.stop();
+      rotateAnimation?.stop();
+      glowAnimation?.stop();
+      sparkleAnimation?.stop();
+      fireAnimation?.stop();
+      frameBlinkAnimation?.stop();
+      frameGlowAnimation?.stop();
+      
+      // Reset animation values
       pulseAnim.setValue(1);
       rotateAnim.setValue(0);
       glowAnim.setValue(0);
@@ -360,8 +379,8 @@ export default function ListingCard({
       fireAnim.setValue(0);
       frameBlinkAnim.setValue(1);
       frameGlowAnim.setValue(0);
-    }
-  }, [hasActivePromotion, hasCreativeEffects]); // Simplified dependencies
+    };
+  }, [hasActivePromotion, hasCreativeEffects]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);

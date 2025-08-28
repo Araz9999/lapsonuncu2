@@ -149,7 +149,7 @@ export default function ListingDetailScreen() {
     if (listing && id) {
       incrementViewCount(id);
     }
-  }, [id, listing, incrementViewCount]);
+  }, [id, incrementViewCount]);
   if (!listing) {
     return (
       <View style={styles.notFound}>
