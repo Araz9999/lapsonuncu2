@@ -587,20 +587,29 @@ export default function ListingDetailScreen() {
                 <Text style={styles.originalPrice}>
                   {priceInfo.originalPrice} {listing.currency}
                 </Text>
-              </View>
-              <View style={styles.discountBadge}>
-                {priceInfo.discountType === 'fixed_amount' ? (
-                  <Text style={styles.discountBadgeText}>
-                    -{priceInfo.absoluteSavings} {listing.currency}
-                  </Text>
-                ) : (
-                  <>
-                    <Percent size={12} color="white" />
+                <View style={styles.discountBadge}>
+                  {priceInfo.discountType === 'fixed_amount' ? (
                     <Text style={styles.discountBadgeText}>
-                      {Math.round(priceInfo.discountPercentage)}%
+                      -{priceInfo.absoluteSavings} {listing.currency}
                     </Text>
-                  </>
-                )}
+                  ) : (
+                    <>
+                      <Percent size={12} color="white" />
+                      <Text style={styles.discountBadgeText}>
+                        {Math.round(priceInfo.discountPercentage)}%
+                      </Text>
+                    </>
+                  )}
+                </View>
+              </View>
+              <View style={styles.savingsInfo}>
+                <Text style={styles.savingsText}>
+                  {language === 'az' ? 'Qənaət: ' : 'Экономия: '}
+                  {priceInfo.discountType === 'fixed_amount' 
+                    ? `${priceInfo.absoluteSavings} ${listing.currency}`
+                    : `${Math.round(priceInfo.discountPercentage)}%`
+                  }
+                </Text>
               </View>
             </View>
           ) : (
@@ -1039,14 +1048,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   discountedPriceContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+    flex: 1,
   },
   priceWithDiscount: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    marginBottom: 8,
   },
   discountedPrice: {
     fontSize: 24,
@@ -1071,6 +1079,18 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 12,
     fontWeight: 'bold',
+  },
+  savingsInfo: {
+    backgroundColor: 'rgba(34, 197, 94, 0.1)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+  },
+  savingsText: {
+    color: Colors.success,
+    fontSize: 12,
+    fontWeight: '600',
   },
   discountsSection: {
     marginTop: 24,
