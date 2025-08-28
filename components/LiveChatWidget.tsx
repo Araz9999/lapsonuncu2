@@ -64,6 +64,7 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
   const [priority, setPriority] = useState<'low' | 'medium' | 'high' | 'urgent'>('medium');
   const [currentChatId, setCurrentChatId] = useState<string | undefined>(chatId);
   const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [shouldScrollToEnd, setShouldScrollToEnd] = useState<boolean>(false);
   const [attachments, setAttachments] = useState<FileAttachment[]>([]);
   const [showAttachments, setShowAttachments] = useState<boolean>(false);
   
@@ -98,12 +99,13 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
   }, [currentChat, currentUser, markMessagesAsRead]);
 
   useEffect(() => {
-    if (currentChat?.messages.length) {
+    if (currentChat?.messages.length && shouldScrollToEnd) {
       setTimeout(() => {
         scrollViewRef.current?.scrollToEnd({ animated: true });
+        setShouldScrollToEnd(false);
       }, 100);
     }
-  }, [currentChat?.messages]);
+  }, [currentChat?.messages, shouldScrollToEnd]);
 
   const handleStartChat = () => {
     if (!currentUser || !selectedCategory || !subject.trim()) return;
@@ -130,6 +132,7 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
     setMessage('');
     setAttachments([]);
     setShowAttachments(false);
+    setShouldScrollToEnd(true);
     
     // Clear typing indicator
     if (typingTimeout) {
@@ -460,7 +463,10 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
                       ref={scrollViewRef}
                       style={styles.messagesContainer}
                       showsVerticalScrollIndicator={false}
-                      onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+                      maintainVisibleContentPosition={{
+                        minIndexForVisible: 0,
+                        autoscrollToTopThreshold: 10
+                      }}
                     >
                       {currentChat.messages.map((msg) => (
                         <MessageBubble key={msg.id} msg={msg} />
