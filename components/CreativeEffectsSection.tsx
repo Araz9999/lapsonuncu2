@@ -420,7 +420,7 @@ const EffectPreview = ({ effect, isSelected }: { effect: CreativeEffect; isSelec
       sparkleValue.setValue(0);
       rotateAnim.setValue(0);
     };
-  }, [isSelected, effect.type, animatedValue, glowValue, pulseValue, sparkleValue, rotateAnim]);
+  }, [isSelected, effect.type]);
 
   const getAnimatedStyle = () => {
     switch (effect.type) {
