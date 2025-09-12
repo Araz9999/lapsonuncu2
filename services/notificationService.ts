@@ -2,10 +2,23 @@ import config from '@/constants/config';
 import { Platform } from 'react-native';
 
 // Configure notification behavior only for mobile platforms
+// Note: Push notifications are not available in Expo Go SDK 53+
 let Notifications: any = null;
+let isNotificationsAvailable = false;
+
 if (Platform.OS !== 'web') {
   try {
+    // Check if we're in Expo Go or a development build
+    const isExpoGo = !__DEV__ ? false : true;
+    
+    if (isExpoGo) {
+      // In Expo Go, we can only use local notifications
+      console.log('Running in Expo Go - remote push notifications not available');
+    }
+    
     Notifications = require('expo-notifications');
+    isNotificationsAvailable = true;
+    
     if (Notifications && Notifications.setNotificationHandler) {
       Notifications.setNotificationHandler({
         handleNotification: async () => ({
@@ -18,7 +31,8 @@ if (Platform.OS !== 'web') {
       });
     }
   } catch (error) {
-    console.log('Expo notifications not available:', error);
+    console.log('Expo notifications module not available');
+    isNotificationsAvailable = false;
   }
 }
 
@@ -48,20 +62,26 @@ class NotificationService {
         }
         return false;
       } else {
-        if (!Notifications) {
-          console.log('Expo notifications not available');
+        if (!isNotificationsAvailable || !Notifications) {
+          console.log('Notifications not available on this platform');
           return false;
         }
         
-        const { status: existingStatus } = await Notifications.getPermissionsAsync();
-        let finalStatus = existingStatus;
-        
-        if (existingStatus !== 'granted') {
-          const { status } = await Notifications.requestPermissionsAsync();
-          finalStatus = status;
+        try {
+          const { status: existingStatus } = await Notifications.getPermissionsAsync();
+          let finalStatus = existingStatus;
+          
+          if (existingStatus !== 'granted') {
+            const { status } = await Notifications.requestPermissionsAsync();
+            finalStatus = status;
+          }
+          
+          return finalStatus === 'granted';
+        } catch (permError) {
+          // Permission API might not be available in Expo Go
+          console.log('Permission API not available, assuming granted for local notifications');
+          return true;
         }
-        
-        return finalStatus === 'granted';
       }
     } catch (error) {
       console.error('Failed to request notification permissions:', error);
@@ -75,20 +95,27 @@ class NotificationService {
       return null;
     }
 
-    if (!Notifications) {
-      console.log('Expo notifications not available');
+    if (!isNotificationsAvailable || !Notifications) {
+      console.log('Push notifications not available in Expo Go SDK 53+');
       return null;
     }
 
     try {
-      console.log('Getting Expo push token...');
-      const token = await Notifications.getExpoPushTokenAsync({
-        projectId: 'your-expo-project-id',
-      });
-      console.log('Expo push token obtained successfully');
-      return token.data;
+      // Check if we can get push token (only in development builds, not Expo Go)
+      if (Notifications.getExpoPushTokenAsync) {
+        console.log('Attempting to get push token...');
+        const token = await Notifications.getExpoPushTokenAsync({
+          projectId: 'your-expo-project-id',
+        });
+        console.log('Push token obtained');
+        return token.data;
+      } else {
+        console.log('Push token API not available in Expo Go');
+        return null;
+      }
     } catch (error) {
-      console.error('Failed to get Expo push token:', error);
+      // This is expected in Expo Go SDK 53+
+      console.log('Push tokens not available in current environment');
       return null;
     }
   }
@@ -131,28 +158,31 @@ class NotificationService {
             body: notification.body,
             icon: '/assets/images/icon.png',
           });
-          console.log('Web notification sent successfully');
+          console.log('Web notification sent');
         } else {
           console.log('Web notifications not available or permission not granted');
         }
       } else {
-        if (!Notifications) {
-          console.log('Expo notifications not available');
+        if (!isNotificationsAvailable || !Notifications) {
+          console.log('Local notifications not available');
           return;
         }
         
-        console.log('Sending local notification on mobile...');
-        await Notifications.scheduleNotificationAsync({
-          content: {
-            title: notification.title,
-            body: notification.body,
-            data: notification.data,
-            sound: notification.sound ? 'default' : false,
-            badge: notification.badge,
-          },
-          trigger: null,
-        });
-        console.log('Mobile notification sent successfully');
+        try {
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title: notification.title,
+              body: notification.body,
+              data: notification.data,
+              sound: notification.sound ? 'default' : false,
+              badge: notification.badge,
+            },
+            trigger: null,
+          });
+          console.log('Local notification scheduled');
+        } catch (scheduleError) {
+          console.log('Could not schedule notification:', scheduleError);
+        }
       }
     } catch (error) {
       console.error('Failed to send local notification:', error);

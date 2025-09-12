@@ -46,9 +46,13 @@ export const useNotificationStore = create<NotificationState>()(
         
         // Trigger haptic feedback for notification on mobile
         if (typeof window !== 'undefined' && 'navigator' in window) {
-          import('expo-haptics').then((Haptics) => {
-            if (Haptics && Haptics.notificationAsync) {
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+          import('react-native').then(({ Platform }) => {
+            if (Platform.OS !== 'web') {
+              import('expo-haptics').then((Haptics) => {
+                if (Haptics && Haptics.notificationAsync) {
+                  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+                }
+              }).catch(() => {});
             }
           }).catch(() => {});
         }
