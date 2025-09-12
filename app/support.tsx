@@ -549,7 +549,14 @@ export default function SupportScreen() {
             <View style={styles.formHeader}>
               <TouchableOpacity
                 style={styles.backButton}
-                onPress={() => setShowForm(false)}
+                onPress={() => {
+                  setShowForm(false);
+                  setSelectedCategory('');
+                  setSubject('');
+                  setMessage('');
+                  setPriority('medium');
+                  setAttachments([]);
+                }}
               >
                 <Text style={[styles.backButtonText, { color: colors.primary }]}>
                   {language === 'az' ? '← Geri' : '← Назад'}

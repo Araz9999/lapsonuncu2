@@ -269,13 +269,13 @@ const EffectPreview = ({ effect, isSelected }: { effect: CreativeEffect; isSelec
       glowValue.setValue(0);
       pulseValue.setValue(1);
       sparkleValue.setValue(0);
+      rotateAnim.setValue(0);
       return;
     }
 
     // Small delay to ensure proper initialization
     const initTimeout = setTimeout(() => {
-
-    const startAnimations = () => {
+      const startAnimations = () => {
       switch (effect.type) {
         case 'glow':
           glowValue.setValue(0);
@@ -413,8 +413,14 @@ const EffectPreview = ({ effect, isSelected }: { effect: CreativeEffect; isSelec
         animationRef.current.stop();
         animationRef.current = null;
       }
+      // Reset all animation values on cleanup
+      animatedValue.setValue(0);
+      glowValue.setValue(0);
+      pulseValue.setValue(1);
+      sparkleValue.setValue(0);
+      rotateAnim.setValue(0);
     };
-  }, [isSelected, effect.type, animatedValue, glowValue, pulseValue, sparkleValue]);
+  }, [isSelected, effect.type, animatedValue, glowValue, pulseValue, sparkleValue, rotateAnim]);
 
   const getAnimatedStyle = () => {
     switch (effect.type) {
@@ -1053,7 +1059,7 @@ const EffectPreview = ({ effect, isSelected }: { effect: CreativeEffect; isSelec
   ), [rotateAnim]);
 
   return (
-    <View style={{ position: 'relative', overflow: 'hidden' }}>
+    <View style={styles.effectPreviewContainer}>
       <Animated.View testID={`effect-icon-${effect.id}`} style={[styles.effectIcon, { backgroundColor: effect.color + '20' }, getAnimatedStyle()]}>
         {effect.icon}
       </Animated.View>
@@ -1323,6 +1329,10 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     borderWidth: 1,
+  },
+  effectPreviewContainer: {
+    position: 'relative',
+    overflow: 'hidden',
   },
 });
 

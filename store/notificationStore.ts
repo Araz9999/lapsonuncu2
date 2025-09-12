@@ -43,6 +43,15 @@ export const useNotificationStore = create<NotificationState>()(
           notifications: [newNotification, ...state.notifications],
           unreadCount: state.unreadCount + 1,
         }));
+        
+        // Trigger haptic feedback for notification on mobile
+        if (typeof window !== 'undefined' && 'navigator' in window) {
+          import('expo-haptics').then((Haptics) => {
+            if (Haptics && Haptics.notificationAsync) {
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+            }
+          }).catch(() => {});
+        }
       },
       
       markAsRead: (notificationId) => {
