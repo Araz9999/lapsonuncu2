@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { Call, ActiveCall, CallStatus, CallType } from '@/types/call';
 import { users } from '@/mocks/users';
 import { Platform } from 'react-native';
+import { Audio } from 'expo-av';
 
 interface CallStore {
   calls: Call[];
@@ -33,6 +34,7 @@ interface CallStore {
   playRingtone: () => Promise<void>;
   playDialTone: () => Promise<void>;
   stopAllSounds: () => Promise<void>;
+  cleanupSounds: () => Promise<void>;
   
   // Notifications
   simulateIncomingCall: () => void;
@@ -120,9 +122,7 @@ export const useCallStore = create<CallStore>((set, get) => ({
     set({ activeCall });
     
     // Play dial tone for outgoing call
-    if (Platform.OS !== 'web') {
-      get().playDialTone();
-    }
+    await get().playDialTone();
     
     // Simulate call being answered after 3 seconds
     setTimeout(() => {
@@ -419,6 +419,11 @@ export const useCallStore = create<CallStore>((set, get) => ({
     } catch (error) {
       console.error('Failed to stop sounds, continuing anyway:', error);
     }
+  },
+  
+  cleanupSounds: async () => {
+    await get().stopAllSounds();
+    set({ ringtoneSound: null, dialToneSound: null });
   },
   
   simulateIncomingCall: async () => {
