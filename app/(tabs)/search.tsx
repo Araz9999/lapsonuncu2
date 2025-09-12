@@ -150,9 +150,10 @@ export default function SearchScreen() {
 
   return (
     <View style={styles.container}>
-      <SearchBar />
-      
-      <View style={styles.imageSearchContainer}>
+      <View style={styles.headerContainer}>
+        <SearchBar />
+        
+        <View style={styles.imageSearchContainer}>
         <TouchableOpacity style={styles.imageSearchButton} onPress={pickImage}>
           <ImageIcon size={20} color={Colors.primary} />
           <Text style={styles.imageSearchText}>
@@ -168,9 +169,9 @@ export default function SearchScreen() {
             </Text>
           </TouchableOpacity>
         )}
-      </View>
-      
-      <View style={styles.filterBar}>
+        </View>
+        
+        <View style={styles.filterBar}>
         <TouchableOpacity style={styles.filterToggle} onPress={toggleFilters}>
           <Filter size={20} color={Colors.primary} />
           <Text style={styles.filterToggleText}>
@@ -328,8 +329,11 @@ export default function SearchScreen() {
           )}
         </View>
       )}
+      </View>
       
-      <ListingGrid />
+      <View style={styles.listingContainer}>
+        <ListingGrid />
+      </View>
     </View>
   );
 }
@@ -338,6 +342,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
+  },
+  headerContainer: {
+    backgroundColor: Colors.background,
+    zIndex: 1,
+  },
+  listingContainer: {
+    flex: 1,
   },
   imageSearchContainer: {
     flexDirection: 'row',
