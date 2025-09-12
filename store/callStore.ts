@@ -2,7 +2,6 @@ import { create } from 'zustand';
 import { Call, ActiveCall, CallStatus, CallType } from '@/types/call';
 import { users } from '@/mocks/users';
 import { Platform } from 'react-native';
-import { Audio } from 'expo-av';
 
 interface CallStore {
   calls: Call[];
@@ -286,28 +285,12 @@ export const useCallStore = create<CallStore>((set, get) => ({
       console.log('Sound initialization skipped for web platform');
       return;
     }
-    
+
     try {
-      console.log('Initializing sounds for mobile platform...');
-      const { Audio } = await import('expo-av');
-      
-      if (Audio && Audio.setAudioModeAsync) {
-        await Audio.setAudioModeAsync({
-          allowsRecordingIOS: false,
-          staysActiveInBackground: true,
-          playsInSilentModeIOS: true,
-          shouldDuckAndroid: true,
-          playThroughEarpieceAndroid: false,
-        });
-        console.log('Audio mode configured successfully for calls');
-      } else {
-        console.log('Audio.setAudioModeAsync not available, using fallback');
-      }
-      
+      console.log('Initializing sounds (no audio engine required in Expo Go v53)...');
       set({ ringtoneSound: null, dialToneSound: null });
     } catch (error) {
-      console.error('Failed to initialize sounds, using fallback:', error);
-      // Set fallback values to prevent further errors
+      console.log('Sound init fallback used:', error);
       set({ ringtoneSound: null, dialToneSound: null });
     }
   },
