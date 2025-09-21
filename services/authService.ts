@@ -50,7 +50,6 @@ class AuthService {
         this.tokens = JSON.parse(storedTokens);
         this.currentUser = JSON.parse(storedUser);
 
-        // Check if token is expired
         if (this.tokens && new Date() > new Date(this.tokens.expiresAt)) {
           await this.refreshAccessToken();
         }
@@ -120,22 +119,22 @@ class AuthService {
 
   private async loginWithGoogleWeb(): Promise<AuthUser> {
     try {
-      // Load Google Sign-In library
-      if (!(window as any).google) {
+      const w = globalThis as any;
+      if (!w.google) {
         await this.loadGoogleSignInScript();
       }
 
       const response = await new Promise<any>((resolve, reject) => {
-        (window as any).google.accounts.id.initialize({
+        const gw = (globalThis as any).google;
+        gw?.accounts?.id?.initialize?.({
           client_id: this.googleClientId,
           callback: resolve,
           error_callback: reject,
         });
 
-        (window as any).google.accounts.id.prompt();
+        gw?.accounts?.id?.prompt?.();
       });
 
-      // Send the token to your backend
       const authResponse = await fetch(`${config.BASE_URL}/auth/google`, {
         method: 'POST',
         headers: {
@@ -167,13 +166,18 @@ class AuthService {
 
   private async loadGoogleSignInScript(): Promise<void> {
     return new Promise((resolve, reject) => {
-      const script = document.createElement('script');
+      const d = (globalThis as any).document;
+      if (!d) {
+        reject(new Error('Document not available'));
+        return;
+      }
+      const script = d.createElement('script');
       script.src = 'https://accounts.google.com/gsi/client';
       script.async = true;
       script.defer = true;
       script.onload = () => resolve();
       script.onerror = () => reject(new Error('Failed to load Google Sign-In script'));
-      document.head.appendChild(script);
+      d.head.appendChild(script);
     });
   }
 

@@ -71,8 +71,8 @@ export const getColors = (themeMode: ThemeMode, colorTheme: ColorTheme) => {
     if (Platform.OS !== 'web') {
       isDark = Appearance.getColorScheme() === 'dark';
     } else {
-      // Web fallback - check system preference
-      isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const w = globalThis as any;
+      isDark = !!(w && w.matchMedia && w.matchMedia('(prefers-color-scheme: dark)').matches);
     }
   }
   
@@ -82,15 +82,14 @@ export const getColors = (themeMode: ThemeMode, colorTheme: ColorTheme) => {
   return {
     ...baseTheme,
     ...colors,
-    primaryLight: colors.primary + '20', // Add 20% opacity
+    primaryLight: colors.primary + '20',
   };
 };
 
-// Default colors for backward compatibility
 const Colors = {
   ...lightTheme,
   ...colorThemes.default,
-  primaryLight: colorThemes.default.primary + '20', // Add 20% opacity
+  primaryLight: colorThemes.default.primary + '20',
 };
 
 export default Colors;
