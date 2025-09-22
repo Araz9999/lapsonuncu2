@@ -63,7 +63,7 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
   const [subject, setSubject] = useState<string>('');
   const [priority, setPriority] = useState<'low' | 'medium' | 'high' | 'urgent'>('medium');
   const [currentChatId, setCurrentChatId] = useState<string | undefined>(chatId);
-  const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [typingTimeout, setTypingTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
   const [shouldScrollToEnd, setShouldScrollToEnd] = useState<boolean>(true);
   const [isScrolling, setIsScrolling] = useState<boolean>(false);
   const [attachments, setAttachments] = useState<FileAttachment[]>([]);
@@ -195,7 +195,7 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
     }
     
     // Set new timeout to clear typing indicator
-    const timeout = setTimeout(() => {
+    const timeout: ReturnType<typeof setTimeout> = setTimeout(() => {
       setTyping(currentChatId, 'user', false);
     }, 2000);
     
@@ -905,7 +905,7 @@ const styles = StyleSheet.create({
     paddingBottom: Platform.OS === 'ios' ? 16 : 16,
     borderTopWidth: 1,
     borderTopColor: 'rgba(0,0,0,0.1)',
-    backgroundColor: 'inherit',
+    backgroundColor: 'transparent',
   },
   messageInput: {
     flex: 1,
@@ -944,11 +944,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     marginTop: 8,
-    gap: 8,
   },
   attachmentPreview: {
     borderRadius: 8,
     overflow: 'hidden',
+    marginRight: 8,
+    marginBottom: 8,
   },
   attachmentImage: {
     width: 60,
