@@ -2,7 +2,7 @@ import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { useEffect, Component, ReactNode } from "react";
+import { useEffect, Component, ReactNode, useState } from "react";
 import { StatusBar } from 'expo-status-bar';
 import { View, Text } from 'react-native';
 import { useThemeStore } from '@/store/themeStore';
@@ -12,6 +12,8 @@ import { getColors } from '@/constants/colors';
 import IncomingCallModal from '@/components/IncomingCallModal';
 
 import { initializeServices, checkServicesHealth } from '@/services';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { trpc, trpcClient } from '@/lib/trpc';
 
 export const unstable_settings = {
   initialRouteName: "(tabs)",
@@ -58,6 +60,8 @@ export default function RootLayout() {
     ...FontAwesome.font,
   });
 
+  const [queryClient] = useState(() => new QueryClient());
+
   useEffect(() => {
     if (error) {
       console.error('Font loading error:', error);
@@ -76,7 +80,11 @@ export default function RootLayout() {
 
   return (
     <ErrorBoundary>
-      <RootLayoutNav />
+      <trpc.Provider client={trpcClient} queryClient={queryClient}>
+        <QueryClientProvider client={queryClient}>
+          <RootLayoutNav />
+        </QueryClientProvider>
+      </trpc.Provider>
     </ErrorBoundary>
   );
 }
