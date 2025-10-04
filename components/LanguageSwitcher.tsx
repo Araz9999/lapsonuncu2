@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useLanguageStore, Language } from '@/store/languageStore';
 import Colors from '@/constants/colors';
+import { Languages } from 'lucide-react-native';
 
 export default function LanguageSwitcher() {
   const { language, setLanguage } = useLanguageStore();
@@ -10,40 +11,37 @@ export default function LanguageSwitcher() {
     setLanguage(newLanguage);
   };
 
+  const languages: { code: Language; label: string; flag: string }[] = [
+    { code: 'az', label: 'AZ', flag: '🇦🇿' },
+    { code: 'ru', label: 'RU', flag: '🇷🇺' },
+    { code: 'en', label: 'EN', flag: '🇬🇧' },
+  ];
+
   return (
     <View style={styles.container}>
-      <TouchableOpacity
-        style={[
-          styles.languageButton,
-          language === 'az' && styles.activeLanguage,
-        ]}
-        onPress={() => handleLanguageChange('az')}
-      >
-        <Text
+      <View style={styles.iconContainer}>
+        <Languages size={16} color={Colors.primary} />
+      </View>
+      {languages.map((lang) => (
+        <TouchableOpacity
+          key={lang.code}
           style={[
-            styles.languageText,
-            language === 'az' && styles.activeLanguageText,
+            styles.languageButton,
+            language === lang.code && styles.activeLanguage,
           ]}
+          onPress={() => handleLanguageChange(lang.code)}
         >
-          AZ
-        </Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[
-          styles.languageButton,
-          language === 'ru' && styles.activeLanguage,
-        ]}
-        onPress={() => handleLanguageChange('ru')}
-      >
-        <Text
-          style={[
-            styles.languageText,
-            language === 'ru' && styles.activeLanguageText,
-          ]}
-        >
-          RU
-        </Text>
-      </TouchableOpacity>
+          <Text style={styles.flagText}>{lang.flag}</Text>
+          <Text
+            style={[
+              styles.languageText,
+              language === lang.code && styles.activeLanguageText,
+            ]}
+          >
+            {lang.label}
+          </Text>
+        </TouchableOpacity>
+      ))}
     </View>
   );
 }
@@ -51,21 +49,40 @@ export default function LanguageSwitcher() {
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    borderRadius: 8,
-    backgroundColor: Colors.border,
-    padding: 2,
+    alignItems: 'center',
+    borderRadius: 20,
+    backgroundColor: Colors.card,
+    padding: 4,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  iconContainer: {
+    paddingHorizontal: 6,
   },
   languageButton: {
-    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
     paddingVertical: 6,
-    borderRadius: 6,
+    borderRadius: 16,
+    marginHorizontal: 2,
   },
   activeLanguage: {
     backgroundColor: Colors.primary,
   },
-  languageText: {
+  flagText: {
     fontSize: 14,
-    fontWeight: '500',
+    marginRight: 4,
+  },
+  languageText: {
+    fontSize: 12,
+    fontWeight: '600',
     color: Colors.textSecondary,
   },
   activeLanguageText: {
