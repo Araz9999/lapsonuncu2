@@ -49,8 +49,12 @@ export default function AutoRenewalManager({ listing, onUpdate }: AutoRenewalMan
   const getRenewalPackage = () => {
     const originalDuration = getOriginalDuration();
     
+    // If it's a free listing (3 days), use standard-30 package for auto-renewal
+    if (originalDuration <= 5 && currentPackage?.id === 'free') {
+      return adPackages.find(pkg => pkg.id === 'standard-30') || currentPackage;
+    }
     // If original duration was around 30 days, use standard-30 package
-    if (originalDuration >= 25 && originalDuration <= 35) {
+    else if (originalDuration >= 25 && originalDuration <= 35) {
       return adPackages.find(pkg => pkg.id === 'standard-30') || currentPackage;
     }
     // If original duration was around 14 days, use standard package
@@ -81,8 +85,8 @@ export default function AutoRenewalManager({ listing, onUpdate }: AutoRenewalMan
       Alert.alert(
         language === 'az' ? 'Avtomatik Yeniləmə' : 'Автообновление',
         language === 'az' 
-          ? `Elanınız ${renewalPackage?.name?.[language as keyof typeof renewalPackage.name] || renewalPackage?.name?.az || 'N/A'} tarifində avtomatik olaraq yeniləməyə davam edəcək. İndi ${renewalPrice} ${renewalPackage?.currency} balansınızdan çıxılacaq və 3 günlük güzəşt müddəti var. İstəsəniz avtomatik yeniləməni dayandıraraq pulu geri ala bilərsiniz.`
-          : `Ваше объявление будет автоматически продлеваться по тарифу ${renewalPackage?.name?.[language as keyof typeof renewalPackage.name] || renewalPackage?.name?.ru || 'N/A'}. Сейчас с баланса будет списано ${renewalPrice} ${renewalPackage?.currency} и есть льготный период 3 дня. При желании можете отключить автообновление и вернуть деньги.`,
+          ? `Elanınız ${renewalPackage?.name?.[language as keyof typeof renewalPackage.name] || renewalPackage?.name?.az || 'N/A'} tarifində avtomatik olaraq yeniləməyə davam edəcək. İndi ${renewalPrice} ${renewalPackage?.currency} balansınızdan çıxılacaq və elanınız müddəti bitdikdən sonra 30 günlük yeniləmə olacaq. İstəsəniz avtomatik yeniləməni güzəşt müddəti ərzində dayandıraraq pulu geri ala bilərsiniz.`
+          : `Ваше объявление будет автоматически продлеваться по тарифу ${renewalPackage?.name?.[language as keyof typeof renewalPackage.name] || renewalPackage?.name?.ru || 'N/A'}. Сейчас с баланса будет списано ${renewalPrice} ${renewalPackage?.currency} и после истечения срока будет продление на 30 дней. При желании можете отключить автообновление в льготный период и вернуть деньги.`,
         [
           {
             text: language === 'az' ? 'Ləğv et' : 'Отмена',
@@ -157,8 +161,8 @@ export default function AutoRenewalManager({ listing, onUpdate }: AutoRenewalMan
       Alert.alert(
         language === 'az' ? 'Uğurlu!' : 'Успешно!',
         language === 'az'
-          ? `Avtomatik yeniləmə aktivləşdirildi və ${renewalPrice} ${renewalPackage?.currency} balansınızdan çıxıldı. Elanınız müddəti bitdikdən sonra 3 günlük güzəşt müddəti olacaq, sonra avtomatik yeniləməyə davam edəcək.`
-          : `Автообновление активировано и ${renewalPrice} ${renewalPackage?.currency} списано с баланса. После истечения срока у вашего объявления будет льготный период 3 дня, затем оно будет автоматически продлеваться.`
+          ? `Avtomatik yeniləmə aktivləşdirildi və ${renewalPrice} ${renewalPackage?.currency} balansınızdan çıxıldı. Elanınız müddəti bitdikdən sonra avtomatik olaraq 30 günlük yeniləməyə davam edəcək.`
+          : `Автообновление активировано и ${renewalPrice} ${renewalPackage?.currency} списано с баланса. После истечения срока ваше объявление будет автоматически продлеваться на 30 дней.`
       );
     } catch {
       Alert.alert(
@@ -330,22 +334,22 @@ export default function AutoRenewalManager({ listing, onUpdate }: AutoRenewalMan
         </View>
         <Text style={styles.infoDescription}>
           {language === 'az'
-            ? 'Avtomatik yeniləmə aktivləşdirildikdə, dərhal ödəniş balansınızdan çıxılır və elanınız müddəti bitdikdən sonra 3 günlük güzəşt müddəti olacaq. Bu müddət ərzində elan aktiv qalacaq və sonra avtomatik olaraq eyni tariflə yeniləməyə davam edəcək. Avtomatik yeniləməni güzəşt müddəti ərzində dayandıraraq istifadə edilməmiş ödənişi geri ala bilərsiniz.'
-            : 'При активации автообновления оплата сразу списывается с баланса, и после истечения срока у вашего объявления будет льготный период 3 дня. В течение этого периода объявление останется активным, а затем будет автоматически продлеваться по тому же тарифу. Вы можете отключить автообновление в течение льготного периода и вернуть неиспользованную оплату.'
+            ? 'Avtomatik yeniləmə aktivləşdirildikdə, dərhal ödəniş balansınızdan çıxılır və elanınız müddəti bitdikdən sonra avtomatik olaraq 30 günlük yeniləməyə davam edəcək. Pulsuz elanlarda avtomatik yeniləmə üçün 5 AZN ödəniş tələb olunur. Avtomatik yeniləməni güzəşt müddəti ərzində dayandıraraq istifadə edilməmiş ödənişi geri ala bilərsiniz.'
+            : 'При активации автообновления оплата сразу списывается с баланса, и после истечения срока ваше объявление будет автоматически продлеваться на 30 дней. Для бесплатных объявлений требуется оплата 5 AZN для автообновления. Вы можете отключить автообновление в течение льготного периода и вернуть неиспользованную оплату.'
           }
         </Text>
         <View style={styles.benefitsList}>
           <Text style={styles.benefitItem}>
-            • {language === 'az' ? '3 günlük güzəşt müddəti' : '3-дневный льготный период'}
+            • {language === 'az' ? '30 günlük avtomatik yeniləmə' : '30-дневное автообновление'}
+          </Text>
+          <Text style={styles.benefitItem}>
+            • {language === 'az' ? 'Pulsuz elanlarda 5 AZN ödəniş' : 'Оплата 5 AZN для бесплатных объявлений'}
           </Text>
           <Text style={styles.benefitItem}>
             • {language === 'az' ? 'Elanınız heç vaxt müddəti bitməyəcək' : 'Ваше объявление никогда не истечет'}
           </Text>
           <Text style={styles.benefitItem}>
             • {language === 'az' ? 'Manual yeniləmə ehtiyacı yoxdur' : 'Нет необходимости в ручном продлении'}
-          </Text>
-          <Text style={styles.benefitItem}>
-            • {language === 'az' ? 'Eyni qiymət və xüsusiyyətlər' : 'Та же цена и функции'}
           </Text>
           <Text style={styles.benefitItem}>
             • {language === 'az' ? 'İstənilən vaxt dayandıra bilərsiniz' : 'Можно отключить в любое время'}
