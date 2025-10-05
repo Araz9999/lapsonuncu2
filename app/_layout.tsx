@@ -10,6 +10,7 @@ import { useRatingStore } from '@/store/ratingStore';
 import { useCallStore } from '@/store/callStore';
 import { getColors } from '@/constants/colors';
 import IncomingCallModal from '@/components/IncomingCallModal';
+import { LanguageProvider } from '@/store/languageStore';
 
 import { initializeServices, checkServicesHealth } from '@/services';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -82,7 +83,9 @@ export default function RootLayout() {
     <ErrorBoundary>
       <trpc.Provider client={trpcClient} queryClient={queryClient}>
         <QueryClientProvider client={queryClient}>
-          <RootLayoutNav />
+          <LanguageProvider>
+            <RootLayoutNav />
+          </LanguageProvider>
         </QueryClientProvider>
       </trpc.Provider>
     </ErrorBoundary>
