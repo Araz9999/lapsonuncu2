@@ -1,23 +1,41 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
+import { useState, useEffect } from 'react';
+import createContextHook from '@nkzw/create-context-hook';
 
 export type Language = 'az' | 'ru' | 'en';
 
-interface LanguageState {
-  language: Language;
-  setLanguage: (language: Language) => void;
-}
+export const [LanguageProvider, useLanguageStore] = createContextHook(() => {
+  const [language, setLanguageState] = useState<Language>('az');
+  const [isLoaded, setIsLoaded] = useState(false);
 
-export const useLanguageStore = create<LanguageState>()(
-  persist(
-    (set) => ({
-      language: 'az',
-      setLanguage: (language) => set({ language }),
-    }),
-    {
-      name: 'language-storage',
-      storage: createJSONStorage(() => AsyncStorage),
+  useEffect(() => {
+    const loadLanguage = async () => {
+      try {
+        const stored = await AsyncStorage.getItem('language-storage');
+        if (stored) {
+          setLanguageState(stored as Language);
+        }
+      } catch (error) {
+        console.error('Failed to load language:', error);
+      } finally {
+        setIsLoaded(true);
+      }
+    };
+    loadLanguage();
+  }, []);
+
+  const setLanguage = async (newLanguage: Language) => {
+    try {
+      setLanguageState(newLanguage);
+      await AsyncStorage.setItem('language-storage', newLanguage);
+    } catch (error) {
+      console.error('Failed to save language:', error);
     }
-  )
-);
+  };
+
+  return {
+    language,
+    setLanguage,
+    isLoaded,
+  };
+});
