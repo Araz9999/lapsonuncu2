@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useLanguageStore } from '@/store/languageStore';
+import { useTranslation } from '@/constants/translations';
 import { useUserStore } from '@/store/userStore';
 import { users } from '@/mocks/users';
 import Colors from '@/constants/colors';
@@ -10,7 +10,7 @@ import * as ImagePicker from 'expo-image-picker';
 
 export default function RegisterScreen() {
   const router = useRouter();
-  const { language } = useLanguageStore();
+  const { t, language } = useTranslation();
   const { login } = useUserStore();
   
   const [name, setName] = useState('');
@@ -40,10 +40,8 @@ export default function RegisterScreen() {
     
     // In a real app, you would send OTP to email and SMS
     Alert.alert(
-      language === 'az' ? 'OTP Göndərildi' : 'OTP отправлен',
-      language === 'az' 
-        ? `Təsdiq kodu həm e-poçtunuza, həm də mobil nömrənizə göndərildi: ${otp}` 
-        : `Код подтверждения отправлен на вашу почту и мобильный номер: ${otp}`
+      t('otpSent'),
+      `${t('otpSentMessage')}: ${otp}`
     );
     
     setShowOtpStep(true);
@@ -56,10 +54,8 @@ export default function RegisterScreen() {
       router.push('/');
     } else {
       Alert.alert(
-        language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' 
-          ? 'Təsdiq kodları yanlışdır' 
-          : 'Коды подтверждения неверны'
+        t('error'),
+        t('invalidVerificationCodes')
       );
     }
   };
@@ -84,10 +80,8 @@ export default function RegisterScreen() {
     
     if (status !== 'granted') {
       Alert.alert(
-        language === 'az' ? 'İcazə tələb olunur' : 'Требуется разрешение',
-        language === 'az' 
-          ? 'Şəkil seçmək üçün qalereya icazəsi lazımdır' 
-          : 'Для выбора изображения требуется доступ к галерее'
+        t('permissionRequired'),
+        t('galleryPermissionRequired')
       );
       return;
     }
@@ -109,10 +103,8 @@ export default function RegisterScreen() {
     
     if (status !== 'granted') {
       Alert.alert(
-        language === 'az' ? 'İcazə tələb olunur' : 'Требуется разрешение',
-        language === 'az' 
-          ? 'Şəkil çəkmək üçün kamera icazəsi lazımdır' 
-          : 'Для съемки требуется доступ к камере'
+        t('permissionRequired'),
+        t('cameraPermissionRequired')
       );
       return;
     }
@@ -130,19 +122,19 @@ export default function RegisterScreen() {
 
   const showImagePicker = () => {
     Alert.alert(
-      language === 'az' ? 'Profil şəkli seçin' : 'Выберите фото профиля',
-      language === 'az' ? 'Şəkil necə əlavə etmək istəyirsiniz?' : 'Как вы хотите добавить фото?',
+      t('selectProfilePhoto'),
+      t('howToAddPhoto'),
       [
         {
-          text: language === 'az' ? 'Qalereya' : 'Галерея',
+          text: t('gallery'),
           onPress: pickImage,
         },
         {
-          text: language === 'az' ? 'Kamera' : 'Камера',
+          text: t('camera'),
           onPress: takePhoto,
         },
         {
-          text: language === 'az' ? 'Ləğv et' : 'Отмена',
+          text: t('cancel'),
           style: 'cancel',
         },
       ]
@@ -171,8 +163,8 @@ export default function RegisterScreen() {
         
         <Text style={styles.title}>
           {showOtpStep 
-            ? (language === 'az' ? 'Təsdiq kodunu daxil edin' : 'Введите код подтверждения')
-            : (language === 'az' ? 'Qeydiyyatdan keçin' : 'Зарегистрироваться')}
+            ? t('enterVerificationCode')
+            : t('register')}
         </Text>
         
         <View style={styles.form}>
@@ -180,16 +172,14 @@ export default function RegisterScreen() {
             <>
               <View style={styles.otpContainer}>
                 <Text style={styles.otpDescription}>
-                  {language === 'az' 
-                    ? 'Həm e-poçtunuza, həm də mobil nömrənizə göndərilən təsdiq kodunu daxil edin' 
-                    : 'Введите код подтверждения, отправленный на вашу почту и мобильный номер'}
+                  {t('verificationCodeSent')}
                 </Text>
                 
                 <View style={styles.otpInputGroup}>
                   <View style={styles.otpInputContainer}>
                     <Mail size={20} color={Colors.primary} />
                     <Text style={styles.otpLabel}>
-                      {language === 'az' ? 'E-poçt kodu' : 'Код с почты'}
+                      {t('emailCode')}
                     </Text>
                   </View>
                   <TextInput
@@ -207,7 +197,7 @@ export default function RegisterScreen() {
                   <View style={styles.otpInputContainer}>
                     <Phone size={20} color={Colors.primary} />
                     <Text style={styles.otpLabel}>
-                      {language === 'az' ? 'Mobil kodu' : 'Код с телефона'}
+                      {t('mobileCode')}
                     </Text>
                   </View>
                   <TextInput
@@ -230,7 +220,7 @@ export default function RegisterScreen() {
                   disabled={!emailOtp || !mobileOtp || emailOtp.length !== 6 || mobileOtp.length !== 6}
                 >
                   <Text style={styles.registerButtonText}>
-                    {language === 'az' ? 'Təsdiq et' : 'Подтвердить'}
+                    {t('verify')}
                   </Text>
                 </TouchableOpacity>
                 
@@ -239,7 +229,7 @@ export default function RegisterScreen() {
                   onPress={() => setShowOtpStep(false)}
                 >
                   <Text style={styles.backToFormText}>
-                    {language === 'az' ? 'Geri qayıt' : 'Вернуться назад'}
+                    {t('goBack')}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -248,7 +238,7 @@ export default function RegisterScreen() {
             <>
               <View style={styles.profileImageSection}>
                 <Text style={styles.label}>
-                  {language === 'az' ? 'Profil şəkli' : 'Фото профиля'}
+                  {t('profilePhoto')}
                 </Text>
                 <TouchableOpacity style={styles.profileImageContainer} onPress={showImagePicker}>
                   {profileImage ? (
@@ -263,32 +253,32 @@ export default function RegisterScreen() {
                   </View>
                 </TouchableOpacity>
                 <Text style={styles.profileImageHint}>
-                  {language === 'az' ? 'Şəkil əlavə etmək üçün toxunun' : 'Нажмите, чтобы добавить фото'}
+                  {t('tapToAddPhoto')}
                 </Text>
               </View>
               
               <View style={styles.inputGroup}>
             <Text style={styles.label}>
-              {language === 'az' ? 'Ad Soyad' : 'Имя Фамилия'}
+              {t('fullName')}
             </Text>
             <TextInput
               style={styles.input}
               value={name}
               onChangeText={setName}
-              placeholder={language === 'az' ? 'Adınız və soyadınız' : 'Ваше имя и фамилия'}
+              placeholder={t('yourFullName')}
               placeholderTextColor={Colors.placeholder}
             />
           </View>
           
           <View style={styles.inputGroup}>
             <Text style={styles.label}>
-              {language === 'az' ? 'E-poçt' : 'Эл. почта'}
+              {t('email')}
             </Text>
             <TextInput
               style={styles.input}
               value={email}
               onChangeText={setEmail}
-              placeholder={language === 'az' ? 'E-poçt ünvanınız' : 'Ваш адрес эл. почты'}
+              placeholder={t('emailAddress')}
               placeholderTextColor={Colors.placeholder}
               keyboardType="email-address"
               autoCapitalize="none"
@@ -297,7 +287,7 @@ export default function RegisterScreen() {
           
           <View style={styles.inputGroup}>
             <Text style={styles.label}>
-              {language === 'az' ? 'Telefon' : 'Телефон'}
+              {t('phone')}
             </Text>
             <View style={styles.phoneInputContainer}>
               <View style={styles.countryCodeContainer}>
@@ -312,7 +302,7 @@ export default function RegisterScreen() {
                   const cleaned = text.replace(/[^0-9\s\-]/g, '');
                   setPhone('+994 ' + cleaned);
                 }}
-                placeholder={language === 'az' ? 'XX XXX XX XX' : 'XX XXX XX XX'}
+                placeholder="XX XXX XX XX"
                 placeholderTextColor={Colors.placeholder}
                 keyboardType="phone-pad"
                 maxLength={12}
@@ -322,14 +312,14 @@ export default function RegisterScreen() {
           
           <View style={styles.inputGroup}>
             <Text style={styles.label}>
-              {language === 'az' ? 'Şifrə' : 'Пароль'}
+              {t('password')}
             </Text>
             <View style={styles.passwordContainer}>
               <TextInput
                 style={styles.passwordInput}
                 value={password}
                 onChangeText={setPassword}
-                placeholder={language === 'az' ? 'Şifrəniz' : 'Ваш пароль'}
+                placeholder={t('yourPassword')}
                 placeholderTextColor={Colors.placeholder}
                 secureTextEntry={!showPassword}
               />
@@ -348,14 +338,14 @@ export default function RegisterScreen() {
           
           <View style={styles.inputGroup}>
             <Text style={styles.label}>
-              {language === 'az' ? 'Şifrəni təsdiqləyin' : 'Подтвердите пароль'}
+              {t('confirmPassword')}
             </Text>
             <View style={styles.passwordContainer}>
               <TextInput
                 style={styles.passwordInput}
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
-                placeholder={language === 'az' ? 'Şifrəni təkrar daxil edin' : 'Введите пароль повторно'}
+                placeholder={t('repeatPassword')}
                 placeholderTextColor={Colors.placeholder}
                 secureTextEntry={!showConfirmPassword}
               />
@@ -385,13 +375,7 @@ export default function RegisterScreen() {
               </View>
             </TouchableOpacity>
             <Text style={styles.termsText}>
-              {language === 'az' ? 'Mən ' : 'Я согласен с '}
-              <TouchableOpacity onPress={() => router.push('/terms')}>
-                <Text style={styles.termsLink}>
-                  {language === 'az' ? 'istifadə şərtləri və məxfilik siyasəti' : 'условиями использования и политикой конфиденциальности'}
-                </Text>
-              </TouchableOpacity>
-              {language === 'az' ? ' ilə razıyam' : ''}
+              {t('agreeToTermsAndPrivacy')}
             </Text>
           </View>
           
@@ -404,14 +388,14 @@ export default function RegisterScreen() {
               disabled={!isFormValid}
             >
               <Text style={styles.registerButtonText}>
-                {language === 'az' ? 'Qeydiyyatdan keç' : 'Зарегистрироваться'}
+                {t('register')}
               </Text>
             </TouchableOpacity>
             
             <View style={styles.divider}>
               <View style={styles.dividerLine} />
               <Text style={styles.dividerText}>
-                {language === 'az' ? 'və ya' : 'или'}
+                {t('or')}
               </Text>
               <View style={styles.dividerLine} />
             </View>
@@ -448,11 +432,11 @@ export default function RegisterScreen() {
         {!showOtpStep && (
           <View style={styles.footer}>
             <Text style={styles.footerText}>
-              {language === 'az' ? 'Artıq hesabınız var?' : 'Уже есть аккаунт?'}
+              {t('haveAccount')}
             </Text>
             <TouchableOpacity onPress={handleLogin}>
               <Text style={styles.loginText}>
-                {language === 'az' ? 'Daxil olun' : 'Войти'}
+                {t('loginNow')}
               </Text>
             </TouchableOpacity>
           </View>

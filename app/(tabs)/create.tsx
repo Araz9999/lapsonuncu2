@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert,
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
-import { useLanguageStore } from '@/store/languageStore';
+import { useTranslation } from '@/constants/translations';
 import { useUserStore } from '@/store/userStore';
 import { useStoreStore } from '@/store/storeStore';
 import { useListingStore } from '@/store/listingStore';
@@ -16,7 +16,7 @@ import { Camera, ChevronDown, Plus, Check, Clock, Award, Image as ImageIcon, Map
 
 export default function CreateListingScreen() {
   const router = useRouter();
-  const { language } = useLanguageStore();
+  const { t, language } = useTranslation();
   const { isAuthenticated, currentUser, canAfford, spendFromBalance, getTotalBalance } = useUserStore();
   const { getAllUserStores, canAddListing } = useStoreStore();
   const { addListingToStore } = useListingStore();
@@ -59,12 +59,10 @@ export default function CreateListingScreen() {
         <View style={styles.authRequiredContent}>
           <AlertCircle size={64} color={Colors.primary} style={styles.authRequiredIcon} />
           <Text style={styles.authRequiredTitle}>
-            {language === 'az' ? 'Hesab tələb olunur' : 'Требуется аккаунт'}
+            {t('accountRequired')}
           </Text>
           <Text style={styles.authRequiredDescription}>
-            {language === 'az' 
-              ? 'Elan yerləşdirmək üçün əvvəlcə hesabınıza daxil olmalısınız'
-              : 'Для размещения объявления необходимо войти в аккаунт'}
+            {t('loginToPostAd')}
           </Text>
           <View style={styles.authRequiredButtons}>
             <TouchableOpacity 
@@ -72,7 +70,7 @@ export default function CreateListingScreen() {
               onPress={() => router.push('/auth/login')}
             >
               <Text style={styles.authRequiredButtonText}>
-                {language === 'az' ? 'Daxil ol' : 'Войти'}
+                {t('login')}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity 
@@ -80,7 +78,7 @@ export default function CreateListingScreen() {
               onPress={() => router.push('/auth/register')}
             >
               <Text style={[styles.authRequiredButtonText, styles.authRequiredSecondaryButtonText]}>
-                {language === 'az' ? 'Qeydiyyat' : 'Регистрация'}
+                {t('register')}
               </Text>
             </TouchableOpacity>
           </View>
