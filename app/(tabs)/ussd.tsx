@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useTranslation } from '@/constants/translations';
 import { useUSSDStore } from '@/store/ussdStore';
@@ -18,13 +19,14 @@ import { Phone, Send, X } from 'lucide-react-native';
 
 export default function USSDScreen() {
   const { language } = useTranslation();
-  const { currentSession, startSession, endSession, addMessage, updateMenuPath } = useUSSDStore();
+  const { currentSession, startSession, endSession, addMessage, updateMenuPath, updateLastActivity } = useUSSDStore();
   
   const [ussdCode, setUssdCode] = useState('');
   const [userInput, setUserInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
   const scrollViewRef = useRef<ScrollView>(null);
+  const inputRef = useRef<TextInput>(null);
 
   useEffect(() => {
     if (currentSession && scrollViewRef.current) {
@@ -32,7 +34,13 @@ export default function USSDScreen() {
         scrollViewRef.current?.scrollToEnd({ animated: true });
       }, 100);
     }
-  }, [currentSession, currentSession?.history.length]);
+  }, [currentSession?.history.length]);
+
+  useEffect(() => {
+    if (currentSession && !isLoading) {
+      inputRef.current?.focus();
+    }
+  }, [currentSession, isLoading]);
 
   const handleStartSession = async () => {
     if (!ussdCode.trim()) {
@@ -51,15 +59,15 @@ export default function USSDScreen() {
     console.log('[USSD Screen] Starting session with code:', ussdCode);
 
     try {
-      startSession(ussdCode);
+      const response = await ussdService.processUSSDCode(ussdCode, language);
+      console.log('[USSD Screen] Initial response:', response);
+
+      startSession(ussdCode, response.sessionId);
       
       addMessage({
         type: 'request',
         text: ussdCode,
       });
-
-      const response = await ussdService.processUSSDCode(ussdCode, language);
-      console.log('[USSD Screen] Initial response:', response);
 
       addMessage({
         type: 'response',
@@ -70,7 +78,7 @@ export default function USSDScreen() {
       if (response.isEnd) {
         setTimeout(() => {
           endSession();
-          ussdService.reset();
+          ussdService.reset(response.sessionId);
         }, 3000);
       }
 
@@ -94,9 +102,11 @@ export default function USSDScreen() {
     if (!userInput.trim() || !currentSession) return;
 
     setIsLoading(true);
-    console.log('[USSD Screen] Sending input:', userInput, 'Current path:', currentSession.currentMenuPath);
+    console.log('[USSD Screen] Sending input:', userInput, 'Session ID:', currentSession.id);
 
     try {
+      updateLastActivity();
+
       addMessage({
         type: 'request',
         text: userInput,
@@ -104,7 +114,7 @@ export default function USSDScreen() {
 
       const response = await ussdService.processUSSDInput(
         userInput,
-        currentSession.currentMenuPath,
+        currentSession.id,
         language
       );
       console.log('[USSD Screen] Response:', response);
@@ -115,17 +125,15 @@ export default function USSDScreen() {
         menuId: response.menuId,
       });
 
-      if (response.menuId) {
-        const newPath = userInput === '0' 
-          ? currentSession.currentMenuPath.slice(0, -1)
-          : [...currentSession.currentMenuPath, response.menuId];
-        updateMenuPath(newPath);
+      const sessionState = ussdService.getSessionState(response.sessionId);
+      if (sessionState) {
+        updateMenuPath(sessionState.currentMenuPath);
       }
 
       if (response.isEnd) {
         setTimeout(() => {
           endSession();
-          ussdService.reset();
+          ussdService.reset(response.sessionId);
         }, 3000);
       }
 
@@ -162,8 +170,10 @@ export default function USSDScreen() {
           text: language === 'az' ? 'Bitir' : language === 'ru' ? 'Завершить' : 'End',
           style: 'destructive',
           onPress: () => {
+            if (currentSession) {
+              ussdService.reset(currentSession.id);
+            }
             endSession();
-            ussdService.reset();
           },
         },
       ]
@@ -207,6 +217,7 @@ export default function USSDScreen() {
                 key={item.code}
                 style={styles.quickCodeButton}
                 onPress={() => handleQuickCode(item.code)}
+                disabled={isLoading}
               >
                 <Text style={styles.quickCodeText}>{item.code}</Text>
                 <Text style={styles.quickCodeLabel}>{item.label[language]}</Text>
@@ -225,16 +236,24 @@ export default function USSDScreen() {
             keyboardType="phone-pad"
             autoCapitalize="none"
             autoCorrect={false}
+            editable={!isLoading}
+            onSubmitEditing={handleStartSession}
           />
           <TouchableOpacity
             style={[styles.dialButton, isLoading && styles.dialButtonDisabled]}
             onPress={handleStartSession}
             disabled={isLoading}
           >
-            <Phone size={24} color="white" />
-            <Text style={styles.dialButtonText}>
-              {language === 'az' ? 'Zəng et' : language === 'ru' ? 'Позвонить' : 'Dial'}
-            </Text>
+            {isLoading ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <>
+                <Phone size={24} color="white" />
+                <Text style={styles.dialButtonText}>
+                  {language === 'az' ? 'Zəng et' : language === 'ru' ? 'Позвонить' : 'Dial'}
+                </Text>
+              </>
+            )}
           </TouchableOpacity>
         </View>
 
@@ -263,8 +282,9 @@ export default function USSDScreen() {
           <Text style={styles.sessionHeaderText}>
             {language === 'az' ? 'Aktiv sessiya' : language === 'ru' ? 'Активная сессия' : 'Active session'}
           </Text>
+          <Text style={styles.sessionId}>#{currentSession.id.slice(-6)}</Text>
         </View>
-        <TouchableOpacity style={styles.endButton} onPress={handleEndSession}>
+        <TouchableOpacity style={styles.endButton} onPress={handleEndSession} disabled={isLoading}>
           <X size={20} color={Colors.error} />
         </TouchableOpacity>
       </View>
@@ -304,10 +324,19 @@ export default function USSDScreen() {
             </Text>
           </View>
         ))}
+        {isLoading && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="small" color={Colors.primary} />
+            <Text style={styles.loadingText}>
+              {language === 'az' ? 'Gözləyin...' : language === 'ru' ? 'Ожидание...' : 'Loading...'}
+            </Text>
+          </View>
+        )}
       </ScrollView>
 
       <View style={styles.inputBar}>
         <TextInput
+          ref={inputRef}
           style={styles.messageInput}
           value={userInput}
           onChangeText={setUserInput}
@@ -317,13 +346,18 @@ export default function USSDScreen() {
           autoCapitalize="none"
           autoCorrect={false}
           editable={!isLoading}
+          onSubmitEditing={handleSendInput}
         />
         <TouchableOpacity
           style={[styles.sendButton, (!userInput.trim() || isLoading) && styles.sendButtonDisabled]}
           onPress={handleSendInput}
           disabled={!userInput.trim() || isLoading}
         >
-          <Send size={20} color="white" />
+          {isLoading ? (
+            <ActivityIndicator size="small" color="white" />
+          ) : (
+            <Send size={20} color="white" />
+          )}
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
@@ -410,6 +444,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
+    minHeight: 56,
   },
   dialButtonDisabled: {
     opacity: 0.5,
@@ -455,6 +490,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: Colors.text,
+  },
+  sessionId: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   endButton: {
     padding: 8,
@@ -504,6 +544,17 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   responseTime: {
+    color: Colors.textSecondary,
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 12,
+    alignSelf: 'flex-start',
+  },
+  loadingText: {
+    fontSize: 14,
     color: Colors.textSecondary,
   },
   inputBar: {

@@ -4,26 +4,28 @@ import { USSDSession, USSDMessage } from '@/types/ussd';
 interface USSDStore {
   currentSession: USSDSession | null;
   sessions: USSDSession[];
-  startSession: (code: string) => void;
+  startSession: (code: string, sessionId?: string) => void;
   endSession: () => void;
   addMessage: (message: Omit<USSDMessage, 'id' | 'timestamp'>) => void;
   updateMenuPath: (path: string[]) => void;
   clearHistory: () => void;
   getSessionById: (id: string) => USSDSession | undefined;
+  updateLastActivity: () => void;
 }
 
 export const useUSSDStore = create<USSDStore>((set, get) => ({
   currentSession: null,
   sessions: [],
 
-  startSession: (code: string) => {
+  startSession: (code: string, sessionId?: string) => {
     const newSession: USSDSession = {
-      id: Date.now().toString(),
+      id: sessionId || Date.now().toString(),
       code,
       startedAt: new Date().toISOString(),
       isActive: true,
       history: [],
       currentMenuPath: [],
+      lastActivity: new Date().toISOString(),
     };
 
     set((state) => ({
@@ -98,5 +100,24 @@ export const useUSSDStore = create<USSDStore>((set, get) => ({
 
   getSessionById: (id: string) => {
     return get().sessions.find((session) => session.id === id);
+  },
+
+  updateLastActivity: () => {
+    const { currentSession, sessions } = get();
+    if (!currentSession) return;
+
+    const updatedSession = {
+      ...currentSession,
+      lastActivity: new Date().toISOString(),
+    };
+
+    const updatedSessions = sessions.map((session) =>
+      session.id === currentSession.id ? updatedSession : session
+    );
+
+    set({
+      currentSession: updatedSession,
+      sessions: updatedSessions,
+    });
   },
 }));
