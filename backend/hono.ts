@@ -3,10 +3,14 @@ import { trpcServer } from "@hono/trpc-server";
 import { cors } from "hono/cors";
 import { appRouter } from "./trpc/app-router";
 import { createContext } from "./trpc/create-context";
+import authRoutes from "./routes/auth";
 
 const app = new Hono();
 
-app.use("*", cors());
+app.use("*", cors({
+  origin: (origin) => origin,
+  credentials: true,
+}));
 
 app.use(
   "/trpc/*",
@@ -16,6 +20,8 @@ app.use(
     createContext,
   })
 );
+
+app.route("/auth", authRoutes);
 
 app.get("/", (c) => {
   return c.json({ status: "ok", message: "API is running" });

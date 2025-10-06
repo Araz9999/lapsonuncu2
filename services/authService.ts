@@ -109,76 +109,59 @@ class AuthService {
     }
   }
 
-  async loginWithGoogle(): Promise<AuthUser> {
-    if (Platform.OS === 'web') {
-      return this.loginWithGoogleWeb();
-    } else {
-      return this.loginWithGoogleMobile();
-    }
-  }
-
-  private async loginWithGoogleWeb(): Promise<AuthUser> {
+  async loginWithSocial(provider: 'google' | 'facebook' | 'vk'): Promise<AuthUser> {
     try {
-      const w = globalThis as any;
-      if (!w.google) {
-        await this.loadGoogleSignInScript();
-      }
-
-      const response = await new Promise<any>((resolve, reject) => {
-        const gw = (globalThis as any).google;
-        gw?.accounts?.id?.initialize?.({
-          client_id: this.googleClientId,
-          callback: resolve,
-          error_callback: reject,
-        });
-
-        gw?.accounts?.id?.prompt?.();
-      });
-
-      const authResponse = await fetch(`${config.BASE_URL}/auth/google`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          token: response.credential,
-        }),
-      });
-
-      if (!authResponse.ok) {
-        throw new Error('Google authentication failed');
-      }
-
-      const data = await authResponse.json();
-      await this.setAuthData(data.user, data.tokens);
+      console.log(`[AuthService] Initiating ${provider} login`);
       
-      return data.user;
+      const baseUrl = config.BASE_URL?.replace('/api', '') || 'http://localhost:8081';
+      const authUrl = `${baseUrl}/api/auth/${provider}/login`;
+
+      if (Platform.OS === 'web') {
+        (globalThis as any).window.location.href = authUrl;
+        throw new Error('Redirecting to OAuth provider...');
+      } else {
+        const WebBrowser = await import('expo-web-browser');
+        const result = await WebBrowser.openAuthSessionAsync(
+          authUrl,
+          `${baseUrl}/auth/success`
+        );
+
+        if (result.type === 'success' && result.url) {
+          const url = new URL(result.url);
+          const token = url.searchParams.get('token');
+          const userData = url.searchParams.get('user');
+
+          if (token && userData) {
+            const user = JSON.parse(userData);
+            const tokens = {
+              accessToken: token,
+              refreshToken: token,
+              expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+            };
+            
+            await this.setAuthData(user, tokens);
+            return user;
+          }
+        }
+
+        throw new Error('OAuth flow was cancelled or failed');
+      }
     } catch (error) {
-      console.error('Google login failed:', error);
+      console.error(`[AuthService] ${provider} login failed:`, error);
       throw error;
     }
   }
 
-  private async loginWithGoogleMobile(): Promise<AuthUser> {
-    console.log('Google mobile login would require expo-auth-session or similar');
-    throw new Error('Google mobile login not implemented - requires expo-auth-session');
+  async loginWithGoogle(): Promise<AuthUser> {
+    return this.loginWithSocial('google');
   }
 
-  private async loadGoogleSignInScript(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const d = (globalThis as any).document;
-      if (!d) {
-        reject(new Error('Document not available'));
-        return;
-      }
-      const script = d.createElement('script');
-      script.src = 'https://accounts.google.com/gsi/client';
-      script.async = true;
-      script.defer = true;
-      script.onload = () => resolve();
-      script.onerror = () => reject(new Error('Failed to load Google Sign-In script'));
-      d.head.appendChild(script);
-    });
+  async loginWithFacebook(): Promise<AuthUser> {
+    return this.loginWithSocial('facebook');
+  }
+
+  async loginWithVK(): Promise<AuthUser> {
+    return this.loginWithSocial('vk');
   }
 
   async logout(): Promise<void> {
