@@ -13,6 +13,13 @@ export default publicProcedure
     isSupport: z.boolean(),
   }))
   .mutation(({ input }) => {
+    console.log('[SendMessage] Creating message:', {
+      conversationId: input.conversationId,
+      senderId: input.senderId,
+      isSupport: input.isSupport,
+      messageLength: input.message.length
+    });
+
     const message: LiveChatMessage = {
       id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       conversationId: input.conversationId,
@@ -26,17 +33,21 @@ export default publicProcedure
     };
     
     const created = liveChatDb.messages.create(message);
+    console.log('[SendMessage] Message created:', created.id);
     
-    liveChatDb.conversations.update(input.conversationId, {
+    const updated = liveChatDb.conversations.update(input.conversationId, {
       lastMessage: input.message,
       lastMessageTime: message.timestamp,
     });
+    console.log('[SendMessage] Conversation updated:', updated?.id);
     
     setTimeout(() => {
+      console.log('[SendMessage] Updating status to delivered:', message.id);
       liveChatDb.messages.updateStatus(message.id, 'delivered');
     }, 500);
     
     setTimeout(() => {
+      console.log('[SendMessage] Updating status to seen:', message.id);
       liveChatDb.messages.updateStatus(message.id, 'seen');
     }, 2000);
     

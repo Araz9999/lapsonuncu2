@@ -1,7 +1,8 @@
 import { LiveChatMessage, LiveChatConversation, SupportAgent } from '@/types/liveChat';
 
-const conversations: LiveChatConversation[] = [];
-const messages: LiveChatMessage[] = [];
+const conversations: Map<string, LiveChatConversation> = new Map();
+const messages: Map<string, LiveChatMessage[]> = new Map();
+const messageIndex: Map<string, LiveChatMessage> = new Map();
 
 const supportAgents: SupportAgent[] = [
   {
@@ -22,54 +23,101 @@ const supportAgents: SupportAgent[] = [
 
 export const liveChatDb = {
   conversations: {
-    getAll: () => conversations,
-    getById: (id: string) => conversations.find(c => c.id === id),
-    getByUserId: (userId: string) => conversations.filter(c => c.userId === userId),
+    getAll: () => Array.from(conversations.values()).sort((a, b) => 
+      new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+    ),
+    getById: (id: string) => conversations.get(id) || null,
+    getByUserId: (userId: string) => {
+      console.log('[LiveChatDB] Getting conversations for user:', userId);
+      const userConvs = Array.from(conversations.values())
+        .filter(c => c.userId === userId)
+        .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+      console.log('[LiveChatDB] Found conversations:', userConvs.length);
+      return userConvs;
+    },
     create: (conversation: LiveChatConversation) => {
-      conversations.unshift(conversation);
+      console.log('[LiveChatDB] Creating conversation:', conversation.id);
+      conversations.set(conversation.id, conversation);
+      messages.set(conversation.id, []);
       return conversation;
     },
     update: (id: string, updates: Partial<LiveChatConversation>) => {
-      const index = conversations.findIndex(c => c.id === id);
-      if (index !== -1) {
-        conversations[index] = { ...conversations[index], ...updates, updatedAt: new Date().toISOString() };
-        return conversations[index];
+      console.log('[LiveChatDB] Updating conversation:', id, updates);
+      const conversation = conversations.get(id);
+      if (conversation) {
+        const updated = { ...conversation, ...updates, updatedAt: new Date().toISOString() };
+        conversations.set(id, updated);
+        return updated;
       }
+      console.warn('[LiveChatDB] Conversation not found:', id);
       return null;
     },
     delete: (id: string) => {
-      const index = conversations.findIndex(c => c.id === id);
-      if (index !== -1) {
-        conversations.splice(index, 1);
-        return true;
-      }
-      return false;
+      console.log('[LiveChatDB] Deleting conversation:', id);
+      const deleted = conversations.delete(id);
+      messages.delete(id);
+      return deleted;
     },
   },
   
   messages: {
-    getAll: () => messages,
-    getById: (id: string) => messages.find(m => m.id === id),
-    getByConversationId: (conversationId: string) => 
-      messages.filter(m => m.conversationId === conversationId).sort((a, b) => 
+    getAll: () => Array.from(messageIndex.values()),
+    getById: (id: string) => messageIndex.get(id) || null,
+    getByConversationId: (conversationId: string) => {
+      console.log('[LiveChatDB] Getting messages for conversation:', conversationId);
+      const convMessages = messages.get(conversationId) || [];
+      console.log('[LiveChatDB] Found messages:', convMessages.length);
+      return [...convMessages].sort((a, b) => 
         new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-      ),
+      );
+    },
     create: (message: LiveChatMessage) => {
-      messages.push(message);
+      console.log('[LiveChatDB] Creating message:', message.id, 'in conversation:', message.conversationId);
+      const convMessages = messages.get(message.conversationId) || [];
+      
+      const exists = convMessages.find(m => m.id === message.id);
+      if (exists) {
+        console.warn('[LiveChatDB] Message already exists:', message.id);
+        return exists;
+      }
+      
+      convMessages.push(message);
+      messages.set(message.conversationId, convMessages);
+      messageIndex.set(message.id, message);
+      
+      console.log('[LiveChatDB] Message created. Total messages in conversation:', convMessages.length);
       return message;
     },
     updateStatus: (id: string, status: LiveChatMessage['status']) => {
-      const message = messages.find(m => m.id === id);
+      console.log('[LiveChatDB] Updating message status:', id, 'to', status);
+      const message = messageIndex.get(id);
       if (message) {
         message.status = status;
+        messageIndex.set(id, message);
+        
+        const convMessages = messages.get(message.conversationId);
+        if (convMessages) {
+          const index = convMessages.findIndex(m => m.id === id);
+          if (index !== -1) {
+            convMessages[index] = message;
+            messages.set(message.conversationId, convMessages);
+          }
+        }
         return message;
       }
+      console.warn('[LiveChatDB] Message not found:', id);
       return null;
     },
     delete: (id: string) => {
-      const index = messages.findIndex(m => m.id === id);
-      if (index !== -1) {
-        messages.splice(index, 1);
+      console.log('[LiveChatDB] Deleting message:', id);
+      const message = messageIndex.get(id);
+      if (message) {
+        const convMessages = messages.get(message.conversationId);
+        if (convMessages) {
+          const filtered = convMessages.filter(m => m.id !== id);
+          messages.set(message.conversationId, filtered);
+        }
+        messageIndex.delete(id);
         return true;
       }
       return false;
