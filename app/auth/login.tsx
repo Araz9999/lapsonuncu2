@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, KeyboardAvoidingView, Platform, ScrollView, Linking, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from '@/constants/translations';
 import { useUserStore } from '@/store/userStore';
 import { users } from '@/mocks/users';
 import Colors from '@/constants/colors';
 import { X, Eye, EyeOff, Facebook, Chrome, MessageCircle } from 'lucide-react-native';
+import * as WebBrowser from 'expo-web-browser';
+import config from '@/constants/config';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -37,10 +39,50 @@ export default function LoginScreen() {
     router.push('/auth/forgot-password');
   };
 
-  const handleSocialLogin = (provider: string) => {
-    console.log(`Logging in with ${provider}`);
-    login(users[0]);
-    router.back();
+  const handleSocialLogin = async (provider: string) => {
+    try {
+      console.log(`[Login] Initiating ${provider} login`);
+      
+      const baseUrl = config.BASE_URL?.replace('/api', '') || 'http://localhost:8081';
+      const authUrl = `${baseUrl}/api/auth/${provider}/login`;
+      
+      console.log(`[Login] Opening auth URL: ${authUrl}`);
+
+      if (Platform.OS === 'web') {
+        window.location.href = authUrl;
+      } else {
+        const result = await WebBrowser.openAuthSessionAsync(
+          authUrl,
+          `${baseUrl}/auth/success`
+        );
+
+        if (result.type === 'success' && result.url) {
+          const url = new URL(result.url);
+          const token = url.searchParams.get('token');
+          const userData = url.searchParams.get('user');
+
+          if (token && userData) {
+            const user = JSON.parse(userData);
+            login({
+              ...users[0],
+              id: user.id,
+              name: user.name,
+              email: user.email,
+              avatar: user.avatar,
+            });
+            router.replace('/(tabs)');
+          }
+        } else if (result.type === 'cancel') {
+          console.log('[Login] User cancelled OAuth flow');
+        }
+      }
+    } catch (error) {
+      console.error(`[Login] ${provider} login error:`, error);
+      Alert.alert(
+        'Login Failed',
+        `Failed to login with ${provider}. Please try again or use a different method.`
+      );
+    }
   };
 
   return (
