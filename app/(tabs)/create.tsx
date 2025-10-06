@@ -316,11 +316,13 @@ export default function CreateListingScreen() {
         id: Date.now().toString(),
         title: {
           az: title,
-          ru: title
+          ru: title,
+          en: title
         },
         description: {
           az: description,
-          ru: description
+          ru: description,
+          en: description
         },
         price: priceByAgreement ? 0 : parseFloat(price),
         currency: currency as 'AZN' | 'USD',
@@ -330,7 +332,8 @@ export default function CreateListingScreen() {
         subcategoryId: selectedSubcategory || 0,
         location: {
           az: selectedLocationData?.name.az || '',
-          ru: selectedLocationData?.name.ru || ''
+          ru: selectedLocationData?.name.ru || '',
+          en: selectedLocationData?.name.en || ''
         },
         userId: currentUser.id,
         createdAt: new Date().toISOString(),
@@ -957,27 +960,27 @@ export default function CreateListingScreen() {
               {showDeliveryTypes && (
                 <View style={styles.pickerOptions}>
                   {[
-                    { id: 'free', name: { az: 'Pulsuz çatdırılma', ru: 'Бесплатная доставка' } },
-                    { id: 'paid', name: { az: 'Ödənişli çatdırılma', ru: 'Платная доставка' } },
-                    { id: 'regions', name: { az: 'Rayonlara çatdırılma', ru: 'Доставка в регионы' } },
-                    { id: 'pickup', name: { az: 'Ünvandan götürmə', ru: 'Самовывоз' } }
+                    { id: 'free', name: { az: 'Pulsuz çatdırılma', ru: 'Бесплатная доставка', en: 'Free delivery' } },
+                    { id: 'paid', name: { az: 'Ödənişli çatdırılma', ru: 'Платная доставка', en: 'Paid delivery' } },
+                    { id: 'regions', name: { az: 'Rayonlara çatdırılma', ru: 'Доставка в регионы', en: 'Regional delivery' } },
+                    { id: 'pickup', name: { az: 'Ünvandan götürmə', ru: 'Самовывоз', en: 'Pickup' } }
                   ].map(type => (
                     <TouchableOpacity
                       key={type.id}
                       style={[
                         styles.pickerOption,
-                        deliveryType === type.name[language] && styles.selectedPickerOption
+                        deliveryType === type.name[language as keyof typeof type.name] && styles.selectedPickerOption
                       ]}
                       onPress={() => {
-                        setDeliveryType(type.name[language]);
+                        setDeliveryType(type.name[language as keyof typeof type.name]);
                         setShowDeliveryTypes(false);
                       }}
                     >
                       <Text style={[
                         styles.pickerOptionText,
-                        deliveryType === type.name[language] && styles.selectedPickerOptionText
+                        deliveryType === type.name[language as keyof typeof type.name] && styles.selectedPickerOptionText
                       ]}>
-                        {type.name[language]}
+                        {type.name[language as keyof typeof type.name]}
                       </Text>
                     </TouchableOpacity>
                   ))}
