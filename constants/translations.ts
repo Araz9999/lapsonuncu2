@@ -916,6 +916,51 @@ export const translations = {
     ru: 'Разместить объявление',
     en: 'Post Ad',
   },
+  ussd: {
+    az: 'USSD',
+    ru: 'USSD',
+    en: 'USSD',
+  },
+  ussdSimulator: {
+    az: 'USSD Simulyatoru',
+    ru: 'USSD Симулятор',
+    en: 'USSD Simulator',
+  },
+  enterUssdCode: {
+    az: 'USSD kodu daxil edin',
+    ru: 'Введите USSD код',
+    en: 'Enter USSD code',
+  },
+  dial: {
+    az: 'Zəng et',
+    ru: 'Позвонить',
+    en: 'Dial',
+  },
+  quickCodes: {
+    az: 'Sürətli kodlar',
+    ru: 'Быстрые коды',
+    en: 'Quick codes',
+  },
+  activeSession: {
+    az: 'Aktiv sessiya',
+    ru: 'Активная сессия',
+    en: 'Active session',
+  },
+  endSession: {
+    az: 'Sessiyanı bitir',
+    ru: 'Завершить сессию',
+    en: 'End session',
+  },
+  sessionEnded: {
+    az: 'Sessiya başa çatdı',
+    ru: 'Сессия завершена',
+    en: 'Session ended',
+  },
+  enterResponse: {
+    az: 'Cavab daxil edin...',
+    ru: 'Введите ответ...',
+    en: 'Enter response...',
+  },
 };
 
 export function t(key: keyof typeof translations, language: Language): string {
