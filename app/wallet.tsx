@@ -5,7 +5,7 @@ import { Stack } from 'expo-router';
 import { useLanguageStore } from '@/store/languageStore';
 import { useUserStore } from '@/store/userStore';
 import Colors from '@/constants/colors';
-import { Wallet, Gift, Plus, ArrowUpRight, ArrowDownLeft, CreditCard, Smartphone, Building } from 'lucide-react-native';
+import { Wallet, Gift, Plus, ArrowUpRight, ArrowDownLeft, CreditCard } from 'lucide-react-native';
 
 export default function WalletScreen() {
   const router = useRouter();
@@ -18,10 +18,6 @@ export default function WalletScreen() {
 
   const paymentMethods = [
     { id: 'card', name: 'Bank kartı', icon: CreditCard, color: '#4CAF50' },
-    { id: 'azercell', name: 'Azercell', icon: Smartphone, color: '#00A651' },
-    { id: 'bakcell', name: 'Bakcell', icon: Smartphone, color: '#FFD700' },
-    { id: 'nar', name: 'Nar', icon: Smartphone, color: '#E91E63' },
-    { id: 'bank', name: 'Bank köçürməsi', icon: Building, color: '#2196F3' },
   ];
 
   const handleTopUp = () => {
