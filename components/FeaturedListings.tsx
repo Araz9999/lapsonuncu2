@@ -4,6 +4,7 @@ import { useLanguageStore } from '@/store/languageStore';
 import { useListingStore } from '@/store/listingStore';
 import ListingCard from './ListingCard';
 import Colors from '@/constants/colors';
+import { t } from '@/constants/translations';
 
 export default function FeaturedListings() {
   const { language } = useLanguageStore();
@@ -14,7 +15,7 @@ export default function FeaturedListings() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>
-        {language === 'az' ? 'VIP Elanlar' : 'VIP Объявления'}
+        {t('featuredListings', language)}
       </Text>
       <ScrollView
         horizontal

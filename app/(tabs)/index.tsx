@@ -11,6 +11,7 @@ import CategoryList from '@/components/CategoryList';
 import FeaturedListings from '@/components/FeaturedListings';
 import ListingGrid from '@/components/ListingGrid';
 import { getColors } from '@/constants/colors';
+import { t } from '@/constants/translations';
 import { Store } from 'lucide-react-native';
 
 export default function HomeScreen() {
@@ -204,7 +205,7 @@ export default function HomeScreen() {
             ]}
           >
             <Text style={styles.naxcivanText}>
-              Naxçıvan elanları
+              {t('naxcivanListings', language)}
             </Text>
           </Animated.View>
         </View>
@@ -222,11 +223,11 @@ export default function HomeScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={[styles.sectionTitle, { color: colors.text, fontSize: fontSize === 'small' ? 16 : fontSize === 'large' ? 20 : 18 }]}>
-                {language === 'az' ? 'Mağazalar' : 'Магазины'}
+                {t('stores', language)}
               </Text>
               <TouchableOpacity onPress={() => router.push('/stores')}>
                 <Text style={[styles.seeAllText, { color: colors.primary, fontSize: fontSize === 'small' ? 12 : fontSize === 'large' ? 16 : 14 }]}>
-                  {language === 'az' ? 'Hamısına bax' : 'Смотреть все'}
+                  {t('seeAll', language)}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -254,7 +255,7 @@ export default function HomeScreen() {
                   </Text>
                   <View style={[styles.storeBadge, { backgroundColor: colors.primary }]}>
                     <Text style={[styles.storeBadgeText, { fontSize: fontSize === 'small' ? 7 : fontSize === 'large' ? 9 : 8 }]}>
-                      {language === 'az' ? 'Mağaza' : 'Магазин'}
+                      {t('store', language)}
                     </Text>
                   </View>
                 </TouchableOpacity>
