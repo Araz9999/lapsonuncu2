@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useLanguageStore } from '@/store/languageStore';
+import { useTranslation } from '@/constants/translations';
 import { useUserStore } from '@/store/userStore';
 import { useListingStore } from '@/store/listingStore';
 import { useStoreStore } from '@/store/storeStore';
@@ -13,7 +13,7 @@ import { useSupportStore } from '@/store/supportStore';
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { language } = useLanguageStore();
+  const { t, language } = useTranslation();
   const { isAuthenticated, logout, favorites, freeAdsThisMonth, walletBalance, bonusBalance } = useUserStore();
   const { listings } = useListingStore();
   const { getUserStore } = useStoreStore();
@@ -46,40 +46,34 @@ export default function ProfileScreen() {
 
   const handleDeleteProfile = () => {
     Alert.alert(
-      language === 'az' ? 'Profili sil' : 'Удалить профиль',
-      language === 'az' 
-        ? 'Profilinizi silmək istədiyinizə əminsiniz? Bu əməliyyat geri qaytarıla bilməz və bütün məlumatlarınız silinəcək.' 
-        : 'Вы уверены, что хотите удалить свой профиль? Это действие нельзя отменить, и все ваши данные будут удалены.',
+      t('deleteProfile'),
+      t('cannotBeUndone'),
       [
         {
-          text: language === 'az' ? 'Ləğv et' : 'Отмена',
+          text: t('cancel'),
           style: 'cancel',
         },
         {
-          text: language === 'az' ? 'Sil' : 'Удалить',
+          text: t('delete'),
           style: 'destructive',
           onPress: () => {
             Alert.alert(
-              language === 'az' ? 'Son təsdiq' : 'Последнее подтверждение',
-              language === 'az' 
-                ? 'Bu əməliyyat geri qaytarıla bilməz. Davam etmək istəyirsiniz?' 
-                : 'Это действие нельзя отменить. Хотите продолжить?',
+              t('confirmDelete'),
+              t('areYouSure'),
               [
                 {
-                  text: language === 'az' ? 'Ləğv et' : 'Отмена',
+                  text: t('cancel'),
                   style: 'cancel',
                 },
                 {
-                  text: language === 'az' ? 'Bəli, sil' : 'Да, удалить',
+                  text: t('yes'),
                   style: 'destructive',
                   onPress: () => {
                     logout();
                     router.push('/auth/login');
                     Alert.alert(
-                      language === 'az' ? 'Profil silindi' : 'Профиль удален',
-                      language === 'az' 
-                        ? 'Profiliniz uğurla silindi' 
-                        : 'Ваш профиль был успешно удален'
+                      t('success'),
+                      t('deleteProfile')
                     );
                   },
                 },
@@ -105,14 +99,14 @@ export default function ProfileScreen() {
     return (
       <View style={styles.authContainer}>
         <Text style={styles.authTitle}>
-          {language === 'az' ? 'Profilinizə daxil olmaq üçün hesabınıza giriş edin' : 'Войдите в свой аккаунт, чтобы получить доступ к профилю'}
+          {t('loginToAccessProfile')}
         </Text>
         <TouchableOpacity 
           style={styles.authButton}
           onPress={handleLogin}
         >
           <Text style={styles.authButtonText}>
-            {language === 'az' ? 'Daxil ol' : 'Войти'}
+            {t('login')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -130,7 +124,7 @@ export default function ProfileScreen() {
             <Text style={styles.rating}>{currentUser.rating}</Text>
           </View>
           <Text style={styles.memberSince}>
-            {language === 'az' ? 'Üzv olub:' : 'Участник с:'} {formatDate(currentUser.memberSince)}
+            {t('memberSince')} {formatDate(currentUser.memberSince)}
           </Text>
         </View>
       </View>
@@ -139,21 +133,21 @@ export default function ProfileScreen() {
         <View style={styles.statItem}>
           <Text style={styles.statValue}>{userListings.length}</Text>
           <Text style={styles.statLabel}>
-            {language === 'az' ? 'Elanlar' : 'Объявления'}
+            {t('listings')}
           </Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
           <Text style={styles.statValue}>{favoriteListings.length}</Text>
           <Text style={styles.statLabel}>
-            {language === 'az' ? 'Seçilmişlər' : 'Избранное'}
+            {t('favorites')}
           </Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
           <Text style={styles.statValue}>{3 - freeAdsThisMonth}</Text>
           <Text style={styles.statLabel}>
-            {language === 'az' ? 'Pulsuz elan' : 'Бесплатно'}
+            {t('freeAds')}
           </Text>
         </View>
       </View>
@@ -168,7 +162,7 @@ export default function ProfileScreen() {
           </View>
           <View style={styles.walletInfo}>
             <Text style={styles.menuItemText}>
-              {language === 'az' ? 'Pul kisəsi' : 'Кошелек'}
+              {t('wallet')}
             </Text>
             <Text style={styles.walletBalance}>
               {walletBalance.toFixed(2)} AZN + {bonusBalance.toFixed(2)} AZN bonus
@@ -185,7 +179,7 @@ export default function ProfileScreen() {
             <Package size={20} color={Colors.primary} />
           </View>
           <Text style={styles.menuItemText}>
-            {language === 'az' ? 'Mənim elanlarım' : 'Мои объявления'}
+            {t('myListings')}
           </Text>
           <ChevronRight size={20} color={Colors.textSecondary} />
         </TouchableOpacity>
@@ -198,7 +192,7 @@ export default function ProfileScreen() {
             <Heart size={20} color={Colors.primary} />
           </View>
           <Text style={styles.menuItemText}>
-            {language === 'az' ? 'Seçilmişlər' : 'Избранное'}
+            {t('favorites')}
           </Text>
           <ChevronRight size={20} color={Colors.textSecondary} />
         </TouchableOpacity>
@@ -212,11 +206,11 @@ export default function ProfileScreen() {
           </View>
           <View style={styles.storeMenuInfo}>
             <Text style={styles.menuItemText}>
-              {language === 'az' ? 'Mağaza yarat' : 'Создать магазин'}
+              {t('createStore')}
             </Text>
             {userStore && (
               <Text style={styles.storeStatus}>
-                {userStore.adsUsed}/{userStore.maxAds} {language === 'az' ? 'elan' : 'объявлений'}
+                {userStore.adsUsed}/{userStore.maxAds} {t('listings').toLowerCase()}
               </Text>
             )}
           </View>
@@ -234,7 +228,7 @@ export default function ProfileScreen() {
             <MessageCircle size={20} color={Colors.primary} />
           </View>
           <Text style={styles.menuItemText}>
-            {language === 'az' ? 'Mesajlar' : 'Сообщения'}
+            {t('messages')}
           </Text>
           <ChevronRight size={20} color={Colors.textSecondary} />
         </TouchableOpacity>
@@ -248,16 +242,16 @@ export default function ProfileScreen() {
           </View>
           <View style={styles.liveChatInfo}>
             <Text style={styles.menuItemText}>
-              {language === 'az' ? 'Canlı dəstək' : 'Живая поддержка'}
+              {t('liveSupport')}
             </Text>
             {hasActiveChat && (
               <Text style={styles.activeChatStatus}>
-                {userChats.length} {language === 'az' ? 'aktiv söhbət' : 'активных чата'}
+                {userChats.length} {t('active')}
               </Text>
             )}
             {!hasActiveChat && availableOperators.length > 0 && (
               <Text style={styles.operatorStatus}>
-                {availableOperators.length} {language === 'az' ? 'operator onlayn' : 'операторов онлайн'}
+                {availableOperators.length} {t('online')}
               </Text>
             )}
           </View>
@@ -269,7 +263,7 @@ export default function ProfileScreen() {
             <Bell size={20} color={Colors.primary} />
           </View>
           <Text style={styles.menuItemText}>
-            {language === 'az' ? 'Bildirişlər' : 'Уведомления'}
+            {t('notifications')}
           </Text>
           <ChevronRight size={20} color={Colors.textSecondary} />
         </TouchableOpacity>
@@ -282,7 +276,7 @@ export default function ProfileScreen() {
             <HelpCircle size={20} color={Colors.primary} />
           </View>
           <Text style={styles.menuItemText}>
-            {language === 'az' ? 'Haqqımızda' : 'О нас'}
+            {t('about')}
           </Text>
           <ChevronRight size={20} color={Colors.textSecondary} />
         </TouchableOpacity>
@@ -295,7 +289,7 @@ export default function ProfileScreen() {
             <Settings size={20} color={Colors.primary} />
           </View>
           <Text style={styles.menuItemText}>
-            {language === 'az' ? 'Tənzimləmələr' : 'Настройки'}
+            {t('settings')}
           </Text>
           <ChevronRight size={20} color={Colors.textSecondary} />
         </TouchableOpacity>
@@ -308,7 +302,7 @@ export default function ProfileScreen() {
             <Trash2 size={20} color={Colors.error} />
           </View>
           <Text style={[styles.menuItemText, { color: Colors.error }]}>
-            {language === 'az' ? 'Profili sil' : 'Удалить профиль'}
+            {t('deleteProfile')}
           </Text>
           <ChevronRight size={20} color={Colors.error} />
         </TouchableOpacity>
@@ -317,7 +311,7 @@ export default function ProfileScreen() {
       <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
         <LogOut size={20} color={Colors.error} />
         <Text style={styles.logoutText}>
-          {language === 'az' ? 'Çıxış' : 'Выход'}
+          {t('logout')}
         </Text>
       </TouchableOpacity>
       

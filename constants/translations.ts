@@ -396,6 +396,506 @@ export const translations = {
     ru: 'Коды подтверждения неверны',
     en: 'Verification codes are invalid',
   },
+  bankCard: {
+    az: 'Bank kartı',
+    ru: 'Банковская карта',
+    en: 'Bank card',
+  },
+  cardNumber: {
+    az: 'Kart nömrəsi',
+    ru: 'Номер карты',
+    en: 'Card number',
+  },
+  expiryDate: {
+    az: 'Son istifadə tarixi',
+    ru: 'Срок действия',
+    en: 'Expiry date',
+  },
+  cvv: {
+    az: 'CVV',
+    ru: 'CVV',
+    en: 'CVV',
+  },
+  paymentSuccessful: {
+    az: 'Ödəniş uğurlu',
+    ru: 'Оплата успешна',
+    en: 'Payment successful',
+  },
+  paymentFailed: {
+    az: 'Ödəniş uğursuz',
+    ru: 'Оплата не удалась',
+    en: 'Payment failed',
+  },
+  balanceAdded: {
+    az: 'Balans əlavə edildi',
+    ru: 'Баланс пополнен',
+    en: 'Balance added',
+  },
+  myListings: {
+    az: 'Mənim elanlarım',
+    ru: 'Мои объявления',
+    en: 'My listings',
+  },
+  createListing: {
+    az: 'Elan yarat',
+    ru: 'Создать объявление',
+    en: 'Create listing',
+  },
+  editListing: {
+    az: 'Elanı redaktə et',
+    ru: 'Редактировать объявление',
+    en: 'Edit listing',
+  },
+  deleteListing: {
+    az: 'Elanı sil',
+    ru: 'Удалить объявление',
+    en: 'Delete listing',
+  },
+  promoteListing: {
+    az: 'Elanı irəli çək',
+    ru: 'Продвинуть объявление',
+    en: 'Promote listing',
+  },
+  title: {
+    az: 'Başlıq',
+    ru: 'Заголовок',
+    en: 'Title',
+  },
+  category: {
+    az: 'Kateqoriya',
+    ru: 'Категория',
+    en: 'Category',
+  },
+  selectCategory: {
+    az: 'Kateqoriya seçin',
+    ru: 'Выберите категорию',
+    en: 'Select category',
+  },
+  images: {
+    az: 'Şəkillər',
+    ru: 'Изображения',
+    en: 'Images',
+  },
+  addImages: {
+    az: 'Şəkil əlavə et',
+    ru: 'Добавить изображения',
+    en: 'Add images',
+  },
+  publish: {
+    az: 'Dərc et',
+    ru: 'Опубликовать',
+    en: 'Publish',
+  },
+  draft: {
+    az: 'Qaralama',
+    ru: 'Черновик',
+    en: 'Draft',
+  },
+  active: {
+    az: 'Aktiv',
+    ru: 'Активный',
+    en: 'Active',
+  },
+  inactive: {
+    az: 'Qeyri-aktiv',
+    ru: 'Неактивный',
+    en: 'Inactive',
+  },
+  expired: {
+    az: 'Vaxtı keçib',
+    ru: 'Истек',
+    en: 'Expired',
+  },
+  views: {
+    az: 'Baxışlar',
+    ru: 'Просмотры',
+    en: 'Views',
+  },
+  messages: {
+    az: 'Mesajlar',
+    ru: 'Сообщения',
+    en: 'Messages',
+  },
+  calls: {
+    az: 'Zənglər',
+    ru: 'Звонки',
+    en: 'Calls',
+  },
+  notifications: {
+    az: 'Bildirişlər',
+    ru: 'Уведомления',
+    en: 'Notifications',
+  },
+  about: {
+    az: 'Haqqımızda',
+    ru: 'О нас',
+    en: 'About',
+  },
+  help: {
+    az: 'Kömək',
+    ru: 'Помощь',
+    en: 'Help',
+  },
+  support: {
+    az: 'Dəstək',
+    ru: 'Поддержка',
+    en: 'Support',
+  },
+  liveSupport: {
+    az: 'Canlı dəstək',
+    ru: 'Живая поддержка',
+    en: 'Live support',
+  },
+  termsAndConditions: {
+    az: 'İstifadə şərtləri',
+    ru: 'Условия использования',
+    en: 'Terms and conditions',
+  },
+  privacyPolicy: {
+    az: 'Məxfilik siyasəti',
+    ru: 'Политика конфиденциальности',
+    en: 'Privacy policy',
+  },
+  language: {
+    az: 'Dil',
+    ru: 'Язык',
+    en: 'Language',
+  },
+  theme: {
+    az: 'Tema',
+    ru: 'Тема',
+    en: 'Theme',
+  },
+  light: {
+    az: 'İşıqlı',
+    ru: 'Светлая',
+    en: 'Light',
+  },
+  dark: {
+    az: 'Qaranlıq',
+    ru: 'Темная',
+    en: 'Dark',
+  },
+  auto: {
+    az: 'Avtomatik',
+    ru: 'Автоматически',
+    en: 'Auto',
+  },
+  createStore: {
+    az: 'Mağaza yarat',
+    ru: 'Создать магазин',
+    en: 'Create store',
+  },
+  storeName: {
+    az: 'Mağaza adı',
+    ru: 'Название магазина',
+    en: 'Store name',
+  },
+  storeDescription: {
+    az: 'Mağaza təsviri',
+    ru: 'Описание магазина',
+    en: 'Store description',
+  },
+  myStore: {
+    az: 'Mənim mağazam',
+    ru: 'Мой магазин',
+    en: 'My store',
+  },
+  storeManagement: {
+    az: 'Mağaza idarəetməsi',
+    ru: 'Управление магазином',
+    en: 'Store management',
+  },
+  storeSettings: {
+    az: 'Mağaza tənzimləmələri',
+    ru: 'Настройки магазина',
+    en: 'Store settings',
+  },
+  storeAnalytics: {
+    az: 'Mağaza analitikası',
+    ru: 'Аналитика магазина',
+    en: 'Store analytics',
+  },
+  storeTheme: {
+    az: 'Mağaza teması',
+    ru: 'Тема магазина',
+    en: 'Store theme',
+  },
+  storeReviews: {
+    az: 'Mağaza rəyləri',
+    ru: 'Отзывы магазина',
+    en: 'Store reviews',
+  },
+  addToFavorites: {
+    az: 'Seçilmişlərə əlavə et',
+    ru: 'Добавить в избранное',
+    en: 'Add to favorites',
+  },
+  removeFromFavorites: {
+    az: 'Seçilmişlərdən sil',
+    ru: 'Удалить из избранного',
+    en: 'Remove from favorites',
+  },
+  noFavorites: {
+    az: 'Seçilmiş elan yoxdur',
+    ru: 'Нет избранных объявлений',
+    en: 'No favorite listings',
+  },
+  noListings: {
+    az: 'Elan yoxdur',
+    ru: 'Нет объявлений',
+    en: 'No listings',
+  },
+  noMessages: {
+    az: 'Mesaj yoxdur',
+    ru: 'Нет сообщений',
+    en: 'No messages',
+  },
+  noNotifications: {
+    az: 'Bildiriş yoxdur',
+    ru: 'Нет уведомлений',
+    en: 'No notifications',
+  },
+  sendMessage: {
+    az: 'Mesaj göndər',
+    ru: 'Отправить сообщение',
+    en: 'Send message',
+  },
+  typeMessage: {
+    az: 'Mesaj yazın...',
+    ru: 'Введите сообщение...',
+    en: 'Type a message...',
+  },
+  callNow: {
+    az: 'İndi zəng et',
+    ru: 'Позвонить сейчас',
+    en: 'Call now',
+  },
+  incomingCall: {
+    az: 'Gələn zəng',
+    ru: 'Входящий звонок',
+    en: 'Incoming call',
+  },
+  accept: {
+    az: 'Qəbul et',
+    ru: 'Принять',
+    en: 'Accept',
+  },
+  decline: {
+    az: 'Rədd et',
+    ru: 'Отклонить',
+    en: 'Decline',
+  },
+  endCall: {
+    az: 'Zəngi bitir',
+    ru: 'Завершить звонок',
+    en: 'End call',
+  },
+  callHistory: {
+    az: 'Zəng tarixçəsi',
+    ru: 'История звонков',
+    en: 'Call history',
+  },
+  blockedUsers: {
+    az: 'Bloklanmış istifadəçilər',
+    ru: 'Заблокированные пользователи',
+    en: 'Blocked users',
+  },
+  blockUser: {
+    az: 'İstifadəçini blokla',
+    ru: 'Заблокировать пользователя',
+    en: 'Block user',
+  },
+  unblockUser: {
+    az: 'İstifadəçinin blokunu aç',
+    ru: 'Разблокировать пользователя',
+    en: 'Unblock user',
+  },
+  reportUser: {
+    az: 'İstifadəçini şikayət et',
+    ru: 'Пожаловаться на пользователя',
+    en: 'Report user',
+  },
+  deleteProfile: {
+    az: 'Profili sil',
+    ru: 'Удалить профиль',
+    en: 'Delete profile',
+  },
+  confirmDelete: {
+    az: 'Silməyi təsdiq et',
+    ru: 'Подтвердить удаление',
+    en: 'Confirm delete',
+  },
+  areYouSure: {
+    az: 'Əminsiniz?',
+    ru: 'Вы уверены?',
+    en: 'Are you sure?',
+  },
+  cannotBeUndone: {
+    az: 'Bu əməliyyat geri qaytarıla bilməz',
+    ru: 'Это действие нельзя отменить',
+    en: 'This action cannot be undone',
+  },
+  memberSince: {
+    az: 'Üzv olub:',
+    ru: 'Участник с:',
+    en: 'Member since:',
+  },
+  listings: {
+    az: 'Elanlar',
+    ru: 'Объявления',
+    en: 'Listings',
+  },
+  favorites: {
+    az: 'Seçilmişlər',
+    ru: 'Избранное',
+    en: 'Favorites',
+  },
+  freeAds: {
+    az: 'Pulsuz elan',
+    ru: 'Бесплатно',
+    en: 'Free ads',
+  },
+  loginToAccessProfile: {
+    az: 'Profilinizə daxil olmaq üçün hesabınıza giriş edin',
+    ru: 'Войдите в свой аккаунт, чтобы получить доступ к профилю',
+    en: 'Login to access your profile',
+  },
+  autoRenewal: {
+    az: 'Avtomatik yeniləmə',
+    ru: 'Автоматическое обновление',
+    en: 'Auto renewal',
+  },
+  enableAutoRenewal: {
+    az: 'Avtomatik yeniləməni aktivləşdir',
+    ru: 'Включить автоматическое обновление',
+    en: 'Enable auto renewal',
+  },
+  disableAutoRenewal: {
+    az: 'Avtomatik yeniləməni deaktivləşdir',
+    ru: 'Отключить автоматическое обновление',
+    en: 'Disable auto renewal',
+  },
+  renewalPeriod: {
+    az: 'Yeniləmə müddəti',
+    ru: 'Период обновления',
+    en: 'Renewal period',
+  },
+  days: {
+    az: 'gün',
+    ru: 'дней',
+    en: 'days',
+  },
+  cost: {
+    az: 'Qiymət',
+    ru: 'Стоимость',
+    en: 'Cost',
+  },
+  free: {
+    az: 'Pulsuz',
+    ru: 'Бесплатно',
+    en: 'Free',
+  },
+  paid: {
+    az: 'Ödənişli',
+    ru: 'Платный',
+    en: 'Paid',
+  },
+  paymentHistory: {
+    az: 'Ödəniş tarixçəsi',
+    ru: 'История платежей',
+    en: 'Payment history',
+  },
+  noPaymentHistory: {
+    az: 'Ödəniş tarixçəsi yoxdur',
+    ru: 'Нет истории платежей',
+    en: 'No payment history',
+  },
+  discount: {
+    az: 'Endirim',
+    ru: 'Скидка',
+    en: 'Discount',
+  },
+  discounts: {
+    az: 'Endirimlər',
+    ru: 'Скидки',
+    en: 'Discounts',
+  },
+  createDiscount: {
+    az: 'Endirim yarat',
+    ru: 'Создать скидку',
+    en: 'Create discount',
+  },
+  discountCode: {
+    az: 'Endirim kodu',
+    ru: 'Код скидки',
+    en: 'Discount code',
+  },
+  applyDiscount: {
+    az: 'Endirim tətbiq et',
+    ru: 'Применить скидку',
+    en: 'Apply discount',
+  },
+  moderation: {
+    az: 'Moderasiya',
+    ru: 'Модерация',
+    en: 'Moderation',
+  },
+  pending: {
+    az: 'Gözləyir',
+    ru: 'Ожидает',
+    en: 'Pending',
+  },
+  approved: {
+    az: 'Təsdiqləndi',
+    ru: 'Одобрено',
+    en: 'Approved',
+  },
+  rejected: {
+    az: 'Rədd edildi',
+    ru: 'Отклонено',
+    en: 'Rejected',
+  },
+  approve: {
+    az: 'Təsdiq et',
+    ru: 'Одобрить',
+    en: 'Approve',
+  },
+  reject: {
+    az: 'Rədd et',
+    ru: 'Отклонить',
+    en: 'Reject',
+  },
+  operatorDashboard: {
+    az: 'Operator paneli',
+    ru: 'Панель оператора',
+    en: 'Operator dashboard',
+  },
+  online: {
+    az: 'Onlayn',
+    ru: 'Онлайн',
+    en: 'Online',
+  },
+  offline: {
+    az: 'Oflayn',
+    ru: 'Оффлайн',
+    en: 'Offline',
+  },
+  available: {
+    az: 'Əlçatan',
+    ru: 'Доступен',
+    en: 'Available',
+  },
+  busy: {
+    az: 'Məşğul',
+    ru: 'Занят',
+    en: 'Busy',
+  },
+  away: {
+    az: 'Uzaqda',
+    ru: 'Отошел',
+    en: 'Away',
+  },
 };
 
 export function t(key: keyof typeof translations, language: Language): string {
