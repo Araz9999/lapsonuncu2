@@ -84,7 +84,7 @@ auth.get('/:provider/callback', async (c) => {
     const tokenResponse = await oauthService.exchangeCodeForToken(provider, code);
     
     console.log(`[Auth] Fetching user info from ${provider}`);
-    const userInfo = await oauthService.getUserInfo(provider, tokenResponse.access_token);
+    const userInfo = await oauthService.getUserInfo(provider, tokenResponse.access_token, tokenResponse);
 
     console.log(`[Auth] Looking up user by social ID: ${provider}:${userInfo.id}`);
     let user = await userDB.findBySocialId(provider, userInfo.id);

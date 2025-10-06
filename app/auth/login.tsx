@@ -1,13 +1,12 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, KeyboardAvoidingView, Platform, ScrollView, Linking, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from '@/constants/translations';
 import { useUserStore } from '@/store/userStore';
 import { users } from '@/mocks/users';
 import Colors from '@/constants/colors';
 import { X, Eye, EyeOff, Facebook, Chrome, MessageCircle } from 'lucide-react-native';
-import * as WebBrowser from 'expo-web-browser';
-import config from '@/constants/config';
+import { initiateSocialLogin, checkSocialAuthStatus, showSocialLoginError, type SocialAuthConfig } from '@/utils/socialAuth';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -17,7 +16,19 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [socialAuthConfig, setSocialAuthConfig] = useState<SocialAuthConfig>({ google: false, facebook: false, vk: false });
+  const [loadingSocial, setLoadingSocial] = useState<string | null>(null);
   
+  useEffect(() => {
+    loadSocialAuthStatus();
+  }, []);
+
+  const loadSocialAuthStatus = async () => {
+    const status = await checkSocialAuthStatus();
+    setSocialAuthConfig(status);
+    console.log('[Login] Social auth status:', status);
+  };
+
   const handleLogin = () => {
     if (!email || !password) {
       return;
@@ -39,50 +50,29 @@ export default function LoginScreen() {
     router.push('/auth/forgot-password');
   };
 
-  const handleSocialLogin = async (provider: string) => {
-    try {
-      console.log(`[Login] Initiating ${provider} login`);
-      
-      const baseUrl = config.BASE_URL?.replace('/api', '') || 'http://localhost:8081';
-      const authUrl = `${baseUrl}/api/auth/${provider}/login`;
-      
-      console.log(`[Login] Opening auth URL: ${authUrl}`);
-
-      if (Platform.OS === 'web') {
-        window.location.href = authUrl;
-      } else {
-        const result = await WebBrowser.openAuthSessionAsync(
-          authUrl,
-          `${baseUrl}/auth/success`
-        );
-
-        if (result.type === 'success' && result.url) {
-          const url = new URL(result.url);
-          const token = url.searchParams.get('token');
-          const userData = url.searchParams.get('user');
-
-          if (token && userData) {
-            const user = JSON.parse(userData);
-            login({
-              ...users[0],
-              id: user.id,
-              name: user.name,
-              email: user.email,
-              avatar: user.avatar,
-            });
-            router.replace('/(tabs)');
-          }
-        } else if (result.type === 'cancel') {
-          console.log('[Login] User cancelled OAuth flow');
+  const handleSocialLogin = async (provider: 'google' | 'facebook' | 'vk') => {
+    setLoadingSocial(provider);
+    
+    await initiateSocialLogin(
+      provider,
+      (result) => {
+        setLoadingSocial(null);
+        if (result.success && result.user) {
+          login({
+            ...users[0],
+            id: result.user.id,
+            name: result.user.name,
+            email: result.user.email,
+            avatar: result.user.avatar,
+          });
+          router.replace('/(tabs)');
         }
+      },
+      (error) => {
+        setLoadingSocial(null);
+        showSocialLoginError(provider, error);
       }
-    } catch (error) {
-      console.error(`[Login] ${provider} login error:`, error);
-      Alert.alert(
-        'Login Failed',
-        `Failed to login with ${provider}. Please try again or use a different method.`
-      );
-    }
+    );
   };
 
   return (
@@ -179,29 +169,64 @@ export default function LoginScreen() {
           </View>
           
           <View style={styles.socialButtons}>
-            <TouchableOpacity 
-              style={[styles.socialButton, styles.facebookButton]}
-              onPress={() => handleSocialLogin('facebook')}
-            >
-              <Facebook size={24} color="white" />
-              <Text style={styles.socialButtonText}>Facebook</Text>
-            </TouchableOpacity>
+            {socialAuthConfig.google && (
+              <TouchableOpacity 
+                style={[styles.socialButton, styles.googleButton]}
+                onPress={() => handleSocialLogin('google')}
+                disabled={loadingSocial !== null}
+              >
+                {loadingSocial === 'google' ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <>
+                    <Chrome size={24} color="white" />
+                    <Text style={styles.socialButtonText}>Google</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
             
-            <TouchableOpacity 
-              style={[styles.socialButton, styles.googleButton]}
-              onPress={() => handleSocialLogin('google')}
-            >
-              <Chrome size={24} color="white" />
-              <Text style={styles.socialButtonText}>Google</Text>
-            </TouchableOpacity>
+            {socialAuthConfig.facebook && (
+              <TouchableOpacity 
+                style={[styles.socialButton, styles.facebookButton]}
+                onPress={() => handleSocialLogin('facebook')}
+                disabled={loadingSocial !== null}
+              >
+                {loadingSocial === 'facebook' ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <>
+                    <Facebook size={24} color="white" />
+                    <Text style={styles.socialButtonText}>Facebook</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
             
-            <TouchableOpacity 
-              style={[styles.socialButton, styles.vkButton]}
-              onPress={() => handleSocialLogin('vk')}
-            >
-              <MessageCircle size={24} color="white" />
-              <Text style={styles.socialButtonText}>VK</Text>
-            </TouchableOpacity>
+            {socialAuthConfig.vk && (
+              <TouchableOpacity 
+                style={[styles.socialButton, styles.vkButton]}
+                onPress={() => handleSocialLogin('vk')}
+                disabled={loadingSocial !== null}
+              >
+                {loadingSocial === 'vk' ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <>
+                    <MessageCircle size={24} color="white" />
+                    <Text style={styles.socialButtonText}>VK</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
+            
+            {!socialAuthConfig.google && !socialAuthConfig.facebook && !socialAuthConfig.vk && (
+              <View style={styles.noSocialAuth}>
+                <Text style={styles.noSocialAuthText}>
+                  Social login not configured. See SOCIAL_LOGIN_SETUP.md for setup instructions.
+                </Text>
+              </View>
+            )}
           </View>
         </View>
         
@@ -402,5 +427,18 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+  },
+  noSocialAuth: {
+    padding: 16,
+    backgroundColor: Colors.card,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  noSocialAuthText: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
   },
 });
