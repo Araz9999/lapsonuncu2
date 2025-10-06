@@ -896,6 +896,26 @@ export const translations = {
     ru: 'Отошел',
     en: 'Away',
   },
+  accountRequired: {
+    az: 'Hesab tələb olunur',
+    ru: 'Требуется аккаунт',
+    en: 'Account required',
+  },
+  loginToPostAd: {
+    az: 'Elan yerləşdirmək üçün əvvəlcə hesabınıza daxil olmalısınız',
+    ru: 'Для размещения объявления необходимо войти в аккаунт',
+    en: 'You must login to post an ad',
+  },
+  registerAccount: {
+    az: 'Qeydiyyatdan keçin',
+    ru: 'Зарегистрироваться',
+    en: 'Register',
+  },
+  postAd: {
+    az: 'Elan yerləşdir',
+    ru: 'Разместить объявление',
+    en: 'Post Ad',
+  },
 };
 
 export function t(key: keyof typeof translations, language: Language): string {
