@@ -5,7 +5,7 @@ import createContextHook from '@nkzw/create-context-hook';
 export type Language = 'az' | 'ru' | 'en';
 
 export const [LanguageProvider, useLanguageStore] = createContextHook(() => {
-  const [language, setLanguageState] = useState<Language>('az');
+  const [language, setLanguageState] = useState<Language>('ru');
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
