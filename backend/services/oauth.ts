@@ -132,7 +132,7 @@ class OAuthService {
     }
   }
 
-  async getUserInfo(provider: string, accessToken: string): Promise<OAuthUserInfo> {
+  async getUserInfo(provider: string, accessToken: string, tokenResponse?: OAuthTokenResponse): Promise<OAuthUserInfo> {
     const config = this.configs[provider];
     if (!config) {
       throw new Error(`Unknown OAuth provider: ${provider}`);
@@ -168,14 +168,14 @@ class OAuthService {
       const data = await response.json();
       console.log(`[OAuth] Successfully fetched user info from ${provider}`);
 
-      return this.normalizeUserInfo(provider, data);
+      return this.normalizeUserInfo(provider, data, tokenResponse);
     } catch (error) {
       console.error(`[OAuth] Error fetching user info from ${provider}:`, error);
       throw error;
     }
   }
 
-  private normalizeUserInfo(provider: string, data: any): OAuthUserInfo {
+  private normalizeUserInfo(provider: string, data: any, tokenResponse?: OAuthTokenResponse): OAuthUserInfo {
     switch (provider) {
       case 'google':
         return {
@@ -188,16 +188,17 @@ class OAuthService {
       case 'facebook':
         return {
           id: data.id,
-          email: data.email,
+          email: data.email || `fb_${data.id}@facebook.placeholder`,
           name: data.name,
           avatar: data.picture?.data?.url,
         };
 
       case 'vk':
         const user = data.response?.[0];
+        const vkEmail = (tokenResponse as any)?.email || (data as any)?.email || `vk_${user?.id}@vk.placeholder`;
         return {
           id: user?.id?.toString() || '',
-          email: data.email || '',
+          email: vkEmail,
           name: `${user?.first_name || ''} ${user?.last_name || ''}`.trim(),
           avatar: user?.photo_200,
         };

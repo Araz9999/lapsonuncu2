@@ -4,8 +4,8 @@ import { Platform } from 'react-native';
 export const API_CONFIG = {
   // Base URLs
   BASE_URL: Platform.select({
-    web: 'https://your-api-domain.com/api',
-    default: 'https://your-api-domain.com/api'
+    web: typeof window !== 'undefined' ? `${window.location.origin}/api` : 'http://localhost:8081/api',
+    default: 'http://localhost:8081/api'
   }),
   
   // AI Services
@@ -84,8 +84,8 @@ export const getEnvironmentConfig = () => {
     return {
       ...API_CONFIG,
       BASE_URL: Platform.select({
-        web: 'http://localhost:3000/api',
-        default: 'http://localhost:3000/api'
+        web: typeof window !== 'undefined' ? `${window.location.origin}/api` : 'http://localhost:8081/api',
+        default: 'http://localhost:8081/api'
       }),
       ENABLE_ANALYTICS: false, // Disable analytics in development
     };
