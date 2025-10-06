@@ -5,6 +5,7 @@ export interface USSDSession {
   isActive: boolean;
   history: USSDMessage[];
   currentMenuPath: string[];
+  lastActivity: string;
 }
 
 export interface USSDMessage {

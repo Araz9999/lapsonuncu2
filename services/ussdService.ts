@@ -1,6 +1,16 @@
 import { USSDMenu, USSDMenuItem, USSDResponse } from '@/types/ussd';
 import { Language } from '@/store/languageStore';
 
+interface SessionState {
+  currentMenuPath: string[];
+  awaitingInput: boolean;
+  inputContext: { menuId: string; itemId: string; step: number } | null;
+  lastActivity: number;
+  inputHistory: string[];
+}
+
+const SESSION_TIMEOUT = 120000;
+
 const ussdMenus: Record<string, USSDMenu> = {
   main: {
     id: 'main',
@@ -184,40 +194,107 @@ const ussdMenus: Record<string, USSDMenu> = {
 };
 
 export class USSDService {
-  private currentMenuPath: string[] = [];
-  private awaitingInput: boolean = false;
-  private inputContext: { menuId: string; itemId: string } | null = null;
+  private sessions: Map<string, SessionState> = new Map();
+  private currentSessionId: string | null = null;
 
-  async processUSSDCode(code: string, language: Language): Promise<USSDResponse> {
-    console.log('[USSD] Processing code:', code);
+  private getOrCreateSession(sessionId?: string): { id: string; state: SessionState } {
+    const id = sessionId || Date.now().toString();
     
-    this.currentMenuPath = [];
-    this.awaitingInput = false;
-    this.inputContext = null;
+    if (!this.sessions.has(id)) {
+      this.sessions.set(id, {
+        currentMenuPath: [],
+        awaitingInput: false,
+        inputContext: null,
+        lastActivity: Date.now(),
+        inputHistory: [],
+      });
+    }
+    
+    const state = this.sessions.get(id)!;
+    state.lastActivity = Date.now();
+    
+    return { id, state };
+  }
+
+  private cleanupExpiredSessions(): void {
+    const now = Date.now();
+    const expiredSessions: string[] = [];
+    
+    this.sessions.forEach((state, id) => {
+      if (now - state.lastActivity > SESSION_TIMEOUT) {
+        expiredSessions.push(id);
+      }
+    });
+    
+    expiredSessions.forEach(id => {
+      console.log('[USSD Service] Cleaning up expired session:', id);
+      this.sessions.delete(id);
+    });
+  }
+
+  async processUSSDCode(code: string, language: Language, sessionId?: string): Promise<USSDResponse & { sessionId: string }> {
+    console.log('[USSD Service] Processing code:', code, 'SessionId:', sessionId);
+    
+    this.cleanupExpiredSessions();
+    
+    const { id, state } = this.getOrCreateSession(sessionId);
+    this.currentSessionId = id;
+    
+    state.currentMenuPath = [];
+    state.awaitingInput = false;
+    state.inputContext = null;
+    state.inputHistory = [code];
 
     const mainMenu = ussdMenus.main;
     const menuText = this.formatMenu(mainMenu, language);
+
+    console.log('[USSD Service] Initial menu generated, SessionId:', id);
 
     return {
       text: menuText,
       isEnd: false,
       menuId: 'main',
+      sessionId: id,
     };
   }
 
   async processUSSDInput(
     input: string,
-    currentPath: string[],
+    sessionId: string,
     language: Language
-  ): Promise<USSDResponse> {
-    console.log('[USSD] Processing input:', input, 'Path:', currentPath);
+  ): Promise<USSDResponse & { sessionId: string }> {
+    console.log('[USSD Service] Processing input:', input, 'SessionId:', sessionId);
+    
+    this.cleanupExpiredSessions();
+    
+    const session = this.sessions.get(sessionId);
+    if (!session) {
+      console.error('[USSD Service] Session not found:', sessionId);
+      return {
+        text: language === 'az' 
+          ? 'Sessiya bitdi. Yenidən başlayın.' 
+          : language === 'ru'
+          ? 'Сессия истекла. Начните заново.'
+          : 'Session expired. Please start again.',
+        isEnd: true,
+        sessionId,
+      };
+    }
+    
+    session.lastActivity = Date.now();
+    session.inputHistory.push(input);
+    
+    const currentPath = session.currentMenuPath;
+    console.log('[USSD Service] Current path:', currentPath, 'Awaiting input:', session.awaitingInput);
 
-    if (this.awaitingInput && this.inputContext) {
-      return await this.handleInputAction(input, language);
+    if (session.awaitingInput && session.inputContext) {
+      return await this.handleInputAction(input, sessionId, language);
     }
 
     if (input === '0') {
       if (currentPath.length === 0) {
+        console.log('[USSD Service] User exited from main menu');
+        this.sessions.delete(sessionId);
         return {
           text: language === 'az' 
             ? 'Sessiya başa çatdı' 
@@ -225,16 +302,20 @@ export class USSDService {
             ? 'Сессия завершена'
             : 'Session ended',
           isEnd: true,
+          sessionId,
         };
       }
 
       const newPath = currentPath.slice(0, -1);
-      this.currentMenuPath = newPath;
-      return await this.navigateToMenu(newPath, language);
+      session.currentMenuPath = newPath;
+      console.log('[USSD Service] Navigating back to path:', newPath);
+      return await this.navigateToMenu(newPath, sessionId, language);
     }
 
     const currentMenu = this.getMenuByPath(currentPath);
     if (!currentMenu) {
+      console.error('[USSD Service] Menu not found for path:', currentPath);
+      this.sessions.delete(sessionId);
       return {
         text: language === 'az' 
           ? 'Xəta baş verdi. Yenidən cəhd edin.' 
@@ -242,22 +323,26 @@ export class USSDService {
           ? 'Произошла ошибка. Попробуйте снова.'
           : 'An error occurred. Please try again.',
         isEnd: true,
+        sessionId,
       };
     }
 
     const selectedItem = currentMenu.items.find((item) => item.option === input);
     if (!selectedItem) {
+      console.warn('[USSD Service] Invalid option selected:', input);
       const errorText = this.formatMenu(currentMenu, language);
       return {
-        text: `${language === 'az' ? 'Yanlış seçim!' : language === 'ru' ? 'Неверный выбор!' : 'Invalid choice!'}\n\n${errorText}`,
+        text: `${language === 'az' ? 'Yanlış seçim! Zəhmət olmasa düzgün rəqəm daxil edin.' : language === 'ru' ? 'Неверный выбор! Пожалуйста, введите правильный номер.' : 'Invalid choice! Please enter a valid number.'}\n\n${errorText}`,
         isEnd: false,
         menuId: currentMenu.id,
+        sessionId,
       };
     }
 
     if (selectedItem.type === 'menu' && selectedItem.children) {
       const newPath = [...currentPath, selectedItem.id];
-      this.currentMenuPath = newPath;
+      session.currentMenuPath = newPath;
+      console.log('[USSD Service] Navigating to submenu:', selectedItem.id, 'New path:', newPath);
       
       const submenu: USSDMenu = {
         id: selectedItem.id,
@@ -271,31 +356,67 @@ export class USSDService {
         text: menuText,
         isEnd: false,
         menuId: selectedItem.id,
+        sessionId,
       };
     }
 
     if (selectedItem.type === 'action' && selectedItem.action) {
-      const result = await selectedItem.action();
-      return {
-        text: `${result}\n\n0 - ${language === 'az' ? 'Geri' : language === 'ru' ? 'Назад' : 'Back'}`,
-        isEnd: false,
-        menuId: currentMenu.id,
-      };
+      console.log('[USSD Service] Executing action:', selectedItem.id);
+      try {
+        const result = await selectedItem.action();
+        return {
+          text: `${result}\n\n0 - ${language === 'az' ? 'Geri' : language === 'ru' ? 'Назад' : 'Back'}`,
+          isEnd: false,
+          menuId: currentMenu.id,
+          sessionId,
+        };
+      } catch (error) {
+        console.error('[USSD Service] Action execution failed:', error);
+        return {
+          text: language === 'az' 
+            ? 'Əməliyyat zamanı xəta baş verdi. Zəhmət olmasa yenidən cəhd edin.' 
+            : language === 'ru'
+            ? 'Произошла ошибка при выполнении операции. Пожалуйста, попробуйте снова.'
+            : 'An error occurred during operation. Please try again.',
+          isEnd: false,
+          menuId: currentMenu.id,
+          sessionId,
+        };
+      }
     }
 
     if (selectedItem.type === 'input' && selectedItem.action) {
-      this.awaitingInput = true;
-      this.inputContext = { menuId: currentMenu.id, itemId: selectedItem.id };
+      console.log('[USSD Service] Starting input flow:', selectedItem.id);
+      session.awaitingInput = true;
+      session.inputContext = { menuId: currentMenu.id, itemId: selectedItem.id, step: 0 };
       
-      const result = await selectedItem.action();
-      return {
-        text: result,
-        isEnd: false,
-        requiresInput: true,
-        menuId: currentMenu.id,
-      };
+      try {
+        const result = await selectedItem.action();
+        return {
+          text: result,
+          isEnd: false,
+          requiresInput: true,
+          menuId: currentMenu.id,
+          sessionId,
+        };
+      } catch (error) {
+        console.error('[USSD Service] Input action failed:', error);
+        session.awaitingInput = false;
+        session.inputContext = null;
+        return {
+          text: language === 'az' 
+            ? 'Xəta baş verdi. Zəhmət olmasa yenidən cəhd edin.' 
+            : language === 'ru'
+            ? 'Произошла ошибка. Пожалуйста, попробуйте снова.'
+            : 'An error occurred. Please try again.',
+          isEnd: false,
+          menuId: currentMenu.id,
+          sessionId,
+        };
+      }
     }
 
+    console.log('[USSD Service] Operation completed');
     return {
       text: language === 'az' 
         ? 'Əməliyyat tamamlandı' 
@@ -303,11 +424,15 @@ export class USSDService {
         ? 'Операция завершена'
         : 'Operation completed',
       isEnd: true,
+      sessionId,
     };
   }
 
-  private async handleInputAction(input: string, language: Language): Promise<USSDResponse> {
-    if (!this.inputContext) {
+  private async handleInputAction(input: string, sessionId: string, language: Language): Promise<USSDResponse & { sessionId: string }> {
+    const session = this.sessions.get(sessionId);
+    
+    if (!session || !session.inputContext) {
+      console.error('[USSD Service] No input context found');
       return {
         text: language === 'az' 
           ? 'Xəta baş verdi' 
@@ -315,11 +440,13 @@ export class USSDService {
           ? 'Произошла ошибка'
           : 'An error occurred',
         isEnd: true,
+        sessionId,
       };
     }
 
-    const menu = this.getMenuByPath(this.currentMenuPath);
+    const menu = this.getMenuByPath(session.currentMenuPath);
     if (!menu) {
+      console.error('[USSD Service] Menu not found for input action');
       return {
         text: language === 'az' 
           ? 'Xəta baş verdi' 
@@ -327,23 +454,45 @@ export class USSDService {
           ? 'Произошла ошибка'
           : 'An error occurred',
         isEnd: true,
+        sessionId,
       };
     }
 
-    const item = menu.items.find((i) => i.id === this.inputContext!.itemId);
+    const item = menu.items.find((i) => i.id === session.inputContext!.itemId);
     if (item && item.action) {
-      const result = await item.action(input);
+      console.log('[USSD Service] Processing input action with value:', input);
       
-      this.awaitingInput = false;
-      this.inputContext = null;
+      try {
+        const result = await item.action(input);
+        
+        session.awaitingInput = false;
+        session.inputContext = null;
 
-      return {
-        text: `${result}\n\n0 - ${language === 'az' ? 'Əsas menyuya qayıt' : language === 'ru' ? 'Вернуться в главное меню' : 'Back to main menu'}`,
-        isEnd: false,
-        menuId: menu.id,
-      };
+        return {
+          text: `${result}\n\n0 - ${language === 'az' ? 'Əsas menyuya qayıt' : language === 'ru' ? 'Вернуться в главное меню' : 'Back to main menu'}`,
+          isEnd: false,
+          menuId: menu.id,
+          sessionId,
+        };
+      } catch (error) {
+        console.error('[USSD Service] Input action execution failed:', error);
+        session.awaitingInput = false;
+        session.inputContext = null;
+        
+        return {
+          text: language === 'az' 
+            ? 'Əməliyyat zamanı xəta baş verdi.' 
+            : language === 'ru'
+            ? 'Произошла ошибка при выполнении операции.'
+            : 'An error occurred during operation.',
+          isEnd: false,
+          menuId: menu.id,
+          sessionId,
+        };
+      }
     }
 
+    console.log('[USSD Service] Input action completed');
     return {
       text: language === 'az' 
         ? 'Əməliyyat tamamlandı' 
@@ -351,12 +500,14 @@ export class USSDService {
         ? 'Операция завершена'
         : 'Operation completed',
       isEnd: true,
+      sessionId,
     };
   }
 
-  private async navigateToMenu(path: string[], language: Language): Promise<USSDResponse> {
+  private async navigateToMenu(path: string[], sessionId: string, language: Language): Promise<USSDResponse & { sessionId: string }> {
     const menu = this.getMenuByPath(path);
     if (!menu) {
+      console.error('[USSD Service] Navigation failed - menu not found for path:', path);
       return {
         text: language === 'az' 
           ? 'Xəta baş verdi' 
@@ -364,14 +515,17 @@ export class USSDService {
           ? 'Произошла ошибка'
           : 'An error occurred',
         isEnd: true,
+        sessionId,
       };
     }
 
+    console.log('[USSD Service] Navigated to menu:', menu.id);
     const menuText = this.formatMenu(menu, language);
     return {
       text: menuText,
       isEnd: false,
       menuId: menu.id,
+      sessionId,
     };
   }
 
@@ -412,10 +566,35 @@ export class USSDService {
     return `${title}\n\n${items}${backOption}`;
   }
 
-  reset(): void {
-    this.currentMenuPath = [];
-    this.awaitingInput = false;
-    this.inputContext = null;
+  reset(sessionId?: string): void {
+    if (sessionId) {
+      console.log('[USSD Service] Resetting session:', sessionId);
+      this.sessions.delete(sessionId);
+      if (this.currentSessionId === sessionId) {
+        this.currentSessionId = null;
+      }
+    } else {
+      console.log('[USSD Service] Resetting all sessions');
+      this.sessions.clear();
+      this.currentSessionId = null;
+    }
+  }
+  
+  getSessionState(sessionId: string): SessionState | undefined {
+    return this.sessions.get(sessionId);
+  }
+  
+  hasActiveSession(sessionId: string): boolean {
+    const session = this.sessions.get(sessionId);
+    if (!session) return false;
+    
+    const isExpired = Date.now() - session.lastActivity > SESSION_TIMEOUT;
+    if (isExpired) {
+      this.sessions.delete(sessionId);
+      return false;
+    }
+    
+    return true;
   }
 }
 
