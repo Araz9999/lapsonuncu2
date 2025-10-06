@@ -3,7 +3,7 @@ import { Tabs } from 'expo-router';
 import { useLanguageStore } from '@/store/languageStore';
 import { useThemeStore } from '@/store/themeStore';
 import { getColors } from '@/constants/colors';
-import { Search, Plus, MessageCircle, User, Star, Store } from 'lucide-react-native';
+import { Search, Plus, MessageCircle, User, Star, Store, Phone } from 'lucide-react-native';
 
 
 export default function TabLayout() {
@@ -63,6 +63,13 @@ export default function TabLayout() {
         options={{
           title: language === 'az' ? 'Mağazalar' : language === 'ru' ? 'Магазины' : 'Stores',
           tabBarIcon: ({ color, size }) => <Store size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="ussd"
+        options={{
+          title: language === 'az' ? 'USSD' : language === 'ru' ? 'USSD' : 'USSD',
+          tabBarIcon: ({ color, size }) => <Phone size={size} color={color} />,
         }}
       />
       <Tabs.Screen
