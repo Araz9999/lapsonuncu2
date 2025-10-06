@@ -1,6 +1,7 @@
 export interface LocalizedText {
   az: string;
   ru: string;
+  en: string;
 }
 
 export interface Subcategory {

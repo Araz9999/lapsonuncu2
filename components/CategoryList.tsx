@@ -5,6 +5,7 @@ import { categories } from '@/constants/categories';
 import { useLanguageStore } from '@/store/languageStore';
 import { useListingStore } from '@/store/listingStore';
 import Colors from '@/constants/colors';
+import { t } from '@/constants/translations';
 import { Home, Car, Smartphone, Briefcase, Shirt, Sofa, Baby, Dog, Music, Store, Utensils, BookOpen, Palette, HeartPulse } from 'lucide-react-native';
 
 export default function CategoryList() {
@@ -55,7 +56,7 @@ export default function CategoryList() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>
-        {language === 'az' ? 'Kateqoriyalar' : 'Категории'}
+        {t('categories', language)}
       </Text>
       <ScrollView 
         horizontal 
@@ -72,7 +73,7 @@ export default function CategoryList() {
               {getIcon(category.icon)}
             </View>
             <Text style={styles.categoryName} numberOfLines={2}>
-              {category.name[language]}
+              {category.name[language] || category.name.az}
             </Text>
           </TouchableOpacity>
         ))}
