@@ -307,6 +307,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   balanceCard: {
+    flex: 1,
     backgroundColor: Colors.card,
     borderRadius: 12,
     padding: 20,
