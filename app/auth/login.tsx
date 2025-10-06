@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useLanguageStore } from '@/store/languageStore';
+import { useTranslation } from '@/constants/translations';
 import { useUserStore } from '@/store/userStore';
 import { users } from '@/mocks/users';
 import Colors from '@/constants/colors';
@@ -9,7 +9,7 @@ import { X, Eye, EyeOff, Facebook, Chrome, MessageCircle } from 'lucide-react-na
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { language } = useLanguageStore();
+  const { t } = useTranslation();
   const { login } = useUserStore();
   
   const [email, setEmail] = useState('');
@@ -21,8 +21,6 @@ export default function LoginScreen() {
       return;
     }
     
-    // Mock login - in a real app, this would be an API call
-    // For demo purposes, we'll just log in as the first user
     login(users[0]);
     router.back();
   };
@@ -40,7 +38,6 @@ export default function LoginScreen() {
   };
 
   const handleSocialLogin = (provider: string) => {
-    // Mock social login - in a real app, this would integrate with OAuth providers
     console.log(`Logging in with ${provider}`);
     login(users[0]);
     router.back();
@@ -67,19 +64,19 @@ export default function LoginScreen() {
         </View>
         
         <Text style={styles.title}>
-          {language === 'az' ? 'Hesabınıza daxil olun' : 'Войдите в свой аккаунт'}
+          {t('loginToAccount')}
         </Text>
         
         <View style={styles.form}>
           <View style={styles.inputGroup}>
             <Text style={styles.label}>
-              {language === 'az' ? 'E-poçt' : 'Эл. почта'}
+              {t('email')}
             </Text>
             <TextInput
               style={styles.input}
               value={email}
               onChangeText={setEmail}
-              placeholder={language === 'az' ? 'E-poçt ünvanınız' : 'Ваш адрес эл. почты'}
+              placeholder={t('emailAddress')}
               placeholderTextColor={Colors.placeholder}
               keyboardType="email-address"
               autoCapitalize="none"
@@ -88,14 +85,14 @@ export default function LoginScreen() {
           
           <View style={styles.inputGroup}>
             <Text style={styles.label}>
-              {language === 'az' ? 'Şifrə' : 'Пароль'}
+              {t('password')}
             </Text>
             <View style={styles.passwordContainer}>
               <TextInput
                 style={styles.passwordInput}
                 value={password}
                 onChangeText={setPassword}
-                placeholder={language === 'az' ? 'Şifrəniz' : 'Ваш пароль'}
+                placeholder={t('yourPassword')}
                 placeholderTextColor={Colors.placeholder}
                 secureTextEntry={!showPassword}
               />
@@ -114,7 +111,7 @@ export default function LoginScreen() {
           
           <TouchableOpacity style={styles.forgotPassword} onPress={handleForgotPassword}>
             <Text style={styles.forgotPasswordText}>
-              {language === 'az' ? 'Şifrəni unutmusunuz?' : 'Забыли пароль?'}
+              {t('forgotPassword')}
             </Text>
           </TouchableOpacity>
           
@@ -127,14 +124,14 @@ export default function LoginScreen() {
             disabled={!email || !password}
           >
             <Text style={styles.loginButtonText}>
-              {language === 'az' ? 'Daxil ol' : 'Войти'}
+              {t('login')}
             </Text>
           </TouchableOpacity>
           
           <View style={styles.divider}>
             <View style={styles.dividerLine} />
             <Text style={styles.dividerText}>
-              {language === 'az' ? 'və ya' : 'или'}
+              {t('or')}
             </Text>
             <View style={styles.dividerLine} />
           </View>
@@ -169,25 +166,17 @@ export default function LoginScreen() {
         <View style={styles.footer}>
           <View style={styles.termsNotice}>
             <Text style={styles.termsNoticeText}>
-              {language === 'az' 
-                ? 'Daxil olmaqla siz bizim ' 
-                : 'Входя в систему, вы соглашаетесь с нашими '}
-              <TouchableOpacity onPress={() => router.push('/terms')}>
-                <Text style={styles.termsLink}>
-                  {language === 'az' ? 'istifadə şərtlərimiz' : 'условиями использования'}
-                </Text>
-              </TouchableOpacity>
-              {language === 'az' ? ' ilə razılaşırsınız' : ''}
+              {t('agreeToTerms')}
             </Text>
           </View>
           
           <View style={styles.registerSection}>
             <Text style={styles.footerText}>
-              {language === 'az' ? 'Hesabınız yoxdur?' : 'Нет аккаунта?'}
+              {t('noAccount')}
             </Text>
             <TouchableOpacity onPress={handleRegister}>
               <Text style={styles.registerText}>
-                {language === 'az' ? 'Qeydiyyatdan keçin' : 'Зарегистрироваться'}
+                {t('registerNow')}
               </Text>
             </TouchableOpacity>
           </View>
