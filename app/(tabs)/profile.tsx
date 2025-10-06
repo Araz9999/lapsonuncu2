@@ -235,26 +235,14 @@ export default function ProfileScreen() {
         
         <TouchableOpacity 
           style={styles.menuItem}
-          onPress={() => setShowLiveChat(true)}
+          onPress={() => router.push('/live-chat')}
         >
           <View style={styles.menuIconContainer}>
             <Headphones size={20} color={Colors.primary} />
           </View>
-          <View style={styles.liveChatInfo}>
-            <Text style={styles.menuItemText}>
-              {t('liveSupport')}
-            </Text>
-            {hasActiveChat && (
-              <Text style={styles.activeChatStatus}>
-                {userChats.length} {t('active')}
-              </Text>
-            )}
-            {!hasActiveChat && availableOperators.length > 0 && (
-              <Text style={styles.operatorStatus}>
-                {availableOperators.length} {t('online')}
-              </Text>
-            )}
-          </View>
+          <Text style={styles.menuItemText}>
+            {t('liveSupport')}
+          </Text>
           <ChevronRight size={20} color={Colors.textSecondary} />
         </TouchableOpacity>
         

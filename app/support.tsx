@@ -31,15 +31,16 @@ import {
   Paperclip,
   MessageCircle,
   Headphones,
-  Users
+  Users,
+  MessageSquarePlus
 } from 'lucide-react-native';
 import FileAttachmentPicker, { FileAttachment } from '@/components/FileAttachmentPicker';
-import LiveChatWidget from '@/components/LiveChatWidget';
+import { useRouter } from 'expo-router';
 
 const { width } = Dimensions.get('window');
 
 export default function SupportScreen() {
-
+  const router = useRouter();
   const { language } = useLanguageStore();
   const { themeMode, colorTheme } = useThemeStore();
   const { currentUser } = useUserStore();
@@ -360,7 +361,7 @@ export default function SupportScreen() {
                     );
                     return;
                   }
-                  setShowLiveChat(true);
+                  router.push('/live-chat');
                 }}
               >
                 <View style={[styles.quickActionIcon, { backgroundColor: `${colors.primary}15` }]}>
@@ -701,14 +702,7 @@ export default function SupportScreen() {
         )}
       </Animated.View>
 
-      <LiveChatWidget
-        visible={showLiveChat}
-        onClose={() => {
-          setShowLiveChat(false);
-          setActiveChatId(undefined);
-        }}
-        chatId={activeChatId}
-      />
+
     </View>
   );
 }
