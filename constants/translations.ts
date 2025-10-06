@@ -961,6 +961,66 @@ export const translations = {
     ru: 'Введите ответ...',
     en: 'Enter response...',
   },
+  chatWithSupport: {
+    az: 'Dəstək ilə söhbət',
+    ru: 'Чат с поддержкой',
+    en: 'Chat with support',
+  },
+  startConversation: {
+    az: 'Söhbətə başla',
+    ru: 'Начать разговор',
+    en: 'Start conversation',
+  },
+  supportAgent: {
+    az: 'Dəstək agenti',
+    ru: 'Агент поддержки',
+    en: 'Support agent',
+  },
+  typing: {
+    az: 'yazır...',
+    ru: 'печатает...',
+    en: 'typing...',
+  },
+  messageSent: {
+    az: 'Mesaj göndərildi',
+    ru: 'Сообщение отправлено',
+    en: 'Message sent',
+  },
+  messageDelivered: {
+    az: 'Mesaj çatdırıldı',
+    ru: 'Сообщение доставлено',
+    en: 'Message delivered',
+  },
+  messageSeen: {
+    az: 'Mesaj oxundu',
+    ru: 'Сообщение прочитано',
+    en: 'Message seen',
+  },
+  closeChat: {
+    az: 'Söhbəti bağla',
+    ru: 'Закрыть чат',
+    en: 'Close chat',
+  },
+  chatClosed: {
+    az: 'Söhbət bağlandı',
+    ru: 'Чат закрыт',
+    en: 'Chat closed',
+  },
+  newMessage: {
+    az: 'Yeni mesaj',
+    ru: 'Новое сообщение',
+    en: 'New message',
+  },
+  unreadMessages: {
+    az: 'Oxunmamış mesajlar',
+    ru: 'Непрочитанные сообщения',
+    en: 'Unread messages',
+  },
+  startChatWithSupport: {
+    az: 'Dəstək komandası ilə söhbətə başlayın',
+    ru: 'Начните разговор с командой поддержки',
+    en: 'Start a conversation with our support team',
+  },
 };
 
 export function t(key: keyof typeof translations, language: Language): string {
