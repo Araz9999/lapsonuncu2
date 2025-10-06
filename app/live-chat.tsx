@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   FlatList,
@@ -37,41 +37,55 @@ export default function LiveChatScreen() {
     { conversationId: conversationId || '' },
     {
       enabled: !!conversationId,
-      refetchInterval: 3000,
+      refetchInterval: 2000,
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
+      retry: 3,
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     }
   );
 
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser) {
+      console.warn('[LiveChat] No current user, cannot initialize conversation');
+      return;
+    }
 
     const initConversation = async () => {
       try {
+        console.log('[LiveChat] Initializing conversation for user:', currentUser.id);
         const conversation = await createConversationMutation.mutateAsync({
           userId: currentUser.id,
           userName: currentUser.name,
           userAvatar: currentUser.avatar,
         });
+        console.log('[LiveChat] Conversation initialized:', conversation.id);
         setConversationId(conversation.id);
         setActiveConversation(conversation.id);
       } catch (error) {
-        console.error('Failed to create conversation:', error);
+        console.error('[LiveChat] Failed to create conversation:', error);
       }
     };
 
     initConversation();
-  }, [currentUser]);
+  }, [currentUser, createConversationMutation, setActiveConversation]);
 
   useEffect(() => {
     if (messagesQuery.data && conversationId) {
+      console.log('[LiveChat] Updating messages from query:', messagesQuery.data.length, 'messages');
       setMessages(conversationId, messagesQuery.data);
     }
-  }, [messagesQuery.data, conversationId]);
+  }, [messagesQuery.data, conversationId, setMessages]);
 
   useEffect(() => {
     if (conversationId && messagesQuery.data && messagesQuery.data.length > 0) {
-      markAsReadMutation.mutate({ conversationId });
+      const unreadMessages = messagesQuery.data.filter(m => m.isSupport && m.status !== 'seen');
+      if (unreadMessages.length > 0) {
+        console.log('[LiveChat] Marking', unreadMessages.length, 'messages as read');
+        markAsReadMutation.mutate({ conversationId });
+      }
     }
-  }, [conversationId, messagesQuery.data]);
+  }, [conversationId, messagesQuery.data, markAsReadMutation]);
 
   useEffect(() => {
     return () => {
@@ -82,10 +96,16 @@ export default function LiveChatScreen() {
   }, []);
 
   const handleSendMessage = async (message: string) => {
-    if (!currentUser || !conversationId) return;
+    if (!currentUser || !conversationId) {
+      console.warn('[LiveChat] Cannot send message: missing user or conversation');
+      return;
+    }
+
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    console.log('[LiveChat] Sending message:', { tempId, conversationId, message: message.substring(0, 50) });
 
     const newMessage: LiveChatMessage = {
-      id: `temp-${Date.now()}`,
+      id: tempId,
       conversationId,
       senderId: currentUser.id,
       senderName: currentUser.name,
@@ -99,7 +119,7 @@ export default function LiveChatScreen() {
     addMessage(newMessage);
 
     try {
-      await sendMessageMutation.mutateAsync({
+      const sentMessage = await sendMessageMutation.mutateAsync({
         conversationId,
         senderId: currentUser.id,
         senderName: currentUser.name,
@@ -108,11 +128,19 @@ export default function LiveChatScreen() {
         isSupport: false,
       });
 
-      messagesQuery.refetch();
+      console.log('[LiveChat] Message sent successfully:', sentMessage.id);
+      
+      await messagesQuery.refetch();
 
       simulateSupportReply(message);
     } catch (error) {
-      console.error('Failed to send message:', error);
+      console.error('[LiveChat] Failed to send message:', error);
+      
+      const failedMessage: LiveChatMessage = {
+        ...newMessage,
+        status: 'sending',
+      };
+      addMessage(failedMessage);
     }
   };
 
@@ -121,12 +149,16 @@ export default function LiveChatScreen() {
       clearTimeout(autoReplyTimeoutRef.current);
     }
 
+    console.log('[LiveChat] Simulating support reply for message:', userMessage.substring(0, 50));
     setIsTyping(true);
 
     const timeout = setTimeout(async () => {
       setIsTyping(false);
 
-      if (!conversationId) return;
+      if (!conversationId) {
+        console.warn('[LiveChat] Cannot send support reply: no conversation');
+        return;
+      }
 
       const replies = [
         'Thank you for contacting us! How can I help you today?',
@@ -139,6 +171,7 @@ export default function LiveChatScreen() {
       const randomReply = replies[Math.floor(Math.random() * replies.length)];
 
       try {
+        console.log('[LiveChat] Sending support reply:', randomReply.substring(0, 50));
         await sendMessageMutation.mutateAsync({
           conversationId,
           senderId: 'agent-1',
@@ -148,19 +181,28 @@ export default function LiveChatScreen() {
           isSupport: true,
         });
 
-        messagesQuery.refetch();
+        console.log('[LiveChat] Support reply sent, refetching messages');
+        await messagesQuery.refetch();
       } catch (error) {
-        console.error('Failed to send support reply:', error);
+        console.error('[LiveChat] Failed to send support reply:', error);
       }
     }, 2000 + Math.random() * 2000);
 
     autoReplyTimeoutRef.current = timeout;
   };
 
-  const renderMessage = ({ item }: { item: LiveChatMessage }) => {
+  const renderMessage = useCallback(({ item }: { item: LiveChatMessage }) => {
     const isCurrentUser = item.senderId === currentUser?.id;
     return <LiveChatBubble message={item} isCurrentUser={isCurrentUser} />;
-  };
+  }, [currentUser?.id]);
+
+  const keyExtractor = useCallback((item: LiveChatMessage) => item.id, []);
+
+  const getItemLayout = useCallback((_: ArrayLike<LiveChatMessage> | null | undefined, index: number) => ({
+    length: 80,
+    offset: 80 * index,
+    index,
+  }), []);
 
   if (!currentUser) {
     return (
@@ -199,10 +241,16 @@ export default function LiveChatScreen() {
           ref={flatListRef}
           data={messagesQuery.data || []}
           renderItem={renderMessage}
-          keyExtractor={(item) => item.id}
+          keyExtractor={keyExtractor}
+          getItemLayout={getItemLayout}
           contentContainerStyle={styles.messagesList}
           onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
           onLayout={() => flatListRef.current?.scrollToEnd({ animated: false })}
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={10}
+          updateCellsBatchingPeriod={50}
+          initialNumToRender={15}
+          windowSize={10}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>{t('noMessages')}</Text>

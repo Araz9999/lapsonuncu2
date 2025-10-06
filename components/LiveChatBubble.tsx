@@ -1,24 +1,24 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { LiveChatMessage } from '@/types/liveChat';
-import { Check, CheckCheck } from 'lucide-react-native';
+import { Check, CheckCheck, Clock } from 'lucide-react-native';
 
 interface LiveChatBubbleProps {
   message: LiveChatMessage;
   isCurrentUser: boolean;
 }
 
-export default function LiveChatBubble({ message, isCurrentUser }: LiveChatBubbleProps) {
+const LiveChatBubble = memo(function LiveChatBubble({ message, isCurrentUser }: LiveChatBubbleProps) {
   const getStatusIcon = () => {
     if (!isCurrentUser) return null;
     
     switch (message.status) {
       case 'sending':
-        return <View style={styles.statusDot} />;
+        return <Clock size={14} color="rgba(255, 255, 255, 0.7)" />;
       case 'sent':
-        return <Check size={14} color="#999" />;
+        return <Check size={14} color="rgba(255, 255, 255, 0.7)" />;
       case 'delivered':
-        return <CheckCheck size={14} color="#999" />;
+        return <CheckCheck size={14} color="rgba(255, 255, 255, 0.7)" />;
       case 'seen':
         return <CheckCheck size={14} color="#4CAF50" />;
       default:
@@ -49,7 +49,9 @@ export default function LiveChatBubble({ message, isCurrentUser }: LiveChatBubbl
       </View>
     </View>
   );
-}
+});
+
+export default LiveChatBubble;
 
 const styles = StyleSheet.create({
   container: {
