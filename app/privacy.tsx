@@ -109,7 +109,7 @@ export default function PrivacyScreen() {
         {
           icon: Mail,
           title: '12. Əlaqə',
-          content: 'Məxfilik siyasəti ilə bağlı suallarınız üçün bizimlə əlaqə saxlayın:\n\nE-poçt: privacy@naxtap.az\nTelefon: +994 12 345 67 89\nÜnvan: Bakı, Azərbaycan'
+          content: 'Məxfilik siyasəti ilə bağlı suallarınız üçün bizimlə əlaqə saxlayın:\n\nE-poçt: naxtapaz@gmail.com\nTelefon: +994504801313\nÜnvan: Naxçıvan, Azərbaycan'
         }
       ]
     },
@@ -175,7 +175,7 @@ export default function PrivacyScreen() {
         {
           icon: Mail,
           title: '12. Контакты',
-          content: 'По вопросам политики конфиденциальности обращайтесь к нам:\n\nE-mail: privacy@naxtap.az\nТелефон: +994 12 345 67 89\nАдрес: Баку, Азербайджан'
+          content: 'По вопросам политики конфиденциальности обращайтесь к нам:\n\nE-mail: naxtapaz@gmail.com\nТелефон: +994504801313\nАдрес: Нахчыван, Азербайджан'
         }
       ]
     }

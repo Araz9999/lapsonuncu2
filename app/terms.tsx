@@ -100,7 +100,7 @@ export default function TermsScreen() {
         {
           icon: Mail,
           title: '10. Əlaqə Məlumatları',
-          content: 'Suallarınız və ya şikayətləriniz üçün bizimlə əlaqə saxlayın:\n\nE-poçt: support@naxtap.az\nTelefon: +994 12 345 67 89\nÜnvan: Bakı, Azərbaycan'
+          content: 'Suallarınız və ya şikayətləriniz üçün bizimlə əlaqə saxlayın:\n\nE-poçt: naxtapaz@gmail.com\nTelefon: +994504801313\nÜnvan: Naxçıvan, Azərbaycan'
         }
       ]
     },
@@ -156,7 +156,7 @@ export default function TermsScreen() {
         {
           icon: Mail,
           title: '10. Контактная информация',
-          content: 'По вопросам и жалобам обращайтесь к нам:\n\nE-mail: support@naxtap.az\nТелефон: +994 12 345 67 89\nАдрес: Баку, Азербайджан'
+          content: 'По вопросам и жалобам обращайтесь к нам:\n\nE-mail: naxtapaz@gmail.com\nТелефон: +994504801313\nАдрес: Нахчыван, Азербайджан'
         }
       ]
     }
