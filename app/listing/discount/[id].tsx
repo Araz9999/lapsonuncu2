@@ -594,127 +594,88 @@ export default function ListingDiscountScreen() {
             
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>
-                {language === 'az' ? 'Bitiş Tarixi' : 'Дата окончания'}
+                {language === 'az' ? 'Vaxt təyin edin' : 'Установите время'}
               </Text>
-              <View style={styles.dateSelector}>
-                <TouchableOpacity style={styles.dateButton}>
-                  <Clock size={16} color={Colors.primary} />
-                  <Text style={styles.dateButtonText}>
-                    {timerEndDate.toLocaleDateString(language === 'az' ? 'az-AZ' : 'ru-RU')} {timerEndDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                  </Text>
-                </TouchableOpacity>
-                <View style={styles.quickDateButtons}>
-                  <TouchableOpacity 
-                    style={styles.quickDateButton}
-                    onPress={() => setTimerEndDate(new Date(Date.now() + 24 * 60 * 60 * 1000))}
-                  >
-                    <Text style={styles.quickDateText}>
-                      {language === 'az' ? '1 gün' : '1 день'}
+              <View style={styles.compactTimeContainer}>
+                <View style={styles.compactTimeInputs}>
+                  <View style={styles.compactTimeInputGroup}>
+                    <Text style={styles.compactTimeInputLabel}>
+                      {language === 'az' ? 'Gün' : 'Дни'}
                     </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={styles.quickDateButton}
-                    onPress={() => setTimerEndDate(new Date(Date.now() + 3 * 24 * 60 * 60 * 1000))}
-                  >
-                    <Text style={styles.quickDateText}>
-                      {language === 'az' ? '3 gün' : '3 дня'}
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={styles.quickDateButton}
-                    onPress={() => setTimerEndDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000))}
-                  >
-                    <Text style={styles.quickDateText}>
-                      {language === 'az' ? '1 həftə' : '1 неделя'}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-                
-                {/* Custom Time Toggle */}
-                <TouchableOpacity 
-                  style={styles.customTimeToggle}
-                  onPress={() => setShowCustomTime(!showCustomTime)}
-                >
-                  <Text style={styles.customTimeToggleText}>
-                    {language === 'az' ? 'Xüsusi vaxt təyin et' : 'Установить пользовательское время'}
-                  </Text>
-                </TouchableOpacity>
-                
-                {/* Custom Time Inputs */}
-                {showCustomTime && (
-                  <View style={styles.customTimeContainer}>
-                    <Text style={styles.customTimeLabel}>
-                      {language === 'az' ? 'Vaxt təyin edin:' : 'Установите время:'}
-                    </Text>
-                    <View style={styles.customTimeInputs}>
-                      <View style={styles.timeInputGroup}>
-                        <Text style={styles.timeInputLabel}>
-                          {language === 'az' ? 'Gün' : 'Дни'}
-                        </Text>
-                        <TextInput
-                          style={styles.timeInput}
-                          value={customDays}
-                          onChangeText={setCustomDays}
-                          placeholder="0"
-                          keyboardType="numeric"
-                          maxLength={3}
-                        />
-                      </View>
-                      <View style={styles.timeInputGroup}>
-                        <Text style={styles.timeInputLabel}>
-                          {language === 'az' ? 'Saat' : 'Часы'}
-                        </Text>
-                        <TextInput
-                          style={styles.timeInput}
-                          value={customHours}
-                          onChangeText={setCustomHours}
-                          placeholder="0"
-                          keyboardType="numeric"
-                          maxLength={2}
-                        />
-                      </View>
-                      <View style={styles.timeInputGroup}>
-                        <Text style={styles.timeInputLabel}>
-                          {language === 'az' ? 'Dəqiqə' : 'Минуты'}
-                        </Text>
-                        <TextInput
-                          style={styles.timeInput}
-                          value={customMinutes}
-                          onChangeText={setCustomMinutes}
-                          placeholder="0"
-                          keyboardType="numeric"
-                          maxLength={2}
-                        />
-                      </View>
-                    </View>
-                    <TouchableOpacity 
-                      style={styles.applyCustomTimeButton}
-                      onPress={() => {
-                        const days = parseInt(customDays) || 0;
-                        const hours = parseInt(customHours) || 0;
-                        const minutes = parseInt(customMinutes) || 0;
-                        
-                        if (days === 0 && hours === 0 && minutes === 0) {
-                          Alert.alert(
-                            language === 'az' ? 'Xəta' : 'Ошибка',
-                            language === 'az' ? 'Ən azı bir vaxt dəyəri daxil edin' : 'Введите хотя бы одно значение времени'
-                          );
-                          return;
-                        }
-                        
-                        const totalMilliseconds = (days * 24 * 60 * 60 * 1000) + (hours * 60 * 60 * 1000) + (minutes * 60 * 1000);
-                        const newEndDate = new Date(Date.now() + totalMilliseconds);
-                        setTimerEndDate(newEndDate);
-                        setShowCustomTime(false);
-                      }}
-                    >
-                      <Text style={styles.applyCustomTimeText}>
-                        {language === 'az' ? 'Tətbiq et' : 'Применить'}
-                      </Text>
-                    </TouchableOpacity>
+                    <TextInput
+                      style={styles.compactTimeInput}
+                      value={customDays}
+                      onChangeText={setCustomDays}
+                      placeholder="0"
+                      placeholderTextColor={Colors.textSecondary}
+                      keyboardType="numeric"
+                      maxLength={3}
+                    />
                   </View>
-                )}
+                  <Text style={styles.timeSeparator}>:</Text>
+                  <View style={styles.compactTimeInputGroup}>
+                    <Text style={styles.compactTimeInputLabel}>
+                      {language === 'az' ? 'Saat' : 'Часы'}
+                    </Text>
+                    <TextInput
+                      style={styles.compactTimeInput}
+                      value={customHours}
+                      onChangeText={setCustomHours}
+                      placeholder="0"
+                      placeholderTextColor={Colors.textSecondary}
+                      keyboardType="numeric"
+                      maxLength={2}
+                    />
+                  </View>
+                  <Text style={styles.timeSeparator}>:</Text>
+                  <View style={styles.compactTimeInputGroup}>
+                    <Text style={styles.compactTimeInputLabel}>
+                      {language === 'az' ? 'Dəqiqə' : 'Минуты'}
+                    </Text>
+                    <TextInput
+                      style={styles.compactTimeInput}
+                      value={customMinutes}
+                      onChangeText={setCustomMinutes}
+                      placeholder="0"
+                      placeholderTextColor={Colors.textSecondary}
+                      keyboardType="numeric"
+                      maxLength={2}
+                    />
+                  </View>
+                </View>
+                <TouchableOpacity 
+                  style={styles.compactApplyButton}
+                  onPress={() => {
+                    const days = parseInt(customDays) || 0;
+                    const hours = parseInt(customHours) || 0;
+                    const minutes = parseInt(customMinutes) || 0;
+                    
+                    if (days === 0 && hours === 0 && minutes === 0) {
+                      Alert.alert(
+                        language === 'az' ? 'Xəta' : 'Ошибка',
+                        language === 'az' ? 'Ən azı bir vaxt dəyəri daxil edin' : 'Введите хотя бы одно значение времени'
+                      );
+                      return;
+                    }
+                    
+                    const totalMilliseconds = (days * 24 * 60 * 60 * 1000) + (hours * 60 * 60 * 1000) + (minutes * 60 * 1000);
+                    const newEndDate = new Date(Date.now() + totalMilliseconds);
+                    setTimerEndDate(newEndDate);
+                    Alert.alert(
+                      language === 'az' ? 'Uğurlu' : 'Успешно',
+                      language === 'az' ? 'Vaxt təyin edildi' : 'Время установлено'
+                    );
+                  }}
+                >
+                  <Text style={styles.compactApplyText}>
+                    {language === 'az' ? 'Tətbiq et' : 'Применить'}
+                  </Text>
+                </TouchableOpacity>
               </View>
+              <Text style={styles.currentTimeDisplay}>
+                {language === 'az' ? 'Cari vaxt: ' : 'Текущее время: '}
+                {timerEndDate.toLocaleDateString(language === 'az' ? 'az-AZ' : 'ru-RU')} {timerEndDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+              </Text>
             </View>
             
             <View style={styles.switchGroup}>

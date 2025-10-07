@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useState, useEffect } from 'react';
 import createContextHook from '@nkzw/create-context-hook';
 
-export type Language = 'az' | 'ru' | 'en';
+export type Language = 'az' | 'ru';
 
 export const [LanguageProvider, useLanguageStore] = createContextHook(() => {
   const [language, setLanguageState] = useState<Language>('az');
