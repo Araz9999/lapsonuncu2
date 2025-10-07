@@ -62,20 +62,24 @@ export default function RootLayout() {
   });
 
   const [queryClient] = useState(() => new QueryClient());
+  const [fontLoadingComplete, setFontLoadingComplete] = useState(false);
 
   useEffect(() => {
     if (error) {
-      console.error('Font loading error:', error);
+      console.warn('Font loading error (non-critical):', error.message);
+      setFontLoadingComplete(true);
+      SplashScreen.hideAsync();
     }
   }, [error]);
 
   useEffect(() => {
     if (loaded) {
+      setFontLoadingComplete(true);
       SplashScreen.hideAsync();
     }
   }, [loaded]);
 
-  if (!loaded && !error) {
+  if (!fontLoadingComplete) {
     return null;
   }
 
