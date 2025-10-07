@@ -642,24 +642,45 @@ export default function PromoteListingScreen() {
       </ScrollView>
       
       {/* Action Button */}
-      {(selectedPackage || selectedViewPackage || selectedEffects.length > 0) && (
+      {((activeTab === 'promotion' && !!selectedPackage) ||
+        (activeTab === 'views' && !!selectedViewPackage) ||
+        (activeTab === 'effects' && selectedEffects.length > 0)) && (
         <View style={styles.footer}>
           <TouchableOpacity
+            testID="action-buy-button"
             style={[
               styles.promoteButton,
-              (!currentUser || (walletBalance + bonusBalance) < (selectedPackage?.price || selectedViewPackage?.price || selectedEffects.reduce((sum, effect) => sum + effect.price, 0) || 0) || isProcessing) && styles.disabledButton
+              (() => {
+                const required = activeTab === 'promotion'
+                  ? (selectedPackage?.price ?? 0)
+                  : activeTab === 'views'
+                    ? (selectedViewPackage?.price ?? 0)
+                    : selectedEffects.length > 0
+                      ? selectedEffects.reduce((sum, effect) => sum + effect.price, 0)
+                      : 0;
+                return (!currentUser || (walletBalance + bonusBalance) < required || isProcessing) && styles.disabledButton;
+              })()
             ]}
             onPress={activeTab === 'promotion' ? handlePromote : activeTab === 'views' ? handlePurchaseViews : handlePurchaseEffects}
-            disabled={!currentUser || (walletBalance + bonusBalance) < (selectedPackage?.price || selectedViewPackage?.price || selectedEffects.reduce((sum, effect) => sum + effect.price, 0) || 0) || isProcessing}
+            disabled={(() => {
+              const required = activeTab === 'promotion'
+                ? (selectedPackage?.price ?? 0)
+                : activeTab === 'views'
+                  ? (selectedViewPackage?.price ?? 0)
+                  : selectedEffects.length > 0
+                    ? selectedEffects.reduce((sum, effect) => sum + effect.price, 0)
+                    : 0;
+              return !currentUser || (walletBalance + bonusBalance) < required || isProcessing;
+            })()}
           >
             <Text style={styles.promoteButtonText}>
               {isProcessing
                 ? (language === 'az' ? 'Emal edilir...' : 'Обработка...')
                 : activeTab === 'promotion'
-                  ? `${language === 'az' ? 'Təşviq Et' : 'Продвинуть'} - ${selectedPackage?.price} AZN`
+                  ? `${language === 'az' ? 'Təşviq Et' : 'Продвинуть'} - ${(selectedPackage?.price ?? 0)} AZN`
                   : activeTab === 'views'
-                    ? `${language === 'az' ? 'Baxış Al' : 'Купить просмотры'} - ${selectedViewPackage?.price} AZN`
-                    : `${language === 'az' ? 'Effektlər Al' : 'Купить эффекты'} - ${selectedEffects.reduce((sum, effect) => sum + effect.price, 0)} AZN`
+                    ? `${language === 'az' ? 'Baxış Al' : 'Купить просмотры'} - ${(selectedViewPackage?.price ?? 0)} AZN`
+                    : `${language === 'az' ? 'Effektlər Al' : 'Купить эффекты'} - ${selectedEffects.length > 0 ? selectedEffects.reduce((sum, effect) => sum + effect.price, 0) : 0} AZN`
               }
             </Text>
           </TouchableOpacity>
