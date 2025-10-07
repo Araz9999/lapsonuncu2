@@ -45,6 +45,8 @@ export default function LiveChatScreen() {
     }
   );
 
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
     if (!currentUser || conversationId) {
       return;
@@ -61,8 +63,10 @@ export default function LiveChatScreen() {
         console.log('[LiveChat] Conversation initialized:', conversation.id);
         setConversationId(conversation.id);
         setActiveConversation(conversation.id);
+        setError(null);
       } catch (error) {
         console.error('[LiveChat] Failed to create conversation:', error);
+        setError('Canlı dəstək xidməti hazırda əlçatan deyil. Zəhmət olmasa daha sonra yenidən cəhd edin.');
       }
     };
 
@@ -214,6 +218,21 @@ export default function LiveChatScreen() {
     );
   }
 
+  if (error) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <Stack.Screen options={{ headerShown: false }} />
+        <LiveChatHeader />
+        <View style={styles.centerContainer}>
+          <Text style={styles.errorText}>{error}</Text>
+          <Text style={styles.errorSubtext}>
+            Alternativ olaraq dəstək bölməsindən bizimlə əlaqə saxlaya bilərsiniz.
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   if (!conversationId || messagesQuery.isLoading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -304,5 +323,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
     textAlign: 'center',
+    paddingHorizontal: 32,
+    marginBottom: 12,
+  },
+  errorSubtext: {
+    fontSize: 14,
+    color: '#999',
+    textAlign: 'center',
+    paddingHorizontal: 32,
   },
 });
