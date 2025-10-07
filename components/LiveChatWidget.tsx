@@ -503,15 +503,15 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
           </View>
 
           {!isMinimized && (
-            <KeyboardAvoidingView
-              style={styles.content}
-              behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-              keyboardVerticalOffset={0}
-            >
+            <>
               {showStartForm ? (
                 <StartChatForm />
               ) : currentChat ? (
-                <View style={styles.chatContent}>
+                <KeyboardAvoidingView
+                  style={styles.chatContent}
+                  behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                  keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+                >
                   <ScrollView
                     ref={scrollViewRef}
                     style={styles.messagesContainer}
@@ -603,13 +603,14 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
                           placeholderTextColor={colors.textSecondary}
                           value={message}
                           onChangeText={handleTyping}
-                          multiline
+                          multiline={false}
+                          returnKeyType="send"
+                          onSubmitEditing={handleSendMessage}
                           blurOnSubmit={false}
                           autoCorrect
                           autoCapitalize="sentences"
                           keyboardAppearance={Platform.OS === 'ios' ? (themeMode === 'dark' ? 'dark' : 'light') : 'default'}
                           maxLength={1000}
-                          textAlignVertical="top"
                         />
                         
                         <TouchableOpacity
@@ -648,7 +649,7 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
                       </TouchableOpacity>
                     </View>
                   )}
-                </View>
+                </KeyboardAvoidingView>
               ) : (
                 <View style={styles.errorContainer}>
                   <Text style={[styles.errorText, { color: colors.textSecondary }]}>
@@ -656,7 +657,7 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
                   </Text>
                 </View>
               )}
-            </KeyboardAvoidingView>
+            </>
           )}
         </Animated.View>
       </View>
@@ -808,6 +809,7 @@ const styles = StyleSheet.create({
   },
   inputSection: {
     backgroundColor: 'transparent',
+    minHeight: 60,
   },
   messagesContainer: {
     flex: 1,
@@ -890,24 +892,23 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
-    padding: 16,
-    paddingBottom: Platform.OS === 'ios' ? 16 : 16,
+    alignItems: 'center',
+    padding: 12,
+    paddingBottom: Platform.OS === 'ios' ? 12 : 12,
     borderTopWidth: 1,
     borderTopColor: 'rgba(0,0,0,0.1)',
-    backgroundColor: 'transparent',
   },
   messageInput: {
     flex: 1,
     borderWidth: 1,
     borderRadius: 20,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingTop: 12,
+    paddingBottom: 12,
     fontSize: 16,
     maxHeight: 100,
     minHeight: 44,
-    marginRight: 12,
-    textAlignVertical: 'top',
+    marginHorizontal: 8,
   },
   attachButton: {
     width: 44,
@@ -916,7 +917,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    marginRight: 8,
   },
   sendButton: {
     width: 44,
