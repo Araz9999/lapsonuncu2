@@ -10,6 +10,7 @@ import { useRatingStore } from '@/store/ratingStore';
 import { useCallStore } from '@/store/callStore';
 import { getColors } from '@/constants/colors';
 import IncomingCallModal from '@/components/IncomingCallModal';
+import FloatingChatButton from '@/components/FloatingChatButton';
 import { LanguageProvider } from '@/store/languageStore';
 
 import { initializeServices, checkServicesHealth } from '@/services';
@@ -460,6 +461,7 @@ function RootLayoutNav() {
         />
       </Stack>
       <IncomingCallModal />
+      <FloatingChatButton />
     </>
   );
 }
