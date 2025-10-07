@@ -92,14 +92,32 @@ export default function ListingDiscountScreen() {
       return;
     }
     
-    // Handle both store and individual listing discounts
-    if (listing.storeId) {
-      // Store listing - create store discount
-      handleCreateStoreDiscount();
-    } else {
-      // Individual listing - apply direct discount
-      handleCreateIndividualDiscount();
-    }
+    // Show confirmation dialog
+    Alert.alert(
+      language === 'az' ? 'Endirim tətbiq edilsin?' : 'Применить скидку?',
+      language === 'az' 
+        ? `${discountValue}${discountType === 'percentage' ? '%' : ' ' + listing.currency} endirim tətbiq ediləcək. Davam etmək istəyirsiniz?`
+        : `Будет применена скидка ${discountValue}${discountType === 'percentage' ? '%' : ' ' + listing.currency}. Продолжить?`,
+      [
+        {
+          text: language === 'az' ? 'Ləğv et' : 'Отмена',
+          style: 'cancel'
+        },
+        {
+          text: language === 'az' ? 'Təsdiq et' : 'Подтвердить',
+          onPress: () => {
+            // Handle both store and individual listing discounts
+            if (listing.storeId) {
+              // Store listing - create store discount
+              handleCreateStoreDiscount();
+            } else {
+              // Individual listing - apply direct discount
+              handleCreateIndividualDiscount();
+            }
+          }
+        }
+      ]
+    );
   };
   
   const handleCreateStoreDiscount = () => {
@@ -595,6 +613,67 @@ export default function ListingDiscountScreen() {
               <Text style={styles.inputLabel}>
                 {language === 'az' ? 'Vaxt təyin edin' : 'Установите время'}
               </Text>
+              
+              {/* Quick Duration Buttons */}
+              <View style={styles.quickDurationButtons}>
+                <TouchableOpacity 
+                  style={styles.quickDurationButton}
+                  onPress={() => {
+                    const newEndDate = new Date(Date.now() + 1 * 24 * 60 * 60 * 1000);
+                    setTimerEndDate(newEndDate);
+                    setCustomDays('1');
+                    setCustomHours('0');
+                    setCustomMinutes('0');
+                    Alert.alert(
+                      language === 'az' ? 'Uğurlu' : 'Успешно',
+                      language === 'az' ? '1 gün təyin edildi' : 'Установлен 1 день'
+                    );
+                  }}
+                >
+                  <Text style={styles.quickDurationText}>
+                    {language === 'az' ? '1 Gün' : '1 День'}
+                  </Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={styles.quickDurationButton}
+                  onPress={() => {
+                    const newEndDate = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
+                    setTimerEndDate(newEndDate);
+                    setCustomDays('3');
+                    setCustomHours('0');
+                    setCustomMinutes('0');
+                    Alert.alert(
+                      language === 'az' ? 'Uğurlu' : 'Успешно',
+                      language === 'az' ? '3 gün təyin edildi' : 'Установлено 3 дня'
+                    );
+                  }}
+                >
+                  <Text style={styles.quickDurationText}>
+                    {language === 'az' ? '3 Gün' : '3 Дня'}
+                  </Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={styles.quickDurationButton}
+                  onPress={() => {
+                    const newEndDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+                    setTimerEndDate(newEndDate);
+                    setCustomDays('7');
+                    setCustomHours('0');
+                    setCustomMinutes('0');
+                    Alert.alert(
+                      language === 'az' ? 'Uğurlu' : 'Успешно',
+                      language === 'az' ? '7 gün təyin edildi' : 'Установлено 7 дней'
+                    );
+                  }}
+                >
+                  <Text style={styles.quickDurationText}>
+                    {language === 'az' ? '7 Gün' : '7 Дней'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              
               <View style={styles.compactTimeContainer}>
                 <View style={styles.compactTimeInputs}>
                   <View style={styles.compactTimeInputGroup}>
@@ -1284,5 +1363,23 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     marginTop: 8,
     textAlign: 'center',
+  },
+  quickDurationButtons: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+  },
+  quickDurationButton: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+  },
+  quickDurationText: {
+    fontSize: 13,
+    color: 'white',
+    fontWeight: '600',
   },
 });
