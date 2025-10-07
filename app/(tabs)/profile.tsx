@@ -74,14 +74,23 @@ export default function ProfileScreen() {
                   style: 'destructive',
                   onPress: () => {
                     console.log('[handleDeleteProfile] Profile deletion confirmed, logging out');
-                    logout();
-                    router.replace('/auth/login');
-                    setTimeout(() => {
+                    try {
+                      logout();
+                      console.log('[handleDeleteProfile] Logout successful, navigating to login');
+                      router.replace('/auth/login');
+                      setTimeout(() => {
+                        Alert.alert(
+                          t('success'),
+                          language === 'az' ? 'Profil uğurla silindi' : 'Профиль успешно удален'
+                        );
+                      }, 500);
+                    } catch (error) {
+                      console.error('[handleDeleteProfile] Error during profile deletion:', error);
                       Alert.alert(
-                        t('success'),
-                        language === 'az' ? 'Profil uğurla silindi' : 'Профиль успешно удален'
+                        t('error'),
+                        language === 'az' ? 'Profil silinərkən xəta baş verdi' : 'Произошла ошибка при удалении профиля'
                       );
-                    }, 500);
+                    }
                   },
                 },
               ]
