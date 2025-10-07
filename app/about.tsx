@@ -26,7 +26,7 @@ export default function AboutScreen() {
         },
         {
           title: 'Dəstək xidməti',
-          content: 'Bizim peşəkar dəstək komandamız istifadəçilərimizə 24/7 xidmət göstərir. Hər hansı sual və ya problemlə bağlı bizimlə əlaqə saxlaya bilərsiniz.'
+          content: 'Bizim peşəkar dəstək komandamız istifadəçilərimizə 24/7 xidmət göstərir. Hər hansı sual və ya problemlə bağlı bizimlə əlaqə saxlaya bilərsiniz.\n\nEmail: naxtapaz@gmail.com\nTelefon: +994504801313\nÜnvan: Naxçıvan, Azərbaycan'
         },
         {
           title: 'Gələcək planlarımız',
@@ -52,7 +52,7 @@ export default function AboutScreen() {
         },
         {
           title: 'Служба поддержки',
-          content: 'Наша профессиональная команда поддержки обслуживает наших пользователей 24/7. Вы можете связаться с нами по любым вопросам или проблемам.'
+          content: 'Наша профессиональная команда поддержки обслуживает наших пользователей 24/7. Вы можете связаться с нами по любым вопросам или проблемам.\n\nEmail: naxtapaz@gmail.com\nТелефон: +994504801313\nАдрес: Нахчыван, Азербайджан'
         },
         {
           title: 'Наши планы на будущее',

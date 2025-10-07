@@ -106,32 +106,30 @@ export default function ListingDiscountScreen() {
     
     console.log('[handleCreateDiscount] Showing confirmation dialog');
     
-    setTimeout(() => {
-      Alert.alert(
-        language === 'az' ? 'Endirim tətbiq edilsin?' : 'Применить скидку?',
-        language === 'az' 
-          ? `${discountValue}${discountType === 'percentage' ? '%' : ' ' + listing.currency} endirim tətbiq ediləcək. Davam etmək istəyirsiniz?`
-          : `Будет применена скидка ${discountValue}${discountType === 'percentage' ? '%' : ' ' + listing.currency}. Продолжить?`,
-        [
-          {
-            text: language === 'az' ? 'Ləğv et' : 'Отмена',
-            style: 'cancel',
-            onPress: () => console.log('[handleCreateDiscount] Cancelled')
-          },
-          {
-            text: language === 'az' ? 'Təsdiq et' : 'Подтвердить',
-            onPress: () => {
-              console.log('[handleCreateDiscount] Confirmed');
-              if (listing.storeId) {
-                handleCreateStoreDiscount();
-              } else {
-                handleCreateIndividualDiscount();
-              }
+    Alert.alert(
+      language === 'az' ? 'Endirim tətbiq edilsin?' : 'Применить скидку?',
+      language === 'az' 
+        ? `${discountValue}${discountType === 'percentage' ? '%' : ' ' + listing.currency} endirim tətbiq ediləcək. Davam etmək istəyirsiniz?`
+        : `Будет применена скидка ${discountValue}${discountType === 'percentage' ? '%' : ' ' + listing.currency}. Продолжить?`,
+      [
+        {
+          text: language === 'az' ? 'Ləğv et' : 'Отмена',
+          style: 'cancel',
+          onPress: () => console.log('[handleCreateDiscount] Cancelled')
+        },
+        {
+          text: language === 'az' ? 'Təsdiq et' : 'Подтвердить',
+          onPress: () => {
+            console.log('[handleCreateDiscount] Confirmed');
+            if (listing.storeId) {
+              handleCreateStoreDiscount();
+            } else {
+              handleCreateIndividualDiscount();
             }
           }
-        ]
-      );
-    }, 100);
+        }
+      ]
+    );
   };
   
   const handleCreateStoreDiscount = () => {
