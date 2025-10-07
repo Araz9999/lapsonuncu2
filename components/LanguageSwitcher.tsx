@@ -5,9 +5,12 @@ import Colors from '@/constants/colors';
 import { Languages } from 'lucide-react-native';
 
 export default function LanguageSwitcher() {
-  const { language, setLanguage, isLoaded } = useLanguageStore();
+  const languageStore = useLanguageStore();
+  const language = languageStore?.language || 'az';
+  const setLanguage = languageStore?.setLanguage;
+  const isLoaded = languageStore?.isLoaded;
 
-  if (!isLoaded) {
+  if (!isLoaded || !setLanguage) {
     return null;
   }
 

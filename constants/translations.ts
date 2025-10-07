@@ -1028,7 +1028,8 @@ export function t(key: keyof typeof translations, language: Language): string {
 }
 
 export function useTranslation() {
-  const { language } = useLanguageStore();
+  const languageStore = useLanguageStore();
+  const language = languageStore?.language || 'az';
   return {
     t: (key: keyof typeof translations) => t(key, language),
     language,

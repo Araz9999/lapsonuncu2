@@ -7,9 +7,11 @@ import { Search, Plus, MessageCircle, User, Star, Store } from 'lucide-react-nat
 
 
 export default function TabLayout() {
-  const { language } = useLanguageStore();
+  const languageStore = useLanguageStore();
   const { themeMode, colorTheme } = useThemeStore();
   const colors = getColors(themeMode, colorTheme);
+  
+  const language = languageStore?.language || 'az';
 
   return (
     <>
@@ -33,7 +35,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: language === 'az' ? 'Naxtap' : language === 'ru' ? 'Naxtap' : 'Naxtap',
+          title: 'Naxtap',
           tabBarIcon: ({ color, size }) => <Star size={size} color={color} />,
         }}
       />

@@ -18,7 +18,8 @@ export default function HomeScreen() {
   const router = useRouter();
   const { resetFilters, listings } = useListingStore();
   const { stores } = useStoreStore();
-  const { language } = useLanguageStore();
+  const languageStore = useLanguageStore();
+  const language = languageStore?.language || 'az';
   const { themeMode, colorTheme, fontSize, autoRefresh } = useThemeStore();
   const colors = getColors(themeMode, colorTheme);
   
