@@ -56,6 +56,7 @@ export interface Listing {
     id: string;
     name: { az: string; ru: string };
     type: 'glow' | 'sparkle' | 'pulse' | 'rainbow' | 'fire' | 'star' | 'frame';
+    frameType?: 'frame-green-bold' | 'frame-black-bold' | 'frame-az-flag' | 'frame-blue-bold' | 'frame-red-bold';
     color: string;
     endDate: string;
     isActive: boolean;

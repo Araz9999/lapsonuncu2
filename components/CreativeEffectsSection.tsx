@@ -23,7 +23,8 @@ interface CreativeEffect {
   color: string;
   price: number;
   duration: number; // in days
-  type:
+  type: 'frame';
+  frameType:
     | 'frame-green-bold'
     | 'frame-black-bold'
     | 'frame-az-flag'
@@ -41,7 +42,8 @@ const creativeEffects: CreativeEffect[] = [
     color: '#22C55E',
     price: 0.5,
     duration: 7,
-    type: 'frame-green-bold'
+    type: 'frame',
+    frameType: 'frame-green-bold'
   },
   {
     id: 'frame-black-bold',
@@ -51,7 +53,8 @@ const creativeEffects: CreativeEffect[] = [
     color: '#111827',
     price: 0.5,
     duration: 7,
-    type: 'frame-black-bold'
+    type: 'frame',
+    frameType: 'frame-black-bold'
   },
   {
     id: 'frame-blue-bold',
@@ -61,7 +64,8 @@ const creativeEffects: CreativeEffect[] = [
     color: '#3B82F6',
     price: 0.5,
     duration: 7,
-    type: 'frame-blue-bold'
+    type: 'frame',
+    frameType: 'frame-blue-bold'
   },
   {
     id: 'frame-red-bold',
@@ -71,7 +75,8 @@ const creativeEffects: CreativeEffect[] = [
     color: '#EF4444',
     price: 0.5,
     duration: 7,
-    type: 'frame-red-bold'
+    type: 'frame',
+    frameType: 'frame-red-bold'
   },
   {
     id: 'frame-az-flag',
@@ -81,7 +86,8 @@ const creativeEffects: CreativeEffect[] = [
     color: '#0EA5E9',
     price: 0.9,
     duration: 14,
-    type: 'frame-az-flag'
+    type: 'frame',
+    frameType: 'frame-az-flag'
   }
 ];
 
@@ -104,7 +110,7 @@ const EffectPreview = ({ effect }: { effect: CreativeEffect; isSelected: boolean
   ), []);
 
   const getStyle = () => {
-    switch (effect.type) {
+    switch (effect.frameType) {
       case 'frame-az-flag':
         return { borderWidth: 0 };
       default:
@@ -125,7 +131,7 @@ const EffectPreview = ({ effect }: { effect: CreativeEffect; isSelected: boolean
       <View testID={`effect-icon-${effect.id}`} style={[styles.effectIcon, { backgroundColor: effect.color + '20' }, getStyle()]}> 
         {effect.icon}
       </View>
-      {effect.type === 'frame-az-flag' && azFlagRing}
+      {effect.frameType === 'frame-az-flag' && azFlagRing}
     </View>
   );
 };
