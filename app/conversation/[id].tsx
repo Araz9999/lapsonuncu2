@@ -833,11 +833,11 @@ export default function ConversationScreen() {
         initialNumToRender={20}
         maxToRenderPerBatch={10}
         windowSize={10}
-        keyboardShouldPersistTaps="always"
+        keyboardShouldPersistTaps="handled"
       />
       
       <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         <View style={styles.inputContainer}>
@@ -858,7 +858,7 @@ export default function ConversationScreen() {
           placeholderTextColor={Colors.textSecondary}
           multiline
           maxLength={1000}
-          onFocus={() => setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 50)}
+          onFocus={() => setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 300)}
           onSubmitEditing={() => {
             const textToSend = inputText.trim();
             if (textToSend) {

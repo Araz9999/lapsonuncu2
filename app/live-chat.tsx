@@ -390,8 +390,8 @@ export default function LiveChatScreen() {
       />
       <KeyboardAvoidingView
         style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         {showStartForm ? (
           <StartChatForm />
@@ -401,15 +401,18 @@ export default function LiveChatScreen() {
               ref={scrollViewRef}
               style={styles.messagesContainer}
               showsVerticalScrollIndicator={false}
-              keyboardShouldPersistTaps="always"
+              keyboardShouldPersistTaps="handled"
               keyboardDismissMode="interactive"
               bounces={false}
               overScrollMode="never"
               automaticallyAdjustContentInsets={false}
               scrollEventThrottle={16}
-              contentContainerStyle={{ paddingBottom: 120 }}
-              onContentSizeChange={() => {}}
-
+              contentContainerStyle={{ paddingBottom: 20 }}
+              onContentSizeChange={() => {
+                if (shouldScrollToEnd && !isScrolling) {
+                  scrollViewRef.current?.scrollToEnd({ animated: false });
+                }
+              }}
               onScrollBeginDrag={() => {
                 setIsScrolling(true);
                 setShouldScrollToEnd(false);
@@ -646,10 +649,6 @@ const styles = StyleSheet.create({
   inputSection: {
     backgroundColor: 'transparent',
     paddingBottom: Platform.OS === 'ios' ? 20 : 10,
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
   },
   inputContainer: {
     flexDirection: 'row',
