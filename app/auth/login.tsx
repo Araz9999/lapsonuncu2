@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from '@/constants/translations';
@@ -6,7 +6,7 @@ import { useUserStore } from '@/store/userStore';
 import { users } from '@/mocks/users';
 import Colors from '@/constants/colors';
 import { X, Eye, EyeOff, Facebook, Chrome, MessageCircle } from 'lucide-react-native';
-import { initiateSocialLogin, checkSocialAuthStatus, showSocialLoginError, type SocialAuthConfig } from '@/utils/socialAuth';
+import { initiateSocialLogin, showSocialLoginError } from '@/utils/socialAuth';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -16,18 +16,8 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [socialAuthConfig, setSocialAuthConfig] = useState<SocialAuthConfig>({ google: false, facebook: false, vk: false });
-  const [loadingSocial, setLoadingSocial] = useState<string | null>(null);
-  
-  useEffect(() => {
-    loadSocialAuthStatus();
-  }, []);
 
-  const loadSocialAuthStatus = async () => {
-    const status = await checkSocialAuthStatus();
-    setSocialAuthConfig(status);
-    console.log('[Login] Social auth status:', status);
-  };
+  const [loadingSocial, setLoadingSocial] = useState<string | null>(null);
 
   const handleLogin = () => {
     if (!email || !password) {
@@ -169,64 +159,50 @@ export default function LoginScreen() {
           </View>
           
           <View style={styles.socialButtons}>
-            {socialAuthConfig.google && (
-              <TouchableOpacity 
-                style={[styles.socialButton, styles.googleButton]}
-                onPress={() => handleSocialLogin('google')}
-                disabled={loadingSocial !== null}
-              >
-                {loadingSocial === 'google' ? (
-                  <ActivityIndicator size="small" color="white" />
-                ) : (
-                  <>
-                    <Chrome size={24} color="white" />
-                    <Text style={styles.socialButtonText}>Google</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity 
+              style={[styles.socialButton, styles.googleButton]}
+              onPress={() => handleSocialLogin('google')}
+              disabled={loadingSocial !== null}
+            >
+              {loadingSocial === 'google' ? (
+                <ActivityIndicator size="small" color="white" />
+              ) : (
+                <>
+                  <Chrome size={24} color="white" />
+                  <Text style={styles.socialButtonText}>Google</Text>
+                </>
+              )}
+            </TouchableOpacity>
             
-            {socialAuthConfig.facebook && (
-              <TouchableOpacity 
-                style={[styles.socialButton, styles.facebookButton]}
-                onPress={() => handleSocialLogin('facebook')}
-                disabled={loadingSocial !== null}
-              >
-                {loadingSocial === 'facebook' ? (
-                  <ActivityIndicator size="small" color="white" />
-                ) : (
-                  <>
-                    <Facebook size={24} color="white" />
-                    <Text style={styles.socialButtonText}>Facebook</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity 
+              style={[styles.socialButton, styles.facebookButton]}
+              onPress={() => handleSocialLogin('facebook')}
+              disabled={loadingSocial !== null}
+            >
+              {loadingSocial === 'facebook' ? (
+                <ActivityIndicator size="small" color="white" />
+              ) : (
+                <>
+                  <Facebook size={24} color="white" />
+                  <Text style={styles.socialButtonText}>Facebook</Text>
+                </>
+              )}
+            </TouchableOpacity>
             
-            {socialAuthConfig.vk && (
-              <TouchableOpacity 
-                style={[styles.socialButton, styles.vkButton]}
-                onPress={() => handleSocialLogin('vk')}
-                disabled={loadingSocial !== null}
-              >
-                {loadingSocial === 'vk' ? (
-                  <ActivityIndicator size="small" color="white" />
-                ) : (
-                  <>
-                    <MessageCircle size={24} color="white" />
-                    <Text style={styles.socialButtonText}>VK</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            )}
-            
-            {!socialAuthConfig.google && !socialAuthConfig.facebook && !socialAuthConfig.vk && (
-              <View style={styles.noSocialAuth}>
-                <Text style={styles.noSocialAuthText}>
-                  Social login not configured. See SOCIAL_LOGIN_SETUP.md for setup instructions.
-                </Text>
-              </View>
-            )}
+            <TouchableOpacity 
+              style={[styles.socialButton, styles.vkButton]}
+              onPress={() => handleSocialLogin('vk')}
+              disabled={loadingSocial !== null}
+            >
+              {loadingSocial === 'vk' ? (
+                <ActivityIndicator size="small" color="white" />
+              ) : (
+                <>
+                  <MessageCircle size={24} color="white" />
+                  <Text style={styles.socialButtonText}>VK</Text>
+                </>
+              )}
+            </TouchableOpacity>
           </View>
         </View>
         
