@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
-  Keyboard,
   Dimensions,
   Image,
 } from 'react-native';
@@ -85,24 +84,13 @@ export default function LiveChatScreen() {
   useEffect(() => {
     if (currentChat?.messages.length && shouldScrollToEnd && !isScrolling) {
       setTimeout(() => {
-        scrollViewRef.current?.scrollToEnd({ animated: true });
+        scrollViewRef.current?.scrollToEnd({ animated: false });
       }, 100);
     }
   }, [currentChat?.messages.length, shouldScrollToEnd, isScrolling]);
 
   useEffect(() => {
-    const keyboardDidShowListener = Keyboard.addListener(
-      'keyboardDidShow',
-      () => {
-        setTimeout(() => {
-          scrollViewRef.current?.scrollToEnd({ animated: true });
-        }, 200);
-      }
-    );
-
-    return () => {
-      keyboardDidShowListener.remove();
-    };
+    return () => {};
   }, []);
 
   const handleStartChat = () => {
@@ -145,7 +133,7 @@ export default function LiveChatScreen() {
     setShowAttachments(false);
     
     setTimeout(() => {
-      scrollViewRef.current?.scrollToEnd({ animated: true });
+      scrollViewRef.current?.scrollToEnd({ animated: false });
     }, 100);
     
     if (typingTimeout) {
@@ -402,7 +390,7 @@ export default function LiveChatScreen() {
       />
       <KeyboardAvoidingView
         style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
         {showStartForm ? (
@@ -413,16 +401,16 @@ export default function LiveChatScreen() {
               ref={scrollViewRef}
               style={styles.messagesContainer}
               showsVerticalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
+              keyboardShouldPersistTaps="always"
               keyboardDismissMode="interactive"
-              contentContainerStyle={{ paddingBottom: 20 }}
-              onContentSizeChange={() => {
-                if (!isScrolling && shouldScrollToEnd) {
-                  setTimeout(() => {
-                    scrollViewRef.current?.scrollToEnd({ animated: true });
-                  }, 100);
-                }
-              }}
+              bounces={false}
+              overScrollMode="never"
+              automaticallyAdjustContentInsets={false}
+              scrollEventThrottle={16}
+              removeClippedSubviews
+              contentContainerStyle={{ paddingBottom: 120 }}
+              onContentSizeChange={() => {}}
+
               onScrollBeginDrag={() => {
                 setIsScrolling(true);
                 setShouldScrollToEnd(false);
@@ -493,7 +481,9 @@ export default function LiveChatScreen() {
                       {
                         backgroundColor: colors.background,
                         color: colors.text,
-                        borderColor: colors.border
+                        borderColor: colors.border,
+                        minHeight: 44,
+                        maxHeight: 120,
                       }
                     ]}
                     placeholder={language === 'az' ? 'Mesajınızı yazın...' : 'Напишите сообщение...'}
@@ -501,6 +491,7 @@ export default function LiveChatScreen() {
                     value={message}
                     onChangeText={handleTyping}
                     multiline
+                    blurOnSubmit={false}
                     maxLength={1000}
                   />
                   
@@ -648,6 +639,10 @@ const styles = StyleSheet.create({
   inputSection: {
     backgroundColor: 'transparent',
     paddingBottom: Platform.OS === 'ios' ? 20 : 10,
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   inputContainer: {
     flexDirection: 'row',
@@ -666,7 +661,7 @@ const styles = StyleSheet.create({
     maxHeight: 100,
     minHeight: 44,
     marginRight: 12,
-    textAlignVertical: 'center',
+    textAlignVertical: 'top',
   },
   attachButton: {
     width: 44,
