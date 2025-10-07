@@ -524,7 +524,7 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
                       ref={scrollViewRef}
                       style={styles.messagesContainer}
                       showsVerticalScrollIndicator={false}
-                      keyboardShouldPersistTaps="handled"
+                      keyboardShouldPersistTaps="always"
                       keyboardDismissMode="interactive"
                       contentContainerStyle={{ paddingBottom: 20 }}
                       onContentSizeChange={() => {
@@ -609,6 +609,7 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
                           </TouchableOpacity>
                           
                           <TextInput
+                            testID="livechat-widget-input"
                             style={[
                               styles.messageInput,
                               {
@@ -622,7 +623,12 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
                             value={message}
                             onChangeText={handleTyping}
                             multiline
+                            blurOnSubmit={false}
+                            autoCorrect
+                            autoCapitalize="sentences"
+                            keyboardAppearance={Platform.OS === 'ios' ? (themeMode === 'dark' ? 'dark' : 'light') : 'default'}
                             maxLength={1000}
+                            textAlignVertical="top"
                           />
                           
                           <TouchableOpacity
@@ -921,7 +927,7 @@ const styles = StyleSheet.create({
     maxHeight: 100,
     minHeight: 44,
     marginRight: 12,
-    textAlignVertical: 'center',
+    textAlignVertical: 'top',
   },
   attachButton: {
     width: 44,

@@ -407,7 +407,6 @@ export default function LiveChatScreen() {
               overScrollMode="never"
               automaticallyAdjustContentInsets={false}
               scrollEventThrottle={16}
-              removeClippedSubviews
               contentContainerStyle={{ paddingBottom: 120 }}
               onContentSizeChange={() => {}}
 
@@ -476,6 +475,7 @@ export default function LiveChatScreen() {
                   </TouchableOpacity>
                   
                   <TextInput
+                    testID="livechat-input"
                     style={[
                       styles.messageInput,
                       {
@@ -492,10 +492,15 @@ export default function LiveChatScreen() {
                     onChangeText={handleTyping}
                     multiline
                     blurOnSubmit={false}
+                    autoCorrect
+                    autoCapitalize="sentences"
+                    keyboardAppearance={Platform.OS === 'ios' ? (themeMode === 'dark' ? 'dark' : 'light') : 'default'}
                     maxLength={1000}
+                    textAlignVertical="top"
                   />
                   
                   <TouchableOpacity
+                    testID="livechat-send"
                     style={[
                       styles.sendButton,
                       {
@@ -504,6 +509,8 @@ export default function LiveChatScreen() {
                     ]}
                     onPress={handleSendMessage}
                     disabled={!message.trim() && attachments.length === 0}
+                    accessibilityRole="button"
+                    accessibilityLabel={language === 'az' ? 'Mesajı göndər' : 'Отправить сообщение'}
                   >
                     <Send size={18} color={(message.trim() || attachments.length > 0) ? '#fff' : colors.textSecondary} />
                   </TouchableOpacity>
