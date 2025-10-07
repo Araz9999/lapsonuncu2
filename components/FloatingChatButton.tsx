@@ -61,14 +61,15 @@ export default function FloatingChatButton() {
 
   const handlePress = () => {
     if (!currentUser) {
-      // Handle user not logged in
+      console.log('[FloatingChatButton] User not logged in');
       return;
     }
+    console.log('[FloatingChatButton] Opening chat');
     setShowChat(true);
   };
 
-  // Don't show on home page or if no operators available and no active chats
-  if (pathname === '/' || (!hasActiveChat && availableOperators.length === 0)) {
+  // Don't show on certain pages
+  if (pathname === '/live-chat' || pathname === '/support') {
     return null;
   }
 

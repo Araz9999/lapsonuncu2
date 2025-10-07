@@ -425,6 +425,35 @@ function RootLayoutNav() {
             presentation: 'card',
           }} 
         />
+        <Stack.Screen 
+          name="live-chat" 
+          options={{ 
+            title: "",
+            presentation: 'card',
+          }} 
+        />
+        <Stack.Screen 
+          name="terms" 
+          options={{ 
+            title: "",
+            presentation: 'card',
+          }} 
+        />
+        <Stack.Screen 
+          name="privacy" 
+          options={{ 
+            title: "",
+            presentation: 'card',
+          }} 
+        />
+        <Stack.Screen 
+          name="auth/success" 
+          options={{ 
+            title: "",
+            presentation: 'modal',
+            headerShown: false,
+          }} 
+        />
       </Stack>
       <IncomingCallModal />
     </>
