@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput, Switch } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput, Switch, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useLanguageStore } from '@/store/languageStore';
 import { useUserStore } from '@/store/userStore';
@@ -13,6 +14,7 @@ export default function ListingDiscountScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { language } = useLanguageStore();
+  const insets = useSafeAreaInsets();
   const { isAuthenticated } = useUserStore();
   const { addDiscount, deleteDiscount, getStoreDiscounts, generateDiscountCode } = useDiscountStore();
   const { updateListing, listings: storeListings } = useListingStore();
@@ -106,38 +108,64 @@ export default function ListingDiscountScreen() {
     
     console.log('[handleCreateDiscount] Validation passed, showing confirmation dialog');
     
-    Alert.alert(
-      language === 'az' ? 'Endirim tətbiq edilsin?' : 'Применить скидку?',
-      language === 'az' 
+    if (Platform.OS === 'web') {
+      const message = language === 'az'
         ? `${discountValue}${discountType === 'percentage' ? '%' : ' ' + listing.currency} endirim tətbiq ediləcək. Davam etmək istəyirsiniz?`
-        : `Будет применена скидка ${discountValue}${discountType === 'percentage' ? '%' : ' ' + listing.currency}. Продолжить?`,
-      [
-        {
-          text: language === 'az' ? 'Ləğv et' : 'Отмена',
-          style: 'cancel',
-          onPress: () => console.log('[handleCreateDiscount] User cancelled')
-        },
-        {
-          text: language === 'az' ? 'Təsdiq et' : 'Подтвердить',
-          onPress: () => {
-            console.log('[handleCreateDiscount] User confirmed, applying discount');
-            try {
-              if (listing.storeId) {
-                handleCreateStoreDiscount();
-              } else {
-                handleCreateIndividualDiscount();
+        : `Будет применена скидка ${discountValue}${discountType === 'percentage' ? '%' : ' ' + listing.currency}. Продолжить?`;
+      const confirmed = typeof window !== 'undefined' && typeof (window as any).confirm === 'function'
+        ? (window as any).confirm(message)
+        : false;
+      if (!confirmed) {
+        console.log('[handleCreateDiscount] User cancelled (web confirm)');
+        return;
+      }
+      try {
+        if (listing.storeId) {
+          handleCreateStoreDiscount();
+        } else {
+          handleCreateIndividualDiscount();
+        }
+      } catch (error) {
+        console.error('[handleCreateDiscount] Error applying discount on web:', error);
+        Alert.alert(
+          language === 'az' ? 'Xəta!' : 'Ошибка!',
+          language === 'az' ? 'Endirim tətbiq edilərkən xəta baş verdi' : 'Произошла ошибка при применении скидки'
+        );
+      }
+    } else {
+      Alert.alert(
+        language === 'az' ? 'Endirim tətbiq edilsin?' : 'Применить скидку?',
+        language === 'az' 
+          ? `${discountValue}${discountType === 'percentage' ? '%' : ' ' + listing.currency} endirim tətbiq ediləcək. Davam etmək istəyirsiniz?`
+          : `Будет применена скидка ${discountValue}${discountType === 'percentage' ? '%' : ' ' + listing.currency}. Продолжить?`,
+        [
+          {
+            text: language === 'az' ? 'Ləğv et' : 'Отмена',
+            style: 'cancel',
+            onPress: () => console.log('[handleCreateDiscount] User cancelled')
+          },
+          {
+            text: language === 'az' ? 'Təsdiq et' : 'Подтвердить',
+            onPress: () => {
+              console.log('[handleCreateDiscount] User confirmed, applying discount');
+              try {
+                if (listing.storeId) {
+                  handleCreateStoreDiscount();
+                } else {
+                  handleCreateIndividualDiscount();
+                }
+              } catch (error) {
+                console.error('[handleCreateDiscount] Error applying discount:', error);
+                Alert.alert(
+                  language === 'az' ? 'Xəta!' : 'Ошибка!',
+                  language === 'az' ? 'Endirim tətbiq edilərkən xəta baş verdi' : 'Произошла ошибка при применении скидки'
+                );
               }
-            } catch (error) {
-              console.error('[handleCreateDiscount] Error applying discount:', error);
-              Alert.alert(
-                language === 'az' ? 'Xəta!' : 'Ошибка!',
-                language === 'az' ? 'Endirim tətbiq edilərkən xəta baş verdi' : 'Произошла ошибка при применении скидки'
-              );
             }
           }
-        }
-      ]
-    );
+        ]
+      );
+    }
   };
   
   const handleCreateStoreDiscount = () => {
@@ -344,8 +372,9 @@ export default function ListingDiscountScreen() {
   const preview = getDiscountPreview();
   
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: (insets?.bottom ?? 0) + 16 }}>
       {/* Header */}
+      <View style={{ height: insets.top, backgroundColor: Colors.card }} />
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <ArrowLeft size={24} color={Colors.text} />
@@ -905,7 +934,13 @@ export default function ListingDiscountScreen() {
         )}
         
         {/* Create Button */}
-        <TouchableOpacity style={styles.createButton} onPress={handleCreateDiscount}>
+        <TouchableOpacity
+          style={styles.createButton}
+          onPress={handleCreateDiscount}
+          accessibilityRole="button"
+          accessibilityLabel={language === 'az' ? 'Endirim Tətbiq Et' : 'Применить скидку'}
+          testID="apply-discount-button"
+        >
           <Save size={20} color="white" />
           <Text style={styles.createButtonText}>
             {listing.storeId 
