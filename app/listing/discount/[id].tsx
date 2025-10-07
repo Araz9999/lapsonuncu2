@@ -75,7 +75,8 @@ export default function ListingDiscountScreen() {
   }
   
   const handleCreateDiscount = () => {
-    // Only require title for store discounts
+    console.log('[handleCreateDiscount] Button clicked');
+    
     if (listing.storeId && !discountTitle.trim()) {
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
@@ -92,7 +93,8 @@ export default function ListingDiscountScreen() {
       return;
     }
     
-    // Show confirmation dialog
+    console.log('[handleCreateDiscount] Showing confirmation dialog');
+    
     Alert.alert(
       language === 'az' ? 'Endirim tətbiq edilsin?' : 'Применить скидку?',
       language === 'az' 
@@ -101,17 +103,16 @@ export default function ListingDiscountScreen() {
       [
         {
           text: language === 'az' ? 'Ləğv et' : 'Отмена',
-          style: 'cancel'
+          style: 'cancel',
+          onPress: () => console.log('[handleCreateDiscount] Cancelled')
         },
         {
           text: language === 'az' ? 'Təsdiq et' : 'Подтвердить',
           onPress: () => {
-            // Handle both store and individual listing discounts
+            console.log('[handleCreateDiscount] Confirmed');
             if (listing.storeId) {
-              // Store listing - create store discount
               handleCreateStoreDiscount();
             } else {
-              // Individual listing - apply direct discount
               handleCreateIndividualDiscount();
             }
           }
