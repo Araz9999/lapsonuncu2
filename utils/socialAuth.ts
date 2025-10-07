@@ -1,6 +1,5 @@
 import { Platform, Alert, Linking } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
-import config from '@/constants/config';
 
 export interface SocialAuthResult {
   success: boolean;
@@ -17,7 +16,11 @@ export interface SocialAuthConfig {
 
 export async function checkSocialAuthStatus(): Promise<SocialAuthConfig> {
   try {
-    const baseUrl = config.BASE_URL?.replace('/api', '') || 'http://localhost:8081';
+    const baseUrl = Platform.select({
+      web: typeof window !== 'undefined' ? window.location.origin : 'https://1r36dhx42va8pxqbqz5ja.rork.app',
+      default: 'https://1r36dhx42va8pxqbqz5ja.rork.app'
+    });
+    console.log('[SocialAuth] Checking status at:', `${baseUrl}/api/auth/status`);
     const response = await fetch(`${baseUrl}/api/auth/status`);
     
     if (!response.ok) {
@@ -41,7 +44,10 @@ export async function initiateSocialLogin(
   try {
     console.log(`[SocialAuth] Initiating ${provider} login`);
     
-    const baseUrl = config.BASE_URL?.replace('/api', '') || 'http://localhost:8081';
+    const baseUrl = Platform.select({
+      web: typeof window !== 'undefined' ? window.location.origin : 'https://1r36dhx42va8pxqbqz5ja.rork.app',
+      default: 'https://1r36dhx42va8pxqbqz5ja.rork.app'
+    });
     const authUrl = `${baseUrl}/api/auth/${provider}/login`;
     
     console.log(`[SocialAuth] Opening auth URL: ${authUrl}`);

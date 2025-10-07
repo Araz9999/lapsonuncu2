@@ -65,7 +65,7 @@ auth.get('/:provider/callback', async (c) => {
 
   if (error) {
     console.error(`[Auth] OAuth error from ${provider}:`, error);
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8081';
+    const frontendUrl = process.env.FRONTEND_URL || process.env.EXPO_PUBLIC_FRONTEND_URL || 'https://1r36dhx42va8pxqbqz5ja.rork.app';
     return c.redirect(`${frontendUrl}/auth/login?error=${encodeURIComponent(error)}`);
   }
 
@@ -147,7 +147,7 @@ auth.get('/:provider/callback', async (c) => {
 
     stateStore.delete(state);
 
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8081';
+    const frontendUrl = process.env.FRONTEND_URL || process.env.EXPO_PUBLIC_FRONTEND_URL || 'https://1r36dhx42va8pxqbqz5ja.rork.app';
     const redirectUrl = `${frontendUrl}/auth/success?token=${tokens.accessToken}&user=${encodeURIComponent(JSON.stringify({
       id: user.id,
       email: user.email,
@@ -161,7 +161,7 @@ auth.get('/:provider/callback', async (c) => {
     return c.redirect(redirectUrl);
   } catch (error) {
     console.error(`[Auth] Error processing ${provider} callback:`, error);
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8081';
+    const frontendUrl = process.env.FRONTEND_URL || process.env.EXPO_PUBLIC_FRONTEND_URL || 'https://1r36dhx42va8pxqbqz5ja.rork.app';
     return c.redirect(`${frontendUrl}/auth/login?error=authentication_failed`);
   }
 });

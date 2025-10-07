@@ -31,12 +31,13 @@ class OAuthService {
   }
 
   private initializeConfigs() {
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8081';
+    const frontendUrl = process.env.FRONTEND_URL || process.env.EXPO_PUBLIC_FRONTEND_URL || 'https://1r36dhx42va8pxqbqz5ja.rork.app';
+    console.log('[OAuth] Frontend URL:', frontendUrl);
 
     this.configs.google = {
-      clientId: process.env.GOOGLE_CLIENT_ID || '',
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
-      redirectUri: `${frontendUrl}/auth/callback/google`,
+      clientId: process.env.GOOGLE_CLIENT_ID || process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '',
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || process.env.EXPO_PUBLIC_GOOGLE_CLIENT_SECRET || '',
+      redirectUri: `${frontendUrl}/api/auth/google/callback`,
       authorizationUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
       tokenUrl: 'https://oauth2.googleapis.com/token',
       userInfoUrl: 'https://www.googleapis.com/oauth2/v2/userinfo',
@@ -44,9 +45,9 @@ class OAuthService {
     };
 
     this.configs.facebook = {
-      clientId: process.env.FACEBOOK_APP_ID || '',
-      clientSecret: process.env.FACEBOOK_APP_SECRET || '',
-      redirectUri: `${frontendUrl}/auth/callback/facebook`,
+      clientId: process.env.FACEBOOK_APP_ID || process.env.EXPO_PUBLIC_FACEBOOK_APP_ID || '',
+      clientSecret: process.env.FACEBOOK_APP_SECRET || process.env.EXPO_PUBLIC_FACEBOOK_APP_SECRET || '',
+      redirectUri: `${frontendUrl}/api/auth/facebook/callback`,
       authorizationUrl: 'https://www.facebook.com/v18.0/dialog/oauth',
       tokenUrl: 'https://graph.facebook.com/v18.0/oauth/access_token',
       userInfoUrl: 'https://graph.facebook.com/me',
@@ -54,9 +55,9 @@ class OAuthService {
     };
 
     this.configs.vk = {
-      clientId: process.env.VK_CLIENT_ID || '',
-      clientSecret: process.env.VK_CLIENT_SECRET || '',
-      redirectUri: `${frontendUrl}/auth/callback/vk`,
+      clientId: process.env.VK_CLIENT_ID || process.env.EXPO_PUBLIC_VK_CLIENT_ID || '',
+      clientSecret: process.env.VK_CLIENT_SECRET || process.env.EXPO_PUBLIC_VK_CLIENT_SECRET || '',
+      redirectUri: `${frontendUrl}/api/auth/vk/callback`,
       authorizationUrl: 'https://oauth.vk.com/authorize',
       tokenUrl: 'https://oauth.vk.com/access_token',
       userInfoUrl: 'https://api.vk.com/method/users.get',
