@@ -793,11 +793,7 @@ export default function ConversationScreen() {
   }
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-    >
+    <View style={styles.container}>
       <Stack.Screen
         options={{
           title: otherUser.name,
@@ -833,9 +829,14 @@ export default function ConversationScreen() {
         maxToRenderPerBatch={10}
         windowSize={10}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
       />
       
-      <View style={styles.inputContainer}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      >
+        <View style={styles.inputContainer}>
         <TouchableOpacity
           style={styles.attachButton}
           onPress={() => setShowAttachmentModal(true)}
@@ -883,7 +884,8 @@ export default function ConversationScreen() {
             <Mic size={18} color="#fff" />
           </TouchableOpacity>
         )}
-      </View>
+        </View>
+      </KeyboardAvoidingView>
       
       {/* Attachment Modal */}
       <Modal
@@ -1001,7 +1003,7 @@ export default function ConversationScreen() {
         onClose={() => setShowUserActionModal(false)}
         user={otherUser}
       />
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -1178,8 +1180,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     padding: 12,
-    paddingTop: 12,
-    paddingBottom: Platform.OS === 'ios' ? 34 : 16,
     backgroundColor: Colors.card,
     borderTopWidth: 1,
     borderTopColor: Colors.border,
