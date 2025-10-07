@@ -393,11 +393,12 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
       onRequestClose={onClose}
       statusBarTranslucent
     >
-      <BlurView intensity={20} style={styles.overlay}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.keyboardAvoid}
-        >
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.keyboardAvoid}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      >
+        <BlurView intensity={20} style={styles.overlay}>
           <View style={styles.container}>
             <View style={styles.header}>
               <Text style={styles.title}>{t.userActions}</Text>
@@ -687,34 +688,31 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
               </TouchableOpacity>
             )}
           </View>
-        </KeyboardAvoidingView>
-      </BlurView>
+        </BlurView>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  keyboardAvoid: {
+    flex: 1,
+  },
   overlay: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
-  keyboardAvoid: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   container: {
     width: width - 40,
     maxWidth: 400,
-    maxHeight: '80%',
     backgroundColor: '#fff',
     borderRadius: 16,
     overflow: 'hidden',
   },
   scrollContent: {
-    flexGrow: 0,
+    maxHeight: 400,
   },
   header: {
     flexDirection: 'row',
