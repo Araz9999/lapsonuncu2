@@ -43,13 +43,13 @@ export default function EditListingScreen() {
   const listing = listings.find(l => l.id === id);
   
   const [formData, setFormData] = useState({
-    title: { az: '', ru: '' },
-    description: { az: '', ru: '' },
+    title: { az: '', ru: '', en: '' },
+    description: { az: '', ru: '', en: '' },
     price: '',
     currency: 'AZN',
     categoryId: 0,
     subcategoryId: 0,
-    location: { az: '', ru: '' },
+    location: { az: '', ru: '', en: '' },
     locationId: '',
     images: [] as string[],
     condition: '',
@@ -272,7 +272,7 @@ export default function EditListingScreen() {
   };
   
   const handleSave = async () => {
-    if (!formData.title.az || !formData.title.ru || !formData.description.az || !formData.description.ru || !formData.price) {
+    if (!formData.title.az || !formData.title.ru || !formData.title.en || !formData.description.az || !formData.description.ru || !formData.description.en || !formData.price) {
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Bütün sahələri doldurun' : 'Заполните все поля'
@@ -390,6 +390,19 @@ export default function EditListingScreen() {
               placeholderTextColor={Colors.textSecondary}
             />
           </View>
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>English</Text>
+            <TextInput
+              style={styles.textInput}
+              value={formData.title.en}
+              onChangeText={(text) => setFormData(prev => ({
+                ...prev,
+                title: { ...prev.title, en: text }
+              }))}
+              placeholder={language === 'az' ? 'Elanın başlığını daxil edin' : 'Enter listing title'}
+              placeholderTextColor={Colors.textSecondary}
+            />
+          </View>
         </View>
         
         {/* Description */}
@@ -422,6 +435,21 @@ export default function EditListingScreen() {
                 description: { ...prev.description, ru: text }
               }))}
               placeholder={language === 'az' ? 'Elanın təsvirini daxil edin' : 'Введите описание объявления'}
+              placeholderTextColor={Colors.textSecondary}
+              multiline
+              numberOfLines={4}
+            />
+          </View>
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>English</Text>
+            <TextInput
+              style={[styles.textInput, styles.textArea]}
+              value={formData.description.en}
+              onChangeText={(text) => setFormData(prev => ({
+                ...prev,
+                description: { ...prev.description, en: text }
+              }))}
+              placeholder={language === 'az' ? 'Elanın təsvirini daxil edin' : 'Enter listing description'}
               placeholderTextColor={Colors.textSecondary}
               multiline
               numberOfLines={4}
