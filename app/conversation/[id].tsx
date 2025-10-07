@@ -12,6 +12,7 @@ import {
   Modal,
   Pressable,
   Dimensions,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { useLocalSearchParams, Stack, router } from 'expo-router';
 import { useLanguageStore } from '@/store/languageStore';
@@ -792,7 +793,11 @@ export default function ConversationScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView 
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+    >
       <Stack.Screen
         options={{
           title: otherUser.name,
@@ -827,6 +832,7 @@ export default function ConversationScreen() {
         initialNumToRender={20}
         maxToRenderPerBatch={10}
         windowSize={10}
+        keyboardShouldPersistTaps="handled"
       />
       
       <View style={styles.inputContainer}>
@@ -995,7 +1001,7 @@ export default function ConversationScreen() {
         onClose={() => setShowUserActionModal(false)}
         user={otherUser}
       />
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -1177,7 +1183,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.card,
     borderTopWidth: 1,
     borderTopColor: Colors.border,
-    minHeight: 70,
   },
   attachButton: {
     width: 36,
