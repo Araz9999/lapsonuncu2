@@ -41,28 +41,45 @@ export default function LoginScreen() {
   };
 
   const handleSocialLogin = async (provider: 'google' | 'facebook' | 'vk') => {
-    setLoadingSocial(provider);
-    
-    await initiateSocialLogin(
-      provider,
-      (result) => {
-        setLoadingSocial(null);
-        if (result.success && result.user) {
-          login({
-            ...users[0],
-            id: result.user.id,
-            name: result.user.name,
-            email: result.user.email,
-            avatar: result.user.avatar,
-          });
-          router.replace('/(tabs)');
+    try {
+      setLoadingSocial(provider);
+      
+      const baseUrl = 'https://1r36dhx42va8pxqbqz5ja.rork.app';
+      const statusResponse = await fetch(`${baseUrl}/api/auth/status`);
+      
+      if (statusResponse.ok) {
+        const statusData = await statusResponse.json();
+        if (!statusData.configured[provider]) {
+          setLoadingSocial(null);
+          showSocialLoginError(provider, `${provider.charAt(0).toUpperCase() + provider.slice(1)} login is not configured yet. Please contact support.`);
+          return;
         }
-      },
-      (error) => {
-        setLoadingSocial(null);
-        showSocialLoginError(provider, error);
       }
-    );
+      
+      await initiateSocialLogin(
+        provider,
+        (result) => {
+          setLoadingSocial(null);
+          if (result.success && result.user) {
+            login({
+              ...users[0],
+              id: result.user.id,
+              name: result.user.name,
+              email: result.user.email,
+              avatar: result.user.avatar,
+            });
+            router.replace('/(tabs)');
+          }
+        },
+        (error) => {
+          setLoadingSocial(null);
+          showSocialLoginError(provider, error);
+        }
+      );
+    } catch (error) {
+      setLoadingSocial(null);
+      showSocialLoginError(provider, 'Failed to initiate login. Please try again.');
+    }
   };
 
   return (

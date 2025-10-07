@@ -7,6 +7,7 @@ import Colors from '@/constants/colors';
 import { X, Eye, EyeOff, Check, Phone, Camera, User as UserIcon, Facebook, Chrome, MessageCircle } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { trpc } from '@/lib/trpc';
+import { initiateSocialLogin, showSocialLoginError } from '@/utils/socialAuth';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -23,6 +24,7 @@ export default function RegisterScreen() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingSocial, setLoadingSocial] = useState<string | null>(null);
   
   const registerMutation = trpc.auth.register.useMutation();
   
@@ -114,12 +116,65 @@ export default function RegisterScreen() {
     router.push('/auth/login');
   };
 
-  const handleSocialRegister = (provider: string) => {
-    console.log(`Registering with ${provider}`);
-    Alert.alert(
-      'Məlumat',
-      'Sosial media ilə giriş tezliklə əlavə ediləcək'
-    );
+  const handleSocialRegister = async (provider: 'google' | 'facebook' | 'vk') => {
+    try {
+      setLoadingSocial(provider);
+      
+      const baseUrl = 'https://1r36dhx42va8pxqbqz5ja.rork.app';
+      const statusResponse = await fetch(`${baseUrl}/api/auth/status`);
+      
+      if (statusResponse.ok) {
+        const statusData = await statusResponse.json();
+        if (!statusData.configured[provider]) {
+          setLoadingSocial(null);
+          showSocialLoginError(provider, `${provider.charAt(0).toUpperCase() + provider.slice(1)} login is not configured yet. Please contact support.`);
+          return;
+        }
+      }
+      
+      await initiateSocialLogin(
+        provider,
+        (result) => {
+          setLoadingSocial(null);
+          if (result.success && result.user) {
+            login({
+              id: result.user.id,
+              name: result.user.name,
+              email: result.user.email,
+              phone: '',
+              avatar: result.user.avatar || '',
+              rating: 0,
+              totalRatings: 0,
+              memberSince: new Date().toISOString(),
+              location: { az: '', ru: '', en: '' },
+              balance: 0,
+              role: 'user',
+              privacySettings: {
+                hidePhoneNumber: false,
+                allowDirectContact: true,
+                onlyAppMessaging: false,
+              },
+              analytics: {
+                lastOnline: new Date().toISOString(),
+                messageResponseRate: 0,
+                averageResponseTime: 0,
+                totalMessages: 0,
+                totalResponses: 0,
+                isOnline: true,
+              },
+            });
+            router.replace('/(tabs)');
+          }
+        },
+        (error) => {
+          setLoadingSocial(null);
+          showSocialLoginError(provider, error);
+        }
+      );
+    } catch (error) {
+      setLoadingSocial(null);
+      showSocialLoginError(provider, 'Failed to initiate registration. Please try again.');
+    }
   };
 
   const pickImage = async () => {
@@ -382,27 +437,48 @@ export default function RegisterScreen() {
           
           <View style={styles.socialButtons}>
             <TouchableOpacity 
-              style={[styles.socialButton, styles.facebookButton]}
-              onPress={() => handleSocialRegister('facebook')}
+              style={[styles.socialButton, styles.googleButton]}
+              onPress={() => handleSocialRegister('google')}
+              disabled={loadingSocial !== null}
             >
-              <Facebook size={24} color="white" />
-              <Text style={styles.socialButtonText}>Facebook</Text>
+              {loadingSocial === 'google' ? (
+                <ActivityIndicator size="small" color="white" />
+              ) : (
+                <>
+                  <Chrome size={24} color="white" />
+                  <Text style={styles.socialButtonText}>Google</Text>
+                </>
+              )}
             </TouchableOpacity>
             
             <TouchableOpacity 
-              style={[styles.socialButton, styles.googleButton]}
-              onPress={() => handleSocialRegister('google')}
+              style={[styles.socialButton, styles.facebookButton]}
+              onPress={() => handleSocialRegister('facebook')}
+              disabled={loadingSocial !== null}
             >
-              <Chrome size={24} color="white" />
-              <Text style={styles.socialButtonText}>Google</Text>
+              {loadingSocial === 'facebook' ? (
+                <ActivityIndicator size="small" color="white" />
+              ) : (
+                <>
+                  <Facebook size={24} color="white" />
+                  <Text style={styles.socialButtonText}>Facebook</Text>
+                </>
+              )}
             </TouchableOpacity>
             
             <TouchableOpacity 
               style={[styles.socialButton, styles.vkButton]}
               onPress={() => handleSocialRegister('vk')}
+              disabled={loadingSocial !== null}
             >
-              <MessageCircle size={24} color="white" />
-              <Text style={styles.socialButtonText}>VK</Text>
+              {loadingSocial === 'vk' ? (
+                <ActivityIndicator size="small" color="white" />
+              ) : (
+                <>
+                  <MessageCircle size={24} color="white" />
+                  <Text style={styles.socialButtonText}>VK</Text>
+                </>
+              )}
             </TouchableOpacity>
           </View>
         </View>
