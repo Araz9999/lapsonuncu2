@@ -70,25 +70,53 @@ export default function StoreDiscountsScreen() {
       return;
     }
     
-    setIsLoading(true);
+    const listing = storeListings.find(l => l.id === selectedListing);
+    if (!listing) return;
     
-    try {
-      await applyDiscountToProduct(store.id, selectedListing, discount);
-      Alert.alert(
-        language === 'az' ? 'Uğurlu!' : 'Успешно!',
-        language === 'az' ? 'Endirim tətbiq edildi' : 'Скидка применена'
-      );
-      setShowDiscountModal(false);
-      setSelectedListing(null);
-      setDiscountPercentage('');
-    } catch (error) {
+    if (listing.priceByAgreement) {
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' ? 'Endirim tətbiq edilərkən xəta baş verdi' : 'Ошибка при применении скидки'
+        language === 'az' ? 'Razılaşma ilə qiymətli məhsullara endirim tətbiq edilə bilməz' : 'Нельзя применить скидку к товарам с ценой по договоренности'
       );
-    } finally {
-      setIsLoading(false);
+      return;
     }
+    
+    Alert.alert(
+      language === 'az' ? 'Endirim tətbiq edilsin?' : 'Применить скидку?',
+      language === 'az' 
+        ? `${listing.title[language]} məhsuluna ${discount}% endirim tətbiq edilsin?`
+        : `Применить скидку ${discount}% к товару ${listing.title[language]}?`,
+      [
+        {
+          text: language === 'az' ? 'Ləğv et' : 'Отмена',
+          style: 'cancel'
+        },
+        {
+          text: language === 'az' ? 'Tətbiq et' : 'Применить',
+          onPress: async () => {
+            setIsLoading(true);
+            
+            try {
+              await applyDiscountToProduct(store.id, selectedListing, discount);
+              Alert.alert(
+                language === 'az' ? 'Uğurlu!' : 'Успешно!',
+                language === 'az' ? 'Endirim tətbiq edildi' : 'Скидка применена'
+              );
+              setShowDiscountModal(false);
+              setSelectedListing(null);
+              setDiscountPercentage('');
+            } catch (error) {
+              Alert.alert(
+                language === 'az' ? 'Xəta' : 'Ошибка',
+                language === 'az' ? 'Endirim tətbiq edilərkən xəta baş verdi' : 'Ошибка при применении скидки'
+              );
+            } finally {
+              setIsLoading(false);
+            }
+          }
+        }
+      ]
+    );
   };
   
   const handleRemoveDiscount = async (listingId: string) => {
@@ -136,25 +164,54 @@ export default function StoreDiscountsScreen() {
       return;
     }
     
-    setIsLoading(true);
+    const applicableListings = storeListings.filter(l => 
+      !excludeListings.includes(l.id) && !l.priceByAgreement
+    );
     
-    try {
-      await applyStoreWideDiscount(store.id, discount, excludeListings);
-      Alert.alert(
-        language === 'az' ? 'Uğurlu!' : 'Успешно!',
-        language === 'az' ? 'Mağaza üzrə endirim tətbiq edildi' : 'Скидка по магазину применена'
-      );
-      setShowStoreWideModal(false);
-      setStoreWideDiscount('');
-      setExcludeListings([]);
-    } catch (error) {
+    if (applicableListings.length === 0) {
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' ? 'Endirim tətbiq edilərkən xəta baş verdi' : 'Ошибка при применении скидки'
+        language === 'az' ? 'Endirim tətbiq ediləcək məhsul yoxdur' : 'Нет товаров для применения скидки'
       );
-    } finally {
-      setIsLoading(false);
+      return;
     }
+    
+    Alert.alert(
+      language === 'az' ? 'Mağaza endirimi tətbiq edilsin?' : 'Применить скидку по магазину?',
+      language === 'az' 
+        ? `${applicableListings.length} məhsula ${discount}% endirim tətbiq edilsin?`
+        : `Применить скидку ${discount}% к ${applicableListings.length} товарам?`,
+      [
+        {
+          text: language === 'az' ? 'Ləğv et' : 'Отмена',
+          style: 'cancel'
+        },
+        {
+          text: language === 'az' ? 'Tətbiq et' : 'Применить',
+          onPress: async () => {
+            setIsLoading(true);
+            
+            try {
+              await applyStoreWideDiscount(store.id, discount, excludeListings);
+              Alert.alert(
+                language === 'az' ? 'Uğurlu!' : 'Успешно!',
+                language === 'az' ? 'Mağaza üzrə endirim tətbiq edildi' : 'Скидка по магазину применена'
+              );
+              setShowStoreWideModal(false);
+              setStoreWideDiscount('');
+              setExcludeListings([]);
+            } catch (error) {
+              Alert.alert(
+                language === 'az' ? 'Xəta' : 'Ошибка',
+                language === 'az' ? 'Endirim tətbiq edilərkən xəta baş verdi' : 'Ошибка при применении скидки'
+              );
+            } finally {
+              setIsLoading(false);
+            }
+          }
+        }
+      ]
+    );
   };
   
   const handleRemoveStoreWideDiscount = async () => {
