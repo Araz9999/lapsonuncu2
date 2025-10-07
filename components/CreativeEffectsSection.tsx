@@ -165,7 +165,11 @@ export default function CreativeEffectsSection({ onSelectEffect, selectedEffects
                 styles.effectCard,
                 isSelected && { borderColor: effect.color, borderWidth: 2 }
               ]}
-              onPress={() => onSelectEffect(effect)}
+              onPress={() => {
+                console.log('[CreativeEffects] Effect selected:', effect.id, effect.name);
+                onSelectEffect(effect);
+              }}
+              activeOpacity={0.7}
             >
               <View style={styles.effectHeader}>
                 <EffectPreview effect={effect} isSelected={isSelected} />
