@@ -1,13 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import { View, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
 import { Search, X } from 'lucide-react-native';
 import { useListingStore } from '@/store/listingStore';
 import { useLanguageStore } from '@/store/languageStore';
-import Colors from '@/constants/colors';
+import { useThemeStore } from '@/store/themeStore';
+import { getColors } from '@/constants/colors';
 
-export default function SearchBar() {
+function SearchBar() {
   const { searchQuery, setSearchQuery, applyFilters } = useListingStore();
   const { language } = useLanguageStore();
+  const { themeMode, colorTheme } = useThemeStore();
+  const colors = getColors(themeMode, colorTheme);
   const [localQuery, setLocalQuery] = useState(searchQuery);
 
   const handleSearch = () => {
@@ -27,12 +30,12 @@ export default function SearchBar() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.searchContainer}>
-        <Search size={20} color={Colors.textSecondary} style={styles.searchIcon} />
+      <View style={[styles.searchContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <Search size={20} color={colors.textSecondary} style={styles.searchIcon} />
         <TextInput
-          style={styles.input}
+          style={[styles.input, { color: colors.text }]}
           placeholder={placeholder}
-          placeholderTextColor={Colors.placeholder}
+          placeholderTextColor={colors.textSecondary}
           value={localQuery}
           onChangeText={setLocalQuery}
           onSubmitEditing={handleSearch}
@@ -40,13 +43,15 @@ export default function SearchBar() {
         />
         {localQuery.length > 0 && (
           <TouchableOpacity onPress={handleClear} style={styles.clearButton}>
-            <X size={18} color={Colors.textSecondary} />
+            <X size={18} color={colors.textSecondary} />
           </TouchableOpacity>
         )}
       </View>
     </View>
   );
 }
+
+export default memo(SearchBar);
 
 const styles = StyleSheet.create({
   container: {
@@ -56,12 +61,10 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.card,
     borderRadius: 12,
     paddingHorizontal: 12,
     height: 48,
     borderWidth: 1,
-    borderColor: Colors.border,
   },
   searchIcon: {
     marginRight: 8,
@@ -69,7 +72,6 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 16,
-    color: Colors.text,
     height: '100%',
   },
   clearButton: {

@@ -781,6 +781,8 @@ export default function ListingCard({
           style={styles.image}
           contentFit="cover"
           transition={200}
+          cachePolicy="memory-disk"
+          priority="high"
           testID="listing-image"
         />
         <View style={styles.actionButtons}>
