@@ -1,0 +1,48 @@
+import { protectedProcedure } from '../../../create-context';
+import { userDB } from '../../../../db/users';
+import { emailService } from '../../../../services/email';
+
+export const resendVerificationProcedure = protectedProcedure
+  .mutation(async ({ ctx }) => {
+    console.log('[Auth] Resend verification attempt:', ctx.user.userId);
+
+    const user = await userDB.findById(ctx.user.userId);
+    if (!user) {
+      throw new Error('İstifadəçi tapılmadı');
+    }
+
+    if (user.verified) {
+      return {
+        success: false,
+        message: 'Email artıq təsdiqlənib',
+      };
+    }
+
+    const verificationToken = generateRandomToken();
+    await userDB.setVerificationToken(user.id, verificationToken, 24);
+
+    const frontendUrl = process.env.FRONTEND_URL || process.env.EXPO_PUBLIC_FRONTEND_URL || 'https://1r36dhx42va8pxqbqz5ja.rork.app';
+    const verificationUrl = `${frontendUrl}/auth/verify-email?token=${verificationToken}`;
+
+    const emailSent = await emailService.sendVerificationEmail(user.email, {
+      name: user.name,
+      verificationUrl,
+    });
+
+    if (!emailSent) {
+      throw new Error('Email göndərilə bilmədi. Zəhmət olmasa bir az sonra yenidən cəhd edin.');
+    }
+
+    console.log('[Auth] Verification email resent:', user.id);
+
+    return {
+      success: true,
+      message: 'Təsdiq emaili yenidən göndərildi',
+    };
+  });
+
+function generateRandomToken(): string {
+  const array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+}
