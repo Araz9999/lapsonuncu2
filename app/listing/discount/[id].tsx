@@ -104,7 +104,7 @@ export default function ListingDiscountScreen() {
       return;
     }
     
-    console.log('[handleCreateDiscount] Showing confirmation dialog');
+    console.log('[handleCreateDiscount] Validation passed, showing confirmation dialog');
     
     Alert.alert(
       language === 'az' ? 'Endirim tətbiq edilsin?' : 'Применить скидку?',
@@ -115,16 +115,24 @@ export default function ListingDiscountScreen() {
         {
           text: language === 'az' ? 'Ləğv et' : 'Отмена',
           style: 'cancel',
-          onPress: () => console.log('[handleCreateDiscount] Cancelled')
+          onPress: () => console.log('[handleCreateDiscount] User cancelled')
         },
         {
           text: language === 'az' ? 'Təsdiq et' : 'Подтвердить',
           onPress: () => {
-            console.log('[handleCreateDiscount] Confirmed');
-            if (listing.storeId) {
-              handleCreateStoreDiscount();
-            } else {
-              handleCreateIndividualDiscount();
+            console.log('[handleCreateDiscount] User confirmed, applying discount');
+            try {
+              if (listing.storeId) {
+                handleCreateStoreDiscount();
+              } else {
+                handleCreateIndividualDiscount();
+              }
+            } catch (error) {
+              console.error('[handleCreateDiscount] Error applying discount:', error);
+              Alert.alert(
+                language === 'az' ? 'Xəta!' : 'Ошибка!',
+                language === 'az' ? 'Endirim tətbiq edilərkən xəta baş verdi' : 'Произошла ошибка при применении скидки'
+              );
             }
           }
         }
@@ -133,9 +141,10 @@ export default function ListingDiscountScreen() {
   };
   
   const handleCreateStoreDiscount = () => {
+    console.log('[handleCreateStoreDiscount] Creating store discount');
     
     try {
-      addDiscount({
+      const discountData = {
         storeId: listing.storeId!,
         title: discountTitle,
         description: discountDescription,
@@ -149,7 +158,11 @@ export default function ListingDiscountScreen() {
         usageLimit: usageLimit ? Number(usageLimit) : undefined,
         usedCount: 0,
         isActive,
-      });
+      };
+      
+      console.log('[handleCreateStoreDiscount] Discount data:', discountData);
+      addDiscount(discountData);
+      console.log('[handleCreateStoreDiscount] Discount added successfully');
       
       Alert.alert(
         language === 'az' ? 'Uğurlu!' : 'Успешно!',
@@ -157,12 +170,15 @@ export default function ListingDiscountScreen() {
         [
           {
             text: language === 'az' ? 'Tamam' : 'OK',
-            onPress: () => router.back(),
+            onPress: () => {
+              console.log('[handleCreateStoreDiscount] Navigating back');
+              router.back();
+            },
           },
         ]
       );
     } catch (error) {
-      console.error('Error creating store discount:', error);
+      console.error('[handleCreateStoreDiscount] Error creating store discount:', error);
       Alert.alert(
         language === 'az' ? 'Xəta!' : 'Ошибка!',
         language === 'az' ? 'Mağaza endirimi yaradılarkən xəta baş verdi' : 'Произошла ошибка при создании скидки магазина'
@@ -171,22 +187,25 @@ export default function ListingDiscountScreen() {
   };
   
   const handleCreateIndividualDiscount = () => {
+    console.log('[handleCreateIndividualDiscount] Starting individual discount creation');
+    
     try {
       const value = Number(discountValue);
       let discountPercentage = 0;
       let originalPrice = listing.originalPrice || listing.price;
       let finalPrice = listing.price;
       
-      console.log('[CreateIndividualDiscount] Discount type:', discountType, 'Value:', value);
+      console.log('[handleCreateIndividualDiscount] Discount type:', discountType, 'Value:', value);
+      console.log('[handleCreateIndividualDiscount] Original price:', originalPrice, 'Current price:', listing.price);
       
       if (discountType === 'percentage') {
         discountPercentage = value;
         finalPrice = originalPrice * (1 - value / 100);
+        console.log('[handleCreateIndividualDiscount] Percentage discount - Final price:', finalPrice);
       } else if (discountType === 'fixed_amount') {
-        // For fixed amount discounts, store the actual amount and calculate percentage
         finalPrice = Math.max(0, originalPrice - value);
         discountPercentage = originalPrice > 0 ? ((originalPrice - finalPrice) / originalPrice) * 100 : 0;
-        console.log('[CreateIndividualDiscount] Fixed amount discount:', {
+        console.log('[handleCreateIndividualDiscount] Fixed amount discount:', {
           originalPrice,
           discountAmount: value,
           finalPrice,
@@ -194,33 +213,27 @@ export default function ListingDiscountScreen() {
         });
       }
       
-      // Use the timer end date if timer is enabled, otherwise use default end date
       const chosenEndDate = enableTimerBar && showTimerBar ? timerEndDate : endDate;
       
-      console.log('[CreateIndividualDiscount] Timer enabled:', enableTimerBar, 'Timer shown:', showTimerBar);
-      console.log('[CreateIndividualDiscount] Chosen end date:', chosenEndDate.toISOString());
-      console.log('[CreateIndividualDiscount] Timer end date:', timerEndDate.toISOString());
+      console.log('[handleCreateIndividualDiscount] Timer settings:', {
+        enableTimerBar,
+        showTimerBar,
+        chosenEndDate: chosenEndDate.toISOString(),
+        timerEndDate: timerEndDate.toISOString()
+      });
       
-      // Store the discount information properly
       const updateData: any = {
         hasDiscount: true,
         originalPrice,
-        price: Math.round(finalPrice), // Update the actual price
+        price: Math.round(finalPrice),
         promotionEndDate: chosenEndDate.toISOString(),
         discountEndDate: chosenEndDate.toISOString(),
+        discountPercentage: discountType === 'percentage' ? value : discountPercentage,
       };
       
-      // For percentage discounts, store the percentage
-      // For fixed amount discounts, store the calculated percentage but keep original price info
-      if (discountType === 'percentage') {
-        updateData.discountPercentage = value;
-      } else {
-        // Store the calculated percentage for fixed amount discounts
-        // The ListingCard will detect this is a fixed amount by comparing originalPrice vs price
-        updateData.discountPercentage = discountPercentage;
-      }
-      
+      console.log('[handleCreateIndividualDiscount] Update data:', updateData);
       updateListing(listing.id, updateData);
+      console.log('[handleCreateIndividualDiscount] Listing updated successfully');
       
       Alert.alert(
         language === 'az' ? 'Uğurlu!' : 'Успешно!',
@@ -228,12 +241,15 @@ export default function ListingDiscountScreen() {
         [
           {
             text: language === 'az' ? 'Tamam' : 'OK',
-            onPress: () => router.back(),
+            onPress: () => {
+              console.log('[handleCreateIndividualDiscount] Navigating back');
+              router.back();
+            },
           },
         ]
       );
     } catch (error) {
-      console.error('Error creating individual discount:', error);
+      console.error('[handleCreateIndividualDiscount] Error:', error);
       Alert.alert(
         language === 'az' ? 'Xəta!' : 'Ошибка!',
         language === 'az' ? 'Elan endirimi tətbiq edilərkən xəta baş verdi' : 'Произошла ошибка при применении скидки на объявление'
