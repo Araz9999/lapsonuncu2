@@ -9,6 +9,8 @@ import {
   Dimensions,
   TextInput,
   ScrollView,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { 
@@ -400,18 +402,28 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
       transparent
       animationType="fade"
       onRequestClose={onClose}
+      statusBarTranslucent
     >
       <BlurView intensity={20} style={styles.overlay}>
-        <View style={styles.container}>
-          <View style={styles.header}>
-            <Text style={styles.title}>{t.userActions}</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <X size={24} color="#666" />
-            </TouchableOpacity>
-          </View>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.keyboardAvoid}
+        >
+          <View style={styles.container}>
+            <View style={styles.header}>
+              <Text style={styles.title}>{t.userActions}</Text>
+              <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+                <X size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
 
-          <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
-            <View style={styles.content}>
+            <ScrollView 
+              style={styles.scrollContent} 
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              bounces={false}
+            >
+              <View style={styles.content}>
             {!showNoteInput ? (
               <>
                 {!isBlocked && (
@@ -677,15 +689,16 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
                 </View>
               </View>
             )}
-            </View>
-          </ScrollView>
+              </View>
+            </ScrollView>
 
-          {!showNoteInput && (
-            <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
-              <Text style={styles.cancelText}>{t.cancel}</Text>
-            </TouchableOpacity>
-          )}
-        </View>
+            {!showNoteInput && (
+              <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
+                <Text style={styles.cancelText}>{t.cancel}</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </KeyboardAvoidingView>
       </BlurView>
     </Modal>
   );
@@ -698,6 +711,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
+  keyboardAvoid: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   container: {
     width: width - 40,
     maxWidth: 400,
@@ -707,7 +725,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   scrollContent: {
-    maxHeight: 400,
+    flexGrow: 0,
   },
   header: {
     flexDirection: 'row',
@@ -790,6 +808,7 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 16,
     minHeight: 100,
+    maxHeight: 150,
     backgroundColor: '#f8f9fa',
   },
   noteButtons: {
