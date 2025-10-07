@@ -611,7 +611,7 @@ export default function ListingDiscountScreen() {
                       maxLength={3}
                     />
                   </View>
-                  <Text style={styles.timeSeparator}>:</Text>
+                  <Text style={styles.compactTimeSeparator}>:</Text>
                   <View style={styles.compactTimeInputGroup}>
                     <Text style={styles.compactTimeInputLabel}>
                       {language === 'az' ? 'Saat' : 'Часы'}
@@ -626,7 +626,7 @@ export default function ListingDiscountScreen() {
                       maxLength={2}
                     />
                   </View>
-                  <Text style={styles.timeSeparator}>:</Text>
+                  <Text style={styles.compactTimeSeparator}>:</Text>
                   <View style={styles.compactTimeInputGroup}>
                     <Text style={styles.compactTimeInputLabel}>
                       {language === 'az' ? 'Dəqiqə' : 'Минуты'}
@@ -1235,48 +1235,49 @@ const styles = StyleSheet.create({
   compactTimeInputs: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'center',
+    gap: 6,
     marginBottom: 12,
   },
   compactTimeInputGroup: {
     alignItems: 'center',
   },
   compactTimeInputLabel: {
-    fontSize: 11,
+    fontSize: 10,
     color: Colors.textSecondary,
-    marginBottom: 4,
+    marginBottom: 3,
     fontWeight: '500',
   },
   compactTimeInput: {
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    fontSize: 16,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    fontSize: 14,
     color: Colors.text,
     backgroundColor: Colors.card,
     textAlign: 'center',
-    minWidth: 50,
+    width: 45,
+    height: 36,
   },
-  timeSeparator: {
-    fontSize: 20,
+  compactTimeSeparator: {
+    fontSize: 16,
     fontWeight: 'bold',
     color: Colors.text,
-    marginTop: 16,
+    marginTop: 12,
   },
   compactApplyButton: {
     backgroundColor: Colors.primary,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
     alignItems: 'center',
-    marginTop: 16,
   },
   compactApplyText: {
     color: 'white',
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   currentTimeDisplay: {
     fontSize: 12,
