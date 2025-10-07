@@ -22,7 +22,7 @@ class EmailService {
   private baseUrl: string;
 
   constructor() {
-    this.apiKey = process.env.SENDGRID_API_KEY || '';
+    this.apiKey = process.env.RESEND_API_KEY || '';
     this.fromEmail = process.env.EMAIL_FROM || 'naxtapaz@gmail.com';
     this.fromName = process.env.EMAIL_FROM_NAME || 'NaxtaPaz';
     this.baseUrl = process.env.FRONTEND_URL || process.env.EXPO_PUBLIC_FRONTEND_URL || 'https://1r36dhx42va8pxqbqz5ja.rork.app';
@@ -34,44 +34,29 @@ class EmailService {
 
   async sendEmail(options: EmailOptions): Promise<boolean> {
     if (!this.isConfigured()) {
-      console.warn('[Email] SendGrid not configured, skipping email send');
+      console.warn('[Email] Resend not configured, skipping email send');
       return false;
     }
 
     try {
-      const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
+      const response = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          personalizations: [
-            {
-              to: [{ email: options.to }],
-              subject: options.subject,
-            },
-          ],
-          from: {
-            email: this.fromEmail,
-            name: this.fromName,
-          },
-          content: [
-            {
-              type: 'text/html',
-              value: options.html,
-            },
-            ...(options.text ? [{
-              type: 'text/plain',
-              value: options.text,
-            }] : []),
-          ],
+          from: `${this.fromName} <${this.fromEmail}>`,
+          to: [options.to],
+          subject: options.subject,
+          html: options.html,
+          ...(options.text ? { text: options.text } : {}),
         }),
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('[Email] SendGrid API error:', errorText);
+        console.error('[Email] Resend API error:', errorText);
         return false;
       }
 
