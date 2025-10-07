@@ -254,7 +254,8 @@ export const useStoreStore = create<StoreState>((set, get) => ({
       listingId,
       message: {
         az: `${store.name} mağazası yeni elan əlavə etdi`,
-        ru: `Магазин ${store.name} добавил новое объявление`
+        ru: `Магазин ${store.name} добавил новое объявление`,
+        en: `Store ${store.name} added a new listing`
       },
       createdAt: new Date().toISOString(),
       isRead: false,
@@ -365,12 +366,15 @@ export const useStoreStore = create<StoreState>((set, get) => ({
 
   applyDiscountToProduct: async (storeId, listingId, discountPercentage) => {
     try {
-      // Import listing store dynamically to avoid circular dependency
       const { useListingStore } = await import('@/store/listingStore');
       const { updateListing, listings } = useListingStore.getState();
       
       const listing = listings.find(l => l.id === listingId && l.storeId === storeId);
       if (!listing) throw new Error('Listing not found in store');
+      
+      if (listing.priceByAgreement) {
+        throw new Error('Cannot apply discount to price by agreement listings');
+      }
       
       const discountAmount = (listing.price * discountPercentage) / 100;
       const discountedPrice = Math.max(0, listing.price - discountAmount);
@@ -415,7 +419,8 @@ export const useStoreStore = create<StoreState>((set, get) => ({
       const storeListings = listings.filter(l => 
         l.storeId === storeId && 
         !excludeListingIds.includes(l.id) &&
-        !l.deletedAt
+        !l.deletedAt &&
+        !l.priceByAgreement
       );
       
       for (const listing of storeListings) {
