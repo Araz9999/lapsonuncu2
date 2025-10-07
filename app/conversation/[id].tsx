@@ -117,6 +117,16 @@ export default function ConversationScreen() {
   
   const messages = conversation?.messages ? [...conversation.messages].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()) : [];
   
+  const lastCountRef = useRef<number>(0);
+  useEffect(() => {
+    if (messages.length > lastCountRef.current) {
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    }
+    lastCountRef.current = messages.length;
+  }, [messages.length]);
+  
   console.log('ConversationScreen - Conversation found:', !!conversation);
   console.log('ConversationScreen - Messages count:', messages.length);
 
@@ -818,18 +828,12 @@ export default function ConversationScreen() {
         style={styles.messagesList}
         contentContainerStyle={styles.messagesContent}
         ListHeaderComponent={renderContactInfo}
-        onContentSizeChange={() => {
-          setTimeout(() => {
-            flatListRef.current?.scrollToEnd({ animated: true });
-          }, 100);
-        }}
         extraData={`${messages.length}-${conversation?.id || 'no-conv'}-${conversation?.messages?.length || 0}`}
         removeClippedSubviews={false}
         initialNumToRender={20}
         maxToRenderPerBatch={10}
         windowSize={10}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="interactive"
+        keyboardShouldPersistTaps="always"
       />
       
       <KeyboardAvoidingView 
@@ -838,6 +842,7 @@ export default function ConversationScreen() {
       >
         <View style={styles.inputContainer}>
         <TouchableOpacity
+          testID="chat-attach-button"
           style={styles.attachButton}
           onPress={() => setShowAttachmentModal(true)}
         >
@@ -845,6 +850,7 @@ export default function ConversationScreen() {
         </TouchableOpacity>
         
         <TextInput
+          testID="chat-text-input"
           style={styles.textInput}
           value={inputText}
           onChangeText={setInputText}
@@ -852,6 +858,7 @@ export default function ConversationScreen() {
           placeholderTextColor={Colors.textSecondary}
           multiline
           maxLength={1000}
+          onFocus={() => setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 50)}
           onSubmitEditing={() => {
             const textToSend = inputText.trim();
             if (textToSend) {
@@ -864,6 +871,7 @@ export default function ConversationScreen() {
         
         {inputText.trim() ? (
           <TouchableOpacity
+            testID="chat-send-button"
             style={styles.sendButton}
             onPress={handleSendMessage}
           >
@@ -871,6 +879,7 @@ export default function ConversationScreen() {
           </TouchableOpacity>
         ) : (
           <TouchableOpacity
+            testID="chat-mic-button"
             style={[styles.sendButton, isRecording && styles.recordingButton]}
             onPressIn={Platform.OS !== 'web' ? startRecording : undefined}
             onPressOut={Platform.OS !== 'web' ? stopRecording : undefined}
