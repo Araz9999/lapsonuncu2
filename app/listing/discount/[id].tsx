@@ -78,8 +78,13 @@ export default function ListingDiscountScreen() {
   
   const handleCreateDiscount = () => {
     console.log('[handleCreateDiscount] Button clicked');
+    console.log('[handleCreateDiscount] Listing storeId:', listing.storeId);
+    console.log('[handleCreateDiscount] Discount title:', discountTitle);
+    console.log('[handleCreateDiscount] Discount value:', discountValue);
+    console.log('[handleCreateDiscount] Discount type:', discountType);
     
     if (listing.storeId && !discountTitle.trim()) {
+      console.log('[handleCreateDiscount] Validation failed: Missing title for store discount');
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Endirim başlığını daxil edin' : 'Введите название скидки'
@@ -88,6 +93,7 @@ export default function ListingDiscountScreen() {
     }
     
     if (!discountValue.trim() || isNaN(Number(discountValue))) {
+      console.log('[handleCreateDiscount] Validation failed: Invalid discount value');
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Düzgün endirim dəyəri daxil edin' : 'Введите корректное значение скидки'
@@ -97,6 +103,7 @@ export default function ListingDiscountScreen() {
     
     const value = Number(discountValue);
     if (value <= 0 || (discountType === 'percentage' && value >= 100)) {
+      console.log('[handleCreateDiscount] Validation failed: Value out of range');
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' 
@@ -108,64 +115,40 @@ export default function ListingDiscountScreen() {
     
     console.log('[handleCreateDiscount] Validation passed, showing confirmation dialog');
     
-    if (Platform.OS === 'web') {
-      const message = language === 'az'
+    Alert.alert(
+      language === 'az' ? 'Endirim tətbiq edilsin?' : 'Применить скидку?',
+      language === 'az' 
         ? `${discountValue}${discountType === 'percentage' ? '%' : ' ' + listing.currency} endirim tətbiq ediləcək. Davam etmək istəyirsiniz?`
-        : `Будет применена скидка ${discountValue}${discountType === 'percentage' ? '%' : ' ' + listing.currency}. Продолжить?`;
-      const confirmed = typeof window !== 'undefined' && typeof (window as any).confirm === 'function'
-        ? (window as any).confirm(message)
-        : false;
-      if (!confirmed) {
-        console.log('[handleCreateDiscount] User cancelled (web confirm)');
-        return;
-      }
-      try {
-        if (listing.storeId) {
-          handleCreateStoreDiscount();
-        } else {
-          handleCreateIndividualDiscount();
-        }
-      } catch (error) {
-        console.error('[handleCreateDiscount] Error applying discount on web:', error);
-        Alert.alert(
-          language === 'az' ? 'Xəta!' : 'Ошибка!',
-          language === 'az' ? 'Endirim tətbiq edilərkən xəta baş verdi' : 'Произошла ошибка при применении скидки'
-        );
-      }
-    } else {
-      Alert.alert(
-        language === 'az' ? 'Endirim tətbiq edilsin?' : 'Применить скидку?',
-        language === 'az' 
-          ? `${discountValue}${discountType === 'percentage' ? '%' : ' ' + listing.currency} endirim tətbiq ediləcək. Davam etmək istəyirsiniz?`
-          : `Будет применена скидка ${discountValue}${discountType === 'percentage' ? '%' : ' ' + listing.currency}. Продолжить?`,
-        [
-          {
-            text: language === 'az' ? 'Ləğv et' : 'Отмена',
-            style: 'cancel',
-            onPress: () => console.log('[handleCreateDiscount] User cancelled')
-          },
-          {
-            text: language === 'az' ? 'Təsdiq et' : 'Подтвердить',
-            onPress: () => {
-              console.log('[handleCreateDiscount] User confirmed, applying discount');
-              try {
-                if (listing.storeId) {
-                  handleCreateStoreDiscount();
-                } else {
-                  handleCreateIndividualDiscount();
-                }
-              } catch (error) {
-                console.error('[handleCreateDiscount] Error applying discount:', error);
-                Alert.alert(
-                  language === 'az' ? 'Xəta!' : 'Ошибка!',
-                  language === 'az' ? 'Endirim tətbiq edilərkən xəta baş verdi' : 'Произошла ошибка при применении скидки'
-                );
+        : `Будет применена скидка ${discountValue}${discountType === 'percentage' ? '%' : ' ' + listing.currency}. Продолжить?`,
+      [
+        {
+          text: language === 'az' ? 'Ləğv et' : 'Отмена',
+          style: 'cancel',
+          onPress: () => console.log('[handleCreateDiscount] User cancelled')
+        },
+        {
+          text: language === 'az' ? 'Təsdiq et' : 'Подтвердить',
+          onPress: () => {
+            console.log('[handleCreateDiscount] User confirmed, applying discount');
+            try {
+              if (listing.storeId) {
+                console.log('[handleCreateDiscount] Creating store discount');
+                handleCreateStoreDiscount();
+              } else {
+                console.log('[handleCreateDiscount] Creating individual discount');
+                handleCreateIndividualDiscount();
               }
+            } catch (error) {
+              console.error('[handleCreateDiscount] Error applying discount:', error);
+              Alert.alert(
+                language === 'az' ? 'Xəta!' : 'Ошибка!',
+                language === 'az' ? 'Endirim tətbiq edilərkən xəta baş verdi' : 'Произошла ошибка при применении скидки'
+              );
             }
           }
-        ]
-      );
-    }
+        }
+      ]
+    );
   };
   
   const handleCreateStoreDiscount = () => {

@@ -124,12 +124,21 @@ export default function PromoteListingScreen() {
   };
   
   const handleSelectEffect = (effect: CreativeEffect) => {
+    console.log('[handleSelectEffect] Called with effect:', effect.id);
+    console.log('[handleSelectEffect] Current selected effects:', selectedEffects.map(e => e.id));
+    
     setSelectedEffects(prev => {
       const isSelected = prev.some(selected => selected.id === effect.id);
+      console.log('[handleSelectEffect] Is effect already selected?', isSelected);
+      
       if (isSelected) {
-        return prev.filter(selected => selected.id !== effect.id);
+        const newEffects = prev.filter(selected => selected.id !== effect.id);
+        console.log('[handleSelectEffect] Removing effect, new count:', newEffects.length);
+        return newEffects;
       } else {
-        return [...prev, effect];
+        const newEffects = [...prev, effect];
+        console.log('[handleSelectEffect] Adding effect, new count:', newEffects.length);
+        return newEffects;
       }
     });
   };

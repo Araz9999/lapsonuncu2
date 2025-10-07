@@ -166,8 +166,17 @@ export default function CreativeEffectsSection({ onSelectEffect, selectedEffects
                 isSelected && { borderColor: effect.color, borderWidth: 2 }
               ]}
               onPress={() => {
-                console.log('[CreativeEffects] Effect selected:', effect.id, effect.name);
-                onSelectEffect(effect);
+                console.log('[CreativeEffects] Effect card pressed:', effect.id);
+                console.log('[CreativeEffects] Effect name:', effect.name);
+                console.log('[CreativeEffects] Effect price:', effect.price);
+                console.log('[CreativeEffects] Is currently selected:', isSelected);
+                console.log('[CreativeEffects] Calling onSelectEffect...');
+                try {
+                  onSelectEffect(effect);
+                  console.log('[CreativeEffects] onSelectEffect called successfully');
+                } catch (error) {
+                  console.error('[CreativeEffects] Error calling onSelectEffect:', error);
+                }
               }}
               activeOpacity={0.7}
             >
