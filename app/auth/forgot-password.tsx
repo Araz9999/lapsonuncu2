@@ -31,10 +31,6 @@ export default function ForgotPasswordScreen() {
   
   const handleContactInfoChange = (text: string) => {
     setContactInfo(text);
-    if (text.length > 3) {
-      const detectedType = detectContactType(text);
-      setContactType(detectedType);
-    }
   };
   
   const handlePhoneChange = (text: string) => {
