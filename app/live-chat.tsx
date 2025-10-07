@@ -46,8 +46,7 @@ export default function LiveChatScreen() {
   );
 
   useEffect(() => {
-    if (!currentUser) {
-      console.warn('[LiveChat] No current user, cannot initialize conversation');
+    if (!currentUser || conversationId) {
       return;
     }
 
@@ -68,7 +67,7 @@ export default function LiveChatScreen() {
     };
 
     initConversation();
-  }, [currentUser, createConversationMutation, setActiveConversation]);
+  }, [currentUser, conversationId]);
 
   useEffect(() => {
     if (messagesQuery.data && conversationId) {
