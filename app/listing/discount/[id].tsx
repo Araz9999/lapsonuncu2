@@ -6,7 +6,7 @@ import { useUserStore } from '@/store/userStore';
 import { useDiscountStore } from '@/store/discountStore';
 import { useListingStore } from '@/store/listingStore';
 import Colors from '@/constants/colors';
-import { ArrowLeft, Tag, Percent, Info, Save, Trash2, Plus, HelpCircle, Clock, Timer } from 'lucide-react-native';
+import { ArrowLeft, Tag, Percent, Info, Save, Trash2, Plus, HelpCircle, Timer } from 'lucide-react-native';
 import CountdownTimer from '@/components/CountdownTimer';
 
 export default function ListingDiscountScreen() {
@@ -40,7 +40,6 @@ export default function ListingDiscountScreen() {
   const [customDays, setCustomDays] = useState('0');
   const [customHours, setCustomHours] = useState('6');
   const [customMinutes, setCustomMinutes] = useState('0');
-  const [showCustomTime, setShowCustomTime] = useState(false);
   
   const listing = storeListings.find(item => item.id === id);
   const existingDiscounts = listing?.storeId ? getStoreDiscounts(listing.storeId).filter(discount => 
@@ -1229,5 +1228,60 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 14,
     fontWeight: '500',
+  },
+  compactTimeContainer: {
+    marginTop: 8,
+  },
+  compactTimeInputs: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  compactTimeInputGroup: {
+    alignItems: 'center',
+  },
+  compactTimeInputLabel: {
+    fontSize: 11,
+    color: Colors.textSecondary,
+    marginBottom: 4,
+    fontWeight: '500',
+  },
+  compactTimeInput: {
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    fontSize: 16,
+    color: Colors.text,
+    backgroundColor: Colors.card,
+    textAlign: 'center',
+    minWidth: 50,
+  },
+  timeSeparator: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: Colors.text,
+    marginTop: 16,
+  },
+  compactApplyButton: {
+    backgroundColor: Colors.primary,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  compactApplyText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  currentTimeDisplay: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginTop: 8,
+    textAlign: 'center',
   },
 });
