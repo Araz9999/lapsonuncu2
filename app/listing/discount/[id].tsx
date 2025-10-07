@@ -4,7 +4,6 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useLanguageStore } from '@/store/languageStore';
 import { useUserStore } from '@/store/userStore';
 import { useDiscountStore } from '@/store/discountStore';
-import { useNotificationStore } from '@/store/notificationStore';
 import { useListingStore } from '@/store/listingStore';
 import Colors from '@/constants/colors';
 import { ArrowLeft, Tag, Percent, Info, Save, Trash2, Plus, HelpCircle, Timer } from 'lucide-react-native';
@@ -16,7 +15,6 @@ export default function ListingDiscountScreen() {
   const { language } = useLanguageStore();
   const { isAuthenticated } = useUserStore();
   const { addDiscount, deleteDiscount, getStoreDiscounts, generateDiscountCode } = useDiscountStore();
-  const { addNotification: pushNotification } = useNotificationStore();
   const { updateListing, listings: storeListings } = useListingStore();
   
   const [discountTitle, setDiscountTitle] = useState('');
@@ -123,12 +121,6 @@ export default function ListingDiscountScreen() {
         isActive,
       });
       
-      pushNotification({
-        type: 'general',
-        title: language === 'az' ? 'Endirim tətbiq edildi' : 'Скидка применена',
-        message: language === 'az' ? 'Mağaza endirimi uğurla yaradıldı.' : 'Скидка магазина успешно создана.',
-        data: { listingId: listing.id, storeId: listing.storeId }
-      });
       Alert.alert(
         language === 'az' ? 'Uğurlu!' : 'Успешно!',
         language === 'az' ? 'Mağaza endirimi yaradıldı' : 'Скидка магазина создана',
@@ -199,13 +191,6 @@ export default function ListingDiscountScreen() {
       }
       
       updateListing(listing.id, updateData);
-      
-      pushNotification({
-        type: 'general',
-        title: language === 'az' ? 'Endirim tətbiq edildi' : 'Скидка применена',
-        message: language === 'az' ? 'Bu elan üçün endirim aktivdir.' : 'Скидка для этого объявления активна.',
-        data: { listingId: listing.id, discountType, discountValue: value }
-      });
       
       Alert.alert(
         language === 'az' ? 'Uğurlu!' : 'Успешно!',
