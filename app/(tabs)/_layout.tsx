@@ -4,7 +4,6 @@ import { useLanguageStore } from '@/store/languageStore';
 import { useThemeStore } from '@/store/themeStore';
 import { getColors } from '@/constants/colors';
 import { Search, Plus, MessageCircle, User, Star, Store } from 'lucide-react-native';
-import FloatingChatButton from '@/components/FloatingChatButton';
 
 
 export default function TabLayout() {
@@ -14,7 +13,6 @@ export default function TabLayout() {
 
   return (
     <>
-      <FloatingChatButton />
       <Tabs
         screenOptions={{
           tabBarActiveTintColor: colors.primary,
