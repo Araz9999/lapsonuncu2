@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Modal, TextInput, Animated } from 'react-native';
 import { Image } from 'expo-image';
 import { Heart, Clock, Trash2, TrendingUp, Eye, Calendar, MessageCircle, X, Send, Zap, Percent, Tag, Gift, Star, Flame } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Listing } from '@/types/listing';
 import { useLanguageStore } from '@/store/languageStore';
@@ -670,36 +671,14 @@ export default function ListingCard({
           elevation: 6,
         };
       case 'frame':
-        // Frame effects styling
-        const frameEffect = activeCreativeEffects.find(e => e.type === 'frame');
-        if (frameEffect?.id === 'frame-glowing' || frameEffect?.id === 'frame-neon') {
-          return {
-            borderWidth: 3,
-            borderColor: effectColor,
-            shadowColor: effectColor,
-            shadowOpacity: 0.5,
-            shadowRadius: 15,
-            elevation: 12,
-          };
-        } else if (frameEffect?.id === 'frame-diamond') {
-          return {
-            borderWidth: 4,
-            borderColor: effectColor,
-            shadowColor: effectColor,
-            shadowOpacity: 0.4,
-            shadowRadius: 20,
-            elevation: 15,
-          };
-        } else {
-          return {
-            borderWidth: 2,
-            borderColor: effectColor,
-            shadowColor: effectColor,
-            shadowOpacity: 0.3,
-            shadowRadius: 10,
-            elevation: 8,
-          };
-        }
+        return {
+          borderWidth: 4,
+          borderColor: effectColor,
+          shadowColor: effectColor,
+          shadowOpacity: 0.4,
+          shadowRadius: 12,
+          elevation: 10,
+        };
       default:
         return {
           shadowColor: effectColor,
@@ -710,7 +689,6 @@ export default function ListingCard({
     }
   };
   
-  // Get frame effect overlay styling
   const getFrameOverlayStyle = () => {
     if (!hasCreativeEffects) return null;
     
@@ -727,31 +705,53 @@ export default function ListingCard({
       pointerEvents: 'none' as const,
     };
     
-    if (frameEffect.id === 'frame-blinking') {
-      return {
-        ...baseStyle,
-        borderWidth: 3,
-        borderColor: frameEffect.color,
-        opacity: frameBlinkAnim,
-      };
-    }
-    
-    if (frameEffect.id === 'frame-glowing' || frameEffect.id === 'frame-neon') {
-      return {
-        ...baseStyle,
-        borderWidth: 3,
-        borderColor: frameEffect.color,
-        shadowColor: frameEffect.color,
-        shadowOpacity: frameGlowAnim,
-        shadowRadius: 20,
-      };
+    if (frameEffect.id === 'frame-az-flag') {
+      return baseStyle;
     }
     
     return {
       ...baseStyle,
-      borderWidth: 2,
+      borderWidth: 4,
       borderColor: frameEffect.color,
     };
+  };
+  
+  const renderFrameEffect = () => {
+    if (!hasCreativeEffects) return null;
+    
+    const frameEffect = activeCreativeEffects.find(e => e.type === 'frame');
+    if (!frameEffect) return null;
+    
+    if (frameEffect.id === 'frame-az-flag') {
+      return (
+        <View style={getFrameOverlayStyle()}>
+          <LinearGradient
+            colors={["#00A3E0", "#ED2939", "#3F9C35"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              borderRadius: 12,
+            }}
+          />
+          <View style={{
+            position: 'absolute',
+            top: 4,
+            left: 4,
+            right: 4,
+            bottom: 4,
+            backgroundColor: colors.card,
+            borderRadius: 10,
+          }} />
+        </View>
+      );
+    }
+    
+    return <Animated.View style={getFrameOverlayStyle()} />;
   };
   
   const cardStyle = hasActivePromotion || hasCreativeEffects ? [
@@ -771,9 +771,7 @@ export default function ListingCard({
   return (
     <Animated.View style={cardStyle} testID="listing-card">
       {/* Frame effect overlay */}
-      {hasCreativeEffects && activeCreativeEffects.some(e => e.type === 'frame') && (
-        <Animated.View style={getFrameOverlayStyle()} />
-      )}
+      {hasCreativeEffects && activeCreativeEffects.some(e => e.type === 'frame') && renderFrameEffect()}
       <TouchableOpacity style={styles.cardTouchable} onPress={handlePress}>
       <View style={[styles.imageContainer, { aspectRatio: compactMode ? 1 : 4/3 }]}>
         <Image
