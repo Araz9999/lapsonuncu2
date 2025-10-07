@@ -964,26 +964,29 @@ export default function CreateListingScreen() {
                     { id: 'paid', name: { az: 'Ödənişli çatdırılma', ru: 'Платная доставка', en: 'Paid delivery' } },
                     { id: 'regions', name: { az: 'Rayonlara çatdırılma', ru: 'Доставка в регионы', en: 'Regional delivery' } },
                     { id: 'pickup', name: { az: 'Ünvandan götürmə', ru: 'Самовывоз', en: 'Pickup' } }
-                  ].map(type => (
-                    <TouchableOpacity
-                      key={type.id}
-                      style={[
-                        styles.pickerOption,
-                        deliveryType === type.name[language as keyof typeof type.name] && styles.selectedPickerOption
-                      ]}
-                      onPress={() => {
-                        setDeliveryType(type.name[language as keyof typeof type.name]);
-                        setShowDeliveryTypes(false);
-                      }}
-                    >
-                      <Text style={[
-                        styles.pickerOptionText,
-                        deliveryType === type.name[language as keyof typeof type.name] && styles.selectedPickerOptionText
-                      ]}>
-                        {type.name[language as keyof typeof type.name]}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+                  ].map(type => {
+                    const typeName = type.name[language as 'az' | 'ru' | 'en'];
+                    return (
+                      <TouchableOpacity
+                        key={type.id}
+                        style={[
+                          styles.pickerOption,
+                          deliveryType === typeName && styles.selectedPickerOption
+                        ]}
+                        onPress={() => {
+                          setDeliveryType(typeName);
+                          setShowDeliveryTypes(false);
+                        }}
+                      >
+                        <Text style={[
+                          styles.pickerOptionText,
+                          deliveryType === typeName && styles.selectedPickerOptionText
+                        ]}>
+                          {typeName}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
               )}
             </View>
