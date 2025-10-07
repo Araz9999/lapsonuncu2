@@ -16,6 +16,7 @@ import { useThemeStore } from '@/store/themeStore';
 import { useUserStore } from '@/store/userStore';
 import { useSupportStore } from '@/store/supportStore';
 import { getColors } from '@/constants/colors';
+import { prompt } from '@/utils/confirm';
 import { 
   MessageSquare, 
   Send, 
@@ -211,26 +212,24 @@ export default function SupportScreen() {
               },
               {
                 text: language === 'az' ? 'Cavab yaz' : 'Написать ответ',
-                onPress: () => {
-                  Alert.prompt(
-                    language === 'az' ? 'Cavab yazın' : 'Напишите ответ',
+                onPress: async () => {
+                  const text = await prompt(
                     language === 'az' ? 'Cavabınızı yazın' : 'Напишите ваш ответ',
-                    (text) => {
-                      if (text && text.trim() && currentUser) {
-                        const { addResponse } = useSupportStore.getState();
-                        addResponse(ticket.id, {
-                          ticketId: ticket.id,
-                          userId: currentUser.id,
-                          message: text.trim(),
-                          isAdmin: false
-                        });
-                        Alert.alert(
-                          language === 'az' ? 'Uğurlu' : 'Успешно',
-                          language === 'az' ? 'Cavabınız göndərildi' : 'Ваш ответ отправлен'
-                        );
-                      }
-                    }
+                    language === 'az' ? 'Cavab yazın' : 'Напишите ответ'
                   );
+                  if (text && text.trim() && currentUser) {
+                    const { addResponse } = useSupportStore.getState();
+                    addResponse(ticket.id, {
+                      ticketId: ticket.id,
+                      userId: currentUser.id,
+                      message: text.trim(),
+                      isAdmin: false
+                    });
+                    Alert.alert(
+                      language === 'az' ? 'Uğurlu' : 'Успешно',
+                      language === 'az' ? 'Cavabınız göndərildi' : 'Ваш ответ отправлен'
+                    );
+                  }
                 }
               }
             ]

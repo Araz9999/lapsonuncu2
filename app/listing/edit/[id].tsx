@@ -19,6 +19,7 @@ import { useListingStore } from '@/store/listingStore';
 import { categories } from '@/constants/categories';
 import { locations } from '@/constants/locations';
 import Colors from '@/constants/colors';
+import { prompt } from '@/utils/confirm';
 import {
   ArrowLeft,
   Save,
@@ -130,19 +131,17 @@ export default function EditListingScreen() {
         },
         {
           text: language === 'az' ? 'URL daxil et' : 'Ввести URL',
-          onPress: () => {
-            Alert.prompt(
-              language === 'az' ? 'Şəkil URL' : 'URL изображения',
+          onPress: async () => {
+            const url = await prompt(
               language === 'az' ? 'Şəkil URL-ni daxil edin' : 'Введите URL изображения',
-              (url) => {
-                if (url && url.trim()) {
-                  setFormData(prev => ({
-                    ...prev,
-                    images: [...prev.images, url.trim()]
-                  }));
-                }
-              }
+              language === 'az' ? 'Şəkil URL' : 'URL изображения'
             );
+            if (url && url.trim()) {
+              setFormData(prev => ({
+                ...prev,
+                images: [...prev.images, url.trim()]
+              }));
+            }
           }
         }
       ]

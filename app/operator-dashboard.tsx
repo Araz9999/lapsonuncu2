@@ -14,6 +14,7 @@ import { useLanguageStore } from '@/store/languageStore';
 import { useThemeStore } from '@/store/themeStore';
 import { useSupportStore } from '@/store/supportStore';
 import { getColors } from '@/constants/colors';
+import { prompt } from '@/utils/confirm';
 import {
   MessageCircle,
   Users,
@@ -337,16 +338,14 @@ export default function OperatorDashboard() {
               <View style={styles.chatActions}>
                 <TouchableOpacity
                   style={[styles.actionButton, { backgroundColor: colors.primary }]}
-                  onPress={() => {
-                    Alert.prompt(
-                      language === 'az' ? 'Mesaj göndər' : 'Отправить сообщение',
+                  onPress={async () => {
+                    const text = await prompt(
                       language === 'az' ? 'Mesajınızı yazın' : 'Напишите ваше сообщение',
-                      (text) => {
-                        if (text && text.trim() && currentOperator) {
-                          sendMessage(selectedChat.id, currentOperator.id, 'operator', text.trim());
-                        }
-                      }
+                      language === 'az' ? 'Mesaj göndər' : 'Отправить сообщение'
                     );
+                    if (text && text.trim() && currentOperator) {
+                      sendMessage(selectedChat.id, currentOperator.id, 'operator', text.trim());
+                    }
                   }}
                 >
                   <Text style={styles.actionButtonText}>

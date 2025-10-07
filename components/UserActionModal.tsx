@@ -38,6 +38,7 @@ import { useNotificationStore } from '@/store/notificationStore';
 import { useLanguageStore } from '@/store/languageStore';
 import { User } from '@/types/user';
 import { Share } from 'react-native';
+import { prompt } from '@/utils/confirm';
 
 interface UserActionModalProps {
   visible: boolean;
@@ -293,25 +294,13 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
     );
   };
 
-  const handleReport = () => {
-    Alert.prompt(
-      t.report,
-      t.reportReason,
-      [
-        { text: t.cancel, style: 'cancel' },
-        {
-          text: t.report,
-          onPress: (reason) => {
-            if (reason && reason.trim()) {
-              reportUser(user.id, reason.trim());
-              Alert.alert('', t.reportSuccess);
-              onClose();
-            }
-          },
-        },
-      ],
-      'plain-text'
-    );
+  const handleReport = async () => {
+    const reason = await prompt(t.reportReason, t.report);
+    if (reason && reason.trim()) {
+      reportUser(user.id, reason.trim());
+      Alert.alert('', t.reportSuccess);
+      onClose();
+    }
   };
 
   const handleFollow = () => {
