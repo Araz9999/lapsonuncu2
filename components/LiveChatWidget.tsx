@@ -133,7 +133,11 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
   }, []);
 
   const handleStartChat = () => {
-    if (!currentUser || !selectedCategory || !subject.trim()) return;
+    if (!currentUser) {
+      console.log('[LiveChatWidget] Cannot start chat: user not logged in');
+      return;
+    }
+    if (!selectedCategory || !subject.trim()) return;
 
     const newChatId = startLiveChat(
       currentUser.id,
