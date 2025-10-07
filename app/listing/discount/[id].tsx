@@ -93,32 +93,45 @@ export default function ListingDiscountScreen() {
       return;
     }
     
+    const value = Number(discountValue);
+    if (value <= 0 || (discountType === 'percentage' && value >= 100)) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' 
+          ? 'Endirim dəyəri düzgün deyil'
+          : 'Неверное значение скидки'
+      );
+      return;
+    }
+    
     console.log('[handleCreateDiscount] Showing confirmation dialog');
     
-    Alert.alert(
-      language === 'az' ? 'Endirim tətbiq edilsin?' : 'Применить скидку?',
-      language === 'az' 
-        ? `${discountValue}${discountType === 'percentage' ? '%' : ' ' + listing.currency} endirim tətbiq ediləcək. Davam etmək istəyirsiniz?`
-        : `Будет применена скидка ${discountValue}${discountType === 'percentage' ? '%' : ' ' + listing.currency}. Продолжить?`,
-      [
-        {
-          text: language === 'az' ? 'Ləğv et' : 'Отмена',
-          style: 'cancel',
-          onPress: () => console.log('[handleCreateDiscount] Cancelled')
-        },
-        {
-          text: language === 'az' ? 'Təsdiq et' : 'Подтвердить',
-          onPress: () => {
-            console.log('[handleCreateDiscount] Confirmed');
-            if (listing.storeId) {
-              handleCreateStoreDiscount();
-            } else {
-              handleCreateIndividualDiscount();
+    setTimeout(() => {
+      Alert.alert(
+        language === 'az' ? 'Endirim tətbiq edilsin?' : 'Применить скидку?',
+        language === 'az' 
+          ? `${discountValue}${discountType === 'percentage' ? '%' : ' ' + listing.currency} endirim tətbiq ediləcək. Davam etmək istəyirsiniz?`
+          : `Будет применена скидка ${discountValue}${discountType === 'percentage' ? '%' : ' ' + listing.currency}. Продолжить?`,
+        [
+          {
+            text: language === 'az' ? 'Ləğv et' : 'Отмена',
+            style: 'cancel',
+            onPress: () => console.log('[handleCreateDiscount] Cancelled')
+          },
+          {
+            text: language === 'az' ? 'Təsdiq et' : 'Подтвердить',
+            onPress: () => {
+              console.log('[handleCreateDiscount] Confirmed');
+              if (listing.storeId) {
+                handleCreateStoreDiscount();
+              } else {
+                handleCreateIndividualDiscount();
+              }
             }
           }
-        }
-      ]
-    );
+        ]
+      );
+    }, 100);
   };
   
   const handleCreateStoreDiscount = () => {
