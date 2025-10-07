@@ -29,6 +29,7 @@ import {
 } from 'lucide-react-native';
 import CreativeEffectsSection, { CreativeEffect } from '@/components/CreativeEffectsSection';
 
+import { confirm } from '@/utils/confirm';
 
 export default function PromoteListingScreen() {
   const router = useRouter();
@@ -84,71 +85,42 @@ export default function PromoteListingScreen() {
         : `\n\n⚠️ Внимание: До истечения вашего объявления осталось ${daysUntilExpiry} дней, но пакет рассчитан на ${selectedPackage.duration} дней. Пакет будет активен еще ${selectedPackage.duration - daysUntilExpiry} дней после истечения объявления.`;
     }
     
-    Alert.alert(
-      language === 'az' ? 'Təsdiq edin' : 'Подтвердите',
-      confirmMessage,
-      [
-        {
-          text: language === 'az' ? 'Ləğv et' : 'Отмена',
-          style: 'cancel'
-        },
-        {
-          text: language === 'az' ? 'Təsdiq et' : 'Подтвердить',
-          onPress: async () => {
-            setIsProcessing(true);
-            try {
-              // Deduct balance (try bonus first, then wallet)
-              let remainingAmount = selectedPackage.price;
-              if (bonusBalance > 0) {
-                const bonusToSpend = Math.min(bonusBalance, remainingAmount);
-                spendFromBonus(bonusToSpend);
-                remainingAmount -= bonusToSpend;
-              }
-              if (remainingAmount > 0) {
-                spendFromWallet(remainingAmount);
-              }
-              
-              // Calculate effective promotion end date
-              const promotionEndDate = new Date(Math.max(
-                listingExpiryDate.getTime(),
-                currentDate.getTime() + (selectedPackage.duration * 24 * 60 * 60 * 1000)
-              ));
-              
-              // Promote listing with extended duration if needed
-              await promoteListing(listing.id, selectedPackage.type, selectedPackage.duration);
-              
-              let successMessage = language === 'az'
-                ? `Elanınız ${selectedPackage.name.az} paketi ilə təşviq edildi!`
-                : `Ваше объявление продвинуто с пакетом ${selectedPackage.name.ru}!`;
-              
-              if (daysUntilExpiry < selectedPackage.duration) {
-                successMessage += language === 'az'
-                  ? `\n\nPaket ${promotionEndDate.toLocaleDateString('az-AZ')} tarixinə qədər aktiv olacaq.`
-                  : `\n\nПакет будет активен до ${promotionEndDate.toLocaleDateString('ru-RU')}.`;
-              }
-              
-              Alert.alert(
-                language === 'az' ? 'Uğurlu!' : 'Успешно!',
-                successMessage,
-                [
-                  {
-                    text: 'OK',
-                    onPress: () => router.back()
-                  }
-                ]
-              );
-            } catch {
-              Alert.alert(
-                language === 'az' ? 'Xəta' : 'Ошибка',
-                language === 'az' ? 'Təşviq zamanı xəta baş verdi' : 'Произошла ошибка при продвижении'
-              );
-            } finally {
-              setIsProcessing(false);
-            }
-          }
-        }
-      ]
-    );
+    const approved = await confirm(confirmMessage, language === 'az' ? 'Təsdiq edin' : 'Подтвердите');
+    if (!approved) return;
+    setIsProcessing(true);
+    try {
+      let remainingAmount = selectedPackage.price;
+      if (bonusBalance > 0) {
+        const bonusToSpend = Math.min(bonusBalance, remainingAmount);
+        spendFromBonus(bonusToSpend);
+        remainingAmount -= bonusToSpend;
+      }
+      if (remainingAmount > 0) {
+        spendFromWallet(remainingAmount);
+      }
+      const promotionEndDate = new Date(Math.max(
+        listingExpiryDate.getTime(),
+        currentDate.getTime() + (selectedPackage.duration * 24 * 60 * 60 * 1000)
+      ));
+      await promoteListing(listing.id, selectedPackage.type, selectedPackage.duration);
+      let successMessage = language === 'az'
+        ? `Elanınız ${selectedPackage.name.az} paketi ilə təşviq edildi!`
+        : `Ваше объявление продвинуто с пакетом ${selectedPackage.name.ru}!`;
+      if (daysUntilExpiry < selectedPackage.duration) {
+        successMessage += language === 'az'
+          ? `\n\nPaket ${promotionEndDate.toLocaleDateString('az-AZ')} tarixinə qədər aktiv olacaq.`
+          : `\n\nПакет будет активен до ${promotionEndDate.toLocaleDateString('ru-RU')}.`;
+      }
+      Alert.alert(language === 'az' ? 'Uğurlu!' : 'Успешно!', successMessage);
+      router.back();
+    } catch {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Təşviq zamanı xəta baş verdi' : 'Произошла ошибка при продвижении'
+      );
+    } finally {
+      setIsProcessing(false);
+    }
   };
   
   const handleSelectEffect = (effect: CreativeEffect) => {
@@ -197,78 +169,48 @@ export default function PromoteListingScreen() {
         : `\n\n⚠️ Внимание: До истечения вашего объявления осталось ${daysUntilExpiry} дней, но эффект "${longestEffect.name.ru}" рассчитан на ${longestEffect.duration} дней. Эффект будет активен еще ${longestEffect.duration - daysUntilExpiry} дней после истечения объявления и может быть использован для новых объявлений.`;
     }
     
-    Alert.alert(
-      language === 'az' ? 'Təsdiq edin' : 'Подтвердите',
-      confirmMessage,
-      [
-        {
-          text: language === 'az' ? 'Ləğv et' : 'Отмена',
-          style: 'cancel'
-        },
-        {
-          text: language === 'az' ? 'Təsdiq et' : 'Подтвердить',
-          onPress: async () => {
-            setIsProcessing(true);
-            try {
-              // Deduct balance (try bonus first, then wallet)
-              let remainingAmount = totalPrice;
-              if (bonusBalance > 0) {
-                const bonusToSpend = Math.min(bonusBalance, remainingAmount);
-                spendFromBonus(bonusToSpend);
-                remainingAmount -= bonusToSpend;
-              }
-              if (remainingAmount > 0) {
-                spendFromWallet(remainingAmount);
-              }
-              
-              // Calculate effect end dates
-              const effectEndDates = selectedEffects.map(effect => {
-                const effectEndDate = new Date(Math.max(
-                  listingExpiryDate.getTime(),
-                  currentDate.getTime() + (effect.duration * 24 * 60 * 60 * 1000)
-                ));
-                return { effect, endDate: effectEndDate };
-              });
-              
-              // Apply creative effects to the listing
-              await applyCreativeEffects(listing.id, selectedEffects, effectEndDates);
-              
-              let successMessage = language === 'az'
-                ? `Kreativ effektlər elanınıza tətbiq edildi!`
-                : `Креативные эффекты применены к вашему объявлению!`;
-              
-              if (daysUntilExpiry < longestEffect.duration) {
-                const latestEndDate = effectEndDates.reduce((latest, item) => 
-                  item.endDate > latest ? item.endDate : latest
-                , effectEndDates[0].endDate);
-                
-                successMessage += language === 'az'
-                  ? `\n\nEffektlər ${latestEndDate.toLocaleDateString('az-AZ')} tarixinə qədər aktiv olacaq.`
-                  : `\n\nЭффекты будут активны до ${latestEndDate.toLocaleDateString('ru-RU')}.`;
-              }
-              
-              Alert.alert(
-                language === 'az' ? 'Uğurlu!' : 'Успешно!',
-                successMessage,
-                [
-                  {
-                    text: 'OK',
-                    onPress: () => router.back()
-                  }
-                ]
-              );
-            } catch {
-              Alert.alert(
-                language === 'az' ? 'Xəta' : 'Ошибка',
-                language === 'az' ? 'Effekt tətbiqi zamanı xəta baş verdi' : 'Произошла ошибка при применении эффектов'
-              );
-            } finally {
-              setIsProcessing(false);
-            }
-          }
-        }
-      ]
-    );
+    const approved = await confirm(confirmMessage, language === 'az' ? 'Təsdiq edin' : 'Подтвердите');
+    if (!approved) return;
+    setIsProcessing(true);
+    try {
+      let remainingAmount = totalPrice;
+      if (bonusBalance > 0) {
+        const bonusToSpend = Math.min(bonusBalance, remainingAmount);
+        spendFromBonus(bonusToSpend);
+        remainingAmount -= bonusToSpend;
+      }
+      if (remainingAmount > 0) {
+        spendFromWallet(remainingAmount);
+      }
+      const effectEndDates = selectedEffects.map(effect => {
+        const effectEndDate = new Date(Math.max(
+          listingExpiryDate.getTime(),
+          currentDate.getTime() + (effect.duration * 24 * 60 * 60 * 1000)
+        ));
+        return { effect, endDate: effectEndDate };
+      });
+      await applyCreativeEffects(listing.id, selectedEffects, effectEndDates);
+      let successMessage = language === 'az'
+        ? `Kreativ effektlər elanınıza tətbiq edildi!`
+        : `Креативные эффекты применены к вашему объявлению!`;
+      if (daysUntilExpiry < longestEffect.duration) {
+        const latestEndDate = effectEndDates.reduce((latest, item) => 
+          item.endDate > latest ? item.endDate : latest
+        , effectEndDates[0].endDate);
+        successMessage += language === 'az'
+          ? `\n\nEffektlər ${latestEndDate.toLocaleDateString('az-AZ')} tarixinə qədər aktiv olacaq.`
+          : `\n\nЭффекты будут активны до ${latestEndDate.toLocaleDateString('ru-RU')}.`;
+      }
+      Alert.alert(language === 'az' ? 'Uğurlu!' : 'Успешно!', successMessage);
+      router.back();
+    } catch {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Effekt tətbiqi zamanı xəta baş verdi' : 'Произошла ошибка при применении эффектов'
+      );
+    } finally {
+      setIsProcessing(false);
+    }
   };
   
   const handlePurchaseViews = async () => {
@@ -306,65 +248,38 @@ export default function PromoteListingScreen() {
         : `\n\n⚠️ ВНИМАНИЕ: Ваше объявление истечет через ${daysUntilExpiry} дней, но потребуется примерно ${estimatedDaysToReachTarget} дней для набора всех просмотров.\n\n💡 Когда объявление истечет, примерно ${unusedViews} просмотров останутся неиспользованными, но они автоматически применятся к вашему новому объявлению при повторном размещении.\n\n🔄 Альтернатива: Сначала продлите объявление, затем покупайте просмотры.`;
     }
     
-    Alert.alert(
-      language === 'az' ? 'Təsdiq edin' : 'Подтвердите',
-      confirmMessage,
-      [
-        {
-          text: language === 'az' ? 'Ləğv et' : 'Отмена',
-          style: 'cancel'
-        },
-        {
-          text: language === 'az' ? 'Təsdiq et' : 'Подтвердить',
-          onPress: async () => {
-            setIsProcessing(true);
-            try {
-              // Deduct balance (try bonus first, then wallet)
-              let remainingAmount = selectedViewPackage.price;
-              if (bonusBalance > 0) {
-                const bonusToSpend = Math.min(bonusBalance, remainingAmount);
-                spendFromBonus(bonusToSpend);
-                remainingAmount -= bonusToSpend;
-              }
-              if (remainingAmount > 0) {
-                spendFromWallet(remainingAmount);
-              }
-              
-              // Purchase views for the listing
-              await purchaseViews(listing.id, selectedViewPackage.views);
-              
-              let successMessage = language === 'az'
-                ? `Elanınız ${selectedViewPackage.views} əlavə baxış aldı və ön sıralara keçdi!\n\n🎯 Elanınız ${targetViews} baxışa çatana qədər ön sıralarda qalacaq.`
-                : `Ваше объявление получило ${selectedViewPackage.views} дополнительных просмотров и попало в топ!\n\n🎯 Ваше объявление останется в топе до достижения ${targetViews} просмотров.`;
-              
-              if (estimatedDaysToReachTarget > daysUntilExpiry) {
-                successMessage += language === 'az'
-                  ? `\n\n💡 Elan müddəti bitəndə istifadə olunmayan baxışlar yeni elanlarınızda avtomatik tətbiq olunacaq.`
-                  : `\n\n💡 Неиспользованные просмотры автоматически применятся к новым объявлениям после истечения текущего.`;
-              }
-              
-              Alert.alert(
-                language === 'az' ? 'Uğurlu!' : 'Успешно!',
-                successMessage,
-                [
-                  {
-                    text: 'OK',
-                    onPress: () => router.back()
-                  }
-                ]
-              );
-            } catch {
-              Alert.alert(
-                language === 'az' ? 'Xəta' : 'Ошибка',
-                language === 'az' ? 'Baxış alışı zamanı xəta baş verdi' : 'Произошла ошибка при покупке просмотров'
-              );
-            } finally {
-              setIsProcessing(false);
-            }
-          }
-        }
-      ]
-    );
+    const approved = await confirm(confirmMessage, language === 'az' ? 'Təsdiq edin' : 'Подтвердите');
+    if (!approved) return;
+    setIsProcessing(true);
+    try {
+      let remainingAmount = selectedViewPackage.price;
+      if (bonusBalance > 0) {
+        const bonusToSpend = Math.min(bonusBalance, remainingAmount);
+        spendFromBonus(bonusToSpend);
+        remainingAmount -= bonusToSpend;
+      }
+      if (remainingAmount > 0) {
+        spendFromWallet(remainingAmount);
+      }
+      await purchaseViews(listing.id, selectedViewPackage.views);
+      let successMessage = language === 'az'
+        ? `Elanınız ${selectedViewPackage.views} əlavə baxış aldı və ön sıralara keçdi!\n\n🎯 Elanınız ${targetViews} baxışa çatana qədər ön sıralarda qalacaq.`
+        : `Ваше объявление получило ${selectedViewPackage.views} дополнительных просмотров и попало в топ!\n\n🎯 Ваше объявление останется в топе до достижения ${targetViews} просмотров.`;
+      if (estimatedDaysToReachTarget > daysUntilExpiry) {
+        successMessage += language === 'az'
+          ? `\n\n💡 Elan müddəti bitəndə istifadə olunmayan baxışlar yeni elanlarınızda avtomatik tətbiq olunacaq.`
+          : `\n\n💡 Неиспользованные просмотры автоматически применятся к новым объявлениям после истечения текущего.`;
+      }
+      Alert.alert(language === 'az' ? 'Uğurlu!' : 'Успешно!', successMessage);
+      router.back();
+    } catch {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Baxış alışı zamanı xəta baş verdi' : 'Произошла ошибка при покупке просмотров'
+      );
+    } finally {
+      setIsProcessing(false);
+    }
   };
   
   const getPackageIcon = (type: string) => {
