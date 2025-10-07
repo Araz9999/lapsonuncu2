@@ -57,7 +57,6 @@ export default function LiveChatScreen() {
   const [isScrolling, setIsScrolling] = useState<boolean>(false);
   const [attachments, setAttachments] = useState<FileAttachment[]>([]);
   const [showAttachments, setShowAttachments] = useState<boolean>(false);
-  const [keyboardHeight, setKeyboardHeight] = useState<number>(0);
   
   const scrollViewRef = useRef<ScrollView>(null);
 
@@ -94,22 +93,14 @@ export default function LiveChatScreen() {
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener(
       'keyboardDidShow',
-      (e) => {
-        setKeyboardHeight(e.endCoordinates.height);
+      () => {
         setTimeout(() => {
           scrollViewRef.current?.scrollToEnd({ animated: true });
         }, 200);
       }
     );
-    const keyboardDidHideListener = Keyboard.addListener(
-      'keyboardDidHide',
-      () => {
-        setKeyboardHeight(0);
-      }
-    );
 
     return () => {
-      keyboardDidHideListener.remove();
       keyboardDidShowListener.remove();
     };
   }, []);
@@ -464,13 +455,7 @@ export default function LiveChatScreen() {
             </ScrollView>
 
             {currentChat.status !== 'closed' ? (
-              <View style={[
-                styles.inputSection, 
-                { 
-                  paddingBottom: keyboardHeight > 0 ? Math.max(keyboardHeight - 20, 10) : Platform.OS === 'ios' ? 20 : 10,
-                  transform: keyboardHeight > 0 ? [{ translateY: -keyboardHeight + 20 }] : []
-                }
-              ]}>
+              <View style={styles.inputSection}>
                 {showAttachments && (
                   <View style={[styles.attachmentsSection, { backgroundColor: colors.card }]}>
                     <FileAttachmentPicker
@@ -662,6 +647,7 @@ const styles = StyleSheet.create({
   },
   inputSection: {
     backgroundColor: 'transparent',
+    paddingBottom: Platform.OS === 'ios' ? 20 : 10,
   },
   inputContainer: {
     flexDirection: 'row',
