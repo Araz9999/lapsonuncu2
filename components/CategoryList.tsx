@@ -1,61 +1,65 @@
-import React from 'react';
+import React, { memo, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { categories } from '@/constants/categories';
 import { useLanguageStore } from '@/store/languageStore';
 import { useListingStore } from '@/store/listingStore';
-import Colors from '@/constants/colors';
+import { useThemeStore } from '@/store/themeStore';
+import { getColors } from '@/constants/colors';
 import { t } from '@/constants/translations';
 import { Home, Car, Smartphone, Briefcase, Shirt, Sofa, Baby, Dog, Music, Store, Utensils, BookOpen, Palette, HeartPulse } from 'lucide-react-native';
 
-export default function CategoryList() {
+function CategoryList() {
   const router = useRouter();
   const { language } = useLanguageStore();
   const { setSelectedCategory } = useListingStore();
+  const { themeMode, colorTheme } = useThemeStore();
+  const colors = getColors(themeMode, colorTheme);
 
-  const getIcon = (iconName: string) => {
+  const getIcon = useCallback((iconName: string) => {
+    const iconColor = colors.primary;
     switch (iconName) {
       case 'home':
-        return <Home size={24} color={Colors.primary} />;
+        return <Home size={24} color={iconColor} />;
       case 'car':
-        return <Car size={24} color={Colors.primary} />;
+        return <Car size={24} color={iconColor} />;
       case 'smartphone':
-        return <Smartphone size={24} color={Colors.primary} />;
+        return <Smartphone size={24} color={iconColor} />;
       case 'briefcase':
-        return <Briefcase size={24} color={Colors.primary} />;
+        return <Briefcase size={24} color={iconColor} />;
       case 'shirt':
-        return <Shirt size={24} color={Colors.primary} />;
+        return <Shirt size={24} color={iconColor} />;
       case 'sofa':
-        return <Sofa size={24} color={Colors.primary} />;
+        return <Sofa size={24} color={iconColor} />;
       case 'baby':
-        return <Baby size={24} color={Colors.primary} />;
+        return <Baby size={24} color={iconColor} />;
       case 'dog':
-        return <Dog size={24} color={Colors.primary} />;
+        return <Dog size={24} color={iconColor} />;
       case 'music':
-        return <Music size={24} color={Colors.primary} />;
+        return <Music size={24} color={iconColor} />;
       case 'store':
-        return <Store size={24} color={Colors.primary} />;
+        return <Store size={24} color={iconColor} />;
       case 'utensils':
-        return <Utensils size={24} color={Colors.primary} />;
+        return <Utensils size={24} color={iconColor} />;
       case 'book-open':
-        return <BookOpen size={24} color={Colors.primary} />;
+        return <BookOpen size={24} color={iconColor} />;
       case 'palette':
-        return <Palette size={24} color={Colors.primary} />;
+        return <Palette size={24} color={iconColor} />;
       case 'heart-pulse':
-        return <HeartPulse size={24} color={Colors.primary} />;
+        return <HeartPulse size={24} color={iconColor} />;
       default:
-        return <Home size={24} color={Colors.primary} />;
+        return <Home size={24} color={iconColor} />;
     }
-  };
+  }, [colors.primary]);
 
-  const handleCategoryPress = (categoryId: number) => {
+  const handleCategoryPress = useCallback((categoryId: number) => {
     setSelectedCategory(categoryId);
     router.push('/category');
-  };
+  }, [setSelectedCategory, router]);
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>
+      <Text style={[styles.title, { color: colors.text }]}>
         {t('categories', language)}
       </Text>
       <ScrollView 
@@ -72,7 +76,7 @@ export default function CategoryList() {
             <View style={styles.iconContainer}>
               {getIcon(category.icon)}
             </View>
-            <Text style={styles.categoryName} numberOfLines={2}>
+            <Text style={[styles.categoryName, { color: colors.text }]} numberOfLines={2}>
               {category.name[language] || category.name.az}
             </Text>
           </TouchableOpacity>
@@ -81,6 +85,8 @@ export default function CategoryList() {
     </View>
   );
 }
+
+export default memo(CategoryList);
 
 const styles = StyleSheet.create({
   container: {
@@ -91,7 +97,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 12,
     paddingHorizontal: 16,
-    color: Colors.text,
   },
   scrollContent: {
     paddingHorizontal: 12,
@@ -113,7 +118,6 @@ const styles = StyleSheet.create({
   categoryName: {
     fontSize: 12,
     textAlign: 'center',
-    color: Colors.text,
     height: 32,
   },
 });

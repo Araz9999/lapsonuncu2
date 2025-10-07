@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import { ScrollView, StyleSheet, View, Text, Animated, Easing, TouchableOpacity, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useListingStore } from '@/store/listingStore';
@@ -35,17 +35,19 @@ export default function HomeScreen() {
   const featuredListings = listings.slice(0, 6);
   const activeStores = stores.filter(store => store.isActive).slice(0, 4);
 
-  useEffect(() => {
+  const handleResetFilters = useCallback(() => {
     resetFilters();
   }, [resetFilters]);
   
   useEffect(() => {
-    // Auto refresh if enabled
+    handleResetFilters();
+  }, [handleResetFilters]);
+  
+  useEffect(() => {
     if (autoRefresh) {
       const interval = setInterval(() => {
-        // Refresh data logic here
         console.log('Auto refreshing data...');
-      }, 30000); // Refresh every 30 seconds
+      }, 30000);
       
       return () => clearInterval(interval);
     }

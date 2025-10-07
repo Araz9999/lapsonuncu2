@@ -1,20 +1,30 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useLanguageStore } from '@/store/languageStore';
 import { useListingStore } from '@/store/listingStore';
+import { useThemeStore } from '@/store/themeStore';
 import ListingCard from './ListingCard';
-import Colors from '@/constants/colors';
+import { getColors } from '@/constants/colors';
 import { t } from '@/constants/translations';
 
 export default function FeaturedListings() {
   const { language } = useLanguageStore();
   const { listings } = useListingStore();
+  const { themeMode, colorTheme } = useThemeStore();
+  const colors = getColors(themeMode, colorTheme);
   
-  const featuredListings = listings.filter(listing => listing.isFeatured);
+  const featuredListings = useMemo(() => 
+    listings.filter(listing => listing.isFeatured),
+    [listings]
+  );
+  
+  if (featuredListings.length === 0) {
+    return null;
+  }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>
+      <Text style={[styles.title, { color: colors.text }]}>
         {t('featuredListings', language)}
       </Text>
       <ScrollView
@@ -41,7 +51,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 12,
     paddingHorizontal: 16,
-    color: Colors.text,
   },
   listContent: {
     paddingHorizontal: 16,

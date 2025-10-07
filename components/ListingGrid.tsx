@@ -1,31 +1,32 @@
-import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, Text, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
+import React, { useEffect, useState, useCallback, memo } from 'react';
+import { View, StyleSheet, Text, ScrollView, ActivityIndicator, RefreshControl, Dimensions, Platform } from 'react-native';
 import { useListingStore } from '@/store/listingStore';
 import { useLanguageStore } from '@/store/languageStore';
+import { useThemeStore } from '@/store/themeStore';
 import ListingCard from './ListingCard';
-import Colors from '@/constants/colors';
+import { getColors } from '@/constants/colors';
 
-export default function ListingGrid() {
+function ListingGrid() {
   const { filteredListings, applyFilters } = useListingStore();
   const { language } = useLanguageStore();
+  const { themeMode, colorTheme } = useThemeStore();
+  const colors = getColors(themeMode, colorTheme);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    // Initial load
     const loadData = async () => {
       setIsLoading(true);
       try {
-        // Apply filters to get initial data
         applyFilters();
       } finally {
         setIsLoading(false);
       }
     };
     loadData();
-  }, []);
+  }, [applyFilters]);
 
-  const onRefresh = React.useCallback(() => {
+  const onRefresh = useCallback(() => {
     setRefreshing(true);
     applyFilters();
     setTimeout(() => {
@@ -35,9 +36,9 @@ export default function ListingGrid() {
 
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
           {language === 'az' ? 'Yüklənir...' : 'Загрузка...'}
         </Text>
       </View>
@@ -49,15 +50,15 @@ export default function ListingGrid() {
       <ScrollView 
         contentContainerStyle={styles.emptyContainer}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
       >
-        <Text style={styles.emptyText}>
+        <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
           {language === 'az' 
             ? 'Heç bir elan tapılmadı' 
             : 'Объявления не найдены'}
         </Text>
-        <Text style={styles.emptySubText}>
+        <Text style={[styles.emptySubText, { color: colors.textSecondary }]}>
           {language === 'az' 
             ? 'Filtrləri dəyişdirməyə cəhd edin' 
             : 'Попробуйте изменить фильтры'}
@@ -68,11 +69,11 @@ export default function ListingGrid() {
 
   return (
     <ScrollView 
-      style={styles.scrollContainer}
+      style={[styles.scrollContainer, { backgroundColor: colors.background }]}
       contentContainerStyle={styles.container}
       showsVerticalScrollIndicator={false}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
       }
     >
       <View style={styles.grid}>
@@ -89,7 +90,6 @@ export default function ListingGrid() {
 const styles = StyleSheet.create({
   scrollContainer: {
     flex: 1,
-    backgroundColor: Colors.background,
   },
   container: {
     padding: 12,
@@ -101,7 +101,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   gridItem: {
-    width: '49%',
+    width: Platform.select({
+      web: Dimensions.get('window').width > 1024 ? '24%' : 
+           Dimensions.get('window').width > 768 ? '32%' : '49%',
+      default: '49%'
+    }),
     marginBottom: 12,
   },
   loadingContainer: {
@@ -109,12 +113,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
-    backgroundColor: Colors.background,
   },
   loadingText: {
     marginTop: 12,
     fontSize: 14,
-    color: Colors.textSecondary,
   },
   emptyContainer: {
     flex: 1,
@@ -125,14 +127,14 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: Colors.textSecondary,
     textAlign: 'center',
     marginBottom: 8,
   },
   emptySubText: {
     fontSize: 14,
-    color: Colors.textSecondary,
     textAlign: 'center',
     opacity: 0.7,
   },
 });
+
+export default memo(ListingGrid);
