@@ -17,7 +17,7 @@ export interface SocialAuthConfig {
 export async function checkSocialAuthStatus(): Promise<SocialAuthConfig> {
   try {
     const baseUrl = Platform.select({
-      web: typeof window !== 'undefined' ? window.location.origin : 'https://1r36dhx42va8pxqbqz5ja.rork.app',
+      web: typeof window !== 'undefined' && window.location ? window.location.origin : 'https://1r36dhx42va8pxqbqz5ja.rork.app',
       default: 'https://1r36dhx42va8pxqbqz5ja.rork.app'
     });
     console.log('[SocialAuth] Checking status at:', `${baseUrl}/api/auth/status`);
@@ -45,7 +45,7 @@ export async function initiateSocialLogin(
     console.log(`[SocialAuth] Initiating ${provider} login`);
     
     const baseUrl = Platform.select({
-      web: typeof window !== 'undefined' ? window.location.origin : 'https://1r36dhx42va8pxqbqz5ja.rork.app',
+      web: typeof window !== 'undefined' && window.location ? window.location.origin : 'https://1r36dhx42va8pxqbqz5ja.rork.app',
       default: 'https://1r36dhx42va8pxqbqz5ja.rork.app'
     });
     const authUrl = `${baseUrl}/api/auth/${provider}/login`;
