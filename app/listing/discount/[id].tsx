@@ -936,7 +936,11 @@ export default function ListingDiscountScreen() {
         {/* Create Button */}
         <TouchableOpacity
           style={styles.createButton}
-          onPress={handleCreateDiscount}
+          onPress={() => {
+            console.log('[Apply Discount Button] Button pressed');
+            handleCreateDiscount();
+          }}
+          activeOpacity={0.7}
           accessibilityRole="button"
           accessibilityLabel={language === 'az' ? 'Endirim Tətbiq Et' : 'Применить скидку'}
           testID="apply-discount-button"

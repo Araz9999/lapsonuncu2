@@ -45,6 +45,7 @@ export default function ProfileScreen() {
   };
 
   const handleDeleteProfile = () => {
+    console.log('[handleDeleteProfile] Delete profile button pressed');
     Alert.alert(
       t('deleteProfile'),
       t('cannotBeUndone'),
@@ -52,11 +53,13 @@ export default function ProfileScreen() {
         {
           text: t('cancel'),
           style: 'cancel',
+          onPress: () => console.log('[handleDeleteProfile] First confirmation cancelled')
         },
         {
           text: t('delete'),
           style: 'destructive',
           onPress: () => {
+            console.log('[handleDeleteProfile] First confirmation accepted, showing second confirmation');
             Alert.alert(
               t('confirmDelete'),
               t('areYouSure'),
@@ -64,17 +67,21 @@ export default function ProfileScreen() {
                 {
                   text: t('cancel'),
                   style: 'cancel',
+                  onPress: () => console.log('[handleDeleteProfile] Second confirmation cancelled')
                 },
                 {
                   text: t('yes'),
                   style: 'destructive',
                   onPress: () => {
+                    console.log('[handleDeleteProfile] Profile deletion confirmed, logging out');
                     logout();
-                    router.push('/auth/login');
-                    Alert.alert(
-                      t('success'),
-                      t('deleteProfile')
-                    );
+                    router.replace('/auth/login');
+                    setTimeout(() => {
+                      Alert.alert(
+                        t('success'),
+                        language === 'az' ? 'Profil uğurla silindi' : 'Профиль успешно удален'
+                      );
+                    }, 500);
                   },
                 },
               ]
@@ -285,6 +292,8 @@ export default function ProfileScreen() {
         <TouchableOpacity 
           style={[styles.menuItem, { borderBottomWidth: 0 }]}
           onPress={handleDeleteProfile}
+          activeOpacity={0.7}
+          testID="delete-profile-button"
         >
           <View style={[styles.menuIconContainer, { backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}>
             <Trash2 size={20} color={Colors.error} />
