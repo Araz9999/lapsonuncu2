@@ -14,7 +14,7 @@ import { Timer, Edit3 } from 'lucide-react-native';
 import { useLanguageStore } from '@/store/languageStore';
 
 interface CountdownTimerProps {
-  endDate?: Date | string | number;
+  endDate?: Date | string | number | { toISOString: () => string };
   style?: any;
   compact?: boolean;
   title?: string;
@@ -49,7 +49,7 @@ export default function CountdownTimer({
   const [showManualInput, setShowManualInput] = useState<boolean>(false);
   const [manualTime, setManualTime] = useState<ManualTimeInput>({ days: '0', hours: '0', minutes: '0' });
 
-  const normalizeToDate = (value?: Date | string | number): Date => {
+  const normalizeToDate = (value?: Date | string | number | { toISOString: () => string }): Date => {
     try {
       if (value === undefined || value === null) {
         return new Date(Date.now() + 24 * 60 * 60 * 1000);
@@ -60,6 +60,14 @@ export default function CountdownTimer({
           return new Date(Date.now() + 24 * 60 * 60 * 1000);
         }
         return new Date(time);
+      }
+      if (typeof value === 'object' && 'toISOString' in value) {
+        const isoString = value.toISOString();
+        const parsed = new Date(isoString);
+        if (!isNaN(parsed.getTime())) {
+          return parsed;
+        }
+        return new Date(Date.now() + 24 * 60 * 60 * 1000);
       }
       if (typeof value === 'number') {
         // Treat small numbers as hours-from-now for custom inputs (e.g. 6 => 6 hours)
