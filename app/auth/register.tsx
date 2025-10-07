@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, KeyboardAvoidingView, Platform, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from '@/constants/translations';
 import { useUserStore } from '@/store/userStore';
-import { users } from '@/mocks/users';
 import Colors from '@/constants/colors';
-import { X, Eye, EyeOff, Check, Mail, Phone, Camera, User, Facebook, Chrome, MessageCircle } from 'lucide-react-native';
+import { X, Eye, EyeOff, Check, Phone, Camera, User as UserIcon, Facebook, Chrome, MessageCircle } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { trpc } from '@/lib/trpc';
 
 export default function RegisterScreen() {
   const router = useRouter();
-  const { t, language } = useTranslation();
+  const { t } = useTranslation();
   const { login } = useUserStore();
   
   const [name, setName] = useState('');
@@ -22,41 +22,87 @@ export default function RegisterScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
-  const [showOtpStep, setShowOtpStep] = useState(false);
-  const [emailOtp, setEmailOtp] = useState('');
-  const [mobileOtp, setMobileOtp] = useState('');
-  const [generatedOtp, setGeneratedOtp] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const registerMutation = trpc.auth.register.useMutation();
   
   const isFormValid = name && email && phone && password && confirmPassword && password === confirmPassword && agreeToTerms;
   
-  const handleRegister = () => {
-    if (!isFormValid) {
+  const handleRegister = async () => {
+    if (!isFormValid || isLoading) {
       return;
     }
     
-    // Generate OTP and send to both email and mobile
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    setGeneratedOtp(otp);
+    setIsLoading(true);
     
-    // In a real app, you would send OTP to email and SMS
-    Alert.alert(
-      t('otpSent'),
-      `${t('otpSentMessage')}: ${otp}`
-    );
-    
-    setShowOtpStep(true);
-  };
-  
-  const handleVerifyOtp = () => {
-    if (emailOtp === generatedOtp && mobileOtp === generatedOtp) {
-      // Mock registration - in a real app, this would be an API call
-      login(users[0]);
-      router.push('/');
-    } else {
+    try {
+      const result = await registerMutation.mutateAsync({
+        email: email.trim().toLowerCase(),
+        password,
+        name: name.trim(),
+        phone: phone.trim(),
+      });
+      
+      const mockUser = {
+        ...result.user,
+        phone: result.user.phone || '',
+        avatar: result.user.avatar || '',
+        rating: 0,
+        totalRatings: 0,
+        memberSince: new Date().toISOString(),
+        location: { az: '', ru: '', en: '' },
+        privacySettings: {
+          hidePhoneNumber: false,
+          allowDirectContact: true,
+          onlyAppMessaging: false,
+        },
+        analytics: {
+          lastOnline: new Date().toISOString(),
+          messageResponseRate: 0,
+          averageResponseTime: 0,
+          totalMessages: 0,
+          totalResponses: 0,
+          isOnline: true,
+        },
+      };
+      
+      if (result.emailSent) {
+        Alert.alert(
+          t('success') || 'Uğurlu',
+          'Qeydiyyat uğurla tamamlandı! Email ünvanınıza təsdiq linki göndərildi. Zəhmət olmasa email-inizi yoxlayın.',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                login(mockUser);
+                router.replace('/');
+              },
+            },
+          ]
+        );
+      } else {
+        Alert.alert(
+          'Xəbərdarlıq',
+          'Qeydiyyat uğurlu oldu, lakin email göndərilmədi. Daha sonra email təsdiqini tamamlaya bilərsiniz.',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                login(mockUser);
+                router.replace('/');
+              },
+            },
+          ]
+        );
+      }
+    } catch (error: any) {
+      console.error('[Register] Error:', error);
       Alert.alert(
-        t('error'),
-        t('invalidVerificationCodes')
+        t('error') || 'Xəta',
+        error.message || 'Qeydiyyat zamanı xəta baş verdi'
       );
+    } finally {
+      setIsLoading(false);
     }
   };
   
@@ -69,10 +115,11 @@ export default function RegisterScreen() {
   };
 
   const handleSocialRegister = (provider: string) => {
-    // Mock social registration - in a real app, this would integrate with OAuth providers
     console.log(`Registering with ${provider}`);
-    login(users[0]);
-    router.push('/');
+    Alert.alert(
+      'Məlumat',
+      'Sosial media ilə giriş tezliklə əlavə ediləcək'
+    );
   };
 
   const pickImage = async () => {
@@ -162,102 +209,32 @@ export default function RegisterScreen() {
         </View>
         
         <Text style={styles.title}>
-          {showOtpStep 
-            ? t('enterVerificationCode')
-            : t('register')}
+          {t('register')}
         </Text>
         
         <View style={styles.form}>
-          {showOtpStep ? (
-            <>
-              <View style={styles.otpContainer}>
-                <Text style={styles.otpDescription}>
-                  {t('verificationCodeSent')}
-                </Text>
-                
-                <View style={styles.otpInputGroup}>
-                  <View style={styles.otpInputContainer}>
-                    <Mail size={20} color={Colors.primary} />
-                    <Text style={styles.otpLabel}>
-                      {t('emailCode')}
-                    </Text>
-                  </View>
-                  <TextInput
-                    style={styles.otpInput}
-                    value={emailOtp}
-                    onChangeText={setEmailOtp}
-                    placeholder="000000"
-                    placeholderTextColor={Colors.placeholder}
-                    keyboardType="numeric"
-                    maxLength={6}
-                  />
+          <View style={styles.profileImageSection}>
+            <Text style={styles.label}>
+              {t('profilePhoto')}
+            </Text>
+            <TouchableOpacity style={styles.profileImageContainer} onPress={showImagePicker}>
+              {profileImage ? (
+                <Image source={{ uri: profileImage }} style={styles.profileImage} />
+              ) : (
+                <View style={styles.profileImagePlaceholder}>
+                  <UserIcon size={40} color={Colors.textSecondary} />
                 </View>
-                
-                <View style={styles.otpInputGroup}>
-                  <View style={styles.otpInputContainer}>
-                    <Phone size={20} color={Colors.primary} />
-                    <Text style={styles.otpLabel}>
-                      {t('mobileCode')}
-                    </Text>
-                  </View>
-                  <TextInput
-                    style={styles.otpInput}
-                    value={mobileOtp}
-                    onChangeText={setMobileOtp}
-                    placeholder="000000"
-                    placeholderTextColor={Colors.placeholder}
-                    keyboardType="numeric"
-                    maxLength={6}
-                  />
-                </View>
-                
-                <TouchableOpacity 
-                  style={[
-                    styles.registerButton,
-                    (!emailOtp || !mobileOtp || emailOtp.length !== 6 || mobileOtp.length !== 6) && styles.disabledButton
-                  ]} 
-                  onPress={handleVerifyOtp}
-                  disabled={!emailOtp || !mobileOtp || emailOtp.length !== 6 || mobileOtp.length !== 6}
-                >
-                  <Text style={styles.registerButtonText}>
-                    {t('verify')}
-                  </Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  style={styles.backToFormButton}
-                  onPress={() => setShowOtpStep(false)}
-                >
-                  <Text style={styles.backToFormText}>
-                    {t('goBack')}
-                  </Text>
-                </TouchableOpacity>
+              )}
+              <View style={styles.cameraIconContainer}>
+                <Camera size={16} color="white" />
               </View>
-            </>
-          ) : (
-            <>
-              <View style={styles.profileImageSection}>
-                <Text style={styles.label}>
-                  {t('profilePhoto')}
-                </Text>
-                <TouchableOpacity style={styles.profileImageContainer} onPress={showImagePicker}>
-                  {profileImage ? (
-                    <Image source={{ uri: profileImage }} style={styles.profileImage} />
-                  ) : (
-                    <View style={styles.profileImagePlaceholder}>
-                      <User size={40} color={Colors.textSecondary} />
-                    </View>
-                  )}
-                  <View style={styles.cameraIconContainer}>
-                    <Camera size={16} color="white" />
-                  </View>
-                </TouchableOpacity>
-                <Text style={styles.profileImageHint}>
-                  {t('tapToAddPhoto')}
-                </Text>
-              </View>
-              
-              <View style={styles.inputGroup}>
+            </TouchableOpacity>
+            <Text style={styles.profileImageHint}>
+              {t('tapToAddPhoto')}
+            </Text>
+          </View>
+          
+          <View style={styles.inputGroup}>
             <Text style={styles.label}>
               {t('fullName')}
             </Text>
@@ -298,7 +275,6 @@ export default function RegisterScreen() {
                 style={styles.phoneInput}
                 value={phone.replace('+994 ', '')}
                 onChangeText={(text) => {
-                  // Remove any non-digit characters except spaces and dashes
                   const cleaned = text.replace(/[^0-9\s\-]/g, '');
                   setPhone('+994 ' + cleaned);
                 }}
@@ -379,68 +355,68 @@ export default function RegisterScreen() {
             </Text>
           </View>
           
-            <TouchableOpacity 
-              style={[
-                styles.registerButton,
-                !isFormValid && styles.disabledButton
-              ]} 
-              onPress={handleRegister}
-              disabled={!isFormValid}
-            >
+          <TouchableOpacity 
+            style={[
+              styles.registerButton,
+              (!isFormValid || isLoading) && styles.disabledButton
+            ]} 
+            onPress={handleRegister}
+            disabled={!isFormValid || isLoading}
+          >
+            {isLoading ? (
+              <ActivityIndicator color="white" />
+            ) : (
               <Text style={styles.registerButtonText}>
                 {t('register')}
               </Text>
+            )}
+          </TouchableOpacity>
+          
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>
+              {t('or')}
+            </Text>
+            <View style={styles.dividerLine} />
+          </View>
+          
+          <View style={styles.socialButtons}>
+            <TouchableOpacity 
+              style={[styles.socialButton, styles.facebookButton]}
+              onPress={() => handleSocialRegister('facebook')}
+            >
+              <Facebook size={24} color="white" />
+              <Text style={styles.socialButtonText}>Facebook</Text>
             </TouchableOpacity>
             
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>
-                {t('or')}
-              </Text>
-              <View style={styles.dividerLine} />
-            </View>
+            <TouchableOpacity 
+              style={[styles.socialButton, styles.googleButton]}
+              onPress={() => handleSocialRegister('google')}
+            >
+              <Chrome size={24} color="white" />
+              <Text style={styles.socialButtonText}>Google</Text>
+            </TouchableOpacity>
             
-            <View style={styles.socialButtons}>
-              <TouchableOpacity 
-                style={[styles.socialButton, styles.facebookButton]}
-                onPress={() => handleSocialRegister('facebook')}
-              >
-                <Facebook size={24} color="white" />
-                <Text style={styles.socialButtonText}>Facebook</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={[styles.socialButton, styles.googleButton]}
-                onPress={() => handleSocialRegister('google')}
-              >
-                <Chrome size={24} color="white" />
-                <Text style={styles.socialButtonText}>Google</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={[styles.socialButton, styles.vkButton]}
-                onPress={() => handleSocialRegister('vk')}
-              >
-                <MessageCircle size={24} color="white" />
-                <Text style={styles.socialButtonText}>VK</Text>
-              </TouchableOpacity>
-            </View>
-            </>
-          )}
-        </View>
-        
-        {!showOtpStep && (
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>
-              {t('haveAccount')}
-            </Text>
-            <TouchableOpacity onPress={handleLogin}>
-              <Text style={styles.loginText}>
-                {t('loginNow')}
-              </Text>
+            <TouchableOpacity 
+              style={[styles.socialButton, styles.vkButton]}
+              onPress={() => handleSocialRegister('vk')}
+            >
+              <MessageCircle size={24} color="white" />
+              <Text style={styles.socialButtonText}>VK</Text>
             </TouchableOpacity>
           </View>
-        )}
+        </View>
+        
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>
+            {t('haveAccount')}
+          </Text>
+          <TouchableOpacity onPress={handleLogin}>
+            <Text style={styles.loginText}>
+              {t('loginNow')}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -544,11 +520,6 @@ const styles = StyleSheet.create({
     flex: 1,
     lineHeight: 20,
   },
-  termsLink: {
-    color: Colors.primary,
-    textDecorationLine: 'underline',
-    fontWeight: '500',
-  },
   registerButton: {
     backgroundColor: Colors.primary,
     borderRadius: 8,
@@ -578,51 +549,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.primary,
     fontWeight: '500',
-  },
-  otpContainer: {
-    alignItems: 'center',
-  },
-  otpDescription: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: 24,
-    lineHeight: 20,
-  },
-  otpInputGroup: {
-    width: '100%',
-    marginBottom: 16,
-  },
-  otpInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  otpLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: Colors.text,
-    marginLeft: 8,
-  },
-  otpInput: {
-    backgroundColor: Colors.card,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 18,
-    color: Colors.text,
-    textAlign: 'center',
-    letterSpacing: 2,
-  },
-  backToFormButton: {
-    marginTop: 16,
-    padding: 12,
-  },
-  backToFormText: {
-    fontSize: 14,
-    color: Colors.primary,
-    textAlign: 'center',
   },
   profileImageSection: {
     alignItems: 'center',
