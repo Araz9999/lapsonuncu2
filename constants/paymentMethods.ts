@@ -7,15 +7,6 @@ export interface PaymentMethod {
 }
 
 export const paymentMethods: PaymentMethod[] = [
-  // Payriff - Bank kartları ilə ödəniş
-  {
-    id: 'payriff',
-    name: 'Payriff',
-    description: 'Bank kartı ilə təhlükəsiz ödəniş (Visa, Mastercard)',
-    category: 'bank',
-    icon: '💳'
-  },
-  
   // Mobil operatorlar
   {
     id: 'azercell',
