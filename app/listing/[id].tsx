@@ -10,7 +10,7 @@ import { useUserStore } from '@/store/userStore';
 import { useListingStore } from '@/store/listingStore';
 import { useCallStore } from '@/store/callStore';
 import { useDiscountStore } from '@/store/discountStore';
-import { listings } from '@/mocks/listings';
+// import { listings } from '@/mocks/listings'; // Removed - using store instead
 import { users } from '@/mocks/users';
 import { categories } from '@/constants/categories';
 import Colors from '@/constants/colors';
@@ -33,7 +33,15 @@ export default function ListingDetailScreen() {
   const [shareModalVisible, setShareModalVisible] = useState(false);
   const [showUserActionModal, setShowUserActionModal] = useState(false);
   
+  // Get listings from store instead of mock data
+  const { listings } = useListingStore();
+  
+  console.log('[ListingDetail] Looking for listing with ID:', id);
+  console.log('[ListingDetail] Available listings count:', listings.length);
+  console.log('[ListingDetail] Available listing IDs:', listings.map(l => l.id).slice(0, 10));
+  
   const listing = listings.find(item => item.id === id);
+  console.log('[ListingDetail] Found listing:', listing ? 'Yes' : 'No');
   
   // Get active discounts for this listing
   const activeDiscounts = listing?.storeId ? getActiveDiscounts(listing.storeId).filter(discount => 
@@ -151,10 +159,15 @@ export default function ListingDetailScreen() {
     }
   }, [id, incrementViewCount]);
   if (!listing) {
+    console.log('[ListingDetail] Listing not found. ID:', id);
+    console.log('[ListingDetail] All listing IDs:', listings.map(l => ({ id: l.id, title: l.title.az })));
     return (
       <View style={styles.notFound}>
         <Text style={styles.notFoundText}>
           {language === 'az' ? 'Elan tapılmadı' : 'Объявление не найдено'}
+        </Text>
+        <Text style={styles.notFoundSubtext}>
+          ID: {id}
         </Text>
       </View>
     );
@@ -778,6 +791,11 @@ const styles = StyleSheet.create({
   notFoundText: {
     fontSize: 16,
     color: Colors.textSecondary,
+  },
+  notFoundSubtext: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginTop: 8,
   },
   imageContainer: {
     position: 'relative',

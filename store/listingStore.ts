@@ -175,6 +175,7 @@ export const useListingStore = create<ListingState>((set, get) => ({
   },
   
   addListing: (listing) => {
+    console.log('[ListingStore] Adding listing:', listing.id, listing.title);
     set(state => ({
       listings: [listing, ...state.listings]
     }));
@@ -196,22 +197,31 @@ export const useListingStore = create<ListingState>((set, get) => ({
     }
     
     get().applyFilters();
+    console.log('[ListingStore] Listing added successfully. Total listings:', get().listings.length);
   },
 
   addListingToStore: async (listing, storeId) => {
-    // Add listing to main listings
+    console.log('[ListingStore] addListingToStore called:', { listingId: listing.id, storeId });
+    
+    // Add listing to main listings first
     const { addListing } = get();
     addListing(listing);
+    
+    // Verify listing was added
+    const addedListing = get().listings.find(l => l.id === listing.id);
+    console.log('[ListingStore] Listing verification after add:', addedListing ? 'Found' : 'Not found');
     
     // If storeId is provided, add to store and notify followers
     if (storeId) {
       try {
+        console.log('[ListingStore] Adding listing to store:', storeId);
         // Import store functions dynamically to avoid circular dependency
         const { useStoreStore } = await import('@/store/storeStore');
         const { addListingToStore } = useStoreStore.getState();
         await addListingToStore(storeId, listing.id);
+        console.log('[ListingStore] Successfully added listing to store');
       } catch (error) {
-        console.error('Failed to add listing to store:', error);
+        console.error('[ListingStore] Failed to add listing to store:', error);
       }
     }
   },
