@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, TextInput, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, TextInput, ActivityIndicator, RefreshControl, Linking, Platform } from 'react-native';
 import { Stack } from 'expo-router';
 import { useLanguageStore } from '@/store/languageStore';
 import { useUserStore } from '@/store/userStore';
@@ -15,11 +15,14 @@ export default function WalletScreen() {
   const [showTopUp, setShowTopUp] = useState(false);
   const [topUpAmount, setTopUpAmount] = useState('');
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const walletQuery = trpc.payriff.getWallet.useQuery(undefined, {
     refetchOnMount: true,
     refetchOnWindowFocus: false,
   });
+
+  const createOrderMutation = trpc.payriff.createOrder.useMutation();
 
   const [refreshing, setRefreshing] = useState(false);
 
@@ -33,7 +36,7 @@ export default function WalletScreen() {
     { id: 'card', name: 'Bank kartı', icon: CreditCard, color: '#4CAF50' },
   ];
 
-  const handleTopUp = () => {
+  const handleTopUp = async () => {
     if (!topUpAmount || parseFloat(topUpAmount) <= 0) {
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
@@ -51,22 +54,68 @@ export default function WalletScreen() {
     }
 
     const amount = parseFloat(topUpAmount);
-    addToWallet(amount);
     
-    // Add bonus for top-up (5% bonus)
-    const bonusAmount = amount * 0.05;
-    addBonus(bonusAmount);
+    try {
+      setIsProcessing(true);
+      
+      const result = await createOrderMutation.mutateAsync({
+        amount,
+        language: language === 'az' ? 'AZ' : 'RU',
+        currency: 'AZN',
+        description: language === 'az' 
+          ? `Balans artırılması - ${amount} AZN`
+          : `Пополнение баланса - ${amount} AZN`,
+        operation: 'PURCHASE',
+        metadata: {
+          type: 'wallet_topup',
+          userId: 'user_id_here',
+          amount: amount.toString(),
+        },
+      });
 
-    Alert.alert(
-      language === 'az' ? 'Uğurlu' : 'Успешно',
-      language === 'az' 
-        ? `${amount} AZN balansınıza əlavə edildi. ${bonusAmount.toFixed(2)} AZN bonus qazandınız!`
-        : `${amount} AZN добавлено на ваш баланс. Вы получили ${bonusAmount.toFixed(2)} AZN бонуса!`
-    );
+      console.log('Order created:', result);
 
-    setShowTopUp(false);
-    setTopUpAmount('');
-    setSelectedPaymentMethod('');
+      if (result.payload?.paymentUrl) {
+        const paymentUrl = result.payload.paymentUrl;
+        
+        if (Platform.OS === 'web') {
+          window.location.href = paymentUrl;
+        } else {
+          const supported = await Linking.canOpenURL(paymentUrl);
+          if (supported) {
+            await Linking.openURL(paymentUrl);
+          } else {
+            Alert.alert(
+              language === 'az' ? 'Xəta' : 'Ошибка',
+              language === 'az' 
+                ? 'Ödəniş səhifəsi açıla bilmədi'
+                : 'Не удалось открыть страницу оплаты'
+            );
+          }
+        }
+        
+        setShowTopUp(false);
+        setTopUpAmount('');
+        setSelectedPaymentMethod('');
+      } else {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' 
+            ? 'Ödəniş linki alına bilmədi'
+            : 'Не удалось получить ссылку на оплату'
+        );
+      }
+    } catch (error) {
+      console.error('Top-up error:', error);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' 
+          ? 'Ödəniş zamanı xəta baş verdi. Zəhmət olmasa yenidən cəhd edin.'
+          : 'Произошла ошибка при оплате. Пожалуйста, попробуйте снова.'
+      );
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const getOperationLabel = (operation: string) => {
@@ -245,12 +294,17 @@ export default function WalletScreen() {
               </TouchableOpacity>
               
               <TouchableOpacity 
-                style={styles.confirmButton}
+                style={[styles.confirmButton, isProcessing && styles.disabledButton]}
                 onPress={handleTopUp}
+                disabled={isProcessing}
               >
-                <Text style={styles.confirmButtonText}>
-                  {language === 'az' ? 'Ödə' : 'Оплатить'}
-                </Text>
+                {isProcessing ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <Text style={styles.confirmButtonText}>
+                    {language === 'az' ? 'Ödə' : 'Оплатить'}
+                  </Text>
+                )}
               </TouchableOpacity>
             </View>
           </View>
@@ -587,5 +641,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.primary,
     fontWeight: '600',
+  },
+  disabledButton: {
+    opacity: 0.6,
   },
 });
