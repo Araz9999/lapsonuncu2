@@ -437,8 +437,8 @@ export default function LiveChatScreen() {
 
           {currentChat.status !== 'closed' ? (
             <KeyboardAvoidingView
-              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-              keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+              behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+              keyboardVerticalOffset={0}
               style={styles.inputSection}
             >
               {showAttachments && (
