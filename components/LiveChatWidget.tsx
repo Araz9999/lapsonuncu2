@@ -11,8 +11,7 @@ import {
   Animated,
   Dimensions,
   Platform,
-  Keyboard,
-  KeyboardAvoidingView
+  Keyboard
 } from 'react-native';
 import { useLanguageStore } from '@/store/languageStore';
 import { useThemeStore } from '@/store/themeStore';
@@ -507,23 +506,19 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
               {showStartForm ? (
                 <StartChatForm />
               ) : currentChat ? (
-                <KeyboardAvoidingView
-                  style={styles.chatContent}
-                  behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                  keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-                >
+                <>
                   <ScrollView
                     ref={scrollViewRef}
                     style={styles.messagesContainer}
                     showsVerticalScrollIndicator={false}
                     keyboardShouldPersistTaps="handled"
-                    keyboardDismissMode="interactive"
+                    keyboardDismissMode="on-drag"
                     contentContainerStyle={{ paddingBottom: 20 }}
                     onContentSizeChange={() => {
                       if (!isScrolling && shouldScrollToEnd) {
                         setTimeout(() => {
-                          scrollViewRef.current?.scrollToEnd({ animated: true });
-                        }, 100);
+                          scrollViewRef.current?.scrollToEnd({ animated: false });
+                        }, 50);
                       }
                     }}
                     onScrollBeginDrag={() => {
@@ -558,7 +553,7 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
                   </ScrollView>
 
                   {currentChat.status !== 'closed' ? (
-                    <View style={styles.inputSection}>
+                    <View style={[styles.inputSection, { backgroundColor: colors.card }]}>
                       {showAttachments && (
                         <View style={[styles.attachmentsSection, { backgroundColor: colors.card }]}>
                           <FileAttachmentPicker
@@ -604,11 +599,13 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
                           value={message}
                           onChangeText={handleTyping}
                           multiline={false}
+                          numberOfLines={1}
                           returnKeyType="send"
                           onSubmitEditing={handleSendMessage}
                           blurOnSubmit={false}
                           autoCorrect
                           autoCapitalize="sentences"
+                          enablesReturnKeyAutomatically
                           keyboardAppearance={Platform.OS === 'ios' ? (themeMode === 'dark' ? 'dark' : 'light') : 'default'}
                           maxLength={1000}
                         />
@@ -649,7 +646,7 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
                       </TouchableOpacity>
                     </View>
                   )}
-                </KeyboardAvoidingView>
+                </>
               ) : (
                 <View style={styles.errorContainer}>
                   <Text style={[styles.errorText, { color: colors.textSecondary }]}>
@@ -808,8 +805,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   inputSection: {
-    backgroundColor: 'transparent',
-    minHeight: 60,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.1)',
   },
   messagesContainer: {
     flex: 1,
@@ -894,20 +891,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 12,
-    paddingBottom: Platform.OS === 'ios' ? 12 : 12,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.1)',
+    paddingBottom: Platform.OS === 'ios' ? 20 : 12,
   },
   messageInput: {
     flex: 1,
     borderWidth: 1,
     borderRadius: 20,
     paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 12,
+    paddingVertical: 12,
     fontSize: 16,
-    maxHeight: 100,
-    minHeight: 44,
+    height: 44,
     marginHorizontal: 8,
   },
   attachButton: {
