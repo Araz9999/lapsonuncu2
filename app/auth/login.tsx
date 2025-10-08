@@ -25,11 +25,19 @@ export default function LoginScreen() {
     }
     
     login(users[0]);
-    router.back();
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/');
+    }
   };
   
   const handleClose = () => {
-    router.back();
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/');
+    }
   };
   
   const handleRegister = () => {

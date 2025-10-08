@@ -109,7 +109,11 @@ export default function RegisterScreen() {
   };
   
   const handleClose = () => {
-    router.back();
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/');
+    }
   };
   
   const handleLogin = () => {
