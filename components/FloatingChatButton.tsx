@@ -82,7 +82,6 @@ export default function FloatingChatButton() {
             transform: [{ scale: pulseAnim }]
           }
         ]}
-        pointerEvents="box-none"
       >
         <TouchableOpacity
           testID="floating-chat-button"
@@ -149,6 +148,7 @@ const styles = StyleSheet.create({
     right: 20,
     zIndex: 9999,
     elevation: 9999,
+    pointerEvents: 'box-none',
   },
   button: {
     width: 56,
@@ -216,6 +216,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 4,
     pointerEvents: 'none',
+    opacity: 0,
   },
   tooltipText: {
     fontSize: 14,
