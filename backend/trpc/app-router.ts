@@ -19,6 +19,8 @@ import { createInvoiceProcedure } from "./routes/payriff/createInvoice/route";
 import { getInvoiceProcedure } from "./routes/payriff/getInvoice/route";
 import { transferProcedure } from "./routes/payriff/transfer/route";
 import { topupProcedure } from "./routes/payriff/topup/route";
+import { getWalletProcedure } from "./routes/payriff/getWallet/route";
+import { getWalletByIdProcedure } from "./routes/payriff/getWalletById/route";
 
 export const appRouter = createTRPCRouter({
   example: createTRPCRouter({
@@ -48,6 +50,8 @@ export const appRouter = createTRPCRouter({
     getInvoice: getInvoiceProcedure,
     transfer: transferProcedure,
     topup: topupProcedure,
+    getWallet: getWalletProcedure,
+    getWalletById: getWalletByIdProcedure,
   }),
 });
 

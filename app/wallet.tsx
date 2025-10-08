@@ -1,20 +1,33 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, TextInput } from 'react-native';
-import { useRouter } from 'expo-router';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, TextInput, ActivityIndicator, RefreshControl } from 'react-native';
 import { Stack } from 'expo-router';
 import { useLanguageStore } from '@/store/languageStore';
 import { useUserStore } from '@/store/userStore';
 import Colors from '@/constants/colors';
-import { Wallet, Gift, Plus, ArrowUpRight, ArrowDownLeft, CreditCard } from 'lucide-react-native';
+import { Wallet, Gift, Plus, ArrowUpRight, ArrowDownLeft, CreditCard, RefreshCw } from 'lucide-react-native';
+import { trpc } from '@/lib/trpc';
+import type { PayriffWalletHistory } from '@/services/payriffService';
 
 export default function WalletScreen() {
-  const router = useRouter();
   const { language } = useLanguageStore();
-  const { walletBalance, bonusBalance, addToWallet, addBonus, getTotalBalance } = useUserStore();
+  const { walletBalance, bonusBalance, addToWallet, addBonus } = useUserStore();
   
   const [showTopUp, setShowTopUp] = useState(false);
   const [topUpAmount, setTopUpAmount] = useState('');
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
+
+  const walletQuery = trpc.payriff.getWallet.useQuery(undefined, {
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+  });
+
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await walletQuery.refetch();
+    setRefreshing(false);
+  };
 
   const paymentMethods = [
     { id: 'card', name: 'Bank kartı', icon: CreditCard, color: '#4CAF50' },
@@ -56,29 +69,26 @@ export default function WalletScreen() {
     setSelectedPaymentMethod('');
   };
 
-  const transactions = [
-    {
-      id: 1,
-      type: 'topup',
-      amount: 50,
-      date: '2024-01-15',
-      description: language === 'az' ? 'Balans artırılması' : 'Пополнение баланса'
-    },
-    {
-      id: 2,
-      type: 'spend',
-      amount: -15,
-      date: '2024-01-14',
-      description: language === 'az' ? 'VIP elan' : 'VIP объявление'
-    },
-    {
-      id: 3,
-      type: 'bonus',
-      amount: 2.5,
-      date: '2024-01-15',
-      description: language === 'az' ? 'Bonus' : 'Бонус'
-    },
-  ];
+  const getOperationLabel = (operation: string) => {
+    const operationMap: Record<string, { az: string; ru: string }> = {
+      'TOPUP': { az: 'Balans artırılması', ru: 'Пополнение баланса' },
+      'SPEND': { az: 'Xərc', ru: 'Расход' },
+      'TRANSFER_IN': { az: 'Transfer (daxil olma)', ru: 'Перевод (входящий)' },
+      'TRANSFER_OUT': { az: 'Transfer (çıxış)', ru: 'Перевод (исходящий)' },
+      'PAYMENT': { az: 'Ödəniş', ru: 'Оплата' },
+      'REFUND': { az: 'Geri qaytarma', ru: 'Возврат' },
+      'BONUS': { az: 'Bonus', ru: 'Бонус' },
+    };
+
+    const mapped = operationMap[operation.toUpperCase()];
+    if (mapped) {
+      return language === 'az' ? mapped.az : mapped.ru;
+    }
+    return operation;
+  };
+
+  const transactions = walletQuery.data?.payload?.historyResponse || [];
+  const totalBalance = walletQuery.data?.payload?.totalBalance || 0;
 
   return (
     <>
@@ -90,23 +100,52 @@ export default function WalletScreen() {
         }} 
       />
       
-      <ScrollView style={styles.container}>
+      <ScrollView 
+        style={styles.container}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
         {/* Total Balance Card */}
         <View style={styles.balanceSection}>
-          <View style={[styles.balanceCard, styles.totalBalanceCard]}>
-            <View style={styles.balanceHeader}>
-              <Wallet size={28} color={Colors.primary} />
-              <Text style={styles.totalBalanceTitle}>
-                {language === 'az' ? 'Ümumi balans' : 'Общий баланс'}
+          {walletQuery.isLoading ? (
+            <View style={[styles.balanceCard, styles.totalBalanceCard]}>
+              <ActivityIndicator size="large" color={Colors.primary} />
+              <Text style={styles.loadingText}>
+                {language === 'az' ? 'Yüklənir...' : 'Загрузка...'}
               </Text>
             </View>
-            <Text style={styles.totalBalanceAmount}>{getTotalBalance().toFixed(2)} AZN</Text>
-            <Text style={styles.totalBalanceSubtext}>
-              {language === 'az' 
-                ? 'Elan yerləşdirmək üçün istifadə edilə bilər' 
-                : 'Можно использовать для размещения объявлений'}
-            </Text>
-          </View>
+          ) : walletQuery.error ? (
+            <View style={[styles.balanceCard, styles.totalBalanceCard]}>
+              <Text style={styles.errorText}>
+                {language === 'az' ? 'Xəta baş verdi' : 'Произошла ошибка'}
+              </Text>
+              <TouchableOpacity 
+                style={styles.retryButton}
+                onPress={() => walletQuery.refetch()}
+              >
+                <RefreshCw size={16} color={Colors.primary} />
+                <Text style={styles.retryButtonText}>
+                  {language === 'az' ? 'Yenidən cəhd et' : 'Попробовать снова'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={[styles.balanceCard, styles.totalBalanceCard]}>
+              <View style={styles.balanceHeader}>
+                <Wallet size={28} color={Colors.primary} />
+                <Text style={styles.totalBalanceTitle}>
+                  {language === 'az' ? 'Payriff balans' : 'Баланс Payriff'}
+                </Text>
+              </View>
+              <Text style={styles.totalBalanceAmount}>{totalBalance.toFixed(2)} AZN</Text>
+              <Text style={styles.totalBalanceSubtext}>
+                {language === 'az' 
+                  ? 'Payriff hesabınızdakı balans' 
+                  : 'Баланс на вашем счете Payriff'}
+              </Text>
+            </View>
+          )}
 
           <View style={styles.balanceBreakdown}>
             <View style={styles.balanceCard}>
@@ -238,31 +277,48 @@ export default function WalletScreen() {
             {language === 'az' ? 'Əməliyyat tarixçəsi' : 'История операций'}
           </Text>
           
-          {transactions.map((transaction) => (
-            <View key={transaction.id} style={styles.transactionItem}>
-              <View style={styles.transactionIcon}>
-                {transaction.type === 'topup' && <ArrowDownLeft size={20} color={Colors.success} />}
-                {transaction.type === 'spend' && <ArrowUpRight size={20} color={Colors.error} />}
-                {transaction.type === 'bonus' && <Gift size={20} color={Colors.secondary} />}
-              </View>
-              
-              <View style={styles.transactionDetails}>
-                <Text style={styles.transactionDescription}>
-                  {transaction.description}
-                </Text>
-                <Text style={styles.transactionDate}>
-                  {new Date(transaction.date).toLocaleDateString()}
-                </Text>
-              </View>
-              
-              <Text style={[
-                styles.transactionAmount,
-                transaction.amount > 0 ? styles.positiveAmount : styles.negativeAmount
-              ]}>
-                {transaction.amount > 0 ? '+' : ''}{transaction.amount} AZN
+          {walletQuery.isLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color={Colors.primary} />
+            </View>
+          ) : transactions.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>
+                {language === 'az' ? 'Əməliyyat tarixçəsi yoxdur' : 'История операций пуста'}
               </Text>
             </View>
-          ))}
+          ) : (
+            transactions.map((transaction: PayriffWalletHistory) => {
+              const isPositive = transaction.amount > 0;
+              return (
+                <View key={transaction.id} style={styles.transactionItem}>
+                  <View style={styles.transactionIcon}>
+                    {isPositive ? (
+                      <ArrowDownLeft size={20} color={Colors.success} />
+                    ) : (
+                      <ArrowUpRight size={20} color={Colors.error} />
+                    )}
+                  </View>
+                  
+                  <View style={styles.transactionDetails}>
+                    <Text style={styles.transactionDescription}>
+                      {getOperationLabel(transaction.operation)}
+                    </Text>
+                    <Text style={styles.transactionDate}>
+                      {language === 'az' ? 'Balans' : 'Баланс'}: {transaction.balance.toFixed(2)} AZN
+                    </Text>
+                  </View>
+                  
+                  <Text style={[
+                    styles.transactionAmount,
+                    isPositive ? styles.positiveAmount : styles.negativeAmount
+                  ]}>
+                    {isPositive ? '+' : ''}{transaction.amount.toFixed(2)} AZN
+                  </Text>
+                </View>
+              );
+            })
+          )}
         </View>
       </ScrollView>
     </>
@@ -493,5 +549,43 @@ const styles = StyleSheet.create({
   },
   negativeAmount: {
     color: Colors.error,
+  },
+  loadingContainer: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  emptyContainer: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    marginTop: 12,
+  },
+  errorText: {
+    fontSize: 16,
+    color: Colors.error,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  retryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+  },
+  retryButtonText: {
+    fontSize: 14,
+    color: Colors.primary,
+    fontWeight: '600',
   },
 });
