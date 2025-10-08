@@ -204,6 +204,70 @@ export interface PayriffWalletByIdResponse {
   applicationStatus: string;
 }
 
+export interface PayriffCreateOrderRequest {
+  amount: number;
+  language?: 'EN' | 'AZ' | 'RU';
+  currency?: 'AZN' | 'USD' | 'EUR';
+  description: string;
+  callbackUrl?: string;
+  cardSave?: boolean;
+  operation?: 'PURCHASE' | 'PRE_AUTH';
+  metadata?: Record<string, string>;
+}
+
+export interface PayriffCreateOrderResponse {
+  code: string;
+  message: string;
+  route: string;
+  internalMessage: string | null;
+  responseId: string;
+  payload: {
+    orderId: string;
+    paymentUrl: string;
+    transactionId: number;
+  };
+}
+
+export interface PayriffOrderInfoResponse {
+  code: string;
+  message: string;
+  route: string;
+  internalMessage: string | null;
+  responseId: string;
+  payload: {
+    orderId: string;
+    amount: number;
+    currencyType: string;
+    merchantName: string;
+    operationType: string;
+    paymentStatus: string;
+    auto: boolean;
+    createdDate: string;
+    description: string;
+    transactions: {
+      uuid: string;
+      createdDate: string;
+      status: string;
+      channel: string;
+      channelType: string;
+      requestRrn: string;
+      responseRrn: string;
+      pan: string;
+      paymentWay: string;
+      cardDetails: {
+        maskedPan: string;
+        brand: string;
+        cardHolderName: string;
+      };
+      merchantCategory: string;
+      installment?: {
+        type: string;
+        period: string;
+      };
+    }[];
+  };
+}
+
 class PayriffService {
   private merchantId: string;
   private secretKey: string;
@@ -561,6 +625,76 @@ class PayriffService {
       return data;
     } catch (error) {
       console.error('Payriff get wallet by ID failed:', error);
+      throw error;
+    }
+  }
+
+  async createOrder(request: PayriffCreateOrderRequest): Promise<PayriffCreateOrderResponse> {
+    try {
+      const frontendUrl = config.FRONTEND_URL || 'https://1r36dhx42va8pxqbqz5ja.rork.app';
+      
+      const requestBody = {
+        amount: request.amount,
+        language: request.language || 'EN',
+        currency: request.currency || 'AZN',
+        description: request.description,
+        callbackUrl: request.callbackUrl || `${frontendUrl}/payment/success`,
+        cardSave: request.cardSave || false,
+        operation: request.operation || 'PURCHASE',
+        metadata: request.metadata,
+      };
+
+      console.log('Create order request:', JSON.stringify(requestBody, null, 2));
+
+      const response = await fetch(`${this.baseUrl}/api/v3/orders`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': this.secretKey,
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Create order error:', errorData);
+        throw new Error(errorData.message || 'Failed to create order');
+      }
+
+      const data = await response.json();
+      console.log('Create order response:', JSON.stringify(data, null, 2));
+
+      return data;
+    } catch (error) {
+      console.error('Payriff create order failed:', error);
+      throw error;
+    }
+  }
+
+  async getOrderInfo(orderId: string): Promise<PayriffOrderInfoResponse> {
+    try {
+      console.log('Fetching order info:', orderId);
+
+      const response = await fetch(`${this.baseUrl}/api/v3/orders/${orderId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': this.secretKey,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Get order info error:', errorData);
+        throw new Error(errorData.message || 'Failed to get order information');
+      }
+
+      const data = await response.json();
+      console.log('Get order info response:', JSON.stringify(data, null, 2));
+
+      return data;
+    } catch (error) {
+      console.error('Payriff get order info failed:', error);
       throw error;
     }
   }
