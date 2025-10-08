@@ -16,6 +16,7 @@ import { saveCardProcedure } from "./routes/payriff/saveCard/route";
 import { getSavedCardsProcedure } from "./routes/payriff/getSavedCards/route";
 import { deleteCardProcedure } from "./routes/payriff/deleteCard/route";
 import { createInvoiceProcedure } from "./routes/payriff/createInvoice/route";
+import { getInvoiceProcedure } from "./routes/payriff/getInvoice/route";
 
 export const appRouter = createTRPCRouter({
   example: createTRPCRouter({
@@ -42,6 +43,7 @@ export const appRouter = createTRPCRouter({
     getSavedCards: getSavedCardsProcedure,
     deleteCard: deleteCardProcedure,
     createInvoice: createInvoiceProcedure,
+    getInvoice: getInvoiceProcedure,
   }),
 });
 
