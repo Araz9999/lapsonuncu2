@@ -21,6 +21,8 @@ import { transferProcedure } from "./routes/payriff/transfer/route";
 import { topupProcedure } from "./routes/payriff/topup/route";
 import { getWalletProcedure } from "./routes/payriff/getWallet/route";
 import { getWalletByIdProcedure } from "./routes/payriff/getWalletById/route";
+import { createOrderProcedure } from "./routes/payriff/createOrder/route";
+import { getOrderProcedure } from "./routes/payriff/getOrder/route";
 
 export const appRouter = createTRPCRouter({
   example: createTRPCRouter({
@@ -52,6 +54,8 @@ export const appRouter = createTRPCRouter({
     topup: topupProcedure,
     getWallet: getWalletProcedure,
     getWalletById: getWalletByIdProcedure,
+    createOrder: createOrderProcedure,
+    getOrder: getOrderProcedure,
   }),
 });
 
