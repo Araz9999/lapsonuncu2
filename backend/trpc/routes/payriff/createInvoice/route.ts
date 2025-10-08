@@ -21,7 +21,7 @@ export const createInvoiceProcedure = protectedProcedure
       sendEmail: z.boolean().optional(),
       amountDynamic: z.boolean().optional(),
       directPay: z.boolean().optional(),
-      metadata: z.record(z.string()).optional(),
+      metadata: z.record(z.string(), z.string()).optional(),
     })
   )
   .mutation(async ({ ctx, input }) => {
