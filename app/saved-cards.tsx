@@ -9,29 +9,25 @@ import {
   Alert,
   TextInput,
   Modal,
+  RefreshControl,
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CreditCard, Trash2, Plus, DollarSign, X } from 'lucide-react-native';
 import { payriffService } from '@/services/payriffService';
 import Colors from '@/constants/colors';
-
-interface SavedCard {
-  id: string;
-  cardUuid: string;
-  pan: string;
-  brand: string;
-  cardHolderName: string;
-  savedAt: string;
-}
+import { trpc } from '@/lib/trpc';
 
 export default function SavedCardsScreen() {
   const router = useRouter();
   
-  const [savedCards, setSavedCards] = useState<SavedCard[]>([]);
-  const [loading, setLoading] = useState(false);
+  const { data: cardsData, isLoading, refetch } = trpc.payriff.getSavedCards.useQuery();
+  const deleteCardMutation = trpc.payriff.deleteCard.useMutation();
+  
+  const savedCards = cardsData?.cards || [];
+  const [refreshing, setRefreshing] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [selectedCard, setSelectedCard] = useState<SavedCard | null>(null);
+  const [selectedCard, setSelectedCard] = useState<any>(null);
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentDescription, setPaymentDescription] = useState('');
   const [processingPayment, setProcessingPayment] = useState(false);
@@ -40,7 +36,13 @@ export default function SavedCardsScreen() {
     router.push('/payment/card-save');
   };
 
-  const handleDeleteCard = (card: SavedCard) => {
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  };
+
+  const handleDeleteCard = (card: any) => {
     Alert.alert(
       'Kartı Sil',
       `${card.pan} nömrəli kartı silmək istədiyinizdən əminsiniz?`,
@@ -49,16 +51,22 @@ export default function SavedCardsScreen() {
         {
           text: 'Sil',
           style: 'destructive',
-          onPress: () => {
-            setSavedCards(prev => prev.filter(c => c.id !== card.id));
-            Alert.alert('Uğurlu', 'Kart silindi');
+          onPress: async () => {
+            try {
+              await deleteCardMutation.mutateAsync({ cardId: card.id });
+              await refetch();
+              Alert.alert('Uğurlu', 'Kart silindi');
+            } catch (error) {
+              console.error('Delete card error:', error);
+              Alert.alert('Xəta', 'Kartı silmək mümkün olmadı');
+            }
           },
         },
       ]
     );
   };
 
-  const handlePayWithCard = (card: SavedCard) => {
+  const handlePayWithCard = (card: any) => {
     setSelectedCard(card);
     setPaymentAmount('');
     setPaymentDescription('');
@@ -134,13 +142,24 @@ export default function SavedCardsScreen() {
         }}
       />
 
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+      <ScrollView 
+        style={styles.content} 
+        contentContainerStyle={styles.contentContainer}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
+      >
         <TouchableOpacity style={styles.addButton} onPress={handleAddCard}>
           <Plus size={24} color="#fff" />
           <Text style={styles.addButtonText}>Yeni Kart Əlavə Et</Text>
         </TouchableOpacity>
 
-        {savedCards.length === 0 ? (
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={Colors.primary} />
+            <Text style={styles.loadingText}>Kartlar yüklənir...</Text>
+          </View>
+        ) : savedCards.length === 0 ? (
           <View style={styles.emptyContainer}>
             <CreditCard size={64} color={Colors.textSecondary} />
             <Text style={styles.emptyTitle}>Yadda saxlanmış kart yoxdur</Text>
@@ -458,5 +477,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700' as const,
     color: '#fff',
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: Colors.textSecondary,
+    marginTop: 12,
   },
 });
