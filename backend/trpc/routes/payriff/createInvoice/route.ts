@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { protectedProcedure } from '../../../create-context';
 import config from '@/constants/config';
+import { PayriffResponse, isPayriffSuccess, getPayriffErrorMessage } from '@/constants/payriffCodes';
 
 export const createInvoiceProcedure = protectedProcedure
   .input(
@@ -71,14 +72,14 @@ export const createInvoiceProcedure = protectedProcedure
       body: JSON.stringify(requestBody),
     });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error('Create invoice error:', errorData);
-      throw new Error(errorData.message || 'Failed to create invoice');
-    }
-
-    const data = await response.json();
+    const data: PayriffResponse = await response.json();
     console.log('Create invoice response:', JSON.stringify(data, null, 2));
+
+    if (!response.ok || !isPayriffSuccess(data)) {
+      const errorMessage = getPayriffErrorMessage(data);
+      console.error('Create invoice error:', errorMessage);
+      throw new Error(errorMessage);
+    }
 
     return data;
   });
