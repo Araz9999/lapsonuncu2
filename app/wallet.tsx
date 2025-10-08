@@ -22,7 +22,8 @@ export default function WalletScreen() {
   const paymentMethods = [
     { 
       id: 'payriff', 
-      name: language === 'az' ? 'Payriff (Bank kartı)' : 'Payriff (Банковская карта)', 
+      name: language === 'az' ? 'Payriff ödəniş şəbəkəsi' : 'Платежный шлюз Payriff', 
+      description: language === 'az' ? 'Bank kartı və digər ödəniş üsulları' : 'Банковские карты и другие способы оплаты',
       icon: CreditCard, 
       color: '#0E7490',
       enabled: paymentService.isPayriffConfigured()
@@ -252,6 +253,11 @@ export default function WalletScreen() {
                         <Text style={[styles.paymentMethodText, !method.enabled && styles.disabledText]}>
                           {method.name}
                         </Text>
+                        {method.description && (
+                          <Text style={styles.paymentMethodDescription}>
+                            {method.description}
+                          </Text>
+                        )}
                         {!method.enabled && (
                           <Text style={styles.disabledHint}>
                             {language === 'az' ? 'Tezliklə' : 'Скоро'}
@@ -586,5 +592,10 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     opacity: 0.6,
+  },
+  paymentMethodDescription: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginTop: 2,
   },
 });
