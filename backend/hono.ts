@@ -4,6 +4,7 @@ import { cors } from "hono/cors";
 import { appRouter } from "./trpc/app-router";
 import { createContext } from "./trpc/create-context";
 import authRoutes from "./routes/auth";
+import payriffWebhook from "./routes/payriff-webhook";
 
 const app = new Hono();
 
@@ -21,6 +22,7 @@ app.use(
 );
 
 app.route("/auth", authRoutes);
+app.route("/payriff", payriffWebhook);
 
 app.get("/", (c) => {
   return c.json({ status: "ok", message: "API is running" });
