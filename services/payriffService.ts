@@ -176,6 +176,34 @@ export interface PayriffTopupResponse {
   payload: string;
 }
 
+export interface PayriffWalletHistory {
+  id: number;
+  active: boolean;
+  balance: number;
+  amount: number;
+  operation: string;
+}
+
+export interface PayriffWalletResponse {
+  code: string;
+  message: string;
+  route: string;
+  internalMessage: string | null;
+  payload: {
+    historyResponse: PayriffWalletHistory[];
+    totalBalance: number;
+  };
+}
+
+export interface PayriffWalletByIdResponse {
+  id: number;
+  active: boolean;
+  balance: number;
+  appId: number;
+  userId: number;
+  applicationStatus: string;
+}
+
 class PayriffService {
   private merchantId: string;
   private secretKey: string;
@@ -477,6 +505,62 @@ class PayriffService {
       return data;
     } catch (error) {
       console.error('Payriff topup failed:', error);
+      throw error;
+    }
+  }
+
+  async getWallet(): Promise<PayriffWalletResponse> {
+    try {
+      console.log('Fetching wallet data...');
+
+      const response = await fetch(`${this.baseUrl}/api/v2/wallet`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': this.secretKey,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Get wallet error:', errorData);
+        throw new Error(errorData.message || 'Failed to get wallet data');
+      }
+
+      const data = await response.json();
+      console.log('Get wallet response:', JSON.stringify(data, null, 2));
+
+      return data;
+    } catch (error) {
+      console.error('Payriff get wallet failed:', error);
+      throw error;
+    }
+  }
+
+  async getWalletById(id: number): Promise<PayriffWalletByIdResponse> {
+    try {
+      console.log('Fetching wallet by ID:', id);
+
+      const response = await fetch(`${this.baseUrl}/api/v2/wallet/${id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': this.secretKey,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Get wallet by ID error:', errorData);
+        throw new Error(errorData.message || 'Failed to get wallet by ID');
+      }
+
+      const data = await response.json();
+      console.log('Get wallet by ID response:', JSON.stringify(data, null, 2));
+
+      return data;
+    } catch (error) {
+      console.error('Payriff get wallet by ID failed:', error);
       throw error;
     }
   }
