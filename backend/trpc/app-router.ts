@@ -12,6 +12,9 @@ import { verifyEmailProcedure } from "./routes/auth/verifyEmail/route";
 import { resendVerificationProcedure } from "./routes/auth/resendVerification/route";
 import { forgotPasswordProcedure } from "./routes/auth/forgotPassword/route";
 import { resetPasswordProcedure } from "./routes/auth/resetPassword/route";
+import { saveCardProcedure } from "./routes/payriff/saveCard/route";
+import { getSavedCardsProcedure } from "./routes/payriff/getSavedCards/route";
+import { deleteCardProcedure } from "./routes/payriff/deleteCard/route";
 
 export const appRouter = createTRPCRouter({
   example: createTRPCRouter({
@@ -32,6 +35,11 @@ export const appRouter = createTRPCRouter({
     sendMessage,
     markAsRead,
     closeConversation,
+  }),
+  payriff: createTRPCRouter({
+    saveCard: saveCardProcedure,
+    getSavedCards: getSavedCardsProcedure,
+    deleteCard: deleteCardProcedure,
   }),
 });
 

@@ -1,9 +1,10 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CheckCircle } from 'lucide-react-native';
 import Colors from '@/constants/colors';
+import { trpc } from '@/lib/trpc';
 
 export default function PaymentSuccessScreen() {
   const params = useLocalSearchParams();
@@ -11,15 +12,42 @@ export default function PaymentSuccessScreen() {
 
   const orderId = params.orderId as string;
   const amount = params.amount as string;
-  const cardUuid = params.cardUuid as string;
+  const cardUuid = params.cardUuid as string || params.cardUID as string;
+  const pan = params.pan as string;
+  const brand = params.brand as string;
+  const cardHolderName = params.cardHolderName as string;
+
+  const [savingCard, setSavingCard] = useState(false);
+  const [cardSaved, setCardSaved] = useState(false);
+
+  const saveCardMutation = trpc.payriff.saveCard.useMutation();
 
   useEffect(() => {
-    console.log('Payment success:', { orderId, amount, cardUuid });
+    console.log('Payment success:', { orderId, amount, cardUuid, pan, brand, cardHolderName });
     
-    if (cardUuid) {
-      console.log('Card saved successfully! Card UUID:', cardUuid);
+    if (cardUuid && pan && brand && !cardSaved && !savingCard) {
+      setSavingCard(true);
+      saveCardMutation.mutate(
+        {
+          cardUuid,
+          pan,
+          brand,
+          cardHolderName: cardHolderName || '',
+        },
+        {
+          onSuccess: () => {
+            console.log('Card saved successfully!');
+            setCardSaved(true);
+            setSavingCard(false);
+          },
+          onError: (error) => {
+            console.error('Failed to save card:', error);
+            setSavingCard(false);
+          },
+        }
+      );
     }
-  }, [orderId, amount, cardUuid]);
+  }, [orderId, amount, cardUuid, pan, brand, cardHolderName]);
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -58,10 +86,26 @@ export default function PaymentSuccessScreen() {
         {cardUuid && (
           <View style={[styles.detailsCard, styles.cardSavedCard]}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.cardSavedTitle}>✓ Kart Yadda Saxlanıldı</Text>
-              <Text style={styles.cardSavedText}>
-                Kartınız təhlükəsiz şəkildə yadda saxlanıldı. Gələcək ödənişləri daha sürətli edə bilərsiniz.
-              </Text>
+              {savingCard ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <ActivityIndicator size="small" color="#2e7d32" />
+                  <Text style={styles.cardSavedTitle}>Kart yadda saxlanılır...</Text>
+                </View>
+              ) : cardSaved ? (
+                <>
+                  <Text style={styles.cardSavedTitle}>✓ Kart Yadda Saxlanıldı</Text>
+                  <Text style={styles.cardSavedText}>
+                    Kartınız təhlükəsiz şəkildə yadda saxlanıldı. Gələcək ödənişləri daha sürətli edə bilərsiniz.
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Text style={styles.cardSavedTitle}>✓ Kart Yadda Saxlanıldı</Text>
+                  <Text style={styles.cardSavedText}>
+                    Kartınız təhlükəsiz şəkildə yadda saxlanıldı. Gələcək ödənişləri daha sürətli edə bilərsiniz.
+                  </Text>
+                </>
+              )}
             </View>
           </View>
         )}

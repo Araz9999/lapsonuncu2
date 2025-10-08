@@ -195,7 +195,7 @@ class PayriffService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.secretKey}`,
+          'Authorization': this.secretKey,
         },
         body: JSON.stringify(requestBody),
       });
@@ -218,13 +218,18 @@ class PayriffService {
 
   async autoPay(request: PayriffAutoPayRequest): Promise<PayriffCardSaveResult> {
     try {
+      const frontendUrl = config.FRONTEND_URL || 'https://1r36dhx42va8pxqbqz5ja.rork.app';
+      
       const requestBody = {
         body: {
           amount: request.amount,
+          approveURL: `${frontendUrl}/payment/success`,
+          cancelURL: `${frontendUrl}/payment/cancel`,
+          declineURL: `${frontendUrl}/payment/error`,
           cardUuid: request.cardUuid,
           description: request.description,
           orderId: request.orderId,
-          currencyType: request.currencyType || 'AZN',
+          sessionId: '',
         },
         merchant: this.merchantId,
       };
@@ -235,7 +240,7 @@ class PayriffService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.secretKey}`,
+          'Authorization': this.secretKey,
         },
         body: JSON.stringify(requestBody),
       });
