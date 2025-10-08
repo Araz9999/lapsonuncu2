@@ -1,199 +1,169 @@
 import crypto from 'crypto';
 
-export interface PayriffOrderRequest {
+export interface PayriffPaymentData {
   amount: number;
-  currency: string;
-  description: string;
   orderId: string;
-  callbackUrl: string;
-  cancelUrl: string;
+  description: string;
+  language?: 'az' | 'en' | 'ru';
+  customerEmail?: string;
+  customerPhone?: string;
 }
 
-export interface PayriffOrderResponse {
+export interface PayriffPaymentResponse {
   success: boolean;
-  orderId: string;
   paymentUrl?: string;
+  transactionId?: string;
   error?: string;
 }
 
-export interface PayriffPaymentStatus {
+export interface PayriffTransactionStatus {
+  transactionId: string;
   orderId: string;
-  status: 'PENDING' | 'APPROVED' | 'DECLINED' | 'CANCELED' | 'REFUNDED';
+  status: 'pending' | 'approved' | 'declined' | 'cancelled';
   amount: number;
   currency: string;
-  transactionId?: string;
-  errorMessage?: string;
+  createdAt: string;
+  approvedAt?: string;
 }
 
 class PayriffService {
   private merchantId: string;
   private secretKey: string;
   private apiUrl: string;
+  private environment: string;
 
   constructor() {
     this.merchantId = process.env.PAYRIFF_MERCHANT_ID || '';
     this.secretKey = process.env.PAYRIFF_SECRET_KEY || '';
-    this.apiUrl = process.env.PAYRIFF_API_URL || 'https://api.payriff.com';
+    this.apiUrl = process.env.PAYRIFF_API_URL || 'https://api.payriff.com/api/v2';
+    this.environment = process.env.PAYRIFF_ENVIRONMENT || 'production';
+
+    if (!this.merchantId || !this.secretKey) {
+      console.warn('Payriff credentials not configured');
+    }
   }
 
-  private generateSignature(data: Record<string, any>): string {
-    const sortedKeys = Object.keys(data).sort();
-    const signatureString = sortedKeys
-      .map(key => `${key}=${data[key]}`)
-      .join('&');
-    
-    return crypto
-      .createHmac('sha256', this.secretKey)
-      .update(signatureString)
-      .digest('hex');
+  private generateSignature(data: string): string {
+    return crypto.createHash('sha256').update(data).digest('hex');
   }
 
-  async createOrder(orderData: PayriffOrderRequest): Promise<PayriffOrderResponse> {
+  private getCallbackUrls() {
+    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:8081';
+    return {
+      successUrl: `${baseUrl}/payment/success`,
+      errorUrl: `${baseUrl}/payment/error`,
+      callbackUrl: `${baseUrl}/api/payriff-callback`,
+    };
+  }
+
+  async createPayment(data: PayriffPaymentData): Promise<PayriffPaymentResponse> {
     try {
-      if (!this.isConfigured()) {
-        throw new Error('Payriff is not configured. Please set PAYRIFF_MERCHANT_ID and PAYRIFF_SECRET_KEY');
+      if (!this.merchantId || !this.secretKey) {
+        throw new Error('Payriff credentials not configured');
       }
 
-      const requestData = {
+      const amountInQepik = Math.round(data.amount * 100);
+      const signString = `${this.merchantId}${data.orderId}${amountInQepik}${this.secretKey}`;
+      const signature = this.generateSignature(signString);
+
+      const urls = this.getCallbackUrls();
+
+      const paymentData = {
         merchantId: this.merchantId,
-        amount: Math.round(orderData.amount * 100),
-        currency: orderData.currency,
-        description: orderData.description,
-        orderId: orderData.orderId,
-        callbackUrl: orderData.callbackUrl,
-        cancelUrl: orderData.cancelUrl,
-        timestamp: Date.now().toString(),
+        amount: amountInQepik,
+        currency: 'AZN',
+        orderId: data.orderId,
+        description: data.description,
+        language: data.language || 'az',
+        signature: signature,
+        ...urls,
       };
 
-      const signature = this.generateSignature(requestData);
+      console.log('Creating Payriff payment:', {
+        orderId: data.orderId,
+        amount: amountInQepik,
+        merchantId: this.merchantId,
+      });
 
-      const response = await fetch(`${this.apiUrl}/v1/orders/create`, {
+      const response = await fetch(`${this.apiUrl}/transactions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Merchant-Id': this.merchantId,
-          'X-Signature': signature,
+          'Authorization': `Bearer ${this.secretKey}`,
         },
-        body: JSON.stringify(requestData),
+        body: JSON.stringify(paymentData),
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Failed to create Payriff order');
+        console.error('Payriff API error:', errorData);
+        throw new Error(errorData.message || 'Failed to create payment');
       }
 
-      const data = await response.json();
+      const result = await response.json();
 
       return {
         success: true,
-        orderId: data.orderId,
-        paymentUrl: data.paymentUrl,
+        paymentUrl: result.paymentUrl,
+        transactionId: result.transactionId,
       };
     } catch (error) {
-      console.error('Payriff order creation failed:', error);
+      console.error('Payriff payment creation error:', error);
       return {
         success: false,
-        orderId: orderData.orderId,
         error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
 
-  async getPaymentStatus(orderId: string): Promise<PayriffPaymentStatus> {
+  async getTransactionStatus(transactionId: string): Promise<PayriffTransactionStatus | null> {
     try {
-      if (!this.isConfigured()) {
-        throw new Error('Payriff is not configured');
+      if (!this.merchantId || !this.secretKey) {
+        throw new Error('Payriff credentials not configured');
       }
 
-      const requestData = {
-        merchantId: this.merchantId,
-        orderId,
-        timestamp: Date.now().toString(),
-      };
+      const signString = `${this.merchantId}${transactionId}${this.secretKey}`;
+      const signature = this.generateSignature(signString);
 
-      const signature = this.generateSignature(requestData);
+      const url = new URL(`${this.apiUrl}/transactions/${transactionId}`);
+      url.searchParams.append('merchantId', this.merchantId);
+      url.searchParams.append('signature', signature);
 
-      const response = await fetch(`${this.apiUrl}/v1/orders/status`, {
-        method: 'POST',
+      const response = await fetch(url.toString(), {
+        method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
-          'X-Merchant-Id': this.merchantId,
-          'X-Signature': signature,
+          'Authorization': `Bearer ${this.secretKey}`,
         },
-        body: JSON.stringify(requestData),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to get payment status');
+        throw new Error('Failed to get transaction status');
       }
 
-      const data = await response.json();
-
-      return {
-        orderId: data.orderId,
-        status: data.status,
-        amount: data.amount / 100,
-        currency: data.currency,
-        transactionId: data.transactionId,
-        errorMessage: data.errorMessage,
-      };
+      const result = await response.json();
+      return result;
     } catch (error) {
-      console.error('Failed to get Payriff payment status:', error);
-      throw error;
+      console.error('Payriff transaction status error:', error);
+      return null;
     }
   }
 
-  async refundPayment(orderId: string, amount?: number): Promise<boolean> {
+  verifyWebhookSignature(body: any, receivedSignature: string): boolean {
     try {
-      if (!this.isConfigured()) {
-        throw new Error('Payriff is not configured');
-      }
-
-      const requestData = {
-        merchantId: this.merchantId,
-        orderId,
-        amount: amount ? Math.round(amount * 100) : undefined,
-        timestamp: Date.now().toString(),
-      };
-
-      const signature = this.generateSignature(requestData);
-
-      const response = await fetch(`${this.apiUrl}/v1/orders/refund`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Merchant-Id': this.merchantId,
-          'X-Signature': signature,
-        },
-        body: JSON.stringify(requestData),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to refund payment');
-      }
-
-      const data = await response.json();
-      return data.success === true;
+      const computedSignature = this.generateSignature(
+        JSON.stringify(body) + this.secretKey
+      );
+      return receivedSignature === computedSignature;
     } catch (error) {
-      console.error('Payriff refund failed:', error);
-      return false;
-    }
-  }
-
-  verifyCallback(callbackData: Record<string, any>, receivedSignature: string): boolean {
-    try {
-      const calculatedSignature = this.generateSignature(callbackData);
-      return calculatedSignature === receivedSignature;
-    } catch (error) {
-      console.error('Signature verification failed:', error);
+      console.error('Signature verification error:', error);
       return false;
     }
   }
 
   isConfigured(): boolean {
-    return (
-      !!this.merchantId &&
-      !!this.secretKey &&
+    return Boolean(
+      this.merchantId &&
+      this.secretKey &&
       !this.merchantId.includes('your-') &&
       !this.secretKey.includes('your-')
     );
