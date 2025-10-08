@@ -4,7 +4,6 @@ import { cors } from "hono/cors";
 import { appRouter } from "./trpc/app-router";
 import { createContext } from "./trpc/create-context";
 import authRoutes from "./routes/auth";
-import paymentRoutes from "./routes/payments";
 
 const app = new Hono();
 
@@ -22,7 +21,6 @@ app.use(
 );
 
 app.route("/auth", authRoutes);
-app.route("/api/payments", paymentRoutes);
 
 app.get("/", (c) => {
   return c.json({ status: "ok", message: "API is running" });
