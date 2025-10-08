@@ -17,8 +17,6 @@ export const API_CONFIG = {
     default: 'pk_test_your_stripe_mobile_key_here'
   }),
   PAYPAL_CLIENT_ID: 'your-paypal-client-id-here',
-  PAYRIFF_MERCHANT_ID: 'your-payriff-merchant-id-here',
-  PAYRIFF_API_URL: 'https://api.payriff.com',
   
   // Push Notifications
   EXPO_PUSH_TOKEN: 'your-expo-push-token-here',

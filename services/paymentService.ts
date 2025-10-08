@@ -21,14 +21,10 @@ export interface PaymentIntent {
 class PaymentService {
   private stripeKey: string;
   private paypalClientId: string;
-  private payriffMerchantId: string;
-  private payriffApiUrl: string;
 
   constructor() {
     this.stripeKey = config.STRIPE_PUBLISHABLE_KEY as string;
     this.paypalClientId = config.PAYPAL_CLIENT_ID as string;
-    this.payriffMerchantId = config.PAYRIFF_MERCHANT_ID as string;
-    this.payriffApiUrl = config.PAYRIFF_API_URL as string;
   }
 
   async initializeStripe() {
@@ -145,57 +141,6 @@ class PaymentService {
       console.error('PayPal payment failed:', error);
       throw error;
     }
-  }
-
-  async createPayriffOrder(amount: number, currency: string = 'AZN', userId: string, description?: string) {
-    try {
-      const response = await fetch(`${config.BASE_URL}/payments/payriff/create-order`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          amount,
-          currency,
-          userId,
-          description: description || 'Wallet top-up',
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to create Payriff order');
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Payriff payment failed:', error);
-      throw error;
-    }
-  }
-
-  async getPayriffPaymentStatus(orderId: string) {
-    try {
-      const response = await fetch(`${config.BASE_URL}/payments/payriff/status/${orderId}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to get payment status');
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Failed to get Payriff payment status:', error);
-      throw error;
-    }
-  }
-
-  isPayriffConfigured(): boolean {
-    return !this.payriffMerchantId.includes('your-');
   }
 
   isConfigured(): boolean {
