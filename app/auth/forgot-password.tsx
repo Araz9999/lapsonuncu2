@@ -86,11 +86,19 @@ export default function ForgotPasswordScreen() {
   };
   
   const handleClose = () => {
-    router.back();
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/');
+    }
   };
   
   const handleBackToLogin = () => {
-    router.back();
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/');
+    }
   };
   
   const handleResendCode = () => {
