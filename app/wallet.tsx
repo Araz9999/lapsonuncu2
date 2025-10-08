@@ -1,26 +1,62 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, TextInput } from 'react-native';
-import { useRouter } from 'expo-router';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, TextInput, Linking, ActivityIndicator, Platform } from 'react-native';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Stack } from 'expo-router';
 import { useLanguageStore } from '@/store/languageStore';
 import { useUserStore } from '@/store/userStore';
 import Colors from '@/constants/colors';
 import { Wallet, Gift, Plus, ArrowUpRight, ArrowDownLeft, CreditCard } from 'lucide-react-native';
+import { paymentService } from '@/services/paymentService';
 
 export default function WalletScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const { language } = useLanguageStore();
-  const { walletBalance, bonusBalance, addToWallet, addBonus, getTotalBalance } = useUserStore();
+  const { walletBalance, bonusBalance, addToWallet, addBonus, getTotalBalance, currentUser } = useUserStore();
   
   const [showTopUp, setShowTopUp] = useState(false);
   const [topUpAmount, setTopUpAmount] = useState('');
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const paymentMethods = [
-    { id: 'card', name: 'Bank kartı', icon: CreditCard, color: '#4CAF50' },
+    { 
+      id: 'payriff', 
+      name: language === 'az' ? 'Payriff (Bank kartı)' : 'Payriff (Банковская карта)', 
+      icon: CreditCard, 
+      color: '#0E7490',
+      enabled: paymentService.isPayriffConfigured()
+    },
   ];
 
-  const handleTopUp = () => {
+  useEffect(() => {
+    if (params.payment === 'success' && params.orderId && params.amount) {
+      const amount = parseFloat(params.amount as string);
+      addToWallet(amount);
+      
+      const bonusAmount = amount * 0.05;
+      addBonus(bonusAmount);
+
+      Alert.alert(
+        language === 'az' ? 'Ödəniş uğurlu!' : 'Оплата успешна!',
+        language === 'az' 
+          ? `${amount} AZN balansınıza əlavə edildi. ${bonusAmount.toFixed(2)} AZN bonus qazandınız!`
+          : `${amount} AZN добавлено на ваш баланс. Вы получили ${bonusAmount.toFixed(2)} AZN бонуса!`
+      );
+
+      router.replace('/wallet');
+    } else if (params.payment === 'failed' || params.payment === 'canceled') {
+      Alert.alert(
+        language === 'az' ? 'Ödəniş uğursuz' : 'Оплата не удалась',
+        language === 'az' 
+          ? 'Ödəniş zamanı xəta baş verdi. Zəhmət olmasa yenidən cəhd edin.'
+          : 'Произошла ошибка при оплате. Пожалуйста, попробуйте снова.'
+      );
+      router.replace('/wallet');
+    }
+  }, [params]);
+
+  const handleTopUp = async () => {
     if (!topUpAmount || parseFloat(topUpAmount) <= 0) {
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
@@ -38,22 +74,48 @@ export default function WalletScreen() {
     }
 
     const amount = parseFloat(topUpAmount);
-    addToWallet(amount);
-    
-    // Add bonus for top-up (5% bonus)
-    const bonusAmount = amount * 0.05;
-    addBonus(bonusAmount);
 
-    Alert.alert(
-      language === 'az' ? 'Uğurlu' : 'Успешно',
-      language === 'az' 
-        ? `${amount} AZN balansınıza əlavə edildi. ${bonusAmount.toFixed(2)} AZN bonus qazandınız!`
-        : `${amount} AZN добавлено на ваш баланс. Вы получили ${bonusAmount.toFixed(2)} AZN бонуса!`
-    );
+    if (selectedPaymentMethod === 'payriff') {
+      try {
+        setIsProcessing(true);
 
-    setShowTopUp(false);
-    setTopUpAmount('');
-    setSelectedPaymentMethod('');
+        const result = await paymentService.createPayriffOrder(
+          amount,
+          'AZN',
+          currentUser?.id || 'guest',
+          language === 'az' ? 'Balans artırılması' : 'Пополнение баланса'
+        );
+
+        if (result.success && result.paymentUrl) {
+          if (Platform.OS === 'web') {
+            window.location.href = result.paymentUrl;
+          } else {
+            const supported = await Linking.canOpenURL(result.paymentUrl);
+            if (supported) {
+              await Linking.openURL(result.paymentUrl);
+            } else {
+              throw new Error('Cannot open payment URL');
+            }
+          }
+
+          setShowTopUp(false);
+          setTopUpAmount('');
+          setSelectedPaymentMethod('');
+        } else {
+          throw new Error(result.error || 'Failed to create payment');
+        }
+      } catch (error) {
+        console.error('Payment error:', error);
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' 
+            ? 'Ödəniş zamanı xəta baş verdi. Zəhmət olmasa yenidən cəhd edin.'
+            : 'Произошла ошибка при оплате. Пожалуйста, попробуйте снова.'
+        );
+      } finally {
+        setIsProcessing(false);
+      }
+    }
   };
 
   const transactions = [
@@ -179,12 +241,23 @@ export default function WalletScreen() {
                       key={method.id}
                       style={[
                         styles.paymentMethod,
-                        selectedPaymentMethod === method.id && styles.selectedPaymentMethod
+                        selectedPaymentMethod === method.id && styles.selectedPaymentMethod,
+                        !method.enabled && styles.disabledPaymentMethod
                       ]}
-                      onPress={() => setSelectedPaymentMethod(method.id)}
+                      onPress={() => method.enabled && setSelectedPaymentMethod(method.id)}
+                      disabled={!method.enabled}
                     >
-                      <IconComponent size={20} color={method.color} />
-                      <Text style={styles.paymentMethodText}>{method.name}</Text>
+                      <IconComponent size={20} color={method.enabled ? method.color : Colors.textSecondary} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.paymentMethodText, !method.enabled && styles.disabledText]}>
+                          {method.name}
+                        </Text>
+                        {!method.enabled && (
+                          <Text style={styles.disabledHint}>
+                            {language === 'az' ? 'Tezliklə' : 'Скоро'}
+                          </Text>
+                        )}
+                      </View>
                     </TouchableOpacity>
                   );
                 })}
@@ -206,12 +279,17 @@ export default function WalletScreen() {
               </TouchableOpacity>
               
               <TouchableOpacity 
-                style={styles.confirmButton}
+                style={[styles.confirmButton, isProcessing && styles.disabledButton]}
                 onPress={handleTopUp}
+                disabled={isProcessing}
               >
-                <Text style={styles.confirmButtonText}>
-                  {language === 'az' ? 'Ödə' : 'Оплатить'}
-                </Text>
+                {isProcessing ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text style={styles.confirmButtonText}>
+                    {language === 'az' ? 'Ödə' : 'Оплатить'}
+                  </Text>
+                )}
               </TouchableOpacity>
             </View>
           </View>
@@ -493,5 +571,20 @@ const styles = StyleSheet.create({
   },
   negativeAmount: {
     color: Colors.error,
+  },
+  disabledPaymentMethod: {
+    opacity: 0.5,
+    backgroundColor: Colors.background,
+  },
+  disabledText: {
+    color: Colors.textSecondary,
+  },
+  disabledHint: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  disabledButton: {
+    opacity: 0.6,
   },
 });
