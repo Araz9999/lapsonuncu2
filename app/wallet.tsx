@@ -107,11 +107,14 @@ export default function WalletScreen() {
       }
     } catch (error) {
       console.error('Top-up error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error details:', errorMessage);
+      
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' 
-          ? 'Ödəniş zamanı xəta baş verdi. Zəhmət olmasa yenidən cəhd edin.'
-          : 'Произошла ошибка при оплате. Пожалуйста, попробуйте снова.'
+          ? `Ödəniş zamanı xəta baş verdi: ${errorMessage}`
+          : `Произошла ошибка при оплате: ${errorMessage}`
       );
     } finally {
       setIsProcessing(false);

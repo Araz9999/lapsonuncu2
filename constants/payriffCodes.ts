@@ -49,6 +49,9 @@ export function isPayriffSuccess(response: PayriffResponse): boolean {
   );
 }
 
-export function getPayriffErrorMessage(response: PayriffResponse): string {
-  return response.message || response.internalMessage || PayriffResultMessages.ERROR;
+export function getPayriffErrorMessage(response: PayriffResponse, defaultMessage?: string): string {
+  if (!response) {
+    return defaultMessage || PayriffResultMessages.ERROR;
+  }
+  return response.message || response.internalMessage || defaultMessage || PayriffResultMessages.ERROR;
 }
