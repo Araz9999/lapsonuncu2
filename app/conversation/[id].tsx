@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, memo } from 'react';
 import {
   View,
   Text,
@@ -46,7 +46,77 @@ import UserActionModal from '@/components/UserActionModal';
 
 const { width: screenWidth } = Dimensions.get('window');
 
+const ChatInput = memo(({ 
+  inputText, 
+  onChangeText, 
+  onSend, 
+  onAttach, 
+  onRecord, 
+  isRecording, 
+  language 
+}: { 
+  inputText: string; 
+  onChangeText: (text: string) => void; 
+  onSend: () => void; 
+  onAttach: () => void; 
+  onRecord: { onPressIn?: () => void; onPressOut?: () => void; onPress?: () => void }; 
+  isRecording: boolean; 
+  language: string;
+}) => {
+  console.log('ChatInput render');
+  return (
+    <View style={styles.inputContainer}>
+      <TouchableOpacity
+        testID="chat-attach-button"
+        style={styles.attachButton}
+        onPress={onAttach}
+      >
+        <Paperclip size={20} color={Colors.textSecondary} />
+      </TouchableOpacity>
+      
+      <TextInput
+        testID="chat-text-input"
+        style={styles.textInput}
+        value={inputText}
+        onChangeText={onChangeText}
+        placeholder={language === 'az' ? 'Mesaj yazın...' : 'Напишите сообщение...'}
+        placeholderTextColor={Colors.textSecondary}
+        multiline
+        maxLength={1000}
+        onSubmitEditing={() => {
+          const textToSend = inputText.trim();
+          if (textToSend) {
+            onSend();
+          }
+        }}
+        blurOnSubmit={false}
+        returnKeyType="send"
+      />
+      
+      {inputText.trim() ? (
+        <TouchableOpacity
+          testID="chat-send-button"
+          style={styles.sendButton}
+          onPress={onSend}
+        >
+          <Send size={18} color="#fff" />
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity
+          testID="chat-mic-button"
+          style={[styles.sendButton, isRecording && styles.recordingButton]}
+          onPressIn={onRecord.onPressIn}
+          onPressOut={onRecord.onPressOut}
+          onPress={onRecord.onPress}
+        >
+          <Mic size={18} color="#fff" />
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+});
 
+ChatInput.displayName = 'ChatInput';
 
 export default function ConversationScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -688,55 +758,24 @@ export default function ConversationScreen() {
           </Text>
         </View>
         
-        <View style={styles.inputContainer}>
-          <TouchableOpacity
-            style={styles.attachButton}
-            onPress={() => setShowAttachmentModal(true)}
-          >
-            <Paperclip size={20} color={Colors.textSecondary} />
-          </TouchableOpacity>
-          
-          <TextInput
-            style={styles.textInput}
-            value={inputText}
-            onChangeText={setInputText}
-            placeholder={language === 'az' ? 'Mesaj yazın...' : 'Напишите сообщение...'}
-            placeholderTextColor={Colors.textSecondary}
-            multiline
-            maxLength={1000}
-            onSubmitEditing={() => {
-              const textToSend = inputText.trim();
-              if (textToSend) {
-                handleTextInputSubmit();
-              }
-            }}
-            blurOnSubmit={false}
-            returnKeyType="send"
-          />
-          
-          {inputText.trim() ? (
-            <TouchableOpacity
-              style={styles.sendButton}
-              onPress={handleSendMessage}
-            >
-              <Send size={18} color="#fff" />
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              style={[styles.sendButton, isRecording && styles.recordingButton]}
-              onPressIn={Platform.OS !== 'web' ? startRecording : undefined}
-              onPressOut={Platform.OS !== 'web' ? stopRecording : undefined}
-              onPress={Platform.OS === 'web' ? () => {
-                Alert.alert(
-                  language === 'az' ? 'Xəbərdarlıq' : 'Предупреждение',
-                  language === 'az' ? 'Səs yazma web versiyasında dəstəklənmir' : 'Запись аудио не поддерживается в веб-версии'
-                );
-              } : undefined}
-            >
-              <Mic size={18} color="#fff" />
-            </TouchableOpacity>
-          )}
-        </View>
+        <ChatInput
+          inputText={inputText}
+          onChangeText={setInputText}
+          onSend={handleSendMessage}
+          onAttach={() => setShowAttachmentModal(true)}
+          onRecord={{
+            onPressIn: Platform.OS !== 'web' ? startRecording : undefined,
+            onPressOut: Platform.OS !== 'web' ? stopRecording : undefined,
+            onPress: Platform.OS === 'web' ? () => {
+              Alert.alert(
+                language === 'az' ? 'Xəbərdarlıq' : 'Предупреждение',
+                language === 'az' ? 'Səs yazma web versiyasında dəstəklənmir' : 'Запись аудио не поддерживается в веб-версии'
+              );
+            } : undefined
+          }}
+          isRecording={isRecording}
+          language={language}
+        />
         
         {/* Attachment Modal */}
         <Modal
@@ -840,60 +879,24 @@ export default function ConversationScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
-        <View style={styles.inputContainer}>
-        <TouchableOpacity
-          testID="chat-attach-button"
-          style={styles.attachButton}
-          onPress={() => setShowAttachmentModal(true)}
-        >
-          <Paperclip size={20} color={Colors.textSecondary} />
-        </TouchableOpacity>
-        
-        <TextInput
-          testID="chat-text-input"
-          style={styles.textInput}
-          value={inputText}
+        <ChatInput
+          inputText={inputText}
           onChangeText={setInputText}
-          placeholder={language === 'az' ? 'Mesaj yazın...' : 'Напишите сообщение...'}
-          placeholderTextColor={Colors.textSecondary}
-          multiline
-          maxLength={1000}
-          onFocus={() => setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 300)}
-          onSubmitEditing={() => {
-            const textToSend = inputText.trim();
-            if (textToSend) {
-              handleTextInputSubmit();
-            }
-          }}
-          blurOnSubmit={false}
-          returnKeyType="send"
-        />
-        
-        {inputText.trim() ? (
-          <TouchableOpacity
-            testID="chat-send-button"
-            style={styles.sendButton}
-            onPress={handleSendMessage}
-          >
-            <Send size={18} color="#fff" />
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity
-            testID="chat-mic-button"
-            style={[styles.sendButton, isRecording && styles.recordingButton]}
-            onPressIn={Platform.OS !== 'web' ? startRecording : undefined}
-            onPressOut={Platform.OS !== 'web' ? stopRecording : undefined}
-            onPress={Platform.OS === 'web' ? () => {
+          onSend={handleSendMessage}
+          onAttach={() => setShowAttachmentModal(true)}
+          onRecord={{
+            onPressIn: Platform.OS !== 'web' ? startRecording : undefined,
+            onPressOut: Platform.OS !== 'web' ? stopRecording : undefined,
+            onPress: Platform.OS === 'web' ? () => {
               Alert.alert(
                 language === 'az' ? 'Xəbərdarlıq' : 'Предупреждение',
                 language === 'az' ? 'Səs yazma web versiyasında dəstəklənmir' : 'Запись аудио не поддерживается в веб-версии'
               );
-            } : undefined}
-          >
-            <Mic size={18} color="#fff" />
-          </TouchableOpacity>
-        )}
-        </View>
+            } : undefined
+          }}
+          isRecording={isRecording}
+          language={language}
+        />
       </KeyboardAvoidingView>
       
       {/* Attachment Modal */}
