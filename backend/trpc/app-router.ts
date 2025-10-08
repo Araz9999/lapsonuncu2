@@ -12,9 +12,6 @@ import { verifyEmailProcedure } from "./routes/auth/verifyEmail/route";
 import { resendVerificationProcedure } from "./routes/auth/resendVerification/route";
 import { forgotPasswordProcedure } from "./routes/auth/forgotPassword/route";
 import { resetPasswordProcedure } from "./routes/auth/resetPassword/route";
-import { createPaymentProcedure } from "./routes/payriff/createPayment/route";
-import { getTransactionStatusProcedure } from "./routes/payriff/getTransactionStatus/route";
-import { verifyPaymentProcedure } from "./routes/payriff/verifyPayment/route";
 
 export const appRouter = createTRPCRouter({
   example: createTRPCRouter({
@@ -35,11 +32,6 @@ export const appRouter = createTRPCRouter({
     sendMessage,
     markAsRead,
     closeConversation,
-  }),
-  payriff: createTRPCRouter({
-    createPayment: createPaymentProcedure,
-    getTransactionStatus: getTransactionStatusProcedure,
-    verifyPayment: verifyPaymentProcedure,
   }),
 });
 

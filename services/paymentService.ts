@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 
 export interface PaymentMethod {
   id: string;
-  type: 'card' | 'paypal' | 'apple_pay' | 'google_pay' | 'payriff';
+  type: 'card' | 'paypal' | 'apple_pay' | 'google_pay';
   last4?: string;
   brand?: string;
   expiryMonth?: number;
@@ -21,12 +21,10 @@ export interface PaymentIntent {
 class PaymentService {
   private stripeKey: string;
   private paypalClientId: string;
-  private payriffEnabled: boolean;
 
   constructor() {
     this.stripeKey = config.STRIPE_PUBLISHABLE_KEY as string;
     this.paypalClientId = config.PAYPAL_CLIENT_ID as string;
-    this.payriffEnabled = true;
   }
 
   async initializeStripe() {
@@ -143,63 +141,6 @@ class PaymentService {
       console.error('PayPal payment failed:', error);
       throw error;
     }
-  }
-
-  async createPayriffPayment(amount: number, orderId: string, description: string) {
-    try {
-      const response = await fetch(`${config.BASE_URL}/api/trpc/payriff.createPayment`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          amount,
-          orderId,
-          description,
-          language: 'az',
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to create Payriff payment');
-      }
-
-      const result = await response.json();
-      return result.result.data;
-    } catch (error) {
-      console.error('Payriff payment failed:', error);
-      throw error;
-    }
-  }
-
-  async verifyPayriffPayment(orderId: string, transactionId: string) {
-    try {
-      const response = await fetch(
-        `${config.BASE_URL}/api/trpc/payriff.verifyPayment?input=${encodeURIComponent(
-          JSON.stringify({ orderId, transactionId })
-        )}`,
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to verify Payriff payment');
-      }
-
-      const result = await response.json();
-      return result.result.data;
-    } catch (error) {
-      console.error('Payriff verification failed:', error);
-      throw error;
-    }
-  }
-
-  isPayriffAvailable(): boolean {
-    return this.payriffEnabled;
   }
 
   isConfigured(): boolean {
