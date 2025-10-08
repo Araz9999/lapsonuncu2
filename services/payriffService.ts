@@ -29,6 +29,66 @@ export interface PayriffPaymentStatus {
   paymentDate?: string;
 }
 
+export interface PayriffCardSaveRequest {
+  amount: number;
+  approveURL?: string;
+  cancelURL?: string;
+  declineURL?: string;
+  currencyType?: 'AZN' | 'USD' | 'EUR';
+  description: string;
+  directPay?: boolean;
+  language?: 'AZ' | 'EN' | 'RU';
+}
+
+export interface PayriffCardSaveResponse {
+  code: string;
+  internalMessage: string;
+  message: string;
+  payload: {
+    orderId: string;
+    paymentUrl: string;
+    sessionId: string;
+  };
+}
+
+export interface PayriffCardSaveResult {
+  code: string;
+  internalMessage: string;
+  message: string;
+  payload: {
+    orderID: string;
+    sessionID: string;
+    transactionType: string;
+    purchaseAmount: string;
+    currency: string;
+    tranDateTime: string;
+    responseCode: string;
+    responseDescription: string;
+    brand: string;
+    orderStatus: string;
+    approvalCode: string;
+    acqFee: string;
+    orderDescription: string;
+    approvalCodeScr: string;
+    purchaseAmountScr: string;
+    currencyScr: string;
+    orderStatusScr: string;
+    cardRegistrationResponse: string;
+    rrn: string;
+    pan: string;
+    cardHolderName: string;
+    cardUID: string;
+  };
+}
+
+export interface PayriffAutoPayRequest {
+  amount: number;
+  cardUuid: string;
+  description: string;
+  orderId: string;
+  currencyType?: 'AZN' | 'USD' | 'EUR';
+}
+
 class PayriffService {
   private merchantId: string;
   private secretKey: string;
@@ -108,6 +168,91 @@ class PayriffService {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error occurred',
       };
+    }
+  }
+
+  async cardSave(request: PayriffCardSaveRequest): Promise<PayriffCardSaveResponse> {
+    try {
+      const frontendUrl = config.FRONTEND_URL || 'https://1r36dhx42va8pxqbqz5ja.rork.app';
+      
+      const requestBody = {
+        body: {
+          amount: request.amount,
+          approveURL: request.approveURL || `${frontendUrl}/payment/success`,
+          cancelURL: request.cancelURL || `${frontendUrl}/payment/cancel`,
+          declineURL: request.declineURL || `${frontendUrl}/payment/error`,
+          currencyType: request.currencyType || 'AZN',
+          description: request.description,
+          directPay: request.directPay !== undefined ? request.directPay : true,
+          language: request.language || 'AZ',
+        },
+        merchant: this.merchantId,
+      };
+
+      console.log('Card save request:', JSON.stringify(requestBody, null, 2));
+
+      const response = await fetch(`${this.baseUrl}/api/v2/cardSave`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.secretKey}`,
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Card save error:', errorData);
+        throw new Error(errorData.message || 'Failed to save card');
+      }
+
+      const data = await response.json();
+      console.log('Card save response:', JSON.stringify(data, null, 2));
+
+      return data;
+    } catch (error) {
+      console.error('Payriff card save failed:', error);
+      throw error;
+    }
+  }
+
+  async autoPay(request: PayriffAutoPayRequest): Promise<PayriffCardSaveResult> {
+    try {
+      const requestBody = {
+        body: {
+          amount: request.amount,
+          cardUuid: request.cardUuid,
+          description: request.description,
+          orderId: request.orderId,
+          currencyType: request.currencyType || 'AZN',
+        },
+        merchant: this.merchantId,
+      };
+
+      console.log('Auto pay request:', JSON.stringify(requestBody, null, 2));
+
+      const response = await fetch(`${this.baseUrl}/api/v2/autoPay`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.secretKey}`,
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Auto pay error:', errorData);
+        throw new Error(errorData.message || 'Failed to process auto payment');
+      }
+
+      const data = await response.json();
+      console.log('Auto pay response:', JSON.stringify(data, null, 2));
+
+      return data;
+    } catch (error) {
+      console.error('Payriff auto pay failed:', error);
+      throw error;
     }
   }
 

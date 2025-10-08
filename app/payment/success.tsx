@@ -11,10 +11,15 @@ export default function PaymentSuccessScreen() {
 
   const orderId = params.orderId as string;
   const amount = params.amount as string;
+  const cardUuid = params.cardUuid as string;
 
   useEffect(() => {
-    console.log('Payment success:', { orderId, amount });
-  }, [orderId, amount]);
+    console.log('Payment success:', { orderId, amount, cardUuid });
+    
+    if (cardUuid) {
+      console.log('Card saved successfully! Card UUID:', cardUuid);
+    }
+  }, [orderId, amount, cardUuid]);
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -47,6 +52,17 @@ export default function PaymentSuccessScreen() {
           <View style={styles.detailsCard}>
             <Text style={styles.detailLabel}>Məbləğ:</Text>
             <Text style={styles.detailValue}>{amount} AZN</Text>
+          </View>
+        )}
+
+        {cardUuid && (
+          <View style={[styles.detailsCard, styles.cardSavedCard]}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.cardSavedTitle}>✓ Kart Yadda Saxlanıldı</Text>
+              <Text style={styles.cardSavedText}>
+                Kartınız təhlükəsiz şəkildə yadda saxlanıldı. Gələcək ödənişləri daha sürətli edə bilərsiniz.
+              </Text>
+            </View>
           </View>
         )}
 
@@ -119,5 +135,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700' as const,
     color: '#fff',
+  },
+  cardSavedCard: {
+    backgroundColor: '#e8f5e9',
+    borderWidth: 1,
+    borderColor: '#4caf50',
+  },
+  cardSavedTitle: {
+    fontSize: 16,
+    fontWeight: '700' as const,
+    color: '#2e7d32',
+    marginBottom: 4,
+  },
+  cardSavedText: {
+    fontSize: 13,
+    color: '#2e7d32',
+    lineHeight: 18,
   },
 });
