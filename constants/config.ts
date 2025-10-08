@@ -18,6 +18,12 @@ export const API_CONFIG = {
   }),
   PAYPAL_CLIENT_ID: 'your-paypal-client-id-here',
   
+  // Payriff Payment Gateway
+  PAYRIFF_MERCHANT_ID: process.env.PAYRIFF_MERCHANT_ID || 'your-payriff-merchant-id',
+  PAYRIFF_SECRET_KEY: process.env.PAYRIFF_SECRET_KEY || 'your-payriff-secret-key',
+  PAYRIFF_BASE_URL: 'https://api.payriff.com',
+  FRONTEND_URL: process.env.FRONTEND_URL || 'https://1r36dhx42va8pxqbqz5ja.rork.app',
+  
   // Push Notifications
   EXPO_PUSH_TOKEN: 'your-expo-push-token-here',
   FCM_SERVER_KEY: 'your-fcm-server-key-here',

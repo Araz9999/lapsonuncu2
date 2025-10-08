@@ -1,33 +1,32 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { XCircle } from 'lucide-react-native';
+import { AlertCircle } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 
-export default function PaymentErrorScreen() {
-  const params = useLocalSearchParams();
+export default function PaymentCancelScreen() {
   const router = useRouter();
-
-  const errorMessage = params.error as string || 'Ödəniş zamanı xəta baş verdi';
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <Stack.Screen
         options={{
-          title: 'Ödəniş Xətası',
-          headerStyle: { backgroundColor: Colors.error },
+          title: 'Ödəniş Ləğv Edildi',
+          headerStyle: { backgroundColor: Colors.warning },
           headerTintColor: '#fff',
         }}
       />
 
       <View style={styles.content}>
         <View style={styles.iconContainer}>
-          <XCircle size={80} color={Colors.error} />
+          <AlertCircle size={80} color={Colors.warning} />
         </View>
 
-        <Text style={styles.title}>Ödəniş Uğursuz Oldu</Text>
-        <Text style={styles.subtitle}>{errorMessage}</Text>
+        <Text style={styles.title}>Ödəniş Ləğv Edildi</Text>
+        <Text style={styles.subtitle}>
+          Ödəniş prosesi ləğv edildi. İstədiyiniz zaman yenidən cəhd edə bilərsiniz.
+        </Text>
 
         <View style={styles.buttonContainer}>
           <TouchableOpacity
