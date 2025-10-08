@@ -89,6 +89,65 @@ export interface PayriffAutoPayRequest {
   currencyType?: 'AZN' | 'USD' | 'EUR';
 }
 
+export interface PayriffInvoiceRequest {
+  amount: number;
+  approveURL?: string;
+  cancelURL?: string;
+  currencyType?: 'AZN' | 'USD' | 'EUR';
+  customMessage?: string;
+  declineURL?: string;
+  description: string;
+  email?: string;
+  expireDate?: string;
+  fullName?: string;
+  installmentPeriod?: number;
+  installmentProductType?: 'BIRKART';
+  languageType?: 'AZ' | 'EN' | 'RU';
+  phoneNumber?: string;
+  sendSms?: boolean;
+  sendWhatsapp?: boolean;
+  sendEmail?: boolean;
+  amountDynamic?: boolean;
+  directPay?: boolean;
+  metadata?: Record<string, string>;
+}
+
+export interface PayriffInvoiceResponse {
+  code: string;
+  message: string;
+  route: string;
+  internalMessage: string | null;
+  payload: {
+    id: number;
+    merchantId: string;
+    amount: number;
+    payriffAmount: number | null;
+    payriffFixedFeeAmount: number | null;
+    payriffFee: number | null;
+    totalAmount: number | null;
+    fullName: string;
+    email: string;
+    phoneNumber: string;
+    customMessage: string | null;
+    expireDate: string;
+    currencyType: string;
+    languageType: string;
+    paymentType: string;
+    active: boolean;
+    description: string;
+    approveURL: string;
+    cancelURL: string;
+    declineURL: string;
+    uuid: string;
+    invoiceUuid: string;
+    invoiceCode: string;
+    invoiceStatus: string;
+    createdDate: string;
+    paymentUrl: string;
+    sendSms: boolean;
+  };
+}
+
 class PayriffService {
   private merchantId: string;
   private secretKey: string;
@@ -257,6 +316,63 @@ class PayriffService {
       return data;
     } catch (error) {
       console.error('Payriff auto pay failed:', error);
+      throw error;
+    }
+  }
+
+  async createInvoice(request: PayriffInvoiceRequest): Promise<PayriffInvoiceResponse> {
+    try {
+      const frontendUrl = config.FRONTEND_URL || 'https://1r36dhx42va8pxqbqz5ja.rork.app';
+      
+      const requestBody = {
+        body: {
+          amount: request.amount,
+          approveURL: request.approveURL || `${frontendUrl}/payment/success`,
+          cancelURL: request.cancelURL || `${frontendUrl}/payment/cancel`,
+          currencyType: request.currencyType || 'AZN',
+          customMessage: request.customMessage,
+          declineURL: request.declineURL || `${frontendUrl}/payment/error`,
+          description: request.description,
+          email: request.email,
+          expireDate: request.expireDate,
+          fullName: request.fullName,
+          installmentPeriod: request.installmentPeriod,
+          installmentProductType: request.installmentProductType,
+          languageType: request.languageType || 'AZ',
+          phoneNumber: request.phoneNumber,
+          sendSms: request.sendSms !== undefined ? request.sendSms : true,
+          sendWhatsapp: request.sendWhatsapp,
+          sendEmail: request.sendEmail,
+          amountDynamic: request.amountDynamic,
+          directPay: request.directPay,
+          metadata: request.metadata,
+        },
+        merchant: this.merchantId,
+      };
+
+      console.log('Create invoice request:', JSON.stringify(requestBody, null, 2));
+
+      const response = await fetch(`${this.baseUrl}/api/v2/invoices`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': this.secretKey,
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Create invoice error:', errorData);
+        throw new Error(errorData.message || 'Failed to create invoice');
+      }
+
+      const data = await response.json();
+      console.log('Create invoice response:', JSON.stringify(data, null, 2));
+
+      return data;
+    } catch (error) {
+      console.error('Payriff create invoice failed:', error);
       throw error;
     }
   }
