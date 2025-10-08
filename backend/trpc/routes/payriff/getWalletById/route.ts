@@ -1,6 +1,7 @@
 import { publicProcedure } from "../../../create-context";
 import { z } from "zod";
 import config from "@/constants/config";
+import { PayriffResponse, isPayriffSuccess, getPayriffErrorMessage } from '@/constants/payriffCodes';
 
 export const getWalletByIdProcedure = publicProcedure
   .input(
@@ -24,14 +25,14 @@ export const getWalletByIdProcedure = publicProcedure
         },
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('Get wallet by ID error:', errorData);
-        throw new Error(errorData.message || 'Failed to get wallet by ID');
-      }
-
-      const data = await response.json();
+      const data: PayriffResponse = await response.json();
       console.log('Get wallet by ID response:', JSON.stringify(data, null, 2));
+
+      if (!response.ok || !isPayriffSuccess(data)) {
+        const errorMessage = getPayriffErrorMessage(data);
+        console.error('Get wallet by ID error:', errorMessage);
+        throw new Error(errorMessage);
+      }
 
       return data;
     } catch (error) {

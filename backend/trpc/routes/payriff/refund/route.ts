@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { protectedProcedure } from '../../../create-context';
 import config from '@/constants/config';
+import { PayriffResponse, isPayriffSuccess, getPayriffErrorMessage } from '@/constants/payriffCodes';
 
 export const refundProcedure = protectedProcedure
   .input(
@@ -33,14 +34,14 @@ export const refundProcedure = protectedProcedure
       body: JSON.stringify(requestBody),
     });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error('Refund error:', errorData);
-      throw new Error(errorData.message || 'Failed to process refund');
-    }
-
-    const data = await response.json();
+    const data: PayriffResponse = await response.json();
     console.log('Refund response:', JSON.stringify(data, null, 2));
+
+    if (!response.ok || !isPayriffSuccess(data)) {
+      const errorMessage = getPayriffErrorMessage(data);
+      console.error('Refund error:', errorMessage);
+      throw new Error(errorMessage);
+    }
 
     return data;
   });

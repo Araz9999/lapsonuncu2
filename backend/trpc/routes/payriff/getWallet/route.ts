@@ -1,5 +1,6 @@
 import { publicProcedure } from "../../../create-context";
 import config from "@/constants/config";
+import { PayriffResponse, isPayriffSuccess, getPayriffErrorMessage } from '@/constants/payriffCodes';
 
 export const getWalletProcedure = publicProcedure.query(async () => {
   try {
@@ -17,14 +18,14 @@ export const getWalletProcedure = publicProcedure.query(async () => {
       },
     });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error('Get wallet error:', errorData);
-      throw new Error(errorData.message || 'Failed to get wallet data');
-    }
-
-    const data = await response.json();
+    const data: PayriffResponse = await response.json();
     console.log('Get wallet response:', JSON.stringify(data, null, 2));
+
+    if (!response.ok || !isPayriffSuccess(data)) {
+      const errorMessage = getPayriffErrorMessage(data);
+      console.error('Get wallet error:', errorMessage);
+      throw new Error(errorMessage);
+    }
 
     return data;
   } catch (error) {
