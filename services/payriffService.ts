@@ -148,6 +148,34 @@ export interface PayriffInvoiceResponse {
   };
 }
 
+export interface PayriffTransferRequest {
+  toMerchant: string;
+  amount: number;
+  description: string;
+}
+
+export interface PayriffTransferResponse {
+  code: string;
+  message: string;
+  route: string;
+  internalMessage: string | null;
+  payload: string;
+}
+
+export interface PayriffTopupRequest {
+  phoneNumber: string;
+  amount: number;
+  description: string;
+}
+
+export interface PayriffTopupResponse {
+  code: string;
+  message: string;
+  route: string;
+  internalMessage: string | null;
+  payload: string;
+}
+
 class PayriffService {
   private merchantId: string;
   private secretKey: string;
@@ -373,6 +401,82 @@ class PayriffService {
       return data;
     } catch (error) {
       console.error('Payriff create invoice failed:', error);
+      throw error;
+    }
+  }
+
+  async transfer(request: PayriffTransferRequest): Promise<PayriffTransferResponse> {
+    try {
+      const requestBody = {
+        merchant: this.merchantId,
+        body: {
+          toMerchant: request.toMerchant,
+          amount: request.amount,
+          description: request.description,
+        },
+      };
+
+      console.log('Transfer request:', JSON.stringify(requestBody, null, 2));
+
+      const response = await fetch(`${this.baseUrl}/api/v2/transfer`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': this.secretKey,
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Transfer error:', errorData);
+        throw new Error(errorData.message || 'Failed to transfer money');
+      }
+
+      const data = await response.json();
+      console.log('Transfer response:', JSON.stringify(data, null, 2));
+
+      return data;
+    } catch (error) {
+      console.error('Payriff transfer failed:', error);
+      throw error;
+    }
+  }
+
+  async topup(request: PayriffTopupRequest): Promise<PayriffTopupResponse> {
+    try {
+      const requestBody = {
+        merchant: this.merchantId,
+        body: {
+          phoneNumber: request.phoneNumber,
+          amount: request.amount,
+          description: request.description,
+        },
+      };
+
+      console.log('Topup request:', JSON.stringify(requestBody, null, 2));
+
+      const response = await fetch(`${this.baseUrl}/api/v2/topup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': this.secretKey,
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Topup error:', errorData);
+        throw new Error(errorData.message || 'Failed to topup MPAY wallet');
+      }
+
+      const data = await response.json();
+      console.log('Topup response:', JSON.stringify(data, null, 2));
+
+      return data;
+    } catch (error) {
+      console.error('Payriff topup failed:', error);
       throw error;
     }
   }
