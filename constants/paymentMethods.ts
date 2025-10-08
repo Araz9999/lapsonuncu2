@@ -123,6 +123,15 @@ export const paymentMethods: PaymentMethod[] = [
     description: 'Bank kartı ilə ödəniş',
     category: 'bank',
     icon: '🏦'
+  },
+  
+  // Payriff Payment Gateway
+  {
+    id: 'payriff',
+    name: 'Payriff',
+    description: 'Bank kartı və digər ödəniş üsulları',
+    category: 'digital',
+    icon: '💳'
   }
 ];
 

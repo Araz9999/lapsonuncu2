@@ -5,11 +5,13 @@ import { notificationService } from './notificationService';
 import { analyticsService } from './analyticsService';
 import { storageService } from './storageService';
 import { authService } from './authService';
+import { payriffService } from './payriffService';
 
-export { apiService, paymentService, notificationService, analyticsService, storageService, authService };
+export { apiService, paymentService, notificationService, analyticsService, storageService, authService, payriffService };
 
 // Export types
 export type { PaymentMethod, PaymentIntent } from './paymentService';
+export type { PayriffPaymentRequest, PayriffPaymentResponse, PayriffPaymentStatus } from './payriffService';
 export type { PushNotification } from './notificationService';
 export type { AnalyticsEvent, UserProperties } from './analyticsService';
 export type { UploadResult, UploadOptions } from './storageService';
@@ -46,6 +48,7 @@ export const checkServicesHealth = () => {
   const services = {
     api: true, // API service is always available
     payment: paymentService.isConfigured(),
+    payriff: payriffService.isConfigured(),
     notification: notificationService.isConfigured(),
     analytics: analyticsService.isConfigured(),
     storage: storageService.isConfigured(),

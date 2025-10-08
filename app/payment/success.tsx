@@ -1,104 +1,58 @@
-import React, { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ActivityIndicator,
-} from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { CheckCircle, XCircle } from 'lucide-react-native';
-import { trpc } from '@/lib/trpc';
+import { CheckCircle } from 'lucide-react-native';
+import Colors from '@/constants/colors';
 
 export default function PaymentSuccessScreen() {
-  const router = useRouter();
   const params = useLocalSearchParams();
-  const [verifying, setVerifying] = useState(true);
-  const [verified, setVerified] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
-  const transactionId = params.transactionId as string;
   const orderId = params.orderId as string;
-
-  const verifyPaymentQuery = trpc.payriff.verifyPayment.useQuery(
-    {
-      orderId: orderId || '',
-      transactionId: transactionId || '',
-    },
-    {
-      enabled: Boolean(orderId && transactionId),
-      retry: 3,
-      retryDelay: 1000,
-    }
-  );
+  const amount = params.amount as string;
 
   useEffect(() => {
-    if (verifyPaymentQuery.data) {
-      setVerifying(false);
-      setVerified(verifyPaymentQuery.data.verified);
-      
-      if (!verifyPaymentQuery.data.verified) {
-        setError(verifyPaymentQuery.data.message || 'Ödəniş təsdiqlənmədi');
-      }
-    }
-
-    if (verifyPaymentQuery.error) {
-      setVerifying(false);
-      setError(verifyPaymentQuery.error.message);
-    }
-  }, [verifyPaymentQuery.data, verifyPaymentQuery.error]);
-
-  const handleGoHome = () => {
-    router.replace('/');
-  };
-
-  if (verifying) {
-    return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={styles.verifyingText}>Ödəniş yoxlanılır...</Text>
-      </View>
-    );
-  }
+    console.log('Payment success:', { orderId, amount });
+  }, [orderId, amount]);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
+      <Stack.Screen
+        options={{
+          title: 'Ödəniş Uğurlu',
+          headerStyle: { backgroundColor: Colors.success },
+          headerTintColor: '#fff',
+        }}
+      />
+
       <View style={styles.content}>
-        {verified ? (
-          <>
-            <CheckCircle size={80} color="#34C759" />
-            <Text style={styles.title}>Ödəniş Uğurlu!</Text>
-            <Text style={styles.message}>
-              Ödənişiniz uğurla tamamlandı.
-            </Text>
-            {verifyPaymentQuery.data && (
-              <View style={styles.details}>
-                <Text style={styles.detailText}>
-                  Məbləğ: {verifyPaymentQuery.data.amount} {verifyPaymentQuery.data.currency}
-                </Text>
-                <Text style={styles.detailText}>
-                  Sifariş ID: {verifyPaymentQuery.data.orderId}
-                </Text>
-                <Text style={styles.detailText}>
-                  Tranzaksiya ID: {verifyPaymentQuery.data.transactionId}
-                </Text>
-              </View>
-            )}
-          </>
-        ) : (
-          <>
-            <XCircle size={80} color="#FF3B30" />
-            <Text style={styles.title}>Ödəniş Uğursuz</Text>
-            <Text style={styles.message}>
-              {error || 'Ödəniş zamanı xəta baş verdi.'}
-            </Text>
-          </>
+        <View style={styles.iconContainer}>
+          <CheckCircle size={80} color={Colors.success} />
+        </View>
+
+        <Text style={styles.title}>Ödəniş Uğurla Tamamlandı!</Text>
+        <Text style={styles.subtitle}>
+          Ödənişiniz uğurla həyata keçirildi
+        </Text>
+
+        {orderId && (
+          <View style={styles.detailsCard}>
+            <Text style={styles.detailLabel}>Sifariş ID:</Text>
+            <Text style={styles.detailValue}>{orderId}</Text>
+          </View>
+        )}
+
+        {amount && (
+          <View style={styles.detailsCard}>
+            <Text style={styles.detailLabel}>Məbləğ:</Text>
+            <Text style={styles.detailValue}>{amount} AZN</Text>
+          </View>
         )}
 
         <TouchableOpacity
-          style={[styles.button, verified ? styles.successButton : styles.errorButton]}
-          onPress={handleGoHome}
+          style={styles.button}
+          onPress={() => router.push('/(tabs)')}
         >
           <Text style={styles.buttonText}>Ana Səhifəyə Qayıt</Text>
         </TouchableOpacity>
@@ -110,61 +64,60 @@ export default function PaymentSuccessScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
+    backgroundColor: Colors.background,
   },
   content: {
+    flex: 1,
+    padding: 24,
     alignItems: 'center',
-    maxWidth: 400,
+    justifyContent: 'center',
   },
-  verifyingText: {
-    marginTop: 20,
-    fontSize: 16,
-    color: '#666',
+  iconContainer: {
+    marginBottom: 24,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginTop: 24,
-    marginBottom: 12,
+    fontSize: 24,
+    fontWeight: '700' as const,
+    color: Colors.text,
     textAlign: 'center',
-  },
-  message: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  details: {
-    backgroundColor: '#f5f5f5',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 24,
-    width: '100%',
-  },
-  detailText: {
-    fontSize: 14,
-    color: '#333',
     marginBottom: 8,
   },
-  button: {
-    paddingVertical: 16,
-    paddingHorizontal: 32,
+  subtitle: {
+    fontSize: 16,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: 32,
+  },
+  detailsCard: {
+    width: '100%',
+    backgroundColor: '#fff',
     borderRadius: 12,
-    minWidth: 200,
+    padding: 16,
+    marginBottom: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  successButton: {
-    backgroundColor: '#34C759',
+  detailLabel: {
+    fontSize: 14,
+    color: Colors.textSecondary,
   },
-  errorButton: {
-    backgroundColor: '#007AFF',
+  detailValue: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: Colors.text,
+  },
+  button: {
+    width: '100%',
+    backgroundColor: Colors.primary,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    marginTop: 24,
   },
   buttonText: {
-    color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
-    textAlign: 'center',
+    fontWeight: '700' as const,
+    color: '#fff',
   },
 });
