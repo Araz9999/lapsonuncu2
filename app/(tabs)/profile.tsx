@@ -60,47 +60,52 @@ export default function ProfileScreen() {
           style: 'destructive',
           onPress: () => {
             console.log('[handleDeleteProfile] First confirmation accepted, showing second confirmation');
-            Alert.alert(
-              t('confirmDelete'),
-              t('areYouSure'),
-              [
-                {
-                  text: t('cancel'),
-                  style: 'cancel',
-                  onPress: () => console.log('[handleDeleteProfile] Second confirmation cancelled')
-                },
-                {
-                  text: t('yes'),
-                  style: 'destructive',
-                  onPress: () => {
-                    console.log('[handleDeleteProfile] Profile deletion confirmed, logging out');
-                    try {
-                      logout();
-                      console.log('[handleDeleteProfile] Logout successful, navigating to login');
-                      
-                      Alert.alert(
-                        t('success'),
-                        language === 'az' ? 'Profil uğurla silindi' : 'Профиль успешно удален',
-                        [
-                          {
-                            text: 'OK',
-                            onPress: () => {
-                              router.push('/auth/login');
-                            }
-                          }
-                        ]
-                      );
-                    } catch (error) {
-                      console.error('[handleDeleteProfile] Error during profile deletion:', error);
-                      Alert.alert(
-                        t('error'),
-                        language === 'az' ? 'Profil silinərkən xəta baş verdi' : 'Произошла ошибка при удалении профиля'
-                      );
-                    }
+            setTimeout(() => {
+              Alert.alert(
+                t('confirmDelete'),
+                t('areYouSure'),
+                [
+                  {
+                    text: t('cancel'),
+                    style: 'cancel',
+                    onPress: () => console.log('[handleDeleteProfile] Second confirmation cancelled')
                   },
-                },
-              ]
-            );
+                  {
+                    text: t('yes'),
+                    style: 'destructive',
+                    onPress: () => {
+                      console.log('[handleDeleteProfile] Profile deletion confirmed, logging out');
+                      try {
+                        logout();
+                        console.log('[handleDeleteProfile] Logout successful, navigating to login');
+                        
+                        setTimeout(() => {
+                          Alert.alert(
+                            t('success'),
+                            language === 'az' ? 'Profil uğurla silindi' : 'Профиль успешно удален',
+                            [
+                              {
+                                text: 'OK',
+                                onPress: () => {
+                                  console.log('[handleDeleteProfile] Navigating to login screen');
+                                  router.replace('/auth/login');
+                                }
+                              }
+                            ]
+                          );
+                        }, 100);
+                      } catch (error) {
+                        console.error('[handleDeleteProfile] Error during profile deletion:', error);
+                        Alert.alert(
+                          t('error'),
+                          language === 'az' ? 'Profil silinərkən xəta baş verdi' : 'Произошла ошибка при удалении профиля'
+                        );
+                      }
+                    },
+                  },
+                ]
+              );
+            }, 100);
           },
         },
       ]

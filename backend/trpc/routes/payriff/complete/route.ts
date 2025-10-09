@@ -1,9 +1,9 @@
 import { z } from 'zod';
-import { protectedProcedure } from '../../../create-context';
+import { publicProcedure } from '../../../create-context';
 import config from '@/constants/config';
 import { PayriffResponse, isPayriffSuccess, getPayriffErrorMessage } from '@/constants/payriffCodes';
 
-export const completeProcedure = protectedProcedure
+export const completeProcedure = publicProcedure
   .input(
     z.object({
       amount: z.number().positive(),
