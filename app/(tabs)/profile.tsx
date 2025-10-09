@@ -77,13 +77,19 @@ export default function ProfileScreen() {
                     try {
                       logout();
                       console.log('[handleDeleteProfile] Logout successful, navigating to login');
-                      router.replace('/auth/login');
-                      setTimeout(() => {
-                        Alert.alert(
-                          t('success'),
-                          language === 'az' ? 'Profil uğurla silindi' : 'Профиль успешно удален'
-                        );
-                      }, 500);
+                      
+                      Alert.alert(
+                        t('success'),
+                        language === 'az' ? 'Profil uğurla silindi' : 'Профиль успешно удален',
+                        [
+                          {
+                            text: 'OK',
+                            onPress: () => {
+                              router.push('/auth/login');
+                            }
+                          }
+                        ]
+                      );
                     } catch (error) {
                       console.error('[handleDeleteProfile] Error during profile deletion:', error);
                       Alert.alert(
