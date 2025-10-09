@@ -84,6 +84,25 @@ export default function CallScreen() {
   };
 
   const renderVideoCall = () => {
+    if (Platform.OS === 'web') {
+      return (
+        <View style={styles.videoContainer}>
+          <View style={styles.remoteVideo}>
+            <Image 
+              source={{ uri: otherUser?.avatar }} 
+              style={styles.remoteVideoPlaceholder}
+            />
+            <Text style={styles.remoteVideoText}>
+              {otherUser?.name}
+            </Text>
+            <Text style={[styles.permissionText, { marginTop: 12 }]}>
+              {language === 'az' ? 'Video zəng web versiyasında məhdud dəstəklənir' : 'Видеозвонок ограниченно поддерживается в веб-версии'}
+            </Text>
+          </View>
+        </View>
+      );
+    }
+
     if (!permission) {
       return (
         <View style={styles.videoContainer}>
@@ -123,7 +142,7 @@ export default function CallScreen() {
         </View>
         
         {/* Local user video */}
-        {activeCall.isVideoEnabled && (
+        {activeCall.isVideoEnabled && permission.granted && (
           <View style={styles.localVideo}>
             <CameraView 
               style={styles.localCamera}
