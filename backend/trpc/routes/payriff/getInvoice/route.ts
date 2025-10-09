@@ -1,9 +1,9 @@
 import { z } from 'zod';
-import { protectedProcedure } from '../../../create-context';
+import { publicProcedure } from '../../../create-context';
 import config from '@/constants/config';
 import { PayriffResponse, isPayriffSuccess, getPayriffErrorMessage } from '@/constants/payriffCodes';
 
-export const getInvoiceProcedure = protectedProcedure
+export const getInvoiceProcedure = publicProcedure
   .input(
     z.object({
       uuid: z.string(),

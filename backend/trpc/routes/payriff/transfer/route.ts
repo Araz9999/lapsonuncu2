@@ -1,9 +1,9 @@
 import { z } from 'zod';
-import { protectedProcedure } from '../../../create-context';
+import { publicProcedure } from '../../../create-context';
 import config from '@/constants/config';
 import { PayriffResponse, isPayriffSuccess, getPayriffErrorMessage } from '@/constants/payriffCodes';
 
-export const transferProcedure = protectedProcedure
+export const transferProcedure = publicProcedure
   .input(
     z.object({
       toMerchant: z.string(),
