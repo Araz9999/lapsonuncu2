@@ -430,25 +430,9 @@ export default function ConversationScreen() {
         playsInSilentModeIOS: true,
       });
 
-      const { recording } = await Audio.Recording.createAsync({
-        android: {
-          extension: '.m4a',
-          outputFormat: Audio.RecordingOptionsPresets.HIGH_QUALITY.android.outputFormat,
-          audioEncoder: Audio.RecordingOptionsPresets.HIGH_QUALITY.android.audioEncoder,
-        },
-        ios: {
-          extension: '.wav',
-          outputFormat: Audio.RecordingOptionsPresets.HIGH_QUALITY.ios.outputFormat,
-          audioQuality: Audio.RecordingOptionsPresets.HIGH_QUALITY.ios.audioQuality,
-          sampleRate: Audio.RecordingOptionsPresets.HIGH_QUALITY.ios.sampleRate || 44100,
-          numberOfChannels: Audio.RecordingOptionsPresets.HIGH_QUALITY.ios.numberOfChannels || 2,
-          bitRate: Audio.RecordingOptionsPresets.HIGH_QUALITY.ios.bitRate || 128000,
-          linearPCMBitDepth: 16,
-          linearPCMIsBigEndian: false,
-          linearPCMIsFloat: false,
-        },
-        web: {},
-      });
+      const { recording } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY
+      );
       
       setRecording(recording);
       setIsRecording(true);
@@ -502,30 +486,57 @@ export default function ConversationScreen() {
   };
 
   const playAudio = async (uri: string, messageId: string) => {
+    if (Platform.OS === 'web') {
+      Alert.alert(
+        language === 'az' ? 'Xəbərdarlıq' : 'Предупреждение',
+        language === 'az' ? 'Səs oxutma web versiyasında dəstəklənmir' : 'Воспроизведение аудио не поддерживается в веб-версии'
+      );
+      return;
+    }
+
     try {
       if (playingAudio === messageId) {
-        await sound?.stopAsync();
+        if (sound) {
+          await sound.stopAsync();
+          await sound.unloadAsync();
+        }
         setPlayingAudio(null);
+        setSound(null);
         return;
       }
 
       if (sound) {
+        await sound.stopAsync();
         await sound.unloadAsync();
       }
 
-      const { sound: newSound } = await Audio.Sound.createAsync({ uri });
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: false,
+      });
+
+      const { sound: newSound } = await Audio.Sound.createAsync(
+        { uri },
+        { shouldPlay: true }
+      );
+      
       setSound(newSound);
       setPlayingAudio(messageId);
-      
-      await newSound.playAsync();
       
       newSound.setOnPlaybackStatusUpdate((status) => {
         if (status.isLoaded && status.didJustFinish) {
           setPlayingAudio(null);
+          newSound.unloadAsync();
         }
       });
     } catch (error) {
-      console.log('Error playing audio:', error);
+      console.error('Error playing audio:', error);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Səs oxudula bilmədi' : 'Не удалось воспроизвести аудио'
+      );
+      setPlayingAudio(null);
     }
   };
 
