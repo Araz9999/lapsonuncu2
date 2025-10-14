@@ -46,12 +46,24 @@ export default function AuthSuccessScreen() {
         return;
       }
 
+< cursor/fix-security-bugs-and-optimize-app-89ea
       await AsyncStorage.setItem('auth_tokens', JSON.stringify({
         accessToken,
         refreshToken,
         expiresAt,
       }));
       await AsyncStorage.setItem('auth_user', JSON.stringify(exchangedUser));
+=======
+      const userData = JSON.parse(user as string);
+      
+      // Store only via unified auth_tokens object
+      await AsyncStorage.setItem('auth_tokens', JSON.stringify({
+        accessToken: token,
+        refreshToken: token,
+        expiresAt: new Date(Date.now() + 15 * 60 * 1000),
+      }));
+      await AsyncStorage.setItem('auth_user', JSON.stringify(userData));
+> main
 
       console.log('[AuthSuccess] Login successful, user:', exchangedUser.email);
 

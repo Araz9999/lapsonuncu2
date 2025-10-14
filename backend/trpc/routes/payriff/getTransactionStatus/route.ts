@@ -9,7 +9,7 @@ export const getTransactionStatusProcedure = publicProcedure
     })
   )
   .query(async ({ input }) => {
-    console.log('Getting Payriff transaction status:', input.transactionId);
+    // Avoid logging transaction IDs in production
 
     const status = await payriffService.getTransactionStatus(input.transactionId);
 

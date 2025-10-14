@@ -29,7 +29,7 @@ export const topupProcedure = publicProcedure
       },
     };
 
-    console.log('Topup request:', JSON.stringify(requestBody, null, 2));
+    // Avoid logging sensitive request bodies
 
     const response = await fetch(`${baseUrl}/api/v2/topup`, {
       method: 'POST',
@@ -41,7 +41,6 @@ export const topupProcedure = publicProcedure
     });
 
     const data: PayriffResponse = await response.json();
-    console.log('Topup response:', JSON.stringify(data, null, 2));
 
     if (!response.ok || !isPayriffSuccess(data)) {
       const errorMessage = getPayriffErrorMessage(data);

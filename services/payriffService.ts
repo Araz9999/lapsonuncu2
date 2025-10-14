@@ -279,34 +279,10 @@ class PayriffService {
     this.baseUrl = config.PAYRIFF_BASE_URL || 'https://api.payriff.com';
   }
 
-  private generateSignature(data: any): string {
-    const sortedKeys = Object.keys(data).sort();
-    const signatureString = sortedKeys
-      .map(key => `${key}=${data[key]}`)
-      .join('&');
-    
-    return this.hashString(`${signatureString}${this.secretKey}`);
-  }
-
-  /**
-   * SECURITY WARNING: This is a weak hash implementation.
-   * In production, signature generation MUST be done on the backend using
-   * proper cryptographic functions (HMAC-SHA256). Never trust client-side
-   * signature generation for payment processing.
-   * 
-   * This implementation uses a simple hash which is NOT cryptographically secure
-   * and should NOT be used for production payment signatures.
-   */
-  private hashString(str: string): string {
-    // Use a better (though still not cryptographically secure) hash algorithm
-    // This is FNV-1a hash which is better than the previous implementation
-    let hash = 2166136261; // FNV offset basis
-    for (let i = 0; i < str.length; i++) {
-      hash ^= str.charCodeAt(i);
-      hash += (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24);
-    }
-    // Convert to unsigned 32-bit integer and then to hex
-    return (hash >>> 0).toString(16).padStart(8, '0');
+  private generateSignature(_data: any): string {
+    // Do not attempt to generate payment signatures on the client.
+    // The server is responsible for secure signing. This function is a noop placeholder.
+    return '';
   }
 
   async createPayment(request: PayriffPaymentRequest): Promise<PayriffPaymentResponse> {
@@ -379,7 +355,7 @@ class PayriffService {
         merchant: this.merchantId,
       };
 
-      console.log('Card save request:', JSON.stringify(requestBody, null, 2));
+      // Avoid logging sensitive request bodies
 
       const response = await fetch(`${this.baseUrl}/api/v2/cardSave`, {
         method: 'POST',
@@ -424,7 +400,7 @@ class PayriffService {
         merchant: this.merchantId,
       };
 
-      console.log('Auto pay request:', JSON.stringify(requestBody, null, 2));
+      // Avoid logging sensitive request bodies
 
       const response = await fetch(`${this.baseUrl}/api/v2/autoPay`, {
         method: 'POST',
@@ -481,7 +457,7 @@ class PayriffService {
         merchant: this.merchantId,
       };
 
-      console.log('Create invoice request:', JSON.stringify(requestBody, null, 2));
+      // Avoid logging sensitive request bodies
 
       const response = await fetch(`${this.baseUrl}/api/v2/invoices`, {
         method: 'POST',
@@ -519,7 +495,7 @@ class PayriffService {
         },
       };
 
-      console.log('Transfer request:', JSON.stringify(requestBody, null, 2));
+      // Avoid logging sensitive request bodies
 
       const response = await fetch(`${this.baseUrl}/api/v2/transfer`, {
         method: 'POST',
@@ -557,7 +533,7 @@ class PayriffService {
         },
       };
 
-      console.log('Topup request:', JSON.stringify(requestBody, null, 2));
+      // Avoid logging sensitive request bodies
 
       const response = await fetch(`${this.baseUrl}/api/v2/topup`, {
         method: 'POST',

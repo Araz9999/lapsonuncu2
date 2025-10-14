@@ -19,6 +19,11 @@ export const createContext = async (opts: FetchCreateContextFnOptions) => {
   return {
     req: opts.req,
     user,
+    ip:
+      opts.req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+      opts.req.headers.get('cf-connecting-ip') ||
+      opts.req.headers.get('x-real-ip') ||
+      null,
   };
 };
 

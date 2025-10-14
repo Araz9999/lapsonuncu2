@@ -13,7 +13,8 @@ export default function PaymentSuccessScreen() {
   const orderId = params.orderId as string;
   const amount = params.amount as string;
   const cardUuid = params.cardUuid as string || params.cardUID as string;
-  const pan = params.pan as string;
+  const rawPan = params.pan as string;
+  const pan = rawPan && rawPan.length >= 4 ? `**** **** **** ${rawPan.slice(-4)}` : rawPan;
   const brand = params.brand as string;
   const cardHolderName = params.cardHolderName as string;
 
@@ -23,7 +24,7 @@ export default function PaymentSuccessScreen() {
   const saveCardMutation = trpc.payriff.saveCard.useMutation();
 
   useEffect(() => {
-    console.log('Payment success:', { orderId, amount, cardUuid, pan, brand, cardHolderName });
+    console.log('Payment success:', { orderId, amount, cardUuid, brand });
     
     if (cardUuid && pan && brand && !cardSaved && !savingCard) {
       setSavingCard(true);
