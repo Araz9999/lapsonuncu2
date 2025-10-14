@@ -11,7 +11,8 @@ import {
   Animated,
   Dimensions,
   Platform,
-  Keyboard
+  Keyboard,
+  KeyboardAvoidingView
 } from 'react-native';
 import { useLanguageStore } from '@/store/languageStore';
 import { useThemeStore } from '@/store/themeStore';
@@ -439,16 +440,21 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
-        <Animated.View 
-          style={[
-            styles.chatContainer,
-            {
-              backgroundColor: colors.background,
-              transform: [{ translateY: slideAnim }, { scale: scaleAnim }]
-            },
-            isMinimized && styles.minimizedContainer
-          ]}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={20}
+          style={{ flex: 1, justifyContent: 'flex-end' }}
         >
+          <Animated.View 
+            style={[
+              styles.chatContainer,
+              {
+                backgroundColor: colors.background,
+                transform: [{ translateY: slideAnim }, { scale: scaleAnim }]
+              },
+              isMinimized && styles.minimizedContainer
+            ]}
+          >
           {/* Header */}
           <View style={[styles.header, { backgroundColor: colors.primary }]}>
             <View style={styles.headerLeft}>
@@ -656,7 +662,8 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
               )}
             </>
           )}
-        </Animated.View>
+          </Animated.View>
+        </KeyboardAvoidingView>
       </View>
     </Modal>
   );
