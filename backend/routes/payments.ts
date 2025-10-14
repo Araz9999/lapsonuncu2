@@ -3,7 +3,6 @@ import { payriffService } from '../services/payriff';
 import { z } from 'zod';
 import crypto from 'crypto';
 import { secureHeaders } from 'hono/secure-headers';
-import { zValidator } from '@hono/zod-validator';
 
 const payments = new Hono();
 payments.use('*', secureHeaders());
