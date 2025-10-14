@@ -12,7 +12,11 @@ import {
   Dimensions,
   Platform,
   Keyboard,
+< cursor/animate-message-box-on-typing-b977
   KeyboardAvoidingView
+=======
+  KeyboardAvoidingView,
+> main
 } from 'react-native';
 import { useLanguageStore } from '@/store/languageStore';
 import { useThemeStore } from '@/store/themeStore';
@@ -347,6 +351,11 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
   };
 
   const StartChatForm = () => (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
+      style={{ flex: 1 }}
+    >
     <View style={styles.startForm}>
       <Text style={[styles.startTitle, { color: colors.text }]}>
         {language === 'az' ? 'Canlı Dəstək' : 'Живая поддержка'}
@@ -408,6 +417,8 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
           value={subject}
           onChangeText={setSubject}
           maxLength={100}
+          multiline={false}
+          textAlignVertical="center"
         />
       </View>
 
@@ -428,6 +439,7 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
         </Text>
       </TouchableOpacity>
     </View>
+    </KeyboardAvoidingView>
   );
 
   if (!visible) return null;
@@ -792,7 +804,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     fontSize: 16,
-    minHeight: 50,
+    height: 50,
   },
   startButton: {
     flexDirection: 'row',
