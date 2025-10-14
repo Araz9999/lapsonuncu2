@@ -68,6 +68,7 @@ class AnalyticsService {
 
   private async initializeMixpanel(): Promise<void> {
     if (!this.mixpanelToken) return;
+    if (this.mixpanelToken.length < 10) return; // avoid initializing with placeholders
 
     try {
       if (Platform.OS === 'web') {

@@ -14,7 +14,7 @@ export const createPaymentProcedure = publicProcedure
     })
   )
   .mutation(async ({ input }) => {
-    console.log('Creating Payriff payment:', input);
+    // Avoid logging full input to prevent leaking PII
 
     const result = await payriffService.createPayment({
       amount: input.amount,
