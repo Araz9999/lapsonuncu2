@@ -45,11 +45,13 @@ export default function HomeScreen() {
   }, [handleResetFilters]);
   
   useEffect(() => {
-    if (!autoRefresh) return;
-    const interval = setInterval(() => {
-      console.log('Auto refreshing data...');
-    }, 30000);
-    return () => clearInterval(interval);
+    if (autoRefresh) {
+      const interval = setInterval(() => {
+        console.log('Auto refreshing data...');
+      }, 30000);
+      
+      return () => clearInterval(interval);
+    }
   }, [autoRefresh]);
   
   useEffect(() => {

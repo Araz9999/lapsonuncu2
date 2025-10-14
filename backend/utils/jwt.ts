@@ -1,17 +1,10 @@
 import { SignJWT, jwtVerify } from 'jose';
 
-// SECURITY: Do not fall back to a hardcoded JWT secret in production
-const JWT_SECRET = (process.env.JWT_SECRET && process.env.JWT_SECRET.trim().length > 0)
-  ? process.env.JWT_SECRET
-  : (process.env.NODE_ENV === 'production' ? '' : 'dev-insecure-secret');
+const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production';
 const JWT_ISSUER = 'marketplace-app';
 const JWT_AUDIENCE = 'marketplace-users';
 
-if (process.env.NODE_ENV === 'production' && !JWT_SECRET) {
-  console.error('[JWT] Missing JWT_SECRET in production! Token operations will fail.');
-}
-
-const secret = JWT_SECRET ? new TextEncoder().encode(JWT_SECRET) : new Uint8Array();
+const secret = new TextEncoder().encode(JWT_SECRET);
 
 export interface JWTPayload {
   userId: string;
@@ -20,9 +13,6 @@ export interface JWTPayload {
 }
 
 export async function generateAccessToken(payload: JWTPayload): Promise<string> {
-  if (!JWT_SECRET) {
-    throw new Error('JWT secret not configured');
-  }
   const token = await new SignJWT({ ...payload })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
@@ -35,9 +25,6 @@ export async function generateAccessToken(payload: JWTPayload): Promise<string> 
 }
 
 export async function generateRefreshToken(payload: JWTPayload): Promise<string> {
-  if (!JWT_SECRET) {
-    throw new Error('JWT secret not configured');
-  }
   const token = await new SignJWT({ ...payload })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
@@ -51,9 +38,6 @@ export async function generateRefreshToken(payload: JWTPayload): Promise<string>
 
 export async function verifyToken(token: string): Promise<JWTPayload | null> {
   try {
-    if (!JWT_SECRET) {
-      throw new Error('JWT secret not configured');
-    }
     const { payload } = await jwtVerify(token, secret, {
       issuer: JWT_ISSUER,
       audience: JWT_AUDIENCE,
