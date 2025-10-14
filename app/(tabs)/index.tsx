@@ -21,7 +21,9 @@ export default function HomeScreen() {
   const languageStore = useLanguageStore();
   const language = languageStore?.language || 'az';
   const { themeMode, colorTheme, fontSize, autoRefresh } = useThemeStore();
-  const colors = getColors(themeMode, colorTheme);
+  
+  // Memoize colors to prevent recalculation on every render
+  const colors = React.useMemo(() => getColors(themeMode, colorTheme), [themeMode, colorTheme]);
   
   // Animation values for Naxtap
   const slideAnim = useRef(new Animated.Value(-200)).current;
@@ -33,8 +35,12 @@ export default function HomeScreen() {
   const naxcivanFadeAnim = useRef(new Animated.Value(0)).current;
   const naxcivanScaleAnim = useRef(new Animated.Value(0.8)).current;
 
-  const featuredListings = listings.slice(0, 6);
-  const activeStores = stores.filter(store => store.isActive).slice(0, 4);
+  // Memoize expensive filtering operations
+  const featuredListings = React.useMemo(() => listings.slice(0, 6), [listings]);
+  const activeStores = React.useMemo(
+    () => stores.filter(store => store.isActive).slice(0, 4),
+    [stores]
+  );
 
   const handleResetFilters = useCallback(() => {
     resetFilters();
