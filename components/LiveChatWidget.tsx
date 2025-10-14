@@ -11,7 +11,8 @@ import {
   Animated,
   Dimensions,
   Platform,
-  Keyboard
+  Keyboard,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { useLanguageStore } from '@/store/languageStore';
 import { useThemeStore } from '@/store/themeStore';
@@ -346,6 +347,11 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
   };
 
   const StartChatForm = () => (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
+      style={{ flex: 1 }}
+    >
     <View style={styles.startForm}>
       <Text style={[styles.startTitle, { color: colors.text }]}>
         {language === 'az' ? 'Canlı Dəstək' : 'Живая поддержка'}
@@ -427,6 +433,7 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
         </Text>
       </TouchableOpacity>
     </View>
+    </KeyboardAvoidingView>
   );
 
   if (!visible) return null;
