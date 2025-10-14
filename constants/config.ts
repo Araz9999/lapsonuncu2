@@ -19,8 +19,9 @@ export const API_CONFIG = {
   PAYPAL_CLIENT_ID: 'your-paypal-client-id-here',
   
   // Payriff Payment Gateway
-  PAYRIFF_MERCHANT_ID: 'ES1094797',
-  PAYRIFF_SECRET_KEY: '719857DED4904989A4E2AAA2CDAEBB07',
+  // Never hardcode real credentials here; use env on server instead
+  PAYRIFF_MERCHANT_ID: 'your-payriff-merchant-id-here',
+  PAYRIFF_SECRET_KEY: 'your-payriff-secret-key-here',
   PAYRIFF_BASE_URL: 'https://api.payriff.com',
   FRONTEND_URL: 'https://1r36dhx42va8pxqbqz5ja.rork.app',
   
@@ -84,7 +85,8 @@ export const API_CONFIG = {
 
 // Environment-specific configurations
 export const getEnvironmentConfig = () => {
-  const isDevelopment = __DEV__;
+  const isDevelopment =
+    typeof __DEV__ !== 'undefined' ? __DEV__ : process.env.NODE_ENV !== 'production';
   
   if (isDevelopment) {
     return {
