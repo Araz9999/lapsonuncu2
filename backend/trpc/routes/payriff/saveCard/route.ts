@@ -6,7 +6,14 @@ export const saveCardProcedure = protectedProcedure
   .input(
     z.object({
       cardUuid: z.string(),
-      pan: z.string(),
+      pan: z.string().transform((v) => {
+        // Persist only masked PAN
+        if (v && v.length >= 12) {
+          const last4 = v.slice(-4);
+          return `**** **** **** ${last4}`;
+        }
+        return v;
+      }),
       brand: z.string(),
       cardHolderName: z.string().optional(),
     })

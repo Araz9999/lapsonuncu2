@@ -4,8 +4,12 @@ import { z } from 'zod';
 import { oauthService } from '../services/oauth';
 import { userDB } from '../db/users';
 import { generateTokenPair, verifyToken } from '../utils/jwt';
+import { authRateLimit } from '../middleware/rateLimit';
 
 const auth = new Hono();
+
+// SECURITY: Apply rate limiting to all auth routes
+auth.use('*', authRateLimit);
 
 const stateStore = new Map<string, { provider: string; createdAt: number }>();
 const codeStore = new Map<string, {
@@ -25,8 +29,13 @@ const codeStore = new Map<string, {
   };
 }>();
 
+/**
+ * SECURITY: Generate cryptographically secure random state
+ */
 function generateState(): string {
-  return `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
 }
 
 function validateState(state: string): boolean {
@@ -117,7 +126,7 @@ auth.get('/:provider/callback', async (c) => {
     console.log(`[Auth] Fetching user info from ${provider}`);
     const userInfo = await oauthService.getUserInfo(provider, tokenResponse.access_token, tokenResponse);
 
-    console.log(`[Auth] Looking up user by social ID: ${provider}:${userInfo.id}`);
+    console.log(`[Auth] Looking up user by social ID`);
     let user = await userDB.findBySocialId(provider, userInfo.id);
 
     if (!user) {
@@ -153,13 +162,14 @@ auth.get('/:provider/callback', async (c) => {
       }
     }
 
-    console.log(`[Auth] Generating JWT tokens for user: ${user.id}`);
+    console.log(`[Auth] Generating JWT tokens for user`);
     const tokens = await generateTokenPair({
       userId: user.id,
       email: user.email,
       role: user.role,
     });
 
+< cursor/fix-security-bugs-and-optimize-app-89ea
     // Issue a short-lived one-time code instead of leaking JWT via URL
     const code = generateOneTimeCode();
     pruneExpiredCodes();
@@ -174,12 +184,34 @@ auth.get('/:provider/callback', async (c) => {
         role: user.role,
       },
       tokens,
-    });
-
+=======
     stateStore.delete(state);
 
+    // SECURITY: Store tokens in httpOnly cookies instead of URL parameters
+    setCookie(c, 'accessToken', tokens.accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'Strict',
+      maxAge: 7 * 24 * 60 * 60,
+      path: '/',
+    });
+
+    setCookie(c, 'refreshToken', tokens.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'Strict',
+      maxAge: 30 * 24 * 60 * 60,
+      path: '/',
+> main
+    });
+
     const frontendUrl = process.env.FRONTEND_URL || process.env.EXPO_PUBLIC_FRONTEND_URL || 'https://1r36dhx42va8pxqbqz5ja.rork.app';
+< cursor/fix-security-bugs-and-optimize-app-89ea
     const redirectUrl = `${frontendUrl}/auth/success?code=${encodeURIComponent(code)}`;
+
+    // Pass only user ID in URL, client can fetch full user data with the cookie
+    const redirectUrl = `${frontendUrl}/auth/success?userId=${user.id}`;
+> main
 
     console.log(`[Auth] ${provider} login successful, redirecting to app with code`);
     return c.redirect(redirectUrl);

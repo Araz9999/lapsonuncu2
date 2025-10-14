@@ -18,8 +18,8 @@ export const loginProcedure = publicProcedure
       throw new Error('Email və ya şifrə yanlışdır');
     }
 
-    const passwordHash = await hashPassword(input.password);
-    if (passwordHash !== user.passwordHash) {
+    const isValidPassword = await verifyPassword(input.password, user.passwordHash);
+    if (!isValidPassword) {
       throw new Error('Email və ya şifrə yanlışdır');
     }
 
@@ -46,7 +46,49 @@ export const loginProcedure = publicProcedure
     };
   });
 
-async function hashPassword(password: string): Promise<string> {
+/**
+ * SECURITY: Verify password using PBKDF2 with stored salt
+ */
+async function verifyPassword(password: string, storedHash: string): Promise<boolean> {
+  const [saltHex, hashHex] = storedHash.split(':');
+  if (!saltHex || !hashHex) {
+    // Legacy hash format without salt - for backwards compatibility
+    return hashPasswordLegacy(password) === storedHash;
+  }
+  
+  const encoder = new TextEncoder();
+  const salt = new Uint8Array(saltHex.match(/.{2}/g)!.map(byte => parseInt(byte, 16)));
+  
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(password),
+    { name: 'PBKDF2' },
+    false,
+    ['deriveBits']
+  );
+  
+  const hashBuffer = await crypto.subtle.deriveBits(
+    {
+      name: 'PBKDF2',
+      salt,
+      iterations: 100000,
+      hash: 'SHA-256'
+    },
+    keyMaterial,
+    256
+  );
+  
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const computedHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  
+  return computedHash === hashHex;
+}
+
+/**
+ * Legacy hash function for backwards compatibility
+ * DO NOT USE for new passwords
+ */
+async function hashPasswordLegacy(password: string): Promise<string> {
   const encoder = new TextEncoder();
   const data = encoder.encode(password);
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);

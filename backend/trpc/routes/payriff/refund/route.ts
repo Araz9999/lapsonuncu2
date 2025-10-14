@@ -23,7 +23,7 @@ export const refundProcedure = publicProcedure
       orderId: input.orderId,
     };
 
-    console.log('Refund request:', JSON.stringify(requestBody, null, 2));
+    // Avoid logging sensitive request bodies
 
     const response = await fetch(`${baseUrl}/api/v3/refund`, {
       method: 'POST',
@@ -35,7 +35,6 @@ export const refundProcedure = publicProcedure
     });
 
     const data: PayriffResponse = await response.json();
-    console.log('Refund response:', JSON.stringify(data, null, 2));
 
     if (!response.ok || !isPayriffSuccess(data)) {
       const errorMessage = getPayriffErrorMessage(data);

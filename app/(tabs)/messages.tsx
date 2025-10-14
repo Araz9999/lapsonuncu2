@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useLanguageStore } from '@/store/languageStore';
@@ -37,7 +37,7 @@ export default function MessagesScreen() {
     );
   }
 
-  const formatDate = (dateString: string) => {
+  const formatDate = useCallback((dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
     const diffTime = Math.abs(now.getTime() - date.getTime());
@@ -50,7 +50,7 @@ export default function MessagesScreen() {
     } else {
       return diffDays + (language === 'az' ? ' gün əvvəl' : ' дней назад');
     }
-  };
+  }, [language]);
 
   const getOtherUser = (participants: string[]) => {
     const selfId = currentUser?.id || 'user1';
@@ -157,12 +157,14 @@ export default function MessagesScreen() {
   };
 
   // Get filtered conversations (excluding blocked users) and sort by last message date
-  const filteredConversations = getFilteredConversations();
-  const sortedConversations = [...filteredConversations].sort((a, b) => {
-    const dateA = new Date(a.lastMessageDate || 0).getTime();
-    const dateB = new Date(b.lastMessageDate || 0).getTime();
-    return dateB - dateA;
-  });
+  const sortedConversations = useMemo(() => {
+    const filteredConversations = getFilteredConversations();
+    return [...filteredConversations].sort((a, b) => {
+      const dateA = new Date(a.lastMessageDate || 0).getTime();
+      const dateB = new Date(b.lastMessageDate || 0).getTime();
+      return dateB - dateA;
+    });
+  }, [getFilteredConversations]);
 
   return (
     <View style={styles.container}>
@@ -172,6 +174,10 @@ export default function MessagesScreen() {
         keyExtractor={item => item.id}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
+        initialNumToRender={12}
+        maxToRenderPerBatch={12}
+        windowSize={5}
+        removeClippedSubviews
         ListHeaderComponent={
           <TouchableOpacity 
             style={styles.simulateButton}
