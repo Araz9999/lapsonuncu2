@@ -1,6 +1,5 @@
 import { Hono } from 'hono';
 import { setCookie } from 'hono/cookie';
-import { z } from 'zod';
 import { oauthService } from '../services/oauth';
 import { userDB } from '../db/users';
 import { generateTokenPair, verifyToken } from '../utils/jwt';
@@ -12,22 +11,6 @@ const auth = new Hono();
 auth.use('*', authRateLimit);
 
 const stateStore = new Map<string, { provider: string; createdAt: number }>();
-const codeStore = new Map<string, {
-  createdAt: number;
-  user: {
-    id: string;
-    email: string;
-    name: string;
-    avatar?: string;
-    verified: boolean;
-    role: string;
-  };
-  tokens: {
-    accessToken: string;
-    refreshToken: string;
-    expiresAt: string;
-  };
-}>();
 
 /**
  * SECURITY: Generate cryptographically secure random state
@@ -49,20 +32,6 @@ function validateState(state: string): boolean {
   }
 
   return true;
-}
-
-function generateOneTimeCode(): string {
-  return `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
-}
-
-function pruneExpiredCodes() {
-  const now = Date.now();
-  const ttl = 5 * 60 * 1000; // 5 minutes
-  for (const [code, entry] of codeStore.entries()) {
-    if (now - entry.createdAt > ttl) {
-      codeStore.delete(code);
-    }
-  }
 }
 
 auth.get('/:provider/login', async (c) => {
@@ -169,22 +138,6 @@ auth.get('/:provider/callback', async (c) => {
       role: user.role,
     });
 
-< cursor/fix-security-bugs-and-optimize-app-89ea
-    // Issue a short-lived one-time code instead of leaking JWT via URL
-    const code = generateOneTimeCode();
-    pruneExpiredCodes();
-    codeStore.set(code, {
-      createdAt: Date.now(),
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        avatar: user.avatar,
-        verified: user.verified,
-        role: user.role,
-      },
-      tokens,
-=======
     stateStore.delete(state);
 
     // SECURITY: Store tokens in httpOnly cookies instead of URL parameters
@@ -202,18 +155,13 @@ auth.get('/:provider/callback', async (c) => {
       sameSite: 'Strict',
       maxAge: 30 * 24 * 60 * 60,
       path: '/',
-> main
     });
 
     const frontendUrl = process.env.FRONTEND_URL || process.env.EXPO_PUBLIC_FRONTEND_URL || 'https://1r36dhx42va8pxqbqz5ja.rork.app';
-< cursor/fix-security-bugs-and-optimize-app-89ea
-    const redirectUrl = `${frontendUrl}/auth/success?code=${encodeURIComponent(code)}`;
-
     // Pass only user ID in URL, client can fetch full user data with the cookie
     const redirectUrl = `${frontendUrl}/auth/success?userId=${user.id}`;
-> main
 
-    console.log(`[Auth] ${provider} login successful, redirecting to app with code`);
+    console.log(`[Auth] ${provider} login successful, redirecting to app`);
     return c.redirect(redirectUrl);
   } catch (error) {
     console.error(`[Auth] Error processing ${provider} callback:`, error);
@@ -301,33 +249,3 @@ auth.delete('/delete', async (c) => {
 });
 
 export default auth;
-
-// Exchange endpoint to trade a one-time code for tokens
-auth.post('/exchange', async (c) => {
-  try {
-    const body = await c.req.json().catch(() => ({}));
-    const schema = z.object({ code: z.string().min(8) });
-    const parsed = schema.safeParse(body);
-    if (!parsed.success) {
-      return c.json({ error: 'Invalid request' }, 400);
-    }
-
-    pruneExpiredCodes();
-    const record = codeStore.get(parsed.data.code);
-    if (!record) {
-      return c.json({ error: 'Code expired or invalid' }, 400);
-    }
-
-    // One-time use
-    codeStore.delete(parsed.data.code);
-
-    return c.json({
-      success: true,
-      user: record.user,
-      tokens: record.tokens,
-    });
-  } catch (error) {
-    console.error('[Auth] Code exchange failed:', error);
-    return c.json({ error: 'Exchange failed' }, 500);
-  }
-});

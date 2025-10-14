@@ -62,22 +62,18 @@ export async function initiateSocialLogin(
 
       if (result.type === 'success' && result.url) {
         const url = new URL(result.url);
-        const code = url.searchParams.get('code');
-        if (!code) {
-          onError('Failed to retrieve authentication data');
-          return;
-        }
-        try {
-          const res = await fetch(`${baseUrl}/api/auth/exchange`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ code }),
+        const token = url.searchParams.get('token');
+        const userData = url.searchParams.get('user');
+
+        if (token && userData) {
+          const user = JSON.parse(userData);
+          onSuccess({
+            success: true,
+            token,
+            user,
           });
-          if (!res.ok) throw new Error('Exchange failed');
-          const data = await res.json();
-          onSuccess({ success: true, token: data.tokens?.accessToken, user: data.user });
-        } catch (e) {
-          onError('Failed to exchange login code');
+        } else {
+          onError('Failed to retrieve authentication data');
         }
       } else if (result.type === 'cancel') {
         console.log('[SocialAuth] User cancelled OAuth flow');
