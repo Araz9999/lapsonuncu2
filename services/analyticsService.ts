@@ -44,17 +44,25 @@ class AnalyticsService {
     if (Platform.OS !== 'web' || !this.googleAnalyticsId) return;
 
     try {
+      // SECURITY: Validate Google Analytics ID format before injection
+      const gaIdPattern = /^(G|UA|AW|DC)-[A-Z0-9-]+$/;
+      if (!gaIdPattern.test(this.googleAnalyticsId)) {
+        console.error('[Analytics] Invalid Google Analytics ID format');
+        return;
+      }
+
       const script1 = document.createElement('script');
       script1.async = true;
-      script1.src = `https://www.googletagmanager.com/gtag/js?id=${this.googleAnalyticsId}`;
+      script1.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(this.googleAnalyticsId)}`;
       document.head.appendChild(script1);
 
+      // SECURITY: Use textContent instead of innerHTML for script content
       const script2 = document.createElement('script');
-      script2.innerHTML = `
+      script2.textContent = `
         window.dataLayer = window.dataLayer || [];
         function gtag(){dataLayer.push(arguments);}
         gtag('js', new Date());
-        gtag('config', '${this.googleAnalyticsId}');
+        gtag('config', '${this.googleAnalyticsId.replace(/'/g, "\\'")}');
       `;
       document.head.appendChild(script2);
 
