@@ -182,6 +182,32 @@ class AuthService {
     }
   }
 
+  async deleteAccount(): Promise<void> {
+    if (!this.tokens?.accessToken) {
+      throw new Error('Not authenticated');
+    }
+
+    try {
+      const response = await fetch(`${config.BASE_URL}/auth/delete-account`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${this.tokens.accessToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.message || 'Failed to delete account');
+      }
+    } catch (error) {
+      console.error('Delete account request failed:', error);
+      throw error;
+    } finally {
+      await this.clearAuthData();
+    }
+  }
+
   async refreshAccessToken(): Promise<void> {
     if (!this.tokens?.refreshToken) {
       throw new Error('No refresh token available');

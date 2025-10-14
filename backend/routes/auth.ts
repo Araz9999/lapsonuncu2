@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { setCookie } from 'hono/cookie';
 import { oauthService } from '../services/oauth';
 import { userDB } from '../db/users';
-import { generateTokenPair } from '../utils/jwt';
+import { generateTokenPair, verifyToken } from '../utils/jwt';
 
 const auth = new Hono();
 
@@ -202,3 +202,46 @@ auth.get('/status', async (c) => {
 });
 
 export default auth;
+
+// Delete account endpoint
+auth.delete('/delete-account', async (c) => {
+  try {
+    const authHeader = c.req.header('authorization') || c.req.header('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+
+    const token = authHeader.slice('Bearer '.length);
+    const payload = await verifyToken(token);
+    if (!payload) {
+      return c.json({ error: 'Invalid token' }, 401);
+    }
+
+    const deleted = await userDB.deleteUser(payload.userId);
+    if (!deleted) {
+      return c.json({ error: 'User not found' }, 404);
+    }
+
+    // Clear cookies the same way as logout
+    setCookie(c, 'accessToken', '', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'Lax',
+      maxAge: 0,
+      path: '/',
+    });
+
+    setCookie(c, 'refreshToken', '', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'Lax',
+      maxAge: 0,
+      path: '/',
+    });
+
+    return c.json({ success: true });
+  } catch (error) {
+    console.error('[Auth] Delete account failed:', error);
+    return c.json({ error: 'Failed to delete account' }, 500);
+  }
+});
