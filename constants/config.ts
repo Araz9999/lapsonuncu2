@@ -68,7 +68,7 @@ export const API_CONFIG = {
   ENABLE_PUSH_NOTIFICATIONS: true,
   ENABLE_SOCIAL_LOGIN: true,
   ENABLE_PAYMENTS: true,
-  ENABLE_REAL_TIME_CHAT: true,
+  ENABLE_REAL_TIME_CHAT: false,
   
   // App Configuration
   APP_VERSION: '1.0.0',
