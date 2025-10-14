@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { setCookie } from 'hono/cookie';
 import { oauthService } from '../services/oauth';
 import { userDB } from '../db/users';
-import { generateTokenPair } from '../utils/jwt';
+import { generateTokenPair, verifyToken } from '../utils/jwt';
 
 const auth = new Hono();
 
@@ -199,6 +199,49 @@ auth.get('/status', async (c) => {
     configured: status,
     available: Object.keys(status).filter(p => status[p]),
   });
+});
+
+// Delete current authenticated user's account
+auth.delete('/delete', async (c) => {
+  try {
+    const authHeader = c.req.header('authorization') || c.req.header('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+
+    const token = authHeader.replace('Bearer ', '').trim();
+    const payload = await verifyToken(token);
+    if (!payload?.userId) {
+      return c.json({ error: 'Invalid token' }, 401);
+    }
+
+    const deleted = await userDB.deleteUser(payload.userId);
+
+    // Clear cookies regardless (mirrors /logout)
+    setCookie(c, 'accessToken', '', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'Lax',
+      maxAge: 0,
+      path: '/',
+    });
+    setCookie(c, 'refreshToken', '', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'Lax',
+      maxAge: 0,
+      path: '/',
+    });
+
+    if (!deleted) {
+      return c.json({ success: false, message: 'User not found' }, 404);
+    }
+
+    return c.json({ success: true });
+  } catch (error) {
+    console.error('[Auth] Delete account failed:', error);
+    return c.json({ error: 'Failed to delete account' }, 500);
+  }
 });
 
 export default auth;
