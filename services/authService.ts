@@ -182,6 +182,45 @@ class AuthService {
     }
   }
 
+  async deleteAccount(): Promise<void> {
+<<<<< cursor/fix-three-code-bugs-4c04
+    try {
+      if (!this.tokens?.accessToken) {
+        throw new Error('Not authenticated');
+      }
+
+      const response = await fetch(`${config.BASE_URL}/auth/delete`, {
+=======
+    if (!this.tokens?.accessToken) {
+      throw new Error('Not authenticated');
+    }
+
+    try {
+      const response = await fetch(`${config.BASE_URL}/auth/delete-account`, {
+> main
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${this.tokens.accessToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.message || 'Failed to delete account');
+      }
+    } catch (error) {
+      console.error('Delete account request failed:', error);
+<<<<< cursor/fix-three-code-bugs-4c04
+      // Allow cleanup to proceed even if request failed
+=======
+      throw error;
+> main
+    } finally {
+      await this.clearAuthData();
+    }
+  }
+
   async refreshAccessToken(): Promise<void> {
     if (!this.tokens?.refreshToken) {
       throw new Error('No refresh token available');
@@ -284,7 +323,7 @@ class AuthService {
   }
 
   isConfigured(): boolean {
-    return !this.googleClientId.includes('your-') || !this.facebookAppId.includes('your-');
+    return !this.googleClientId.includes('your-') && !this.facebookAppId.includes('your-');
   }
 }
 

@@ -74,6 +74,13 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => <User size={size} color={color} />,
         }}
       />
+      {/** Hide USSD tab from the bottom navigation */}
+      <Tabs.Screen
+        name="ussd"
+        options={{
+          href: null,
+        }}
+      />
       </Tabs>
     </>
   );

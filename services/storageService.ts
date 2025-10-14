@@ -38,14 +38,18 @@ class StorageService {
       allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'video/mp4'],
     } = options;
 
-    // Validate file size
-    const fileSize = Platform.OS === 'web' ? (file as File).size : 0;
+    // Validate file size. On native, attempt to use provided size when available
+    const fileSize = Platform.OS === 'web'
+      ? (file as File).size
+      : (typeof (file as any).size === 'number' ? (file as any).size : 0);
     if (fileSize > maxSize) {
       throw new Error(`File size exceeds maximum allowed size of ${maxSize} bytes`);
     }
 
     // Validate file type
-    const fileType = Platform.OS === 'web' ? (file as File).type : (file as any).type;
+    const fileType = Platform.OS === 'web'
+      ? (file as File).type
+      : ((file as any).type || 'application/octet-stream');
     if (!allowedTypes.includes(fileType)) {
       throw new Error(`File type ${fileType} is not allowed`);
     }
@@ -60,7 +64,13 @@ class StorageService {
       if (Platform.OS === 'web') {
         formData.append('file', file as File);
       } else {
-        formData.append('file', file as any);
+        // Ensure name and type are passed for React Native uploads
+        const nativeFile: any = file as any;
+        formData.append('file', {
+          uri: nativeFile.uri,
+          name: nativeFile.name || this.generateFileName('upload.bin'),
+          type: nativeFile.type || 'application/octet-stream',
+        } as any);
       }
 
       formData.append('key', key);

@@ -188,7 +188,10 @@ class AnalyticsService {
   }
 
   isConfigured(): boolean {
-    return !this.googleAnalyticsId.includes('your-') || !this.mixpanelToken.includes('your-');
+    const hasGA = Boolean(this.googleAnalyticsId) && !this.googleAnalyticsId.includes('your-');
+    const hasMixpanel = Boolean(this.mixpanelToken) && !this.mixpanelToken.includes('your-');
+    // Enabled only if at least one provider is fully configured
+    return hasGA || hasMixpanel;
   }
 }
 

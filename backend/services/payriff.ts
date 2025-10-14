@@ -44,7 +44,8 @@ class PayriffService {
   }
 
   private generateSignature(data: string): string {
-    return crypto.createHash('sha256').update(data).digest('hex');
+    // Use HMAC-SHA256 with the merchant secret to prevent forgery
+    return crypto.createHmac('sha256', this.secretKey).update(data).digest('hex');
   }
 
   private getCallbackUrls() {
@@ -150,9 +151,8 @@ class PayriffService {
 
   verifyWebhookSignature(body: any, receivedSignature: string): boolean {
     try {
-      const computedSignature = this.generateSignature(
-        JSON.stringify(body) + this.secretKey
-      );
+      // Provider signs the raw payload with the shared secret
+      const computedSignature = this.generateSignature(JSON.stringify(body));
       return receivedSignature === computedSignature;
     } catch (error) {
       console.error('Signature verification error:', error);
@@ -167,6 +167,63 @@ class PayriffService {
       !this.merchantId.includes('your-') &&
       !this.secretKey.includes('your-')
     );
+  }
+
+  /**
+   * Compatibility wrapper used by legacy HTTP routes.
+   * Creates an order and returns a payment URL using createPayment under the hood.
+   */
+  async createOrder(orderData: {
+    amount: number;
+    currency?: string;
+    description: string;
+    orderId: string;
+    callbackUrl?: string;
+    cancelUrl?: string;
+  }): Promise<{ success: boolean; orderId?: string; paymentUrl?: string; error?: string }>{
+    const result = await this.createPayment({
+      amount: orderData.amount,
+      orderId: orderData.orderId,
+      description: orderData.description,
+      language: 'az',
+    });
+
+    if (!result.success) {
+      return { success: false, error: result.error };
+    }
+
+    return {
+      success: true,
+      orderId: orderData.orderId,
+      paymentUrl: result.paymentUrl,
+    };
+  }
+
+  /**
+   * Compatibility wrapper to verify webhook/callback signatures.
+   */
+  verifyCallback(body: any, signature: string): boolean {
+    return this.verifyWebhookSignature(body, signature);
+  }
+
+  /**
+   * Attempts to map an orderId to a transaction status by querying
+   * the transaction status endpoint with the provided identifier.
+   * If the API expects a transactionId, this will work only when
+   * orderId equals transactionId; otherwise returns 'unknown'.
+   */
+  async getPaymentStatus(orderId: string): Promise<'pending' | 'approved' | 'declined' | 'cancelled' | 'unknown'> {
+    const status = await this.getTransactionStatus(orderId);
+    return status?.status ?? 'unknown';
+  }
+
+  /**
+   * Refunds are not implemented against the upstream API in this project.
+   * Provided for compatibility with existing routes; returns false.
+   */
+  async refundPayment(_orderId: string, _amount?: number): Promise<boolean> {
+    console.warn('refundPayment is not implemented');
+    return false;
   }
 }
 
