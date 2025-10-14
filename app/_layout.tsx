@@ -141,7 +141,8 @@ function RootLayoutNav() {
     const initServices = async () => {
       try {
         await initializeServices();
-        checkServicesHealth();
+        const health = checkServicesHealth();
+        console.log('Services health:', health);
       } catch (error) {
         console.error('Failed to initialize services:', error);
       }

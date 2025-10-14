@@ -167,12 +167,16 @@ export const useMessageStore = create<MessageStore>((set, get) => ({
            'Fayl göndərildi') : 
           '');
       
+      const currentUserId = useUserStore.getState().currentUser?.id || 'user1';
       const updatedConversation = {
         ...conversation,
         messages: updatedMessages,
         lastMessage,
         lastMessageDate: newMessage.createdAt,
-        unreadCount: newMessage.senderId !== 'user1' ? conversation.unreadCount + 1 : conversation.unreadCount,
+        // Increment unread count only when the message is from the other user
+        unreadCount: newMessage.senderId !== currentUserId
+          ? conversation.unreadCount + 1
+          : conversation.unreadCount,
       };
       
       const updatedConversations = [...state.conversations];
@@ -264,15 +268,17 @@ export const useMessageStore = create<MessageStore>((set, get) => ({
       'Bu qiymət son qiymətdirmi?',
     ];
     
-    const randomConversation = get().conversations[Math.floor(Math.random() * get().conversations.length)];
+    const state = get();
+    const randomConversation = state.conversations[Math.floor(Math.random() * state.conversations.length)];
     const randomMessage = incomingMessages[Math.floor(Math.random() * incomingMessages.length)];
-    const otherUserId = randomConversation.participants.find(id => id !== 'user1');
+    const currentUserId = useUserStore.getState().currentUser?.id || 'user1';
+    const otherUserId = randomConversation.participants.find(id => id !== currentUserId);
     
     if (randomConversation && otherUserId) {
       const newMessage: Message = {
         id: Date.now().toString(),
         senderId: otherUserId,
-        receiverId: 'user1',
+        receiverId: currentUserId,
         listingId: randomConversation.listingId,
         text: randomMessage,
         type: 'text',
@@ -290,7 +296,8 @@ export const useMessageStore = create<MessageStore>((set, get) => ({
     const { isUserBlocked } = useUserStore.getState();
     
     return conversations.filter(conversation => {
-      const otherUserId = conversation.participants.find(id => id !== 'user1');
+      const currentUserId = useUserStore.getState().currentUser?.id || 'user1';
+      const otherUserId = conversation.participants.find(id => id !== currentUserId);
       return otherUserId ? !isUserBlocked(otherUserId) : true;
     });
   },
