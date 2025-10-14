@@ -153,11 +153,29 @@ class PayriffService {
     try {
       // Provider signs the raw payload with the shared secret
       const computedSignature = this.generateSignature(JSON.stringify(body));
-      return receivedSignature === computedSignature;
+      
+      // SECURITY: Use constant-time comparison to prevent timing attacks
+      return this.constantTimeCompare(receivedSignature, computedSignature);
     } catch (error) {
       console.error('Signature verification error:', error);
       return false;
     }
+  }
+
+  /**
+   * SECURITY: Constant-time string comparison to prevent timing attacks
+   */
+  private constantTimeCompare(a: string, b: string): boolean {
+    if (a.length !== b.length) {
+      return false;
+    }
+    
+    let result = 0;
+    for (let i = 0; i < a.length; i++) {
+      result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+    }
+    
+    return result === 0;
   }
 
   isConfigured(): boolean {
