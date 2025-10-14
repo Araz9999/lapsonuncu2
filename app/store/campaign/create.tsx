@@ -345,9 +345,13 @@ const styles = StyleSheet.create({
   },
   typeIcon: {
     marginBottom: 8,
+<cursor/fix-all-code-errors-3f0d
+
   },
   activeTypeIcon: {
+> main
   },
+  activeTypeIcon: {},
   typeButtonText: {
     fontSize: 14,
     fontWeight: '500',
