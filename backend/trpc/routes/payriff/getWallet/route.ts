@@ -8,7 +8,7 @@ export const getWalletProcedure = publicProcedure.query(async () => {
     const secretKey = config.PAYRIFF_SECRET_KEY;
     const baseUrl = config.PAYRIFF_BASE_URL || 'https://api.payriff.com';
 
-    console.log('Fetching wallet data...');
+    // Avoid verbose logs in production
 
     const response = await fetch(`${baseUrl}/api/v2/wallet`, {
       method: 'GET',
@@ -19,17 +19,15 @@ export const getWalletProcedure = publicProcedure.query(async () => {
     });
 
     const data: PayriffResponse = await response.json();
-    console.log('Get wallet response:', JSON.stringify(data, null, 2));
 
     if (!response.ok || !isPayriffSuccess(data)) {
       const errorMessage = getPayriffErrorMessage(data);
-      console.error('Get wallet error:', errorMessage);
       throw new Error(errorMessage);
     }
 
     return data;
   } catch (error) {
-    console.error('Payriff get wallet failed:', error);
+    console.error('Payriff get wallet failed');
     throw error;
   }
 });

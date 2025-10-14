@@ -36,5 +36,12 @@ export const getOrderProcedure = publicProcedure
       throw new Error(errorMessage);
     }
 
+    // Mask PAN fields if present
+    if (data?.payload?.transactions) {
+      data.payload.transactions = data.payload.transactions.map((t: any) => ({
+        ...t,
+        pan: t.pan && t.pan.length >= 4 ? `**** **** **** ${t.pan.slice(-4)}` : t.pan,
+      }));
+    }
     return data;
   });

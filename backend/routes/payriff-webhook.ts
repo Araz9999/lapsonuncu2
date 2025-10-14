@@ -1,18 +1,16 @@
 import { Hono } from 'hono';
+import { secureHeaders } from 'hono/secure-headers';
 import { payriffService } from '../services/payriff';
 
 const payriffWebhook = new Hono();
+payriffWebhook.use('*', secureHeaders());
 
 payriffWebhook.post('/callback', async (c) => {
   try {
     const body = await c.req.json();
     const signature = c.req.header('x-payriff-signature') || '';
 
-    console.log('Payriff webhook received:', {
-      transactionId: body.transactionId,
-      orderId: body.orderId,
-      status: body.status,
-    });
+    // Avoid logging sensitive payloads
 
     const isValid = payriffService.verifyWebhookSignature(body, signature);
 
@@ -24,9 +22,9 @@ payriffWebhook.post('/callback', async (c) => {
     const { transactionId, orderId, status } = body;
 
     if (status === 'approved') {
-      console.log(`Payment approved: Order ${orderId}, Transaction ${transactionId}`);
+      console.log(`Payment approved: Order ${orderId}`);
     } else if (status === 'declined') {
-      console.log(`Payment declined: Order ${orderId}, Transaction ${transactionId}`);
+      console.log(`Payment declined: Order ${orderId}`);
     }
 
     return c.json({ success: true });
