@@ -487,15 +487,24 @@ export default function LiveChatScreen() {
                   placeholderTextColor={colors.textSecondary}
                   value={message}
                   onChangeText={handleTyping}
+< cursor/fix-message-box-jitter-on-typing-c74a
+                  multiline
+                  scrollEnabled
+
                   multiline={false}
                   returnKeyType="send"
                   onSubmitEditing={handleSendMessage}
+> main
                   blurOnSubmit={false}
                   autoCorrect
                   autoCapitalize="sentences"
                   enablesReturnKeyAutomatically
                   keyboardAppearance={Platform.OS === 'ios' ? (themeMode === 'dark' ? 'dark' : 'light') : 'default'}
                   maxLength={1000}
+< cursor/fix-message-box-jitter-on-typing-c74a
+                  textAlignVertical="top"
+
+> main
                 />
                 
                 <TouchableOpacity
