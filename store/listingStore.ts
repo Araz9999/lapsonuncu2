@@ -40,11 +40,7 @@ const notifyStoreFollowersIfNeeded = async (listing: Listing) => {
   // We'll implement this in the component level to avoid circular dependencies
 };
 
-// Check for expiring listings every hour
-setInterval(() => {
-  const store = useListingStore.getState();
-  store.checkExpiringListings();
-}, 60 * 60 * 1000);
+// Note: Periodic timers must be initialized after the store is created
 
 export const useListingStore = create<ListingState>((set, get) => ({
   listings: mockListings,

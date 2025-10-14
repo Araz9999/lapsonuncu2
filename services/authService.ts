@@ -183,12 +183,21 @@ class AuthService {
   }
 
   async deleteAccount(): Promise<void> {
+<<<<< cursor/fix-three-code-bugs-4c04
+    try {
+      if (!this.tokens?.accessToken) {
+        throw new Error('Not authenticated');
+      }
+
+      const response = await fetch(`${config.BASE_URL}/auth/delete`, {
+=======
     if (!this.tokens?.accessToken) {
       throw new Error('Not authenticated');
     }
 
     try {
       const response = await fetch(`${config.BASE_URL}/auth/delete-account`, {
+> main
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${this.tokens.accessToken}`,
@@ -202,7 +211,11 @@ class AuthService {
       }
     } catch (error) {
       console.error('Delete account request failed:', error);
+<<<<< cursor/fix-three-code-bugs-4c04
+      // Allow cleanup to proceed even if request failed
+=======
       throw error;
+> main
     } finally {
       await this.clearAuthData();
     }
