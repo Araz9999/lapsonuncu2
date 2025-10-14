@@ -183,28 +183,18 @@ class AuthService {
   }
 
   async deleteAccount(): Promise<void> {
-< cursor/fix-profile-settings-section-bug-f5d8
-    if (!this.tokens?.accessToken) {
-      throw new Error('Not authenticated');
-    }
-
-    try {
-      const response = await fetch(`${config.BASE_URL}/auth/delete-account`, {
-=======
     try {
       if (!this.tokens?.accessToken) {
         throw new Error('Not authenticated');
       }
 
-      await fetch(`${config.BASE_URL}/auth/delete`, {
-> main
+      const response = await fetch(`${config.BASE_URL}/auth/delete`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${this.tokens.accessToken}`,
           'Content-Type': 'application/json',
         },
       });
-< cursor/fix-profile-settings-section-bug-f5d8
 
       if (!response.ok) {
         const error = await response.json().catch(() => ({}));
@@ -212,12 +202,7 @@ class AuthService {
       }
     } catch (error) {
       console.error('Delete account request failed:', error);
-      throw error;
-=======
-    } catch (error) {
-      console.error('Delete account request failed:', error);
-      // Continue to clear local data even if request fails
-> main
+      // Allow cleanup to proceed even if request failed
     } finally {
       await this.clearAuthData();
     }
