@@ -278,7 +278,17 @@ export default function LiveChatScreen() {
   };
 
   const StartChatForm = () => (
-    <View style={styles.startForm}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={0}
+      style={{ flex: 1 }}
+    >
+      <ScrollView
+        contentContainerStyle={[styles.startForm, { flexGrow: 1 }]}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        showsVerticalScrollIndicator={false}
+      >
       <Text style={[styles.startTitle, { color: colors.text }]}>
         {language === 'az' ? 'Canlı Dəstək' : 'Живая поддержка'}
       </Text>
@@ -358,7 +368,8 @@ export default function LiveChatScreen() {
           {language === 'az' ? 'Söhbət Başlat' : 'Начать чат'}
         </Text>
       </TouchableOpacity>
-    </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 
   if (!currentUser) {
@@ -496,6 +507,12 @@ export default function LiveChatScreen() {
                   enablesReturnKeyAutomatically
                   keyboardAppearance={Platform.OS === 'ios' ? (themeMode === 'dark' ? 'dark' : 'light') : 'default'}
                   maxLength={1000}
+< cursor/fix-message-box-jitter-on-typing-e629
+                  textAlignVertical="top"
+                  underlineColorAndroid="transparent"
+                  scrollEnabled={false}
+=======
+> main
                 />
                 
                 <TouchableOpacity
