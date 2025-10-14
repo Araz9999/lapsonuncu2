@@ -487,12 +487,13 @@ export default function LiveChatScreen() {
                   value={message}
                   onChangeText={handleTyping}
                   multiline
+                  scrollEnabled
                   blurOnSubmit={false}
                   autoCorrect
                   autoCapitalize="sentences"
                   keyboardAppearance={Platform.OS === 'ios' ? (themeMode === 'dark' ? 'dark' : 'light') : 'default'}
                   maxLength={1000}
-                  textAlignVertical="center"
+                  textAlignVertical="top"
                 />
                 
                 <TouchableOpacity
