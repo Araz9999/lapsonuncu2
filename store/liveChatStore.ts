@@ -86,11 +86,13 @@ export const useLiveChatStore = create<LiveChatState>()(
           
           const isActiveChat = activeConversationId === message.conversationId;
           const unreadIncrement = !message.isSupport && !isActiveChat ? 1 : 0;
+          const existingUnread = (conversations.find(c => c.id === message.conversationId)?.unreadCount ?? 0);
+          const nextUnread = existingUnread + unreadIncrement;
           
           get().updateConversation(message.conversationId, {
             lastMessage: message.message,
             lastMessageTime: message.timestamp,
-            unreadCount: conversations.find(c => c.id === message.conversationId)?.unreadCount || 0 + unreadIncrement
+            unreadCount: nextUnread
           });
         }
       },
