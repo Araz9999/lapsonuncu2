@@ -53,7 +53,7 @@ async function verifyPassword(password: string, storedHash: string): Promise<boo
   const [saltHex, hashHex] = storedHash.split(':');
   if (!saltHex || !hashHex) {
     // Legacy hash format without salt - for backwards compatibility
-    return hashPasswordLegacy(password) === storedHash;
+    return await hashPasswordLegacy(password) === storedHash;
   }
   
   const encoder = new TextEncoder();

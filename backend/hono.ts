@@ -49,7 +49,7 @@ const ALLOWED_ORIGINS = [
 app.use("*", cors({
   origin: (origin) => {
     // Allow requests with no origin (mobile apps, Postman, etc.)
-    if (!origin) return true;
+    if (!origin) return origin;
     
     // Check if origin is in allowed list
     if (ALLOWED_ORIGINS.includes(origin)) return origin;
@@ -60,7 +60,7 @@ app.use("*", cors({
     }
     
     console.warn(`[CORS] Rejected origin: ${origin}`);
-    return false;
+    return null;
   },
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
