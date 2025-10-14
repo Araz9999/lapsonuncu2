@@ -279,11 +279,18 @@ export default function LiveChatScreen() {
 
   const StartChatForm = () => (
     <KeyboardAvoidingView
+< cursor/animate-message-box-on-typing-b977
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
+      style={styles.startForm}
+    >
+
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
       style={{ flex: 1 }}
     >
     <View style={styles.startForm}>
+> main
       <Text style={[styles.startTitle, { color: colors.text }]}>
         {language === 'az' ? 'Canlı Dəstək' : 'Живая поддержка'}
       </Text>
@@ -364,7 +371,10 @@ export default function LiveChatScreen() {
           {language === 'az' ? 'Söhbət Başlat' : 'Начать чат'}
         </Text>
       </TouchableOpacity>
+< cursor/animate-message-box-on-typing-b977
+
     </View>
+> main
     </KeyboardAvoidingView>
   );
 
@@ -446,7 +456,7 @@ export default function LiveChatScreen() {
           {currentChat.status !== 'closed' ? (
             <KeyboardAvoidingView
               behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-              keyboardVerticalOffset={0}
+              keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
               style={styles.inputSection}
             >
               {showAttachments && (
