@@ -51,13 +51,14 @@ export default function LiveChatScreen() {
   const [subject, setSubject] = useState<string>('');
   const [priority, setPriority] = useState<'low' | 'medium' | 'high' | 'urgent'>('medium');
   const [currentChatId, setCurrentChatId] = useState<string | undefined>(undefined);
-  const [typingTimeout, setTypingTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
   const [shouldScrollToEnd, setShouldScrollToEnd] = useState<boolean>(true);
   const [isScrolling, setIsScrolling] = useState<boolean>(false);
   const [attachments, setAttachments] = useState<FileAttachment[]>([]);
   const [showAttachments, setShowAttachments] = useState<boolean>(false);
   
   const scrollViewRef = useRef<ScrollView>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const currentChat = currentChatId ? liveChats.find(chat => chat.id === currentChatId) : undefined;
   const operator = currentChat?.operatorId ? operators.find(op => op.id === currentChat.operatorId) : undefined;
@@ -83,15 +84,26 @@ export default function LiveChatScreen() {
 
   useEffect(() => {
     if (currentChat?.messages.length && shouldScrollToEnd && !isScrolling) {
-      setTimeout(() => {
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+      scrollTimeoutRef.current = setTimeout(() => {
         scrollViewRef.current?.scrollToEnd({ animated: false });
       }, 100);
     }
   }, [currentChat?.messages.length, shouldScrollToEnd, isScrolling]);
 
+  // Cleanup timeouts on unmount or chat change
   useEffect(() => {
-    return () => {};
-  }, []);
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, [currentChatId]);
 
   const handleStartChat = () => {
     if (!currentUser) {
@@ -132,12 +144,15 @@ export default function LiveChatScreen() {
     setAttachments([]);
     setShowAttachments(false);
     
-    setTimeout(() => {
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
+    }
+    scrollTimeoutRef.current = setTimeout(() => {
       scrollViewRef.current?.scrollToEnd({ animated: false });
     }, 100);
     
-    if (typingTimeout) {
-      clearTimeout(typingTimeout);
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
     }
     setTyping(currentChatId, 'user', false);
   };
@@ -149,15 +164,13 @@ export default function LiveChatScreen() {
     
     setTyping(currentChatId, 'user', true);
     
-    if (typingTimeout) {
-      clearTimeout(typingTimeout);
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
     }
     
-    const timeout: ReturnType<typeof setTimeout> = setTimeout(() => {
+    typingTimeoutRef.current = setTimeout(() => {
       setTyping(currentChatId, 'user', false);
     }, 2000);
-    
-    setTypingTimeout(timeout);
   };
 
   const formatTime = (date: Date) => {
