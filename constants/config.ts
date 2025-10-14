@@ -9,37 +9,37 @@ export const API_CONFIG = {
   }),
   
   // AI Services
-  OPENAI_API_KEY: 'your-openai-api-key-here',
+  OPENAI_API_KEY: '',
   
   // Payment Services
   STRIPE_PUBLISHABLE_KEY: Platform.select({
-    web: 'pk_test_your_stripe_web_key_here',
-    default: 'pk_test_your_stripe_mobile_key_here'
+    web: '',
+    default: ''
   }),
-  PAYPAL_CLIENT_ID: 'your-paypal-client-id-here',
+  PAYPAL_CLIENT_ID: '',
   
   // Payriff Payment Gateway
   // Never hardcode real credentials here; use env on server instead
-  PAYRIFF_MERCHANT_ID: 'your-payriff-merchant-id-here',
-  PAYRIFF_SECRET_KEY: 'your-payriff-secret-key-here',
+  PAYRIFF_MERCHANT_ID: '',
+  PAYRIFF_SECRET_KEY: '',
   PAYRIFF_BASE_URL: 'https://api.payriff.com',
   FRONTEND_URL: 'https://1r36dhx42va8pxqbqz5ja.rork.app',
   
   // Push Notifications
-  EXPO_PUSH_TOKEN: 'your-expo-push-token-here',
-  FCM_SERVER_KEY: 'your-fcm-server-key-here',
+  EXPO_PUSH_TOKEN: '',
+  FCM_SERVER_KEY: '',
   
   // Analytics
-  GOOGLE_ANALYTICS_ID: 'your-google-analytics-id-here',
-  MIXPANEL_TOKEN: 'your-mixpanel-token-here',
+  GOOGLE_ANALYTICS_ID: '',
+  MIXPANEL_TOKEN: '',
   
   // Social Login
   GOOGLE_CLIENT_ID: Platform.select({
-    ios: 'your-google-ios-client-id-here',
-    android: 'your-google-android-client-id-here',
-    web: 'your-google-web-client-id-here'
+    ios: '',
+    android: '',
+    web: ''
   }),
-  FACEBOOK_APP_ID: 'your-facebook-app-id-here',
+  FACEBOOK_APP_ID: '',
   
   // Maps & Location
   GOOGLE_MAPS_API_KEY: Platform.select({
@@ -49,17 +49,17 @@ export const API_CONFIG = {
   }),
   
   // File Storage
-  AWS_ACCESS_KEY_ID: 'your-aws-access-key-here',
-  AWS_SECRET_ACCESS_KEY: 'your-aws-secret-key-here',
-  AWS_REGION: 'your-aws-region-here',
-  AWS_BUCKET_NAME: 'your-s3-bucket-name-here',
+  AWS_ACCESS_KEY_ID: '',
+  AWS_SECRET_ACCESS_KEY: '',
+  AWS_REGION: '',
+  AWS_BUCKET_NAME: '',
   
   // SMS Services
-  TWILIO_ACCOUNT_SID: 'your-twilio-account-sid-here',
-  TWILIO_AUTH_TOKEN: 'your-twilio-auth-token-here',
+  TWILIO_ACCOUNT_SID: '',
+  TWILIO_AUTH_TOKEN: '',
   
   // Email Services
-  SENDGRID_API_KEY: 'your-sendgrid-api-key-here',
+  SENDGRID_API_KEY: '',
   
   // Real-time Communication
   SOCKET_IO_URL: 'wss://your-socket-server.com',

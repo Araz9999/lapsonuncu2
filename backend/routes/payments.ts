@@ -1,13 +1,23 @@
 import { Hono } from 'hono';
 import { payriffService } from '../services/payriff';
+import { z } from 'zod';
 import crypto from 'crypto';
+import { secureHeaders } from 'hono/secure-headers';
+import { zValidator } from '@hono/zod-validator';
 
 const payments = new Hono();
+payments.use('*', secureHeaders());
 
 payments.post('/payriff/create-order', async (c) => {
   try {
     const body = await c.req.json();
-    const { amount, currency = 'AZN', description, userId } = body;
+    const schema = z.object({
+      amount: z.number().positive(),
+      currency: z.enum(['AZN', 'USD', 'EUR']).default('AZN').optional(),
+      description: z.string().min(1).optional(),
+      userId: z.string().min(1),
+    });
+    const { amount, currency = 'AZN', description, userId } = schema.parse(body);
 
     if (!amount || amount <= 0) {
       return c.json({ error: 'Invalid amount' }, 400);
@@ -38,7 +48,7 @@ payments.post('/payriff/create-order', async (c) => {
       paymentUrl: result.paymentUrl,
     });
   } catch (error) {
-    console.error('Create Payriff order error:', error);
+    console.error('Create Payriff order error');
     return c.json({ error: 'Internal server error' }, 500);
   }
 });
@@ -55,15 +65,8 @@ payments.post('/payriff/callback', async (c) => {
       return c.json({ error: 'Invalid signature' }, 400);
     }
 
-    const { orderId, status, amount, currency, transactionId } = body;
-
-    console.log('Payriff payment callback:', {
-      orderId,
-      status,
-      amount: amount / 100,
-      currency,
-      transactionId,
-    });
+    const { orderId, status, amount, currency } = body;
+    // Never include PAN or card details in logs
 
     if (status === 'APPROVED') {
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8081';
@@ -73,7 +76,7 @@ payments.post('/payriff/callback', async (c) => {
       return c.redirect(`${frontendUrl}/wallet?payment=failed&orderId=${orderId}`);
     }
   } catch (error) {
-    console.error('Payriff callback error:', error);
+    console.error('Payriff callback error');
     return c.json({ error: 'Internal server error' }, 500);
   }
 });
@@ -93,7 +96,7 @@ payments.get('/payriff/status/:orderId', async (c) => {
       status,
     });
   } catch (error) {
-    console.error('Get payment status error:', error);
+    console.error('Get payment status error');
     return c.json({ error: 'Failed to get payment status' }, 500);
   }
 });
@@ -101,7 +104,11 @@ payments.get('/payriff/status/:orderId', async (c) => {
 payments.post('/payriff/refund', async (c) => {
   try {
     const body = await c.req.json();
-    const { orderId, amount } = body;
+    const schema = z.object({
+      orderId: z.string().min(1),
+      amount: z.number().positive().optional(),
+    });
+    const { orderId, amount } = schema.parse(body);
 
     if (!orderId) {
       return c.json({ error: 'Order ID is required' }, 400);
@@ -118,7 +125,7 @@ payments.post('/payriff/refund', async (c) => {
       message: 'Refund processed successfully',
     });
   } catch (error) {
-    console.error('Refund error:', error);
+    console.error('Refund error');
     return c.json({ error: 'Failed to process refund' }, 500);
   }
 });

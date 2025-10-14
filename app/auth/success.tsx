@@ -24,7 +24,12 @@ export default function AuthSuccessScreen() {
 
       const userData = JSON.parse(user as string);
       
-      await AsyncStorage.setItem('auth_token', token as string);
+      // Store only via unified auth_tokens object
+      await AsyncStorage.setItem('auth_tokens', JSON.stringify({
+        accessToken: token,
+        refreshToken: token,
+        expiresAt: new Date(Date.now() + 15 * 60 * 1000),
+      }));
       await AsyncStorage.setItem('auth_user', JSON.stringify(userData));
 
       console.log('[AuthSuccess] Login successful, user:', userData.email);

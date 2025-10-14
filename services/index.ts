@@ -39,7 +39,7 @@ export const initializeServices = async () => {
     
     console.log('✓ All services initialized successfully');
   } catch (error) {
-    console.error('Failed to initialize services:', error);
+    console.error('Failed to initialize services');
   }
 };
 
@@ -55,6 +55,9 @@ export const checkServicesHealth = () => {
     auth: authService.isConfigured(),
   };
   
-  console.log('Services health check:', services);
+  console.log('Services health check:', {
+    ...services,
+    // Avoid printing secrets; only booleans here
+  });
   return services;
 };

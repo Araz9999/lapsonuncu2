@@ -32,7 +32,7 @@ export const autoPayV3Procedure = publicProcedure
       operation: input.operation || 'PURCHASE',
     };
 
-    console.log('AutoPay V3 request:', JSON.stringify(requestBody, null, 2));
+    // Avoid logging sensitive headers/body
 
     const response = await fetch(`${baseUrl}/api/v3/autoPay`, {
       method: 'POST',
@@ -44,7 +44,6 @@ export const autoPayV3Procedure = publicProcedure
     });
 
     const data: PayriffResponse = await response.json();
-    console.log('AutoPay V3 response:', JSON.stringify(data, null, 2));
 
     if (!response.ok || !isPayriffSuccess(data)) {
       const errorMessage = getPayriffErrorMessage(data);

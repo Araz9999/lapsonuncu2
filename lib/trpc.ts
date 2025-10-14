@@ -2,6 +2,7 @@ import { createTRPCReact } from "@trpc/react-query";
 import { httpLink } from "@trpc/client";
 import type { AppRouter } from "@/backend/trpc/app-router";
 import superjson from "superjson";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const trpc = createTRPCReact<AppRouter>();
 
@@ -20,6 +21,17 @@ export const trpcClient = trpc.createClient({
     httpLink({
       url: `${getBaseUrl()}/api/trpc`,
       transformer: superjson,
+      async headers() {
+        try {
+          const raw = await AsyncStorage.getItem('auth_tokens');
+          if (!raw) return {};
+          const tokens = JSON.parse(raw);
+          if (tokens?.accessToken) {
+            return { Authorization: `Bearer ${tokens.accessToken}` };
+          }
+        } catch {}
+        return {};
+      },
     }),
   ],
 });

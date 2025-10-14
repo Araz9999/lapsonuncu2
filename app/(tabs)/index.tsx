@@ -218,6 +218,7 @@ export default function HomeScreen() {
       <ScrollView 
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.content}
+        removeClippedSubviews
       >
         <CategoryList />
         <FeaturedListings />
