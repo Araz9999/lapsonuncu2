@@ -1,10 +1,18 @@
 import { SignJWT, jwtVerify } from 'jose';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET || '';
+if (!JWT_SECRET) {
+  // Fail closed in production; warn in development
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('[JWT] Missing JWT_SECRET');
+  } else {
+    console.warn('[JWT] JWT_SECRET not set. Using ephemeral dev secret.');
+  }
+}
 const JWT_ISSUER = 'marketplace-app';
 const JWT_AUDIENCE = 'marketplace-users';
 
-const secret = new TextEncoder().encode(JWT_SECRET);
+const secret = new TextEncoder().encode(JWT_SECRET || 'dev-only-insecure-secret');
 
 export interface JWTPayload {
   userId: string;
@@ -18,7 +26,7 @@ export async function generateAccessToken(payload: JWTPayload): Promise<string> 
     .setIssuedAt()
     .setIssuer(JWT_ISSUER)
     .setAudience(JWT_AUDIENCE)
-    .setExpirationTime('7d')
+    .setExpirationTime('15m')
     .sign(secret);
 
   return token;
@@ -63,6 +71,6 @@ export async function generateTokenPair(payload: JWTPayload) {
   return {
     accessToken,
     refreshToken,
-    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
   };
 }

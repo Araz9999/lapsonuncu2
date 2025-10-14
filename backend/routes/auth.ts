@@ -86,7 +86,7 @@ auth.get('/:provider/callback', async (c) => {
     console.log(`[Auth] Fetching user info from ${provider}`);
     const userInfo = await oauthService.getUserInfo(provider, tokenResponse.access_token, tokenResponse);
 
-    console.log(`[Auth] Looking up user by social ID: ${provider}:${userInfo.id}`);
+    console.log(`[Auth] Looking up user by social ID`);
     let user = await userDB.findBySocialId(provider, userInfo.id);
 
     if (!user) {
@@ -122,7 +122,7 @@ auth.get('/:provider/callback', async (c) => {
       }
     }
 
-    console.log(`[Auth] Generating JWT tokens for user: ${user.id}`);
+    console.log(`[Auth] Generating JWT tokens for user`);
     const tokens = await generateTokenPair({
       userId: user.id,
       email: user.email,
@@ -132,7 +132,7 @@ auth.get('/:provider/callback', async (c) => {
     setCookie(c, 'accessToken', tokens.accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'Lax',
+      sameSite: 'Strict',
       maxAge: 7 * 24 * 60 * 60,
       path: '/',
     });
@@ -140,7 +140,7 @@ auth.get('/:provider/callback', async (c) => {
     setCookie(c, 'refreshToken', tokens.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'Lax',
+      sameSite: 'Strict',
       maxAge: 30 * 24 * 60 * 60,
       path: '/',
     });
