@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Modal, TextInput, Animated } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Modal, TextInput, Animated, KeyboardAvoidingView, Platform } from 'react-native';
 import { Image } from 'expo-image';
 import { Heart, Clock, Trash2, TrendingUp, Eye, Calendar, MessageCircle, X, Send, Zap, Percent, Tag, Gift, Star, Flame } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -14,6 +14,130 @@ import { useDiscountStore } from '@/store/discountStore';
 import { getColors } from '@/constants/colors';
 import { users } from '@/mocks/users';
 import CountdownTimer from '@/components/CountdownTimer';
+import type { Language } from '@/store/languageStore';
+
+// Stable, top-level modal component to avoid remounts while typing
+interface MessageModalProps {
+  visible: boolean;
+  onClose: () => void;
+  messageText: string;
+  onChangeMessageText: (text: string) => void;
+  onSend: () => void;
+  isSending: boolean;
+  listing: Listing;
+  language: Language;
+  colors: any;
+}
+
+const MessageModal = React.memo(function MessageModal({
+  visible,
+  onClose,
+  messageText,
+  onChangeMessageText,
+  onSend,
+  isSending,
+  listing,
+  language,
+  colors,
+}: MessageModalProps) {
+  const seller = users.find(user => user.id === listing.userId);
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+    >
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.messageModal, { backgroundColor: colors.card }]}>
+          <View style={styles.messageModalHeader}>
+            <View style={styles.sellerInfo}>
+              {seller && (
+                <>
+                  <Image source={{ uri: seller.avatar }} style={styles.sellerAvatar} />
+                  <View>
+                    <Text style={[styles.sellerName, { color: colors.text }]}>{seller.name}</Text>
+                    <Text style={[styles.listingTitle, { color: colors.textSecondary }]} numberOfLines={1}>
+                      {listing.title[language]}
+                    </Text>
+                  </View>
+                </>
+              )}
+            </View>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={onClose}
+            >
+              <X size={24} color={colors.textSecondary} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.messageInputContainer}>
+            <TextInput
+              style={[
+                styles.messageInput,
+                {
+                  backgroundColor: colors.background,
+                  color: colors.text,
+                  borderColor: colors.border,
+                },
+              ]}
+              value={messageText}
+              onChangeText={onChangeMessageText}
+              placeholder={language === 'az' ? 'Mesajınızı yazın...' : 'Напишите ваше сообщение...'}
+              placeholderTextColor={colors.textSecondary}
+              multiline
+              scrollEnabled
+              maxLength={500}
+              textAlignVertical="top"
+              autoFocus
+            />
+            <Text style={[styles.characterCount, { color: colors.textSecondary }]}>
+              {messageText.length}/500
+            </Text>
+          </View>
+
+          <View style={styles.messageModalFooter}>
+            <TouchableOpacity
+              style={[styles.cancelButton, { borderColor: colors.border }]}
+              onPress={onClose}
+            >
+              <Text style={[styles.cancelButtonText, { color: colors.textSecondary }]}>
+                {language === 'az' ? 'Ləğv et' : 'Отмена'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.sendButton,
+                {
+                  backgroundColor:
+                    messageText.trim() && !isSending ? colors.primary : colors.textSecondary,
+                },
+              ]}
+              onPress={onSend}
+              disabled={!messageText.trim() || isSending}
+            >
+              <Send size={16} color="white" />
+              <Text style={styles.sendButtonText}>
+                {isSending
+                  ? (language === 'az' ? 'Göndərilir...' : 'Отправка...')
+                  : (language === 'az' ? 'Göndər' : 'Отправить')}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+});
 
 interface ListingCardProps {
   listing: Listing;
@@ -550,91 +674,7 @@ export default function ListingCard({
     }
   };
 
-  const MessageModal = () => {
-    const seller = users.find(user => user.id === listing.userId);
-    
-    return (
-      <Modal
-        visible={showMessageModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowMessageModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.messageModal, { backgroundColor: colors.card }]}>
-            <View style={styles.messageModalHeader}>
-              <View style={styles.sellerInfo}>
-                {seller && (
-                  <>
-                    <Image source={{ uri: seller.avatar }} style={styles.sellerAvatar} />
-                    <View>
-                      <Text style={[styles.sellerName, { color: colors.text }]}>{seller.name}</Text>
-                      <Text style={[styles.listingTitle, { color: colors.textSecondary }]} numberOfLines={1}>
-                        {listing.title[language]}
-                      </Text>
-                    </View>
-                  </>
-                )}
-              </View>
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={() => setShowMessageModal(false)}
-              >
-                <X size={24} color={colors.textSecondary} />
-              </TouchableOpacity>
-            </View>
-            
-            <View style={styles.messageInputContainer}>
-              <TextInput
-                style={[styles.messageInput, { 
-                  backgroundColor: colors.background, 
-                  color: colors.text,
-                  borderColor: colors.border 
-                }]}
-                value={messageText}
-                onChangeText={setMessageText}
-                placeholder={language === 'az' ? 'Mesajınızı yazın...' : 'Напишите ваше сообщение...'}
-                placeholderTextColor={colors.textSecondary}
-                multiline
-                maxLength={500}
-                textAlignVertical="top"
-              />
-              <Text style={[styles.characterCount, { color: colors.textSecondary }]}>
-                {messageText.length}/500
-              </Text>
-            </View>
-            
-            <View style={styles.messageModalFooter}>
-              <TouchableOpacity
-                style={[styles.cancelButton, { borderColor: colors.border }]}
-                onPress={() => setShowMessageModal(false)}
-              >
-                <Text style={[styles.cancelButtonText, { color: colors.textSecondary }]}>
-                  {language === 'az' ? 'Ləğv et' : 'Отмена'}
-                </Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={[styles.sendButton, { 
-                  backgroundColor: messageText.trim() && !isSending ? colors.primary : colors.textSecondary 
-                }]}
-                onPress={handleSendMessage}
-                disabled={!messageText.trim() || isSending}
-              >
-                <Send size={16} color="white" />
-                <Text style={styles.sendButtonText}>
-                  {isSending 
-                    ? (language === 'az' ? 'Göndərilir...' : 'Отправка...') 
-                    : (language === 'az' ? 'Göndər' : 'Отправить')
-                  }
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-    );
-  };
+  // inline MessageModal removed in favor of top-level MessageModal component
 
   // Get creative effect styling
   const getCreativeEffectStyle = () => {
@@ -1117,8 +1157,19 @@ export default function ListingCard({
         )}
       </View>
       
-      <MessageModal />
       </TouchableOpacity>
+
+      <MessageModal
+        visible={showMessageModal}
+        onClose={() => setShowMessageModal(false)}
+        messageText={messageText}
+        onChangeMessageText={setMessageText}
+        onSend={handleSendMessage}
+        isSending={isSending}
+        listing={listing}
+        language={language}
+        colors={colors}
+      />
     </Animated.View>
   );
 }
@@ -1292,6 +1343,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 12,
     minHeight: 100,
+    maxHeight: 160,
     fontSize: 16,
     marginBottom: 8,
   },

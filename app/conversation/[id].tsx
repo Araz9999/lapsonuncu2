@@ -214,11 +214,11 @@ export default function ConversationScreen() {
   }, [conversationId, conversation?.unreadCount, markAsRead, conversation?.id]);
   
   useEffect(() => {
-    return sound
-      ? () => {
-          sound.unloadAsync();
-        }
-      : undefined;
+    return () => {
+      if (sound) {
+        sound.unloadAsync();
+      }
+    };
   }, [sound]);
   
   // Early return after all hooks are called
@@ -518,18 +518,19 @@ export default function ConversationScreen() {
 
       const { sound: newSound } = await Audio.Sound.createAsync(
         { uri },
-        { shouldPlay: true }
+        { shouldPlay: true },
+        (status) => {
+          if ('didJustFinish' in status && status.didJustFinish) {
+            setPlayingAudio(null);
+            newSound.unloadAsync();
+          }
+        }
       );
       
       setSound(newSound);
       setPlayingAudio(messageId);
       
-      newSound.setOnPlaybackStatusUpdate((status) => {
-        if (status.isLoaded && status.didJustFinish) {
-          setPlayingAudio(null);
-          newSound.unloadAsync();
-        }
-      });
+      // setOnPlaybackStatusUpdate not strictly needed when callback passed in createAsync
     } catch (error) {
       console.error('Error playing audio:', error);
       Alert.alert(

@@ -190,7 +190,10 @@ class NotificationService {
   }
 
   isConfigured(): boolean {
-    return !this.expoPushToken.includes('your-') || !this.fcmServerKey.includes('your-');
+    // Consider configured only if at least one credential is non-placeholder
+    const hasExpo = this.expoPushToken && !this.expoPushToken.includes('your-');
+    const hasFcm = this.fcmServerKey && !this.fcmServerKey.includes('your-');
+    return Boolean(hasExpo || hasFcm);
   }
 }
 
