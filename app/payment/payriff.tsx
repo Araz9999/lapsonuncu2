@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -26,6 +26,8 @@ export default function PayriffPaymentScreen() {
   const [loading, setLoading] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<'idle' | 'processing' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+  
+  const paymentCheckTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleConfigError = useCallback(() => {
     if (!payriffService.isConfigured()) {
@@ -40,6 +42,15 @@ export default function PayriffPaymentScreen() {
   useEffect(() => {
     handleConfigError();
   }, [handleConfigError]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (paymentCheckTimeoutRef.current) {
+        clearTimeout(paymentCheckTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handlePayment = async () => {
     if (amount <= 0) {
@@ -66,7 +77,7 @@ export default function PayriffPaymentScreen() {
         } else {
           payriffService.openPaymentPage(response.paymentUrl);
           
-          setTimeout(() => {
+          paymentCheckTimeoutRef.current = setTimeout(() => {
             checkPaymentStatus(orderId);
           }, 3000);
         }
