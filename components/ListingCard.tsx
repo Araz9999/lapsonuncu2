@@ -148,7 +148,7 @@ interface ListingCardProps {
 }
 
 
-export default function ListingCard({ 
+const ListingCard = React.memo(function ListingCard({ 
   listing, 
   showDeleteButton = false, 
   showPromoteButton = false,
@@ -162,8 +162,10 @@ export default function ListingCard({
   const { themeMode, colorTheme, fontSize, showPriceInTitle, compactMode } = useThemeStore();
   const { getOrCreateConversation, addMessage } = useMessageStore();
   const { getActiveDiscountsForListing, getActiveCampaignsForListing } = useDiscountStore();
-  const colors = getColors(themeMode, colorTheme);
-  const isFavorite = favorites.includes(listing.id);
+  
+  // Memoize expensive calculations
+  const colors = useMemo(() => getColors(themeMode, colorTheme), [themeMode, colorTheme]);
+  const isFavorite = useMemo(() => favorites.includes(listing.id), [favorites, listing.id]);
   const [showMessageModal, setShowMessageModal] = useState(false);
   const [messageText, setMessageText] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -257,25 +259,11 @@ export default function ListingCard({
     let discountType: 'percentage' | 'fixed_amount' = 'percentage';
     let discountValue = 0;
 
-    console.log(`[ListingCard] Calculating discount for listing ${listing.id}:`, {
-      activeDiscounts: activeDiscounts.length,
-      hasDiscount: listing.hasDiscount,
-      originalPrice,
-      currentPrice: listing.price,
-      discountPercentage: listing.discountPercentage
-    });
-
     // Check for active store/campaign discounts first
     if (activeDiscounts.length > 0) {
       const discount = activeDiscounts[0];
       discountType = discount.type === 'buy_x_get_y' ? 'percentage' : discount.type as 'percentage' | 'fixed_amount';
       discountValue = discount.value;
-
-      console.log(`[ListingCard] Applying store discount:`, {
-        type: discount.type,
-        value: discount.value,
-        originalPrice
-      });
 
       if (discount.type === 'percentage' || discount.type === 'buy_x_get_y') {
         discountPercentage = discount.value;
@@ -308,7 +296,6 @@ export default function ListingCard({
         originalPrice = listing.originalPrice;
         discountedPrice = listing.price;
         discountPercentage = originalPrice > 0 ? ((originalPrice - discountedPrice) / originalPrice) * 100 : 0;
-        console.log('[ListingCard] Derived fixed-amount listing discount', { discountValue, originalPrice, discountedPrice });
       } else if (typeof listing.discountPercentage === 'number' && listing.discountPercentage < 1 && listing.discountPercentage > 0) {
         // This looks like a calculated percentage from a fixed amount discount
         // Try to derive the original fixed amount
@@ -318,7 +305,6 @@ export default function ListingCard({
           originalPrice = listing.originalPrice;
           discountedPrice = listing.price;
           discountPercentage = listing.discountPercentage;
-          console.log('[ListingCard] Detected fixed-amount from small percentage', { discountValue, originalPrice, discountedPrice });
         } else {
           // Fallback to percentage
           discountPercentage = listing.discountPercentage;
@@ -338,8 +324,6 @@ export default function ListingCard({
       discountValue: Math.round(discountValue),
       absoluteSavings: Math.round(absoluteSavings),
     } as const;
-
-    console.log(`[ListingCard] Final discount calculation:`, result);
 
     return result;
   }, [activeDiscounts, listing.hasDiscount, listing.price, listing.originalPrice, listing.discountPercentage, listing.id]);
@@ -522,24 +506,19 @@ export default function ListingCard({
     }
   };
 
-  const handlePress = () => {
-    console.log(`[ListingCard] Navigating to listing ${listing.id} with price info:`, {
-      originalPrice: listing.price,
-      discountedPrice: priceInfo.discountedPrice,
-      discountType: priceInfo.discountType,
-      absoluteSavings: priceInfo.absoluteSavings,
-      hasDiscount: listing.hasDiscount || activeDiscounts.length > 0
-    });
-    
+  const handlePress = useCallback(() => {
+    if (__DEV__) {
+      console.log(`[ListingCard] Navigating to listing ${listing.id}`);
+    }
     router.push(`/listing/${listing.id}`);
-  };
+  }, [listing.id, router]);
 
-  const handleFavoritePress = (e: any) => {
+  const handleFavoritePress = useCallback((e: any) => {
     e.stopPropagation();
     toggleFavorite(listing.id);
-  };
+  }, [listing.id, toggleFavorite]);
 
-  const handleDeletePress = (e: any) => {
+  const handleDeletePress = useCallback((e: any) => {
     e.stopPropagation();
     Alert.alert(
       language === 'az' ? 'Elanı sil' : 'Удалить объявление',
@@ -564,14 +543,14 @@ export default function ListingCard({
         },
       ]
     );
-  };
+  }, [language, onDelete, deleteListing, listing.id]);
 
-  const handlePromotePress = (e: any) => {
+  const handlePromotePress = useCallback((e: any) => {
     e.stopPropagation();
     if (onPromote) {
       onPromote(listing.id);
     }
-  };
+  }, [onPromote, listing.id]);
 
   // Calculate days remaining until expiration
   const calculateDaysRemaining = () => {
@@ -585,7 +564,7 @@ export default function ListingCard({
 
   const daysRemaining = calculateDaysRemaining();
 
-  const handleMessagePress = (e: any) => {
+  const handleMessagePress = useCallback((e: any) => {
     e.stopPropagation();
     
     if (!isAuthenticated) {
@@ -622,7 +601,7 @@ export default function ListingCard({
         ? `Salam! "${listing.title[language]}" elanınızla maraqlanıram.`
         : `Здравствуйте! Меня интересует ваше объявление "${listing.title[language]}".`
     );
-  };
+  }, [isAuthenticated, currentUser, listing.userId, listing.title, language, router]);
 
   const handleSendMessage = async () => {
     if (!messageText.trim() || !currentUser) return;
@@ -1172,7 +1151,9 @@ export default function ListingCard({
       />
     </Animated.View>
   );
-}
+});
+
+export default ListingCard;
 
 const styles = StyleSheet.create({
   card: {

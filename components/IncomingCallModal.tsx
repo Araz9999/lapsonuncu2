@@ -19,23 +19,32 @@ import { router } from 'expo-router';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
-export default function IncomingCallModal() {
+const IncomingCallModal = React.memo(function IncomingCallModal() {
   const { incomingCall, answerCall, declineCall } = useCallStore();
   const { language } = useLanguageStore();
 
-  if (!incomingCall) return null;
+  const caller = React.useMemo(
+    () => incomingCall ? users.find(user => user.id === incomingCall.callerId) : undefined,
+    [incomingCall]
+  );
+  
+  const listing = React.useMemo(
+    () => incomingCall ? listings.find(l => l.id === incomingCall.listingId) : undefined,
+    [incomingCall]
+  );
 
-  const caller = users.find(user => user.id === incomingCall.callerId);
-  const listing = listings.find(l => l.id === incomingCall.listingId);
-
-  const handleAnswer = () => {
+  const handleAnswer = React.useCallback(() => {
+    if (!incomingCall) return;
     answerCall(incomingCall.id);
     router.push(`/call/${incomingCall.id}`);
-  };
+  }, [incomingCall, answerCall]);
 
-  const handleDecline = () => {
+  const handleDecline = React.useCallback(() => {
+    if (!incomingCall) return;
     declineCall(incomingCall.id);
-  };
+  }, [incomingCall, declineCall]);
+  
+  if (!incomingCall) return null;
 
   return (
     <Modal
@@ -101,7 +110,9 @@ export default function IncomingCallModal() {
       </View>
     </Modal>
   );
-}
+});
+
+export default IncomingCallModal;
 
 const styles = StyleSheet.create({
   container: {
