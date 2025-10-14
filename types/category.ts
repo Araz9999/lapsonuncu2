@@ -1,6 +1,11 @@
 export interface LocalizedText {
   az: string;
   ru: string;
+< cursor/fix-all-code-errors-3f0d
+  // English is optional because the app currently supports 'az' and 'ru'.
+  // When English is unavailable in static data, UI will fall back gracefully.
+
+> main
   en?: string;
 }
 

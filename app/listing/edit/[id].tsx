@@ -15,6 +15,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useLanguageStore } from '@/store/languageStore';
+import { LocalizedText } from '@/types/category';
 import { useListingStore } from '@/store/listingStore';
 import { categories } from '@/constants/categories';
 import { locations } from '@/constants/locations';
@@ -57,7 +58,23 @@ export default function EditListingScreen() {
   
   const listing = listings.find(l => l.id === id);
   
+< cursor/fix-all-code-errors-3f0d
+  const [formData, setFormData] = useState<{
+    title: LocalizedText;
+    description: LocalizedText;
+    price: string;
+    currency: string;
+    categoryId: number;
+    subcategoryId: number;
+    location: LocalizedText;
+    locationId: string;
+    images: string[];
+    condition: string;
+    deliveryAvailable: boolean;
+  }>({
+=======
   const [formData, setFormData] = useState<FormData>({
+> main
     title: { az: '', ru: '', en: '' },
     description: { az: '', ru: '', en: '' },
     price: '',
@@ -66,7 +83,7 @@ export default function EditListingScreen() {
     subcategoryId: 0,
     location: { az: '', ru: '', en: '' },
     locationId: '',
-    images: [] as string[],
+    images: [],
     condition: '',
     deliveryAvailable: false
   });
@@ -287,7 +304,7 @@ export default function EditListingScreen() {
   };
   
   const handleSave = async () => {
-    if (!formData.title.az || !formData.title.ru || !formData.title.en || !formData.description.az || !formData.description.ru || !formData.description.en || !formData.price) {
+    if (!formData.title.az || !formData.title.ru || !formData.description.az || !formData.description.ru || !formData.price) {
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Bütün sahələri doldurun' : 'Заполните все поля'
