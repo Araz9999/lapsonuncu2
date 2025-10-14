@@ -1,8 +1,7 @@
-import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { useEffect, Component, ReactNode, useState } from "react";
+import { useEffect, Component, ReactNode, useState, useMemo, useCallback } from "react";
 import { StatusBar } from 'expo-status-bar';
 import { View, Text } from 'react-native';
 import { useThemeStore } from '@/store/themeStore';
@@ -12,7 +11,7 @@ import { getColors } from '@/constants/colors';
 import IncomingCallModal from '@/components/IncomingCallModal';
 import { LanguageProvider } from '@/store/languageStore';
 
-import { initializeServices, checkServicesHealth } from '@/services';
+import { initializeServices } from '@/services';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { trpc, trpcClient } from '@/lib/trpc';
 
@@ -22,6 +21,24 @@ export const unstable_settings = {
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
+
+// Create QueryClient with optimized defaults outside component to avoid recreating
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      gcTime: 1000 * 60 * 30, // 30 minutes (formerly cacheTime)
+      refetchOnWindowFocus: false,
+      refetchOnMount: false,
+      refetchOnReconnect: true,
+      retry: 1,
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    },
+    mutations: {
+      retry: 1,
+    },
+  },
+});
 
 class ErrorBoundary extends Component<
   { children: ReactNode },
@@ -57,29 +74,17 @@ class ErrorBoundary extends Component<
 }
 
 export default function RootLayout() {
-  const [loaded, error] = useFonts({
-    ...FontAwesome.font,
-  });
-
-  const [queryClient] = useState(() => new QueryClient());
-  const [fontLoadingComplete, setFontLoadingComplete] = useState(false);
+  // Skip font loading - use system fonts for better performance
+  const [loaded] = useFonts({});
+  const [appReady, setAppReady] = useState(false);
 
   useEffect(() => {
-    if (error) {
-      console.warn('Font loading error (non-critical):', error.message);
-      setFontLoadingComplete(true);
-      SplashScreen.hideAsync();
-    }
-  }, [error]);
+    // Mark app as ready immediately
+    setAppReady(true);
+    SplashScreen.hideAsync();
+  }, []);
 
-  useEffect(() => {
-    if (loaded) {
-      setFontLoadingComplete(true);
-      SplashScreen.hideAsync();
-    }
-  }, [loaded]);
-
-  if (!fontLoadingComplete) {
+  if (!appReady) {
     return null;
   }
 
@@ -98,56 +103,35 @@ export default function RootLayout() {
 
 function RootLayoutNav() {
   const { themeMode, colorTheme } = useThemeStore();
-
   const { loadRatings } = useRatingStore();
   const { initializeSounds } = useCallStore();
-  const colors = getColors(themeMode, colorTheme);
   
-  // Load ratings on app start
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        await loadRatings();
-      } catch (error) {
-        console.error('Failed to load ratings:', error);
-      }
-    };
-    loadData();
-  }, []); // Remove loadRatings from dependencies to prevent infinite loop
+  // Memoize colors to prevent recalculation
+  const colors = useMemo(() => getColors(themeMode, colorTheme), [themeMode, colorTheme]);
   
-  // Initialize call sounds
+  // Load ratings on app start (only once)
   useEffect(() => {
-    const initSounds = async () => {
-      try {
-        console.log('Starting sound initialization from layout...');
-        await initializeSounds();
-        console.log('Sound initialization completed successfully');
-      } catch (error) {
-        console.error('Failed to initialize sounds in layout:', error);
-        // Continue app execution even if sound initialization fails
-      }
-    };
-    
-    // Delay sound initialization to ensure app is fully loaded
+    loadRatings().catch((error) => {
+      if (__DEV__) console.error('Failed to load ratings:', error);
+    });
+  }, []); // Safe to ignore loadRatings dependency as it's stable
+  
+  // Initialize call sounds (delayed for better startup performance)
+  useEffect(() => {
     const timer = setTimeout(() => {
-      initSounds();
-    }, 1000);
+      initializeSounds().catch((error) => {
+        if (__DEV__) console.error('Failed to initialize sounds:', error);
+      });
+    }, 2000); // Increased delay for better startup
     
     return () => clearTimeout(timer);
-  }, []); // Remove initializeSounds from dependencies to prevent infinite loop
+  }, []); // Safe to ignore initializeSounds dependency as it's stable
   
-  // Initialize services
+  // Initialize services (only once)
   useEffect(() => {
-    const initServices = async () => {
-      try {
-        await initializeServices();
-        const health = checkServicesHealth();
-        console.log('Services health:', health);
-      } catch (error) {
-        console.error('Failed to initialize services:', error);
-      }
-    };
-    initServices();
+    initializeServices().catch((error) => {
+      if (__DEV__) console.error('Failed to initialize services:', error);
+    });
   }, []);
   
   return (
