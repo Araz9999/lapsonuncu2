@@ -53,7 +53,8 @@ export default function MessagesScreen() {
   };
 
   const getOtherUser = (participants: string[]) => {
-    const otherUserId = participants.find(id => id !== (currentUser?.id || 'user1'));
+    const selfId = currentUser?.id || 'user1';
+    const otherUserId = participants.find(id => id !== selfId);
     return users.find(user => user.id === otherUserId);
   };
 
