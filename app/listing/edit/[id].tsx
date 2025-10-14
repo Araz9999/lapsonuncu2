@@ -20,6 +20,7 @@ import { categories } from '@/constants/categories';
 import { locations } from '@/constants/locations';
 import Colors from '@/constants/colors';
 import { prompt } from '@/utils/confirm';
+import { LocalizedText } from '@/types/category';
 import {
   ArrowLeft,
   Save,
@@ -34,6 +35,20 @@ import {
 } from 'lucide-react-native';
 import AutoRenewalManager from '@/components/AutoRenewalManager';
 
+type FormData = {
+  title: LocalizedText;
+  description: LocalizedText;
+  price: string;
+  currency: string;
+  categoryId: number;
+  subcategoryId: number;
+  location: LocalizedText;
+  locationId: string;
+  images: string[];
+  condition: string;
+  deliveryAvailable: boolean;
+};
+
 export default function EditListingScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -42,7 +57,7 @@ export default function EditListingScreen() {
   
   const listing = listings.find(l => l.id === id);
   
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     title: { az: '', ru: '', en: '' },
     description: { az: '', ru: '', en: '' },
     price: '',

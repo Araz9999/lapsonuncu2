@@ -15,6 +15,7 @@ export const users: User[] = [
       ru: 'город Нахчыван',
     },
     balance: 150,
+    role: 'user',
     privacySettings: {
       hidePhoneNumber: false,
       allowDirectContact: true,
@@ -43,6 +44,7 @@ export const users: User[] = [
       ru: 'Бабек',
     },
     balance: 200,
+    role: 'user',
     privacySettings: {
       hidePhoneNumber: true,
       allowDirectContact: false,
@@ -71,6 +73,7 @@ export const users: User[] = [
       ru: 'Шарур',
     },
     balance: 75,
+    role: 'user',
     privacySettings: {
       hidePhoneNumber: false,
       allowDirectContact: true,
@@ -99,6 +102,7 @@ export const users: User[] = [
       ru: 'Ордубад',
     },
     balance: 300,
+    role: 'user',
     privacySettings: {
       hidePhoneNumber: true,
       allowDirectContact: false,
@@ -127,6 +131,7 @@ export const users: User[] = [
       ru: 'Джульфа',
     },
     balance: 50,
+    role: 'user',
     privacySettings: {
       hidePhoneNumber: false,
       allowDirectContact: true,
@@ -155,6 +160,7 @@ export const users: User[] = [
       ru: 'Шахбуз',
     },
     balance: 120,
+    role: 'user',
     privacySettings: {
       hidePhoneNumber: false,
       allowDirectContact: true,
@@ -183,6 +189,7 @@ export const users: User[] = [
       ru: 'Кенгерли',
     },
     balance: 80,
+    role: 'user',
     privacySettings: {
       hidePhoneNumber: true,
       allowDirectContact: false,
@@ -211,6 +218,7 @@ export const users: User[] = [
       ru: 'Садарак',
     },
     balance: 180,
+    role: 'user',
     privacySettings: {
       hidePhoneNumber: false,
       allowDirectContact: true,
