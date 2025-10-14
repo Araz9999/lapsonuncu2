@@ -6,7 +6,8 @@
     "start": "bunx rork start -p 1r36dhx42va8pxqbqz5ja --tunnel",
     "start-web": "bunx rork start -p 1r36dhx42va8pxqbqz5ja --web --tunnel",
     "start-web-dev": "DEBUG=expo* bunx rork start -p 1r36dhx42va8pxqbqz5ja --web --tunnel",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --ext .ts,.tsx --max-warnings=0"
   },
   "dependencies": {
     "@expo/vector-icons": "^14.1.0",
@@ -63,8 +64,39 @@
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@expo/ngrok": "^4.1.0",
+    "@typescript-eslint/eslint-plugin": "^8.11.0",
+    "@typescript-eslint/parser": "^8.11.0",
+    "eslint": "^9.14.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-security": "^3.0.1",
     "@types/react": "~19.0.10",
     "typescript": "~5.8.3"
+  },
+  "eslintConfig": {
+    "root": true,
+    "parser": "@typescript-eslint/parser",
+    "plugins": [
+      "@typescript-eslint",
+      "security"
+    ],
+    "extends": [
+      "eslint:recommended",
+      "plugin:@typescript-eslint/recommended",
+      "plugin:security/recommended",
+      "prettier"
+    ],
+    "env": {
+      "es2022": true,
+      "node": true,
+      "browser": true
+    },
+    "rules": {
+      "security/detect-object-injection": "off"
+    },
+    "ignorePatterns": [
+      "dist/**",
+      "build/**"
+    ]
   },
   "private": true
 }

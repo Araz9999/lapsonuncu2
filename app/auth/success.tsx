@@ -1,13 +1,14 @@
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import config from '@/constants/config';
 import { useUserStore } from '@/store/userStore';
 import Colors from '@/constants/colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function AuthSuccessScreen() {
   const router = useRouter();
-  const { token, user } = useLocalSearchParams();
+  const { code, token, user } = useLocalSearchParams();
   const { login } = useUserStore();
 
   useEffect(() => {
@@ -16,12 +17,43 @@ export default function AuthSuccessScreen() {
 
   const handleAuthSuccess = async () => {
     try {
-      if (!token || !user) {
-        console.error('[AuthSuccess] Missing token or user data');
+      let exchangedUser: any = null;
+      let accessToken: string | null = null;
+      let refreshToken: string | null = null;
+      let expiresAt: string | null = null;
+
+      if (code) {
+        const res = await fetch(`${config.BASE_URL}/auth/exchange`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code }),
+        });
+        if (!res.ok) throw new Error('Exchange failed');
+        const data = await res.json();
+        exchangedUser = data.user;
+        accessToken = data.tokens?.accessToken ?? null;
+        refreshToken = data.tokens?.refreshToken ?? null;
+        expiresAt = data.tokens?.expiresAt ?? null;
+      } else if (token && user) {
+        // Fallback for legacy flow (will be deprecated)
+        exchangedUser = JSON.parse(user as string);
+        accessToken = token as string;
+        refreshToken = token as string;
+        expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+      } else {
+        console.error('[AuthSuccess] Missing auth data');
         router.replace('/auth/login');
         return;
       }
 
+< cursor/fix-security-bugs-and-optimize-app-89ea
+      await AsyncStorage.setItem('auth_tokens', JSON.stringify({
+        accessToken,
+        refreshToken,
+        expiresAt,
+      }));
+      await AsyncStorage.setItem('auth_user', JSON.stringify(exchangedUser));
+=======
       const userData = JSON.parse(user as string);
       
       // Store only via unified auth_tokens object
@@ -31,21 +63,22 @@ export default function AuthSuccessScreen() {
         expiresAt: new Date(Date.now() + 15 * 60 * 1000),
       }));
       await AsyncStorage.setItem('auth_user', JSON.stringify(userData));
+> main
 
-      console.log('[AuthSuccess] Login successful, user:', userData.email);
+      console.log('[AuthSuccess] Login successful, user:', exchangedUser.email);
 
       login({
-        id: userData.id,
-        name: userData.name,
-        email: userData.email,
-        phone: userData.phone || '',
-        avatar: userData.avatar || '',
+        id: exchangedUser.id,
+        name: exchangedUser.name,
+        email: exchangedUser.email,
+        phone: exchangedUser.phone || '',
+        avatar: exchangedUser.avatar || '',
         rating: 0,
         totalRatings: 0,
         memberSince: new Date().toISOString(),
         location: { en: '', ru: '', az: '' },
         balance: 0,
-        role: userData.role || 'user',
+        role: exchangedUser.role || 'user',
         privacySettings: {
           hidePhoneNumber: false,
           allowDirectContact: true,
