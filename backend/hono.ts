@@ -34,22 +34,9 @@ function rateLimit(limit: number, windowMs: number) {
 
 const app = new Hono();
 
-< cursor/fix-security-bugs-and-optimize-app-3cd5
 // Security headers
 app.use('*', secureHeaders());
 
-// CORS with allowed origins list
-const allowedOriginsEnv = process.env.ALLOWED_ORIGINS || process.env.FRONTEND_URL || process.env.EXPO_PUBLIC_FRONTEND_URL || 'http://localhost:8081';
-const allowedOrigins = allowedOriginsEnv.split(',').map((s) => s.trim()).filter(Boolean);
-
-app.use("*", cors({
-  origin: (origin) => {
-    if (!origin) return '';
-    return allowedOrigins.includes(origin) ? origin : '';
-  },
-  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-=======
 // SECURITY: Configure CORS with allowed origins
 const ALLOWED_ORIGINS = [
   process.env.FRONTEND_URL,
@@ -75,7 +62,8 @@ app.use("*", cors({
     console.warn(`[CORS] Rejected origin: ${origin}`);
     return false;
   },
-> main
+  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   credentials: true,
   maxAge: 86400,
 }));
