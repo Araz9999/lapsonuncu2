@@ -278,6 +278,11 @@ export default function LiveChatScreen() {
   };
 
   const StartChatForm = () => (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
+      style={{ flex: 1 }}
+    >
     <View style={styles.startForm}>
       <Text style={[styles.startTitle, { color: colors.text }]}>
         {language === 'az' ? 'Canlı Dəstək' : 'Живая поддержка'}
@@ -360,6 +365,7 @@ export default function LiveChatScreen() {
         </Text>
       </TouchableOpacity>
     </View>
+    </KeyboardAvoidingView>
   );
 
   if (!currentUser) {
