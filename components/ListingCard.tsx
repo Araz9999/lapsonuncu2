@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Modal, TextInput, Animated, KeyboardAvoidingView, Platform } from 'react-native';
 import { Image } from 'expo-image';
 import { Heart, Clock, Trash2, TrendingUp, Eye, Calendar, MessageCircle, X, Send, Zap, Percent, Tag, Gift, Star, Flame } from 'lucide-react-native';
