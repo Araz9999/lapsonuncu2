@@ -31,6 +31,9 @@ export default function LiveChatInput({ onSend, disabled }: LiveChatInputProps) 
           multiline
           maxLength={1000}
           editable={!disabled}
+          textAlignVertical="top"
+          underlineColorAndroid="transparent"
+          scrollEnabled={false}
         />
         <TouchableOpacity
           style={[styles.sendButton, (!message.trim() || disabled) && styles.sendButtonDisabled]}
