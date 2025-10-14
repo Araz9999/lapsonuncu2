@@ -9,6 +9,7 @@ import Colors from '@/constants/colors';
 import { users } from '@/mocks/users';
 import { Star, LogOut, Heart, Settings, Bell, HelpCircle, Shield, Package, MessageCircle, ChevronRight, Wallet, Store, Trash2, Headphones } from 'lucide-react-native';
 import LiveChatWidget from '@/components/LiveChatWidget';
+import { authService } from '@/services/authService';
 import { useSupportStore } from '@/store/supportStore';
 import { authService } from '@/services';
 
@@ -75,12 +76,20 @@ export default function ProfileScreen() {
                     text: t('yes'),
                     style: 'destructive',
                     onPress: async () => {
+< cursor/fix-profile-settings-section-bug-f5d8
+                      console.log('[handleDeleteProfile] Profile deletion confirmed, calling API');
+                      try {
+                        await authService.deleteAccount();
+                        logout();
+                        console.log('[handleDeleteProfile] Account deleted and logged out, navigating to login');
+=======
                       console.log('[handleDeleteProfile] Profile deletion confirmed, calling backend');
                       try {
                         await authService.deleteAccount();
                         logout();
                         console.log('[handleDeleteProfile] Account deleted and local state cleared');
 
+> main
                         Alert.alert(
                           t('success'),
                           language === 'az' ? 'Profil uğurla silindi' : 'Профиль успешно удален',
