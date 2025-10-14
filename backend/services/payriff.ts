@@ -44,7 +44,8 @@ class PayriffService {
   }
 
   private generateSignature(data: string): string {
-    return crypto.createHash('sha256').update(data).digest('hex');
+    // Use HMAC-SHA256 with the merchant secret to prevent forgery
+    return crypto.createHmac('sha256', this.secretKey).update(data).digest('hex');
   }
 
   private getCallbackUrls() {
@@ -150,9 +151,8 @@ class PayriffService {
 
   verifyWebhookSignature(body: any, receivedSignature: string): boolean {
     try {
-      const computedSignature = this.generateSignature(
-        JSON.stringify(body) + this.secretKey
-      );
+      // Provider signs the raw payload with the shared secret
+      const computedSignature = this.generateSignature(JSON.stringify(body));
       return receivedSignature === computedSignature;
     } catch (error) {
       console.error('Signature verification error:', error);
