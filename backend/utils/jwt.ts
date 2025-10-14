@@ -1,5 +1,6 @@
 import { SignJWT, jwtVerify } from 'jose';
 
+< cursor/fix-security-bugs-and-optimize-app-3cd5
 const JWT_SECRET = process.env.JWT_SECRET || '';
 if (!JWT_SECRET) {
   // Fail closed in production; warn in development
@@ -13,6 +14,22 @@ const JWT_ISSUER = 'marketplace-app';
 const JWT_AUDIENCE = 'marketplace-users';
 
 const secret = new TextEncoder().encode(JWT_SECRET || 'dev-only-insecure-secret');
+
+// SECURITY: JWT_SECRET must be set in production
+const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_ISSUER = 'marketplace-app';
+const JWT_AUDIENCE = 'marketplace-users';
+
+if (!JWT_SECRET) {
+  console.error('[JWT] CRITICAL: JWT_SECRET environment variable is not set!');
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('JWT_SECRET must be set in production');
+  }
+  console.warn('[JWT] Using fallback secret for development only');
+}
+
+const secret = new TextEncoder().encode(JWT_SECRET || 'dev-only-fallback-secret-change-immediately');
+> main
 
 export interface JWTPayload {
   userId: string;
