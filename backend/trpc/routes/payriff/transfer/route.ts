@@ -29,7 +29,7 @@ export const transferProcedure = publicProcedure
       },
     };
 
-    console.log('Transfer request:', JSON.stringify(requestBody, null, 2));
+    // Avoid logging sensitive headers/body
 
     const response = await fetch(`${baseUrl}/api/v2/transfer`, {
       method: 'POST',
