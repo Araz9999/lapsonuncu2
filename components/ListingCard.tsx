@@ -14,6 +14,7 @@ import { useDiscountStore } from '@/store/discountStore';
 import { getColors } from '@/constants/colors';
 import { users } from '@/mocks/users';
 import CountdownTimer from '@/components/CountdownTimer';
+import type { Language } from '@/store/languageStore';
 
 // Stable, top-level modal component to avoid remounts while typing
 interface MessageModalProps {
@@ -24,7 +25,7 @@ interface MessageModalProps {
   onSend: () => void;
   isSending: boolean;
   listing: Listing;
-  language: string;
+  language: Language;
   colors: any;
 }
 
