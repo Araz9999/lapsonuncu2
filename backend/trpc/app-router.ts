@@ -22,6 +22,7 @@ import { topupProcedure } from "./routes/payriff/topup/route";
 import { getWalletProcedure } from "./routes/payriff/getWallet/route";
 import { getWalletByIdProcedure } from "./routes/payriff/getWalletById/route";
 import { createOrderProcedure } from "./routes/payriff/createOrder/route";
+import { createPaymentProcedure } from "./routes/payriff/createPayment/route";
 import { getOrderProcedure } from "./routes/payriff/getOrder/route";
 import { refundProcedure } from "./routes/payriff/refund/route";
 import { completeProcedure } from "./routes/payriff/complete/route";
@@ -48,6 +49,7 @@ export const appRouter = createTRPCRouter({
     closeConversation,
   }),
   payriff: createTRPCRouter({
+    createPayment: createPaymentProcedure,
     saveCard: saveCardProcedure,
     getSavedCards: getSavedCardsProcedure,
     deleteCard: deleteCardProcedure,

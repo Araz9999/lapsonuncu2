@@ -345,10 +345,8 @@ const styles = StyleSheet.create({
   },
   typeIcon: {
     marginBottom: 8,
-    color: '#6B7280',
   },
   activeTypeIcon: {
-    color: '#FFFFFF',
   },
   typeButtonText: {
     fontSize: 14,
