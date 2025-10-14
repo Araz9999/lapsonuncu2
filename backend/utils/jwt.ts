@@ -1,14 +1,5 @@
 import { SignJWT, jwtVerify } from 'jose';
 
-< cursor/fix-security-bugs-and-optimize-app-89ea
-const JWT_SECRET = process.env.JWT_SECRET;
-if (!JWT_SECRET) {
-  // Fail fast in production; use weak fallback only in development
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('JWT_SECRET must be set in production');
-  }
-  console.warn('[JWT] Using insecure fallback secret in non-production environment');
-
 < cursor/fix-security-bugs-and-optimize-app-3cd5
 const JWT_SECRET = process.env.JWT_SECRET || '';
 if (!JWT_SECRET) {
@@ -18,7 +9,6 @@ if (!JWT_SECRET) {
   } else {
     console.warn('[JWT] JWT_SECRET not set. Using ephemeral dev secret.');
   }
-> main
 }
 const JWT_ISSUER = 'marketplace-app';
 const JWT_AUDIENCE = 'marketplace-users';
