@@ -406,6 +406,7 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
           placeholderTextColor={colors.textSecondary}
           value={subject}
           onChangeText={setSubject}
+          multiline={false}
           maxLength={100}
         />
       </View>
@@ -785,7 +786,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     fontSize: 16,
-    minHeight: 50,
+    height: 50,
   },
   startButton: {
     flexDirection: 'row',

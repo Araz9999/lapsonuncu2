@@ -348,6 +348,7 @@ export default function LiveChatScreen() {
           placeholderTextColor={colors.textSecondary}
           value={subject}
           onChangeText={setSubject}
+          multiline={false}
           maxLength={100}
         />
       </View>
@@ -497,15 +498,21 @@ export default function LiveChatScreen() {
                   placeholderTextColor={colors.textSecondary}
                   value={message}
                   onChangeText={handleTyping}
-                  multiline
+                  multiline={false}
+                  returnKeyType="send"
+                  onSubmitEditing={handleSendMessage}
                   blurOnSubmit={false}
                   autoCorrect
                   autoCapitalize="sentences"
+                  enablesReturnKeyAutomatically
                   keyboardAppearance={Platform.OS === 'ios' ? (themeMode === 'dark' ? 'dark' : 'light') : 'default'}
                   maxLength={1000}
+< cursor/fix-message-box-jitter-on-typing-e629
                   textAlignVertical="top"
                   underlineColorAndroid="transparent"
                   scrollEnabled={false}
+=======
+> main
                 />
                 
                 <TouchableOpacity
@@ -667,11 +674,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 20,
     paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 12,
+    paddingVertical: 12,
     fontSize: 16,
-    maxHeight: 100,
-    minHeight: 44,
+    height: 44,
     marginRight: 12,
   },
   attachButton: {
@@ -792,7 +797,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     fontSize: 16,
-    minHeight: 50,
+    height: 50,
   },
   startButton: {
     flexDirection: 'row',

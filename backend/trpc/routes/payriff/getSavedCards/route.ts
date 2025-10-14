@@ -6,6 +6,9 @@ export const getSavedCardsProcedure = protectedProcedure.query(async ({ ctx }) =
   const cards = await savedCardsDB.findByUserId(userId);
 
   return {
-    cards,
+    cards: cards.map((c) => ({
+      ...c,
+      pan: c.pan && c.pan.length >= 4 ? `**** **** **** ${c.pan.slice(-4)}` : c.pan,
+    })),
   };
 });
