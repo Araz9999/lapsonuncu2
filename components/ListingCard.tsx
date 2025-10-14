@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Modal, TextInput, Animated } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Modal, TextInput, Animated, KeyboardAvoidingView, Platform } from 'react-native';
 import { Image } from 'expo-image';
 import { Heart, Clock, Trash2, TrendingUp, Eye, Calendar, MessageCircle, X, Send, Zap, Percent, Tag, Gift, Star, Flame } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -46,11 +46,16 @@ const MessageModal = React.memo(function MessageModal({
     <Modal
       visible={visible}
       transparent
-      animationType="fade"
+      animationType="slide"
       onRequestClose={onClose}
     >
-      <View style={styles.modalOverlay}>
-        <View style={[styles.messageModal, { backgroundColor: colors.card }]}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.messageModal, { backgroundColor: colors.card }]}>
           <View style={styles.messageModalHeader}>
             <View style={styles.sellerInfo}>
               {seller && (
@@ -88,6 +93,7 @@ const MessageModal = React.memo(function MessageModal({
               placeholder={language === 'az' ? 'Mesajınızı yazın...' : 'Напишите ваше сообщение...'}
               placeholderTextColor={colors.textSecondary}
               multiline
+              scrollEnabled
               maxLength={500}
               textAlignVertical="top"
               autoFocus
@@ -126,8 +132,9 @@ const MessageModal = React.memo(function MessageModal({
               </Text>
             </TouchableOpacity>
           </View>
+          </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 });
@@ -667,7 +674,7 @@ export default function ListingCard({
     }
   };
 
-  // removed inline MessageModal in favor of stable top-level component
+  // inline MessageModal removed in favor of top-level MessageModal component
 
   // Get creative effect styling
   const getCreativeEffectStyle = () => {
@@ -1336,6 +1343,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 12,
     minHeight: 100,
+    maxHeight: 160,
     fontSize: 16,
     marginBottom: 8,
   },
