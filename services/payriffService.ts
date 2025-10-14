@@ -790,12 +790,9 @@ class PayriffService {
   }
 
   isConfigured(): boolean {
-    return (
-      this.merchantId !== 'your-payriff-merchant-id' &&
-      this.secretKey !== 'your-payriff-secret-key' &&
-      !!this.merchantId &&
-      !!this.secretKey
-    );
+    const hasMerchantId = Boolean(this.merchantId) && !this.merchantId.includes('your-');
+    const hasSecretKey = Boolean(this.secretKey) && !this.secretKey.includes('your-');
+    return hasMerchantId && hasSecretKey;
   }
 
   openPaymentPage(paymentUrl: string) {
