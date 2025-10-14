@@ -158,18 +158,26 @@ export const useUserStore = create<UserState>()(
         
         if (totalBalance >= amount) {
           let remainingAmount = amount;
+          let newBonusBalance = bonusBalance;
+          let newWalletBalance = walletBalance;
           
           // First spend from bonus balance
           if (bonusBalance > 0) {
             const bonusToSpend = Math.min(bonusBalance, remainingAmount);
-            set({ bonusBalance: bonusBalance - bonusToSpend });
+            newBonusBalance = bonusBalance - bonusToSpend;
             remainingAmount -= bonusToSpend;
           }
           
           // Then spend from wallet balance if needed
           if (remainingAmount > 0) {
-            set({ walletBalance: walletBalance - remainingAmount });
+            newWalletBalance = walletBalance - remainingAmount;
           }
+          
+          // Atomically update both balances in a single set() call to avoid race conditions
+          set({ 
+            bonusBalance: newBonusBalance,
+            walletBalance: newWalletBalance 
+          });
           
           return true;
         }
