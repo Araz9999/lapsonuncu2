@@ -288,14 +288,25 @@ class PayriffService {
     return this.hashString(`${signatureString}${this.secretKey}`);
   }
 
+  /**
+   * SECURITY WARNING: This is a weak hash implementation.
+   * In production, signature generation MUST be done on the backend using
+   * proper cryptographic functions (HMAC-SHA256). Never trust client-side
+   * signature generation for payment processing.
+   * 
+   * This implementation uses a simple hash which is NOT cryptographically secure
+   * and should NOT be used for production payment signatures.
+   */
   private hashString(str: string): string {
-    let hash = 0;
+    // Use a better (though still not cryptographically secure) hash algorithm
+    // This is FNV-1a hash which is better than the previous implementation
+    let hash = 2166136261; // FNV offset basis
     for (let i = 0; i < str.length; i++) {
-      const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash;
+      hash ^= str.charCodeAt(i);
+      hash += (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24);
     }
-    return Math.abs(hash).toString(16);
+    // Convert to unsigned 32-bit integer and then to hex
+    return (hash >>> 0).toString(16).padStart(8, '0');
   }
 
   async createPayment(request: PayriffPaymentRequest): Promise<PayriffPaymentResponse> {
