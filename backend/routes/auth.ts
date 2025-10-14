@@ -3,13 +3,22 @@ import { setCookie } from 'hono/cookie';
 import { oauthService } from '../services/oauth';
 import { userDB } from '../db/users';
 import { generateTokenPair, verifyToken } from '../utils/jwt';
+import { authRateLimit } from '../middleware/rateLimit';
 
 const auth = new Hono();
 
+// SECURITY: Apply rate limiting to all auth routes
+auth.use('*', authRateLimit);
+
 const stateStore = new Map<string, { provider: string; createdAt: number }>();
 
+/**
+ * SECURITY: Generate cryptographically secure random state
+ */
 function generateState(): string {
-  return `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
 }
 
 function validateState(state: string): boolean {
@@ -129,6 +138,9 @@ auth.get('/:provider/callback', async (c) => {
       role: user.role,
     });
 
+    stateStore.delete(state);
+
+    // SECURITY: Store tokens in httpOnly cookies instead of URL parameters
     setCookie(c, 'accessToken', tokens.accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -145,17 +157,9 @@ auth.get('/:provider/callback', async (c) => {
       path: '/',
     });
 
-    stateStore.delete(state);
-
     const frontendUrl = process.env.FRONTEND_URL || process.env.EXPO_PUBLIC_FRONTEND_URL || 'https://1r36dhx42va8pxqbqz5ja.rork.app';
-    const redirectUrl = `${frontendUrl}/auth/success?token=${tokens.accessToken}&user=${encodeURIComponent(JSON.stringify({
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      avatar: user.avatar,
-      verified: user.verified,
-      role: user.role,
-    }))}`;
+    // Pass only user ID in URL, client can fetch full user data with the cookie
+    const redirectUrl = `${frontendUrl}/auth/success?userId=${user.id}`;
 
     console.log(`[Auth] ${provider} login successful, redirecting to app`);
     return c.redirect(redirectUrl);
