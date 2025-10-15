@@ -86,7 +86,9 @@ export const useLiveChatStore = create<LiveChatState>()(
           
           const isActiveChat = activeConversationId === message.conversationId;
           const unreadIncrement = !message.isSupport && !isActiveChat ? 1 : 0;
-          const existingUnread = (conversations.find(c => c.id === message.conversationId)?.unreadCount ?? 0);
+          // BUG FIX #22: Safe find with default
+          const conversation = conversations.find(c => c.id === message.conversationId);
+          const existingUnread = conversation?.unreadCount ?? 0;
           const nextUnread = existingUnread + unreadIncrement;
           
           get().updateConversation(message.conversationId, {
@@ -129,9 +131,15 @@ export const useLiveChatStore = create<LiveChatState>()(
       
       markAsRead: (conversationId) => {
         const { conversations, messages } = get();
+        // BUG FIX #23: Explicit undefined check
         const conversation = conversations.find(c => c.id === conversationId);
         
-        if (conversation && conversation.unreadCount > 0) {
+        if (!conversation) {
+          console.warn('Conversation not found for markAsRead:', conversationId);
+          return;
+        }
+        
+        if (conversation.unreadCount > 0) {
           get().updateConversation(conversationId, { unreadCount: 0 });
           
           const conversationMessages = messages[conversationId] || [];
