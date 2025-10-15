@@ -82,6 +82,7 @@ export default function ListingDiscountScreen() {
     console.log('[handleCreateDiscount] Discount title:', discountTitle);
     console.log('[handleCreateDiscount] Discount value:', discountValue);
     console.log('[handleCreateDiscount] Discount type:', discountType);
+    console.log('[handleCreateDiscount] Timer settings:', { enableTimerBar, showTimerBar, timerTitle, timerBarColor });
     
     if (listing.storeId && !discountTitle.trim()) {
       console.log('[handleCreateDiscount] Validation failed: Missing title for store discount');
@@ -109,6 +110,16 @@ export default function ListingDiscountScreen() {
         language === 'az' 
           ? 'Endirim dəyəri düzgün deyil'
           : 'Неверное значение скидки'
+      );
+      return;
+    }
+    
+    // Validate timer bar settings if enabled
+    if (enableTimerBar && showTimerBar && !timerTitle.trim()) {
+      console.log('[handleCreateDiscount] Validation failed: Missing timer title');
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Sayğac başlığını daxil edin' : 'Введите заголовок таймера'
       );
       return;
     }
@@ -233,16 +244,27 @@ export default function ListingDiscountScreen() {
         timerEndDate: timerEndDate.toISOString()
       });
       
-      const updateData: any = {
+      const updateData: Partial<typeof listing> = {
         hasDiscount: true,
         originalPrice,
         price: Math.round(finalPrice),
         promotionEndDate: chosenEndDate.toISOString(),
         discountEndDate: chosenEndDate.toISOString(),
         discountPercentage: discountType === 'percentage' ? value : discountPercentage,
+        // Timer bar settings
+        timerBarEnabled: enableTimerBar && showTimerBar,
+        timerBarTitle: enableTimerBar && showTimerBar ? timerTitle : undefined,
+        timerBarColor: enableTimerBar && showTimerBar ? timerBarColor : undefined,
+        timerBarEndDate: enableTimerBar && showTimerBar ? timerEndDate.toISOString() : undefined,
       };
       
       console.log('[handleCreateIndividualDiscount] Update data:', updateData);
+      console.log('[handleCreateIndividualDiscount] Timer bar enabled:', enableTimerBar && showTimerBar);
+      console.log('[handleCreateIndividualDiscount] Timer bar settings:', {
+        title: timerTitle,
+        color: timerBarColor,
+        endDate: timerEndDate.toISOString()
+      });
       updateListing(listing.id, updateData);
       console.log('[handleCreateIndividualDiscount] Listing updated successfully');
       
