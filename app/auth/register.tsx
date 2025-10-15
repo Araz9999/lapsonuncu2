@@ -11,7 +11,7 @@ import { initiateSocialLogin, showSocialLoginError } from '@/utils/socialAuth';
 
 export default function RegisterScreen() {
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const { login } = useUserStore();
   
   const [name, setName] = useState('');
