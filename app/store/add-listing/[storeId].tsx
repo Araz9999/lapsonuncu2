@@ -120,66 +120,93 @@ export default function AddStoreListingScreen() {
   }
   
   const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      if (images.length >= 5) {
-        Alert.alert(
-          language === 'az' ? 'Limit aşıldı' : 'Лимит превышен',
-          language === 'az' 
-            ? 'Maksimum 5 şəkil əlavə edə bilərsiniz' 
-            : 'Можно добавить максимум 5 изображений'
-        );
-        return;
+    try {
+      if (Platform.OS !== 'web') {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert(
+            language === 'az' ? 'İcazə tələb olunur' : 'Требуется разрешение',
+            language === 'az' ? 'Qalereya icazəsi lazımdır' : 'Требуется разрешение галереи'
+          );
+          return;
+        }
       }
-      setImages([...images, result.assets[0].uri]);
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 1,
+      });
+
+      if (!result.canceled) {
+        if (images.length >= 5) {
+          Alert.alert(
+            language === 'az' ? 'Limit aşıldı' : 'Лимит превышен',
+            language === 'az' 
+              ? 'Maksimum 5 şəkil əlavə edə bilərsiniz' 
+              : 'Можно добавить максимум 5 изображений'
+          );
+          return;
+        }
+        setImages([...images, result.assets[0].uri]);
+      }
+    } catch (error) {
+      console.error('Gallery error:', error);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Şəkil seçilə bilmədi' : 'Не удалось выбрать изображение'
+      );
     }
   };
   
   const takePicture = async () => {
-    if (Platform.OS === 'web') {
-      Alert.alert(
-        language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' 
-          ? 'Kamera ilə şəkil çəkmək veb versiyada mövcud deyil' 
-          : 'Съемка камерой недоступна в веб-версии'
-      );
-      return;
-    }
-
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert(
-        language === 'az' ? 'İcazə tələb olunur' : 'Требуется разрешение',
-        language === 'az' 
-          ? 'Kameradan istifadə etmək üçün icazə lazımdır' 
-          : 'Для использования камеры требуется разрешение'
-      );
-      return;
-    }
-
-    const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      if (images.length >= 5) {
+    try {
+      if (Platform.OS === 'web') {
         Alert.alert(
-          language === 'az' ? 'Limit aşıldı' : 'Лимит превышен',
+          language === 'az' ? 'Xəta' : 'Ошибка',
           language === 'az' 
-            ? 'Maksimum 5 şəkil əlavə edə bilərsiniz' 
-            : 'Можно добавить максимум 5 изображений'
+            ? 'Kamera ilə şəkil çəkmək veb versiyada mövcud deyil' 
+            : 'Съемка камерой недоступна в веб-версии'
         );
         return;
       }
-      setImages([...images, result.assets[0].uri]);
+
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          language === 'az' ? 'İcazə tələb olunur' : 'Требуется разрешение',
+          language === 'az' 
+            ? 'Kameradan istifadə etmək üçün icazə lazımdır' 
+            : 'Для использования камеры требуется разрешение'
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 1,
+      });
+
+      if (!result.canceled) {
+        if (images.length >= 5) {
+          Alert.alert(
+            language === 'az' ? 'Limit aşıldı' : 'Лимит превышен',
+            language === 'az' 
+              ? 'Maksimum 5 şəkil əlavə edə bilərsiniz' 
+              : 'Можно добавить максимум 5 изображений'
+          );
+          return;
+        }
+        setImages([...images, result.assets[0].uri]);
+      }
+    } catch (error) {
+      console.error('Camera error:', error);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Şəkil çəkilə bilmədi' : 'Не удалось сделать фото'
+      );
     }
   };
   
