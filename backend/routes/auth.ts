@@ -105,7 +105,7 @@ auth.get('/:provider/callback', async (c) => {
       if (user) {
         console.log(`[Auth] Found existing user by email, linking ${provider} account`);
         await userDB.addSocialProvider(user.id, {
-          provider: provider as any,
+          provider: provider as 'google' | 'facebook' | 'vk',
           socialId: userInfo.id,
           email: userInfo.email,
           name: userInfo.name,
@@ -119,7 +119,7 @@ auth.get('/:provider/callback', async (c) => {
           avatar: userInfo.avatar,
           verified: true,
           socialProviders: [{
-            provider: provider as any,
+            provider: provider as 'google' | 'facebook' | 'vk',
             socialId: userInfo.id,
             email: userInfo.email,
             name: userInfo.name,

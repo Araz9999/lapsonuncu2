@@ -122,7 +122,9 @@ class AuthService {
       const authUrl = `${baseUrl}/api/auth/${provider}/login`;
 
       if (Platform.OS === 'web') {
-        (globalThis as any).window.location.href = authUrl;
+        if (typeof window !== 'undefined' && window.location) {
+          window.location.href = authUrl;
+        }
         throw new Error('Redirecting to OAuth provider...');
       } else {
         const WebBrowser = await import('expo-web-browser');
