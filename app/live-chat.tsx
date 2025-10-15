@@ -107,7 +107,7 @@ export default function LiveChatScreen() {
 
   const handleStartChat = () => {
     if (!currentUser) {
-      console.log('[LiveChat] Cannot start chat: user not logged in');
+      // Cannot start chat: user not logged in
       return;
     }
     if (!selectedCategory || !subject.trim()) return;
