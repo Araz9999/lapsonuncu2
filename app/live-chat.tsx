@@ -83,8 +83,7 @@ export default function LiveChatScreen() {
   }, [currentChat, currentUser, markMessagesAsRead]);
 
   useEffect(() => {
-    // Only auto-scroll when new messages arrive, not when typing
-    if (currentChat?.messages.length && shouldScrollToEnd && !isScrolling && message.trim() === '') {
+    if (currentChat?.messages.length && shouldScrollToEnd && !isScrolling) {
       if (scrollTimeoutRef.current) {
         clearTimeout(scrollTimeoutRef.current);
       }
@@ -144,8 +143,6 @@ export default function LiveChatScreen() {
     setMessage('');
     setAttachments([]);
     setShowAttachments(false);
-    
-    // Re-enable auto-scroll after sending message
     setShouldScrollToEnd(true);
     
     if (scrollTimeoutRef.current) {
@@ -165,9 +162,6 @@ export default function LiveChatScreen() {
     setMessage(text);
     
     if (!currentChatId) return;
-    
-    // Disable auto-scroll while typing to prevent jitter
-    setShouldScrollToEnd(false);
     
     setTyping(currentChatId, 'user', true);
     
@@ -418,11 +412,14 @@ export default function LiveChatScreen() {
             style={styles.messagesContainer}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
-            keyboardDismissMode="on-drag"
+            keyboardDismissMode="interactive"
             contentContainerStyle={{ flexGrow: 1, paddingBottom: 20 }}
+            maintainVisibleContentPosition={{
+              minIndexForVisible: 0,
+              autoscrollToTopThreshold: 10
+            }}
             onContentSizeChange={() => {
-              // Only auto-scroll if user is at bottom and not typing
-              if (shouldScrollToEnd && !isScrolling && message.trim() === '') {
+              if (shouldScrollToEnd && !isScrolling) {
                 scrollViewRef.current?.scrollToEnd({ animated: false });
               }
             }}
@@ -514,9 +511,10 @@ export default function LiveChatScreen() {
                   returnKeyType="send"
                   onSubmitEditing={handleSendMessage}
                   blurOnSubmit={false}
-                  autoCorrect
+                  autoCorrect={false}
                   autoCapitalize="sentences"
                   enablesReturnKeyAutomatically
+                  scrollEnabled={false}
                   keyboardAppearance={Platform.OS === 'ios' ? (themeMode === 'dark' ? 'dark' : 'light') : 'default'}
                   maxLength={1000}
                 />

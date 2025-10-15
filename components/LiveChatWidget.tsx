@@ -100,8 +100,7 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
   }, [currentChat, currentUser, markMessagesAsRead]);
 
   useEffect(() => {
-    // Only auto-scroll when new messages arrive, not when typing
-    if (currentChat?.messages.length && shouldScrollToEnd && !isScrolling && message.trim() === '') {
+    if (currentChat?.messages.length && shouldScrollToEnd && !isScrolling) {
       setTimeout(() => {
         scrollViewRef.current?.scrollToEnd({ animated: true });
       }, 100);
@@ -112,7 +111,6 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
     const keyboardDidShowListener = Keyboard.addListener(
       'keyboardDidShow',
       () => {
-        // Disable auto-scroll when keyboard shows to prevent jitter
         setShouldScrollToEnd(false);
       }
     );
@@ -120,7 +118,6 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
     const keyboardDidHideListener = Keyboard.addListener(
       'keyboardDidHide',
       () => {
-        // Re-enable auto-scroll when keyboard hides
         setShouldScrollToEnd(true);
       }
     );
@@ -171,8 +168,6 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
     setMessage('');
     setAttachments([]);
     setShowAttachments(false);
-    
-    // Re-enable auto-scroll after sending message
     setShouldScrollToEnd(true);
     
     // Scroll to end after message is sent
@@ -191,9 +186,6 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
     setMessage(text);
     
     if (!currentChatId) return;
-    
-    // Disable auto-scroll while typing to prevent jitter
-    setShouldScrollToEnd(false);
     
     // Set typing indicator
     setTyping(currentChatId, 'user', true);
@@ -528,14 +520,15 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
                     style={styles.messagesContainer}
                     showsVerticalScrollIndicator={false}
                     keyboardShouldPersistTaps="handled"
-                    keyboardDismissMode="on-drag"
+                    keyboardDismissMode="interactive"
                     contentContainerStyle={{ paddingBottom: 20 }}
+                    maintainVisibleContentPosition={{
+                      minIndexForVisible: 0,
+                      autoscrollToTopThreshold: 10
+                    }}
                     onContentSizeChange={() => {
-                      // Only auto-scroll if user is at bottom and not typing
-                      if (!isScrolling && shouldScrollToEnd && message.trim() === '') {
-                        setTimeout(() => {
-                          scrollViewRef.current?.scrollToEnd({ animated: false });
-                        }, 50);
+                      if (!isScrolling && shouldScrollToEnd) {
+                        scrollViewRef.current?.scrollToEnd({ animated: false });
                       }
                     }}
                     onScrollBeginDrag={() => {
@@ -621,9 +614,10 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
                           returnKeyType="send"
                           onSubmitEditing={handleSendMessage}
                           blurOnSubmit={false}
-                          autoCorrect
+                          autoCorrect={false}
                           autoCapitalize="sentences"
                           enablesReturnKeyAutomatically
+                          scrollEnabled={false}
                           keyboardAppearance={Platform.OS === 'ios' ? (themeMode === 'dark' ? 'dark' : 'light') : 'default'}
                           maxLength={1000}
                         />
