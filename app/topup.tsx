@@ -58,13 +58,29 @@ export default function TopupScreen() {
       return;
     }
 
-    if (phoneNumber.length < 12) {
-      Alert.alert('Error', 'Please enter a valid phone number (994XXXXXXXXX)');
+    if (phoneNumber.length < 12 || !phoneNumber.startsWith('994')) {
+      Alert.alert('Error', 'Please enter a valid phone number starting with 994 (994XXXXXXXXX)');
       return;
     }
 
-    if (!amount.trim() || parseFloat(amount) <= 0) {
-      Alert.alert('Error', 'Please enter a valid amount');
+    if (!amount.trim()) {
+      Alert.alert('Error', 'Please enter amount');
+      return;
+    }
+
+    const parsedAmount = parseFloat(amount);
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      Alert.alert('Error', 'Please enter a valid amount greater than 0');
+      return;
+    }
+
+    if (parsedAmount < 1) {
+      Alert.alert('Error', 'Minimum topup amount is 1 AZN');
+      return;
+    }
+
+    if (parsedAmount > 5000) {
+      Alert.alert('Error', 'Maximum topup amount is 5,000 AZN');
       return;
     }
 
@@ -75,7 +91,7 @@ export default function TopupScreen() {
 
     Alert.alert(
       'Confirm Topup',
-      `Topup ${amount} AZN to MPAY wallet ${phoneNumber}?`,
+      `Topup ${parsedAmount.toFixed(2)} AZN to MPAY wallet ${phoneNumber}?\n\nDescription: ${description.trim()}`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -83,7 +99,7 @@ export default function TopupScreen() {
           onPress: () => {
             topupMutation.mutate({
               phoneNumber: phoneNumber.trim(),
-              amount: parseFloat(amount),
+              amount: parsedAmount,
               description: description.trim(),
             });
           },

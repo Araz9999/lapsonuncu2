@@ -53,8 +53,29 @@ export default function CreateInvoiceScreen() {
     }
 
     try {
+      const parsedAmount = parseFloat(amount);
+      if (isNaN(parsedAmount) || parsedAmount <= 0) {
+        Alert.alert('Xəta', 'Məbləğ 0-dan böyük olmalıdır');
+        return;
+      }
+
+      if (parsedAmount > 50000) {
+        Alert.alert('Xəta', 'Maksimum faktura məbləği 50,000 AZN-dir');
+        return;
+      }
+
+      if (email.trim() && !email.includes('@')) {
+        Alert.alert('Xəta', 'Düzgün email daxil edin');
+        return;
+      }
+
+      if (phoneNumber.trim() && phoneNumber.trim().length < 9) {
+        Alert.alert('Xəta', 'Düzgün telefon nömrəsi daxil edin');
+        return;
+      }
+
       const result = await createInvoiceMutation.mutateAsync({
-        amount: parseFloat(amount),
+        amount: parsedAmount,
         description: description.trim(),
         fullName: fullName.trim() || undefined,
         email: email.trim() || undefined,
