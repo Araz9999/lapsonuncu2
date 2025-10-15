@@ -514,14 +514,14 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
               {showStartForm ? (
                 <StartChatForm />
               ) : currentChat ? (
-                <>
+                <View style={styles.chatContentWrapper}>
                   <ScrollView
                     ref={scrollViewRef}
                     style={styles.messagesContainer}
                     showsVerticalScrollIndicator={false}
                     keyboardShouldPersistTaps="handled"
                     keyboardDismissMode="interactive"
-                    contentContainerStyle={{ paddingBottom: 20 }}
+                    contentContainerStyle={{ paddingBottom: 10 }}
                     maintainVisibleContentPosition={{
                       minIndexForVisible: 0,
                       autoscrollToTopThreshold: 10
@@ -563,7 +563,7 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
                   </ScrollView>
 
                   {currentChat.status !== 'closed' ? (
-                    <View style={[styles.inputSection, { backgroundColor: colors.card }]}>
+                    <View style={[styles.inputSection, { backgroundColor: colors.background }]}>
                       {showAttachments && (
                         <View style={[styles.attachmentsSection, { backgroundColor: colors.card }]}>
                           <FileAttachmentPicker
@@ -579,13 +579,13 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
                       
                       <View style={[
                         styles.inputContainer, 
-                        { backgroundColor: colors.card }
+                        { backgroundColor: colors.background }
                       ]}>
                         <TouchableOpacity
                           style={[
                             styles.attachButton,
                             {
-                              backgroundColor: showAttachments ? colors.primary : colors.background,
+                              backgroundColor: showAttachments ? colors.primary : colors.card,
                               borderColor: colors.border
                             }
                           ]}
@@ -659,7 +659,7 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
                       </TouchableOpacity>
                     </View>
                   )}
-                </>
+                </View>
               ) : (
                 <View style={styles.errorContainer}>
                   <Text style={[styles.errorText, { color: colors.textSecondary }]}>
@@ -817,9 +817,13 @@ const styles = StyleSheet.create({
   chatContent: {
     flex: 1,
   },
+  chatContentWrapper: {
+    flex: 1,
+  },
   inputSection: {
     borderTopWidth: 1,
     borderTopColor: 'rgba(0,0,0,0.1)',
+    backgroundColor: 'transparent',
   },
   messagesContainer: {
     flex: 1,
@@ -911,11 +915,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 20,
     paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'android' ? 10 : 12,
-    paddingBottom: Platform.OS === 'android' ? 10 : 12,
+    paddingTop: 10,
+    paddingBottom: 10,
     fontSize: 16,
     height: 44,
-    lineHeight: 20,
+    lineHeight: Platform.OS === 'android' ? 20 : 22,
     marginHorizontal: 8,
     includeFontPadding: false,
     textAlignVertical: 'center',
