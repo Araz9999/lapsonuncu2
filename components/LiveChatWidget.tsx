@@ -616,8 +616,9 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
                           blurOnSubmit={false}
                           autoCorrect={false}
                           autoCapitalize="sentences"
-                          enablesReturnKeyAutomatically
+                          enablesReturnKeyAutomatically={false}
                           scrollEnabled={false}
+                          onContentSizeChange={() => {}}
                           keyboardAppearance={Platform.OS === 'ios' ? (themeMode === 'dark' ? 'dark' : 'light') : 'default'}
                           maxLength={1000}
                         />
@@ -819,12 +820,10 @@ const styles = StyleSheet.create({
   inputSection: {
     borderTopWidth: 1,
     borderTopColor: 'rgba(0,0,0,0.1)',
-    minHeight: 70,
   },
   messagesContainer: {
     flex: 1,
     padding: 16,
-    paddingBottom: 16,
   },
   messageBubble: {
     marginBottom: 16,
@@ -905,15 +904,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 12,
     paddingBottom: Platform.OS === 'ios' ? 20 : 12,
+    minHeight: 68,
   },
   messageInput: {
     flex: 1,
     borderWidth: 1,
     borderRadius: 20,
     paddingHorizontal: 16,
-    paddingVertical: Platform.OS === 'ios' ? 12 : 8,
+    paddingTop: Platform.OS === 'android' ? 10 : 12,
+    paddingBottom: Platform.OS === 'android' ? 10 : 12,
     fontSize: 16,
     height: 44,
+    lineHeight: 20,
     marginHorizontal: 8,
     includeFontPadding: false,
     textAlignVertical: 'center',
