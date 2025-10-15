@@ -143,6 +143,7 @@ export default function LiveChatScreen() {
     setMessage('');
     setAttachments([]);
     setShowAttachments(false);
+    setShouldScrollToEnd(true);
     
     if (scrollTimeoutRef.current) {
       clearTimeout(scrollTimeoutRef.current);
@@ -411,8 +412,12 @@ export default function LiveChatScreen() {
             style={styles.messagesContainer}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
-            keyboardDismissMode="on-drag"
-            contentContainerStyle={{ flexGrow: 1, paddingBottom: 20 }}
+            keyboardDismissMode="interactive"
+            contentContainerStyle={{ flexGrow: 1, paddingBottom: 10 }}
+            maintainVisibleContentPosition={{
+              minIndexForVisible: 0,
+              autoscrollToTopThreshold: 10
+            }}
             onContentSizeChange={() => {
               if (shouldScrollToEnd && !isScrolling) {
                 scrollViewRef.current?.scrollToEnd({ animated: false });
@@ -470,14 +475,14 @@ export default function LiveChatScreen() {
               <View style={[
                 styles.inputContainer, 
                 { 
-                  backgroundColor: colors.card
+                  backgroundColor: colors.background
                 }
               ]}>
                 <TouchableOpacity
                   style={[
                     styles.attachButton,
                     {
-                      backgroundColor: showAttachments ? colors.primary : colors.background,
+                      backgroundColor: showAttachments ? colors.primary : colors.card,
                       borderColor: colors.border
                     }
                   ]}
@@ -501,12 +506,16 @@ export default function LiveChatScreen() {
                   value={message}
                   onChangeText={handleTyping}
                   multiline={false}
+                  numberOfLines={1}
+                  textAlignVertical="center"
                   returnKeyType="send"
                   onSubmitEditing={handleSendMessage}
                   blurOnSubmit={false}
-                  autoCorrect
+                  autoCorrect={false}
                   autoCapitalize="sentences"
-                  enablesReturnKeyAutomatically
+                  enablesReturnKeyAutomatically={false}
+                  scrollEnabled={false}
+                  onContentSizeChange={() => {}}
                   keyboardAppearance={Platform.OS === 'ios' ? (themeMode === 'dark' ? 'dark' : 'light') : 'default'}
                   maxLength={1000}
                 />
@@ -664,16 +673,21 @@ const styles = StyleSheet.create({
     paddingBottom: Platform.OS === 'ios' ? 34 : 16,
     borderTopWidth: 1,
     borderTopColor: 'rgba(0,0,0,0.1)',
+    minHeight: 76,
   },
   messageInput: {
     flex: 1,
     borderWidth: 1,
     borderRadius: 20,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingTop: 10,
+    paddingBottom: 10,
     fontSize: 16,
     height: 44,
+    lineHeight: Platform.OS === 'android' ? 20 : 22,
     marginRight: 12,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   attachButton: {
     width: 44,
