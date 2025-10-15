@@ -7,20 +7,37 @@ import { Image } from 'expo-image';
 
 /**
  * Preload images to improve performance
+ * FIXED: Use Promise.allSettled instead of Promise.all to handle partial failures gracefully
+ * This allows successful images to be cached even if some fail
  */
-export async function preloadImages(imageUris: string[]): Promise<void> {
+export async function preloadImages(imageUris: string[]): Promise<{ succeeded: number; failed: number; total: number }> {
   try {
-    await Promise.all(
+    const results = await Promise.allSettled(
       imageUris.map((uri) =>
         Image.prefetch(uri, {
           cachePolicy: 'memory-disk',
         })
       )
     );
+    
+    const succeeded = results.filter(r => r.status === 'fulfilled').length;
+    const failed = results.filter(r => r.status === 'rejected').length;
+    
+    if (__DEV__ && failed > 0) {
+      console.warn(`Image preload: ${succeeded}/${imageUris.length} succeeded, ${failed} failed`);
+      results.forEach((result, index) => {
+        if (result.status === 'rejected') {
+          console.warn(`Failed to preload: ${imageUris[index]}`, result.reason);
+        }
+      });
+    }
+    
+    return { succeeded, failed, total: imageUris.length };
   } catch (error) {
     if (__DEV__) {
-      console.warn('Failed to preload some images:', error);
+      console.error('Unexpected error in preloadImages:', error);
     }
+    return { succeeded: 0, failed: imageUris.length, total: imageUris.length };
   }
 }
 
