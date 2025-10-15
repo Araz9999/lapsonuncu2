@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { LiveChatMessage } from '@/types/liveChat';
+import { LiveChatMessage } from '@/types/support';
 import { Check, CheckCheck, Clock } from 'lucide-react-native';
 
 interface LiveChatBubbleProps {
@@ -12,22 +12,14 @@ const LiveChatBubble = memo(function LiveChatBubble({ message, isCurrentUser }: 
   const getStatusIcon = () => {
     if (!isCurrentUser) return null;
     
-    switch (message.status) {
-      case 'sending':
-        return <Clock size={14} color="rgba(255, 255, 255, 0.7)" />;
-      case 'sent':
-        return <Check size={14} color="rgba(255, 255, 255, 0.7)" />;
-      case 'delivered':
-        return <CheckCheck size={14} color="rgba(255, 255, 255, 0.7)" />;
-      case 'seen':
-        return <CheckCheck size={14} color="#4CAF50" />;
-      default:
-        return null;
+    if (message.isRead) {
+      return <CheckCheck size={14} color="#4CAF50" />;
     }
+    return <Check size={14} color="rgba(255, 255, 255, 0.7)" />;
   };
 
-  const formatTime = (timestamp: string) => {
-    const date = new Date(timestamp);
+  const formatTime = (timestamp: Date) => {
+    const date = timestamp instanceof Date ? timestamp : new Date(timestamp);
     const hours = date.getHours().toString().padStart(2, '0');
     const minutes = date.getMinutes().toString().padStart(2, '0');
     return `${hours}:${minutes}`;
@@ -36,9 +28,6 @@ const LiveChatBubble = memo(function LiveChatBubble({ message, isCurrentUser }: 
   return (
     <View style={[styles.container, isCurrentUser ? styles.currentUser : styles.otherUser]}>
       <View style={[styles.bubble, isCurrentUser ? styles.currentUserBubble : styles.otherUserBubble]}>
-        {!isCurrentUser && (
-          <Text style={styles.senderName}>{message.senderName}</Text>
-        )}
         <Text style={[styles.message, isCurrentUser ? styles.currentUserText : styles.otherUserText]}>
           {message.message}
         </Text>
@@ -78,12 +67,6 @@ const styles = StyleSheet.create({
   otherUserBubble: {
     backgroundColor: '#F0F0F0',
     borderBottomLeftRadius: 4,
-  },
-  senderName: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#666',
-    marginBottom: 4,
   },
   message: {
     fontSize: 15,
