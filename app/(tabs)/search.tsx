@@ -81,6 +81,19 @@ export default function SearchScreen() {
 
   const pickImage = async () => {
     try {
+      if (Platform.OS !== 'web') {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert(
+            language === 'az' ? 'İcazə tələb olunur' : 'Требуется разрешение',
+            language === 'az' 
+              ? 'Qalereya daxil olmaq üçün icazə lazımdır' 
+              : 'Для доступа к галерее требуется разрешение'
+          );
+          return;
+        }
+      }
+
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
@@ -101,6 +114,10 @@ export default function SearchScreen() {
       }
     } catch (error) {
       console.error('Error picking image:', error);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Şəkil seçilə bilmədi' : 'Не удалось выбрать изображение'
+      );
     }
   };
 
@@ -145,6 +162,10 @@ export default function SearchScreen() {
       }
     } catch (error) {
       console.error('Error using camera:', error);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Şəkil çəkilə bilmədi' : 'Не удалось сделать фото'
+      );
     }
   };
 
@@ -260,7 +281,7 @@ export default function SearchScreen() {
                 </Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   <View style={styles.filterOptions}>
-                    {selectedCategoryData.subcategories.map(subcategory => (
+                    {selectedCategoryData?.subcategories?.map(subcategory => (
                       <TouchableOpacity
                         key={subcategory.id}
                         style={[

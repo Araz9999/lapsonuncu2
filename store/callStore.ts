@@ -9,6 +9,8 @@ interface CallStore {
   incomingCall: Call | null;
   ringtoneSound: any | null;
   dialToneSound: any | null;
+  ringtoneInterval: NodeJS.Timeout | null;
+  dialToneInterval: NodeJS.Timeout | null;
   
   // Call actions
   initiateCall: (receiverId: string, listingId: string, type: CallType) => Promise<string>;
@@ -321,7 +323,7 @@ export const useCallStore = create<CallStore>((set, get) => ({
         }, 1000);
         
         // Store interval for cleanup
-        (get() as any).ringtoneInterval = ringtoneInterval;
+        set({ ringtoneInterval });
       } else {
         console.log('Haptics not available, using console notification');
       }
@@ -356,7 +358,7 @@ export const useCallStore = create<CallStore>((set, get) => ({
         }, 2000);
         
         // Store interval for cleanup
-        (get() as any).dialToneInterval = dialToneInterval;
+        set({ dialToneInterval });
       } else {
         console.log('Haptics not available, using console notification');
       }
@@ -371,7 +373,7 @@ export const useCallStore = create<CallStore>((set, get) => ({
       return;
     }
     
-    const state = get() as any;
+    const state = get();
     
     try {
       console.log('Stopping all sounds and haptic patterns...');
@@ -379,12 +381,12 @@ export const useCallStore = create<CallStore>((set, get) => ({
       // Clear haptic intervals
       if (state.ringtoneInterval) {
         clearInterval(state.ringtoneInterval);
-        state.ringtoneInterval = null;
+        set({ ringtoneInterval: null });
         console.log('Ringtone interval cleared');
       }
       if (state.dialToneInterval) {
         clearInterval(state.dialToneInterval);
-        state.dialToneInterval = null;
+        set({ dialToneInterval: null });
         console.log('Dial tone interval cleared');
       }
       
@@ -406,7 +408,7 @@ export const useCallStore = create<CallStore>((set, get) => ({
   
   cleanupSounds: async () => {
     await get().stopAllSounds();
-    set({ ringtoneSound: null, dialToneSound: null });
+    set({ ringtoneSound: null, dialToneSound: null, ringtoneInterval: null, dialToneInterval: null });
   },
   
   simulateIncomingCall: async () => {

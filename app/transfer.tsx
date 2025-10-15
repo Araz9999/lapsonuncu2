@@ -48,8 +48,19 @@ export default function TransferScreen() {
       return;
     }
 
-    if (!amount.trim() || parseFloat(amount) <= 0) {
-      Alert.alert('Error', 'Please enter a valid amount');
+    if (!amount.trim()) {
+      Alert.alert('Error', 'Please enter amount');
+      return;
+    }
+
+    const parsedAmount = parseFloat(amount);
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      Alert.alert('Error', 'Please enter a valid amount greater than 0');
+      return;
+    }
+
+    if (parsedAmount > 10000) {
+      Alert.alert('Error', 'Maximum transfer amount is 10,000 AZN');
       return;
     }
 
@@ -60,7 +71,7 @@ export default function TransferScreen() {
 
     Alert.alert(
       'Confirm Transfer',
-      `Transfer ${amount} AZN to merchant ${toMerchant}?`,
+      `Transfer ${parsedAmount.toFixed(2)} AZN to merchant ${toMerchant}?\n\nDescription: ${description.trim()}`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -68,7 +79,7 @@ export default function TransferScreen() {
           onPress: () => {
             transferMutation.mutate({
               toMerchant: toMerchant.trim(),
-              amount: parseFloat(amount),
+              amount: parsedAmount,
               description: description.trim(),
             });
           },

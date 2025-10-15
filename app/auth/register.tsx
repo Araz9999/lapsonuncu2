@@ -182,47 +182,71 @@ export default function RegisterScreen() {
   };
 
   const pickImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    
-    if (status !== 'granted') {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (status !== 'granted') {
+        Alert.alert(
+          t('permissionRequired'),
+          t('galleryPermissionRequired')
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setProfileImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Image picker error:', error);
       Alert.alert(
-        t('permissionRequired'),
-        t('galleryPermissionRequired')
+        t('error'),
+        language === 'az' ? 'Şəkil seçilə bilmədi' : 'Не удалось выбрать изображение'
       );
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-
-    if (!result.canceled && result.assets[0]) {
-      setProfileImage(result.assets[0].uri);
     }
   };
 
   const takePhoto = async () => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    
-    if (status !== 'granted') {
+    try {
+      if (Platform.OS === 'web') {
+        Alert.alert(
+          t('error'),
+          language === 'az' ? 'Kamera veb versiyada dəstəklənmir' : 'Камера не поддерживается в веб-версии'
+        );
+        return;
+      }
+
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      
+      if (status !== 'granted') {
+        Alert.alert(
+          t('permissionRequired'),
+          t('cameraPermissionRequired')
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setProfileImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Camera error:', error);
       Alert.alert(
-        t('permissionRequired'),
-        t('cameraPermissionRequired')
+        t('error'),
+        language === 'az' ? 'Şəkil çəkilə bilmədi' : 'Не удалось сделать фото'
       );
-      return;
-    }
-
-    const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-
-    if (!result.canceled && result.assets[0]) {
-      setProfileImage(result.assets[0].uri);
     }
   };
 

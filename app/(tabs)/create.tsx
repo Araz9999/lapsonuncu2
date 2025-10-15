@@ -98,66 +98,95 @@ export default function CreateListingScreen() {
   const selectedLocationData = locations.find(l => l.id === selectedLocation);
 
   const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      if (images.length >= (selectedPackageData?.features.photosCount || 3)) {
-        Alert.alert(
-          language === 'az' ? 'Limit aşıldı' : 'Лимит превышен',
-          language === 'az' 
-            ? `Seçdiyiniz paket maksimum ${selectedPackageData?.features.photosCount} şəkil əlavə etməyə imkan verir` 
-            : `Выбранный пакет позволяет добавить максимум ${selectedPackageData?.features.photosCount} изображений`
-        );
-        return;
+    try {
+      if (Platform.OS !== 'web') {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert(
+            language === 'az' ? 'İcazə tələb olunur' : 'Требуется разрешение',
+            language === 'az' 
+              ? 'Qalereya daxil olmaq üçün icazə lazımdır' 
+              : 'Для доступа к галерее требуется разрешение'
+          );
+          return;
+        }
       }
-      setImages([...images, result.assets[0].uri]);
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 1,
+      });
+
+      if (!result.canceled) {
+        if (images.length >= (selectedPackageData?.features.photosCount || 3)) {
+          Alert.alert(
+            language === 'az' ? 'Limit aşıldı' : 'Лимит превышен',
+            language === 'az' 
+              ? `Seçdiyiniz paket maksimum ${selectedPackageData?.features.photosCount} şəkil əlavə etməyə imkan verir` 
+              : `Выбранный пакет позволяет добавить максимум ${selectedPackageData?.features.photosCount} изображений`
+          );
+          return;
+        }
+        setImages([...images, result.assets[0].uri]);
+      }
+    } catch (error) {
+      console.error('Gallery error:', error);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Şəkil seçilə bilmədi' : 'Не удалось выбрать изображение'
+      );
     }
   };
 
   const takePicture = async () => {
-    if (Platform.OS === 'web') {
-      Alert.alert(
-        language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' 
-          ? 'Kamera ilə şəkil çəkmək veb versiyada mövcud deyil' 
-          : 'Съемка камерой недоступна в веб-версии'
-      );
-      return;
-    }
-
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert(
-        language === 'az' ? 'İcazə tələb olunur' : 'Требуется разрешение',
-        language === 'az' 
-          ? 'Kameradan istifadə etmək üçün icazə lazımdır' 
-          : 'Для использования камеры требуется разрешение'
-      );
-      return;
-    }
-
-    const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      if (images.length >= (selectedPackageData?.features.photosCount || 3)) {
+    try {
+      if (Platform.OS === 'web') {
         Alert.alert(
-          language === 'az' ? 'Limit aşıldı' : 'Лимит превышен',
+          language === 'az' ? 'Xəta' : 'Ошибка',
           language === 'az' 
-            ? `Seçdiyiniz paket maksimum ${selectedPackageData?.features.photosCount} şəkil əlavə etməyə imkan verir` 
-            : `Выбранный пакет позволяет добавить максимум ${selectedPackageData?.features.photosCount} изображений`
+            ? 'Kamera ilə şəkil çəkmək veb versiyada mövcud deyil' 
+            : 'Съемка камерой недоступна в веб-версии'
         );
         return;
       }
-      setImages([...images, result.assets[0].uri]);
+
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          language === 'az' ? 'İcazə tələb olunur' : 'Требуется разрешение',
+          language === 'az' 
+            ? 'Kameradan istifadə etmək üçün icazə lazımdır' 
+            : 'Для использования камеры требуется разрешение'
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 1,
+      });
+
+      if (!result.canceled) {
+        if (images.length >= (selectedPackageData?.features.photosCount || 3)) {
+          Alert.alert(
+            language === 'az' ? 'Limit aşıldı' : 'Лимит превышен',
+            language === 'az' 
+              ? `Seçdiyiniz paket maksimum ${selectedPackageData?.features.photosCount} şəkil əlavə etməyə imkan verir` 
+              : `Выбранный пакет позволяет добавить максимум ${selectedPackageData?.features.photosCount} izображений`
+          );
+          return;
+        }
+        setImages([...images, result.assets[0].uri]);
+      }
+    } catch (error) {
+      console.error('Camera error:', error);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Şəkil çəkilə bilmədi' : 'Не удалось сделать фото'
+      );
     }
   };
 
