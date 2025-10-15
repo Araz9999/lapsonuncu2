@@ -70,9 +70,17 @@ export default function CallScreen() {
     return null;
   }
 
+  // BUG FIX #14-15: Add null checks for find() results
   const otherUserId = activeCall.callerId === 'user1' ? activeCall.receiverId : activeCall.callerId;
   const otherUser = users.find(user => user.id === otherUserId);
   const listing = listings.find(l => l.id === activeCall.listingId);
+  
+  // Handle missing user or listing gracefully
+  if (!otherUser) {
+    console.error('User not found:', otherUserId);
+    router.back();
+    return null;
+  }
 
   const handleEndCall = () => {
     endCall(callId);
@@ -88,12 +96,13 @@ export default function CallScreen() {
       return (
         <View style={styles.videoContainer}>
           <View style={styles.remoteVideo}>
+            {/* BUG FIX #16: Safe avatar access */}
             <Image 
-              source={{ uri: otherUser?.avatar }} 
+              source={{ uri: otherUser.avatar || 'https://via.placeholder.com/120' }} 
               style={styles.remoteVideoPlaceholder}
             />
             <Text style={styles.remoteVideoText}>
-              {otherUser?.name}
+              {otherUser.name || 'Unknown User'}
             </Text>
             <Text style={[styles.permissionText, { marginTop: 12 }]}>
               {language === 'az' ? 'Video zəng web versiyasında məhdud dəstəklənir' : 'Видеозвонок ограниченно поддерживается в веб-версии'}
@@ -133,11 +142,11 @@ export default function CallScreen() {
         {/* Remote user video (simulated) */}
         <View style={styles.remoteVideo}>
           <Image 
-            source={{ uri: otherUser?.avatar }} 
+            source={{ uri: otherUser.avatar || 'https://via.placeholder.com/120' }} 
             style={styles.remoteVideoPlaceholder}
           />
           <Text style={styles.remoteVideoText}>
-            {otherUser?.name}
+            {otherUser.name || 'Unknown User'}
           </Text>
         </View>
         
@@ -182,7 +191,7 @@ export default function CallScreen() {
             }
           </Text>
           <Text style={styles.listingTitle}>
-            {listing?.title ? (typeof listing.title === 'string' ? listing.title : listing.title[language]) : ''}
+            {listing?.title ? (typeof listing.title === 'string' ? listing.title : listing.title?.[language] || listing.title?.az || '') : 'Unknown Listing'}
           </Text>
         </View>
         
@@ -191,10 +200,10 @@ export default function CallScreen() {
         ) : (
           <View style={styles.userInfo}>
             <Image 
-              source={{ uri: otherUser?.avatar }} 
+              source={{ uri: otherUser.avatar || 'https://via.placeholder.com/120' }} 
               style={styles.userAvatar}
             />
-            <Text style={styles.userName}>{otherUser?.name}</Text>
+            <Text style={styles.userName}>{otherUser.name || 'Unknown User'}</Text>
             <Text style={styles.callType}>
               {language === 'az' ? 'Səsli zəng' : 'Голосовой звонок'}
             </Text>

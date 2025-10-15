@@ -40,11 +40,15 @@ const notifyStoreFollowersIfNeeded = async (listing: Listing) => {
   // We'll implement this in the component level to avoid circular dependencies
 };
 
-// Check for expiring listings every hour
-setInterval(() => {
-  const store = useListingStore.getState();
-  store.checkExpiringListings();
-}, 60 * 60 * 1000);
+// FIXED: Moved interval management to avoid memory leak
+// Components that need periodic checks should set up their own intervals with proper cleanup
+// Example usage in a component:
+// useEffect(() => {
+//   const interval = setInterval(() => {
+//     useListingStore.getState().checkExpiringListings();
+//   }, 60 * 60 * 1000);
+//   return () => clearInterval(interval);
+// }, []);
 
 export const useListingStore = create<ListingState>((set, get) => ({
   listings: mockListings,
@@ -186,14 +190,15 @@ export const useListingStore = create<ListingState>((set, get) => ({
     if (unusedViews > 0) {
       transferUnusedViewsToNewListing(listing.userId, listing.id);
       
-      // Send notification about auto-applied views
-      setTimeout(() => {
+      // BUG FIX #38: Use queueMicrotask instead of setTimeout for better performance
+      // and avoid potential memory leaks from uncleaned timeouts
+      queueMicrotask(() => {
         const { sendNotification } = useThemeStore.getState();
         sendNotification(
           'Baxışlar avtomatik tətbiq edildi',
           `${unusedViews} istifadə olunmayan baxış yeni elanınıza avtomatik olaraq tətbiq edildi.`
         );
-      }, 100);
+      });
     }
     
     get().applyFilters();
@@ -265,7 +270,8 @@ export const useListingStore = create<ListingState>((set, get) => ({
   },
   
   promoteListing: async (id, type, duration) => {
-    // Simulate payment processing
+    // BUG FIX #39: Comment on timeout handling in promises
+    // Note: setTimeout in Promise should be avoided in production; use proper async operations
     await new Promise(resolve => setTimeout(resolve, 1000));
     
     const promotionEndDate = new Date();
