@@ -413,7 +413,7 @@ export default function LiveChatScreen() {
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="interactive"
-            contentContainerStyle={{ flexGrow: 1, paddingBottom: 20 }}
+            contentContainerStyle={{ flexGrow: 1, paddingBottom: 10 }}
             maintainVisibleContentPosition={{
               minIndexForVisible: 0,
               autoscrollToTopThreshold: 10
@@ -475,14 +475,14 @@ export default function LiveChatScreen() {
               <View style={[
                 styles.inputContainer, 
                 { 
-                  backgroundColor: colors.card
+                  backgroundColor: colors.background
                 }
               ]}>
                 <TouchableOpacity
                   style={[
                     styles.attachButton,
                     {
-                      backgroundColor: showAttachments ? colors.primary : colors.background,
+                      backgroundColor: showAttachments ? colors.primary : colors.card,
                       borderColor: colors.border
                     }
                   ]}
@@ -680,11 +680,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 20,
     paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'android' ? 10 : 12,
-    paddingBottom: Platform.OS === 'android' ? 10 : 12,
+    paddingTop: 10,
+    paddingBottom: 10,
     fontSize: 16,
     height: 44,
-    lineHeight: 20,
+    lineHeight: Platform.OS === 'android' ? 20 : 22,
     marginRight: 12,
     includeFontPadding: false,
     textAlignVertical: 'center',
