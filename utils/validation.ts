@@ -7,11 +7,22 @@
 import { ValidationError } from './errorHandler';
 
 /**
- * Email validation
+ * Email validation - Enhanced security
  */
 export function validateEmail(email: string): boolean {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
+  if (!email || typeof email !== 'string') {
+    return false;
+  }
+  
+  // Stricter email validation with length limits
+  const emailRegex = /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+  
+  // Length validation
+  if (email.length > 254) {
+    return false;
+  }
+  
+  return emailRegex.test(email.trim());
 }
 
 /**
@@ -160,13 +171,59 @@ export function safeParseFloat(
 }
 
 /**
- * Sanitize string input
+ * Sanitize string input - XSS Protection
+ * Removes potentially dangerous characters and limits length
  */
-export function sanitizeString(input: string): string {
+export function sanitizeString(input: string, maxLength: number = 1000): string {
+  if (!input || typeof input !== 'string') {
+    return '';
+  }
+  
   return input
     .trim()
-    .replace(/[<>]/g, '') // Remove potential HTML tags
-    .substring(0, 1000); // Limit length
+    // Remove HTML tags and dangerous characters
+    .replace(/[<>\"'`]/g, '')
+    // Remove script tags and event handlers
+    .replace(/javascript:/gi, '')
+    .replace(/on\w+\s*=/gi, '')
+    // Limit length to prevent DoS
+    .substring(0, maxLength);
+}
+
+/**
+ * Sanitize HTML input - Comprehensive XSS Protection
+ */
+export function sanitizeHTML(input: string): string {
+  if (!input || typeof input !== 'string') {
+    return '';
+  }
+  
+  return input
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;')
+    .replace(/\//g, '&#x2F;');
+}
+
+/**
+ * Validate and sanitize JSON input
+ */
+export function safeJSONParse<T = any>(
+  jsonString: string,
+  fallback: T
+): T {
+  try {
+    // Prevent prototype pollution
+    const parsed = JSON.parse(jsonString);
+    if (parsed && typeof parsed === 'object' && parsed.__proto__) {
+      delete parsed.__proto__;
+    }
+    return parsed as T;
+  } catch {
+    return fallback;
+  }
 }
 
 /**
@@ -199,10 +256,10 @@ export function validateFile(
 }
 
 /**
- * Validate array bounds
+ * Validate array bounds - Type safe version
  */
-export function validateArrayIndex(
-  array: any[],
+export function validateArrayIndex<T>(
+  array: T[],
   index: number
 ): { valid: boolean; error?: string } {
   if (!Array.isArray(array)) {
@@ -214,6 +271,108 @@ export function validateArrayIndex(
   }
   
   return { valid: true };
+}
+
+/**
+ * Validate credit card number (Luhn algorithm)
+ */
+export function validateCreditCard(cardNumber: string): boolean {
+  if (!cardNumber || typeof cardNumber !== 'string') {
+    return false;
+  }
+  
+  // Remove spaces and dashes
+  const cleaned = cardNumber.replace(/[\s-]/g, '');
+  
+  // Check if it's all digits and proper length
+  if (!/^\d{13,19}$/.test(cleaned)) {
+    return false;
+  }
+  
+  // Luhn algorithm
+  let sum = 0;
+  let isEven = false;
+  
+  for (let i = cleaned.length - 1; i >= 0; i--) {
+    let digit = parseInt(cleaned.charAt(i), 10);
+    
+    if (isEven) {
+      digit *= 2;
+      if (digit > 9) {
+        digit -= 9;
+      }
+    }
+    
+    sum += digit;
+    isEven = !isEven;
+  }
+  
+  return sum % 10 === 0;
+}
+
+/**
+ * Validate IBAN (International Bank Account Number)
+ */
+export function validateIBAN(iban: string): boolean {
+  if (!iban || typeof iban !== 'string') {
+    return false;
+  }
+  
+  // Remove spaces and convert to uppercase
+  const cleaned = iban.replace(/\s/g, '').toUpperCase();
+  
+  // Basic format check
+  if (!/^[A-Z]{2}\d{2}[A-Z0-9]+$/.test(cleaned)) {
+    return false;
+  }
+  
+  // Length check (varies by country, 15-34 characters)
+  if (cleaned.length < 15 || cleaned.length > 34) {
+    return false;
+  }
+  
+  return true;
+}
+
+/**
+ * Rate limiting helper
+ */
+export class RateLimiter {
+  private attempts: Map<string, { count: number; resetAt: number }> = new Map();
+  
+  constructor(
+    private maxAttempts: number = 5,
+    private windowMs: number = 15 * 60 * 1000 // 15 minutes
+  ) {}
+  
+  isAllowed(key: string): boolean {
+    const now = Date.now();
+    const record = this.attempts.get(key);
+    
+    if (!record || now > record.resetAt) {
+      this.attempts.set(key, { count: 1, resetAt: now + this.windowMs });
+      return true;
+    }
+    
+    if (record.count >= this.maxAttempts) {
+      return false;
+    }
+    
+    record.count++;
+    return true;
+  }
+  
+  reset(key: string): void {
+    this.attempts.delete(key);
+  }
+  
+  getRemainingAttempts(key: string): number {
+    const record = this.attempts.get(key);
+    if (!record || Date.now() > record.resetAt) {
+      return this.maxAttempts;
+    }
+    return Math.max(0, this.maxAttempts - record.count);
+  }
 }
 
 /**

@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 
 export interface AnalyticsEvent {
   name: string;
-  properties?: Record<string, any>;
+  properties?: Record<string, string | number | boolean | null>;
   userId?: string;
 }
 
@@ -13,7 +13,7 @@ export interface UserProperties {
   name?: string;
   plan?: string;
   signupDate?: Date;
-  [key: string]: any;
+  [key: string]: string | number | boolean | Date | undefined;
 }
 
 class AnalyticsService {
@@ -66,8 +66,14 @@ class AnalyticsService {
       `;
       document.head.appendChild(script2);
 
-      (window as any).gtag = (window as any).gtag || function() {
-        ((window as any).dataLayer = (window as any).dataLayer || []).push(arguments);
+      interface WindowWithGtag extends Window {
+        gtag?: (...args: unknown[]) => void;
+        dataLayer?: unknown[];
+      }
+      
+      const windowWithGtag = window as unknown as WindowWithGtag;
+      windowWithGtag.gtag = windowWithGtag.gtag || function(...args: unknown[]) {
+        (windowWithGtag.dataLayer = windowWithGtag.dataLayer || []).push(args);
       };
     } catch (error) {
       console.error('Failed to initialize Google Analytics:', error);
@@ -109,13 +115,20 @@ class AnalyticsService {
   }
 
   private trackGoogleAnalytics(event: AnalyticsEvent): void {
-    if (Platform.OS !== 'web' || !(window as any).gtag) return;
+    if (Platform.OS !== 'web') return;
 
     try {
-      (window as any).gtag('event', event.name, {
-        ...event.properties,
-        user_id: event.userId,
-      });
+      interface WindowWithGtag extends Window {
+        gtag?: (command: string, eventName: string, params?: Record<string, unknown>) => void;
+      }
+      const windowWithGtag = window as unknown as WindowWithGtag;
+      
+      if (windowWithGtag.gtag) {
+        windowWithGtag.gtag('event', event.name, {
+          ...event.properties,
+          user_id: event.userId,
+        });
+      }
     } catch (error) {
       console.error('Google Analytics tracking error:', error);
     }
@@ -123,10 +136,21 @@ class AnalyticsService {
 
   private trackMixpanel(event: AnalyticsEvent): void {
     try {
-      if (Platform.OS === 'web' && (window as any).mixpanel) {
-        (window as any).mixpanel.track(event.name, event.properties);
+      interface WindowWithMixpanel extends Window {
+        mixpanel?: {
+          track: (name: string, properties?: Record<string, unknown>) => void;
+          identify: (userId: string) => void;
+          people: {
+            set: (properties: Record<string, unknown>) => void;
+          };
+        };
+      }
+      const windowWithMixpanel = window as unknown as WindowWithMixpanel;
+      
+      if (Platform.OS === 'web' && windowWithMixpanel.mixpanel) {
+        windowWithMixpanel.mixpanel.track(event.name, event.properties);
         if (event.userId) {
-          (window as any).mixpanel.identify(event.userId);
+          windowWithMixpanel.mixpanel.identify(event.userId);
         }
       } else {
         console.log('Mixpanel mobile tracking would be implemented here');

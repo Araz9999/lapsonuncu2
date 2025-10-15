@@ -65,7 +65,7 @@
     "@expo/ngrok": "^4.1.0",
     "@types/react": "~19.0.10",
     "babel-plugin-transform-remove-console": "^6.9.4",
-    "typescript": "~5.8.3"
+    "typescript": "^5.9.3"
   },
   "private": true
 }
