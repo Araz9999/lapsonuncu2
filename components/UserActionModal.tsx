@@ -38,7 +38,6 @@ import { useNotificationStore } from '@/store/notificationStore';
 import { useLanguageStore } from '@/store/languageStore';
 import { User } from '@/types/user';
 import { Share } from 'react-native';
-import { prompt } from '@/utils/confirm';
 
 interface UserActionModalProps {
   visible: boolean;
@@ -83,6 +82,8 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
   const [isLoading, setIsLoading] = useState(false);
   const [showNoteInput, setShowNoteInput] = useState(false);
   const [noteText, setNoteText] = useState('');
+  const [showReportInput, setShowReportInput] = useState(false);
+  const [reportText, setReportText] = useState('');
   
   const isBlocked = isUserBlocked(user.id);
   const canNudge = canNudgeUser(user.id);
@@ -294,11 +295,16 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
     );
   };
 
-  const handleReport = async () => {
-    const reason = await prompt(t.reportReason, t.report);
-    if (reason && reason.trim()) {
-      reportUser(user.id, reason.trim());
+  const handleReport = () => {
+    setShowReportInput(true);
+  };
+
+  const handleSubmitReport = () => {
+    if (reportText.trim()) {
+      reportUser(user.id, reportText.trim());
       Alert.alert('', t.reportSuccess);
+      setShowReportInput(false);
+      setReportText('');
       onClose();
     }
   };
@@ -414,7 +420,7 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
               bounces={false}
             >
               <View style={styles.content}>
-            {!showNoteInput ? (
+            {!showNoteInput && !showReportInput ? (
               <>
                 {!isBlocked && (
                   <TouchableOpacity
@@ -646,7 +652,7 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
                   </TouchableOpacity>
                 )}
               </>
-            ) : (
+            ) : showNoteInput ? (
               <View style={styles.noteInputContainer}>
                 <Text style={styles.noteInputTitle}>
                   {userNote ? t.editNote : t.addNote}
@@ -678,11 +684,43 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
                   </TouchableOpacity>
                 </View>
               </View>
+            ) : (
+              <View style={styles.noteInputContainer}>
+                <Text style={styles.noteInputTitle}>
+                  {t.reportReason}
+                </Text>
+                <TextInput
+                  style={styles.noteInput}
+                  value={reportText}
+                  onChangeText={setReportText}
+                  placeholder={t.reportDesc}
+                  multiline
+                  numberOfLines={4}
+                  textAlignVertical="top"
+                />
+                <View style={styles.noteButtons}>
+                  <TouchableOpacity
+                    style={[styles.noteButton, styles.cancelNoteButton]}
+                    onPress={() => {
+                      setShowReportInput(false);
+                      setReportText('');
+                    }}
+                  >
+                    <Text style={styles.cancelNoteText}>{t.cancel}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.noteButton, styles.saveNoteButton]}
+                    onPress={handleSubmitReport}
+                  >
+                    <Text style={styles.saveNoteText}>{t.report}</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
             )}
               </View>
             </ScrollView>
 
-            {!showNoteInput && (
+            {!showNoteInput && !showReportInput && (
               <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
                 <Text style={styles.cancelText}>{t.cancel}</Text>
               </TouchableOpacity>
