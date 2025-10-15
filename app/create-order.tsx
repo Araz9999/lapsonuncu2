@@ -59,15 +59,30 @@ export default function CreateOrderScreen() {
   });
 
   const handleCreateOrder = () => {
+    if (!amount.trim()) {
+      Alert.alert('Error', 'Please enter amount');
+      return;
+    }
+
     const amountNum = parseFloat(amount);
     
     if (isNaN(amountNum) || amountNum <= 0) {
-      Alert.alert('Error', 'Please enter a valid amount');
+      Alert.alert('Error', 'Please enter a valid amount greater than 0');
+      return;
+    }
+
+    if (amountNum > 50000) {
+      Alert.alert('Error', 'Maximum order amount is 50,000 AZN');
       return;
     }
 
     if (!description.trim()) {
       Alert.alert('Error', 'Please enter a description');
+      return;
+    }
+
+    if (description.trim().length < 5) {
+      Alert.alert('Error', 'Description must be at least 5 characters');
       return;
     }
 
