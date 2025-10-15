@@ -83,7 +83,8 @@ export default function LiveChatScreen() {
   }, [currentChat, currentUser, markMessagesAsRead]);
 
   useEffect(() => {
-    if (currentChat?.messages.length && shouldScrollToEnd && !isScrolling) {
+    // Only auto-scroll when new messages arrive, not when typing
+    if (currentChat?.messages.length && shouldScrollToEnd && !isScrolling && message.trim() === '') {
       if (scrollTimeoutRef.current) {
         clearTimeout(scrollTimeoutRef.current);
       }
@@ -144,6 +145,9 @@ export default function LiveChatScreen() {
     setAttachments([]);
     setShowAttachments(false);
     
+    // Re-enable auto-scroll after sending message
+    setShouldScrollToEnd(true);
+    
     if (scrollTimeoutRef.current) {
       clearTimeout(scrollTimeoutRef.current);
     }
@@ -161,6 +165,9 @@ export default function LiveChatScreen() {
     setMessage(text);
     
     if (!currentChatId) return;
+    
+    // Disable auto-scroll while typing to prevent jitter
+    setShouldScrollToEnd(false);
     
     setTyping(currentChatId, 'user', true);
     
@@ -414,7 +421,8 @@ export default function LiveChatScreen() {
             keyboardDismissMode="on-drag"
             contentContainerStyle={{ flexGrow: 1, paddingBottom: 20 }}
             onContentSizeChange={() => {
-              if (shouldScrollToEnd && !isScrolling) {
+              // Only auto-scroll if user is at bottom and not typing
+              if (shouldScrollToEnd && !isScrolling && message.trim() === '') {
                 scrollViewRef.current?.scrollToEnd({ animated: false });
               }
             }}
@@ -658,6 +666,7 @@ const styles = StyleSheet.create({
   },
   inputSection: {
     backgroundColor: 'transparent',
+    minHeight: 70,
   },
   inputContainer: {
     flexDirection: 'row',
