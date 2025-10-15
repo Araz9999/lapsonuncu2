@@ -130,7 +130,7 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
 
   const handleStartChat = () => {
     if (!currentUser) {
-      console.log('[LiveChatWidget] Cannot start chat: user not logged in');
+      // Cannot start chat: user not logged in
       return;
     }
     if (!selectedCategory || !subject.trim()) return;
@@ -154,8 +154,6 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
 
     const attachmentUrls = attachments.map(att => att.uri);
     const messageText = message.trim() || (attachments.length > 0 ? `📎 ${attachments.length} fayl göndərildi` : '');
-    
-    console.log('Sending message with attachments:', { messageText, attachmentUrls });
     
     sendMessage(
       currentChatId, 
@@ -569,7 +567,6 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
                           <FileAttachmentPicker
                             attachments={attachments}
                             onAttachmentsChange={(newAttachments) => {
-                              console.log('Attachments changed:', newAttachments);
                               setAttachments(newAttachments);
                             }}
                             maxFiles={3}
@@ -630,10 +627,7 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
                               backgroundColor: (message.trim() || attachments.length > 0) ? colors.primary : colors.border
                             }
                           ]}
-                          onPress={() => {
-                            console.log('Send button pressed. Message:', message, 'Attachments:', attachments.length);
-                            handleSendMessage();
-                          }}
+                          onPress={handleSendMessage}
                           disabled={!message.trim() && attachments.length === 0}
                         >
                           <Send size={18} color={(message.trim() || attachments.length > 0) ? '#fff' : colors.textSecondary} />

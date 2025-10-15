@@ -102,7 +102,7 @@ export default function CountdownTimer({
       }
       return new Date(Date.now() + 24 * 60 * 60 * 1000);
     } catch (e) {
-      console.error('[CountdownTimer] Error normalizing date:', e);
+      // Error normalizing date
       return new Date(Date.now() + 24 * 60 * 60 * 1000);
     }
   };
@@ -117,7 +117,7 @@ export default function CountdownTimer({
   useEffect(() => {
     const ms = currentEndDate.getTime() - Date.now();
     initialDurationMs.current = ms > 0 ? ms : 1000;
-    console.log('[CountdownTimer] initialDurationMs set to', initialDurationMs.current, 'ms remaining:', ms);
+    // Initial duration set
   }, [currentEndDate]);
 
   useEffect(() => {
@@ -125,7 +125,7 @@ export default function CountdownTimer({
       const now = Date.now();
       const endTs = currentEndDate?.getTime?.();
       if (!endTs || isNaN(endTs)) {
-        console.log('[CountdownTimer] Invalid endTs, marking expired');
+        // Invalid endTs, marking expired
         setIsExpired(true);
         setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
         return;
@@ -210,13 +210,6 @@ export default function CountdownTimer({
 
     const totalMilliseconds = (days * 24 * 60 * 60 * 1000) + (hours * 60 * 60 * 1000) + (minutes * 60 * 1000);
     const newEndDate = new Date(Date.now() + totalMilliseconds);
-    
-    console.log('[CountdownTimer] Manual time set:', {
-      days, hours, minutes,
-      totalMs: totalMilliseconds,
-      newEndDate: newEndDate.toISOString(),
-      currentTime: new Date().toISOString()
-    });
     
     initialDurationMs.current = totalMilliseconds > 0 ? totalMilliseconds : 1000;
     setShowManualInput(false);

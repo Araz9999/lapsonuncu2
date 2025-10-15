@@ -37,6 +37,7 @@ import {
 } from 'lucide-react-native';
 import FileAttachmentPicker, { FileAttachment } from '@/components/FileAttachmentPicker';
 import { useRouter } from 'expo-router';
+import { SupportCategory, SupportTicket } from '@/types/support';
 
 const { width } = Dimensions.get('window');
 
@@ -168,7 +169,7 @@ export default function SupportScreen() {
     );
   };
 
-  const CategoryCard = ({ category }: { category: any }) => {
+  const CategoryCard = ({ category }: { category: SupportCategory }) => {
     const IconComponent = getCategoryIcon(category.icon);
     
     return (
@@ -195,7 +196,7 @@ export default function SupportScreen() {
     );
   };
 
-  const TicketCard = ({ ticket }: { ticket: any }) => {
+  const TicketCard = ({ ticket }: { ticket: SupportTicket }) => {
     const StatusIcon = getStatusIcon(ticket.status);
     
     return (

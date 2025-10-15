@@ -244,7 +244,8 @@ export default function CreateCampaignScreen() {
               style={styles.input}
               value={formData.priority.toString()}
               onChangeText={(text) => {
-                const priority = parseInt(text) || 1;
+                const parsed = parseInt(text, 10);
+                const priority = isNaN(parsed) ? 1 : Math.max(1, Math.min(5, parsed));
                 setFormData(prev => ({ ...prev, priority: Math.min(10, Math.max(1, priority)) }));
               }}
               placeholder="1"

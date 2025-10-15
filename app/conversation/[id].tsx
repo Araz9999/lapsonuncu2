@@ -63,7 +63,7 @@ const ChatInput = memo(({
   isRecording: boolean; 
   language: string;
 }) => {
-  console.log('ChatInput render');
+  // ChatInput component
   return (
     <View style={styles.inputContainer}>
       <TouchableOpacity
