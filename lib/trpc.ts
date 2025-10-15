@@ -47,7 +47,15 @@ export const trpcClient = trpc.createClient({
             cacheTimestamp = now;
             return {};
           }
-          const tokens = JSON.parse(raw);
+          let tokens;
+          try {
+            tokens = JSON.parse(raw);
+          } catch {
+            // Invalid JSON, clear cache
+            cachedAuthHeader = {};
+            cacheTimestamp = now;
+            return {};
+          }
           if (tokens?.accessToken) {
             cachedAuthHeader = { Authorization: `Bearer ${tokens.accessToken}` };
             cacheTimestamp = now;

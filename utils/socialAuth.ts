@@ -66,7 +66,13 @@ export async function initiateSocialLogin(
         const userData = url.searchParams.get('user');
 
         if (token && userData) {
-          const user = JSON.parse(userData);
+          let user;
+          try {
+            user = JSON.parse(userData);
+          } catch {
+            onError?.('Invalid user data received');
+            return;
+          }
           onSuccess({
             success: true,
             token,

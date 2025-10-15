@@ -96,7 +96,7 @@ export default function CreateDiscountScreen() {
       applicableListings: selectedListings,
       startDate: formData.startDate,
       endDate: formData.endDate,
-      usageLimit: formData.usageLimit ? parseInt(formData.usageLimit) : undefined,
+      usageLimit: formData.usageLimit ? (parseInt(formData.usageLimit, 10) || undefined) : undefined,
       usedCount: 0,
       isActive: formData.isActive,
       hasCountdown: formData.hasCountdown,
