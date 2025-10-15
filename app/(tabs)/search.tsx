@@ -281,7 +281,7 @@ export default function SearchScreen() {
                 </Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   <View style={styles.filterOptions}>
-                    {selectedCategoryData.subcategories.map(subcategory => (
+                    {selectedCategoryData?.subcategories?.map(subcategory => (
                       <TouchableOpacity
                         key={subcategory.id}
                         style={[
