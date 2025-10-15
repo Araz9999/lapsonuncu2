@@ -86,6 +86,8 @@ export const useCallStore = create<CallStore>((set, get) => ({
   incomingCall: null,
   ringtoneSound: null,
   dialToneSound: null,
+  ringtoneInterval: null,
+  dialToneInterval: null,
   
   initiateCall: async (receiverId: string, listingId: string, type: CallType) => {
     console.log('CallStore - initiating call to:', receiverId);
