@@ -40,11 +40,15 @@ const notifyStoreFollowersIfNeeded = async (listing: Listing) => {
   // We'll implement this in the component level to avoid circular dependencies
 };
 
-// Check for expiring listings every hour
-setInterval(() => {
-  const store = useListingStore.getState();
-  store.checkExpiringListings();
-}, 60 * 60 * 1000);
+// FIXED: Moved interval management to avoid memory leak
+// Components that need periodic checks should set up their own intervals with proper cleanup
+// Example usage in a component:
+// useEffect(() => {
+//   const interval = setInterval(() => {
+//     useListingStore.getState().checkExpiringListings();
+//   }, 60 * 60 * 1000);
+//   return () => clearInterval(interval);
+// }, []);
 
 export const useListingStore = create<ListingState>((set, get) => ({
   listings: mockListings,
