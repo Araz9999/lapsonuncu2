@@ -105,9 +105,30 @@ class StorageService {
   async uploadMultipleFiles(
     files: (File | { uri: string; name: string; type: string })[],
     options: UploadOptions = {}
-  ): Promise<UploadResult[]> {
+  ): Promise<{ successful: UploadResult[]; failed: { file: any; error: string }[] }> {
+    // FIXED: Use Promise.allSettled to handle partial failures gracefully
     const uploadPromises = files.map(file => this.uploadFile(file, options));
-    return Promise.all(uploadPromises);
+    const results = await Promise.allSettled(uploadPromises);
+    
+    const successful: UploadResult[] = [];
+    const failed: { file: any; error: string }[] = [];
+    
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        successful.push(result.value);
+      } else {
+        failed.push({
+          file: files[index],
+          error: result.reason instanceof Error ? result.reason.message : 'Unknown error'
+        });
+      }
+    });
+    
+    if (failed.length > 0) {
+      console.warn(`Upload completed with ${successful.length} successes and ${failed.length} failures`);
+    }
+    
+    return { successful, failed };
   }
 
   async deleteFile(key: string): Promise<boolean> {
@@ -188,8 +209,19 @@ class StorageService {
   private generateFileName(originalName: string): string {
     const timestamp = Date.now();
     const random = Math.random().toString(36).substring(2);
-    const extension = originalName.split('.').pop();
-    return `${timestamp}_${random}.${extension}`;
+    
+    // FIXED: Handle undefined/null originalName and missing extensions
+    if (!originalName) {
+      return `${timestamp}_${random}.bin`;
+    }
+    
+    const parts = originalName.split('.');
+    const extension = parts.length > 1 ? parts.pop() : 'bin';
+    
+    // SECURITY: Sanitize extension to prevent path traversal
+    const safeExtension = extension?.replace(/[^a-zA-Z0-9]/g, '').substring(0, 10) || 'bin';
+    
+    return `${timestamp}_${random}.${safeExtension}`;
   }
 
   getPublicUrl(key: string): string {
