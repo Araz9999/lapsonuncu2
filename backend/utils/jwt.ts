@@ -4,16 +4,37 @@ import { SignJWT, jwtVerify } from 'jose';
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_ISSUER = 'marketplace-app';
 const JWT_AUDIENCE = 'marketplace-users';
+const MIN_SECRET_LENGTH = 32;
 
-if (!JWT_SECRET) {
-  console.error('[JWT] CRITICAL: JWT_SECRET environment variable is not set!');
+// FIXED: Enforce strong JWT secret validation
+if (!JWT_SECRET || JWT_SECRET.length < MIN_SECRET_LENGTH) {
+  const error = `[JWT] CRITICAL: JWT_SECRET must be at least ${MIN_SECRET_LENGTH} characters!`;
+  console.error(error);
+  
   if (process.env.NODE_ENV === 'production') {
-    throw new Error('JWT_SECRET must be set in production');
+    // SECURITY: Never allow production to start with weak or missing JWT secret
+    throw new Error('JWT_SECRET must be set and strong in production');
   }
-  console.warn('[JWT] Using fallback secret for development only');
+  
+  if (!JWT_SECRET) {
+    console.warn('[JWT] Using fallback secret for development only - DO NOT USE IN PRODUCTION');
+  } else {
+    console.warn(`[JWT] JWT_SECRET is too weak (${JWT_SECRET.length} chars). Minimum: ${MIN_SECRET_LENGTH} chars`);
+  }
 }
 
-const secret = new TextEncoder().encode(JWT_SECRET || 'dev-only-fallback-secret-change-immediately');
+// SECURITY: Validate secret doesn't contain common weak patterns
+const weakSecrets = ['secret', 'password', 'dev-only', 'change-me', 'changeme', 'test', 'demo', 'example'];
+const secretLower = (JWT_SECRET || '').toLowerCase();
+if (weakSecrets.some(weak => secretLower.includes(weak))) {
+  console.error('[JWT] CRITICAL: JWT_SECRET contains weak/common patterns!');
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('JWT_SECRET contains insecure patterns - use a cryptographically random secret');
+  }
+  console.warn('[JWT] WARNING: JWT_SECRET contains common patterns. Generate a new secret with: openssl rand -base64 48');
+}
+
+const secret = new TextEncoder().encode(JWT_SECRET || 'dev-only-fallback-secret-change-immediately-min32chars');
 
 export interface JWTPayload {
   userId: string;
