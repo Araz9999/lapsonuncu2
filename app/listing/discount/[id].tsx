@@ -244,7 +244,7 @@ export default function ListingDiscountScreen() {
         timerEndDate: timerEndDate.toISOString()
       });
       
-      const updateData: any = {
+      const updateData: Partial<typeof listing> = {
         hasDiscount: true,
         originalPrice,
         price: Math.round(finalPrice),
