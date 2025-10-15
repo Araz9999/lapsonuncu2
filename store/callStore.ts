@@ -9,9 +9,6 @@ interface CallStore {
   incomingCall: Call | null;
   ringtoneSound: any | null;
   dialToneSound: any | null;
-  // BUG FIX #31-32: Properly typed interval references
-  ringtoneInterval: NodeJS.Timeout | null;
-  dialToneInterval: NodeJS.Timeout | null;
   
   // Call actions
   initiateCall: (receiverId: string, listingId: string, type: CallType) => Promise<string>;
@@ -87,8 +84,6 @@ export const useCallStore = create<CallStore>((set, get) => ({
   incomingCall: null,
   ringtoneSound: null,
   dialToneSound: null,
-  ringtoneInterval: null,
-  dialToneInterval: null,
   
   initiateCall: async (receiverId: string, listingId: string, type: CallType) => {
     console.log('CallStore - initiating call to:', receiverId);
@@ -149,12 +144,8 @@ export const useCallStore = create<CallStore>((set, get) => ({
   answerCall: (callId: string) => {
     console.log('CallStore - answering call:', callId);
     
-    // BUG FIX #17: Explicit null check for find() result
     const call = get().calls.find(c => c.id === callId);
-    if (!call) {
-      console.error('Call not found:', callId);
-      return;
-    }
+    if (!call) return;
     
     // Stop ringtone
     get().stopAllSounds();
@@ -318,7 +309,8 @@ export const useCallStore = create<CallStore>((set, get) => ({
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         console.log('Initial ringtone haptic feedback played');
         
-        // BUG FIX #31-33: Properly store interval reference\n        const ringtoneInterval = setInterval(async () => {
+        // Create a repeating pattern for incoming call
+        const ringtoneInterval = setInterval(async () => {
           try {
             if (Haptics && Haptics.impactAsync) {
               await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
@@ -328,8 +320,8 @@ export const useCallStore = create<CallStore>((set, get) => ({
           }
         }, 1000);
         
-        // Store interval for cleanup with proper typing
-        set({ ringtoneInterval });
+        // Store interval for cleanup
+        (get() as any).ringtoneInterval = ringtoneInterval;
       } else {
         console.log('Haptics not available, using console notification');
       }
@@ -352,7 +344,7 @@ export const useCallStore = create<CallStore>((set, get) => ({
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         console.log('Initial dial tone haptic feedback played');
         
-        // BUG FIX #31-33: Properly store interval reference
+        // Create a repeating pattern for outgoing call
         const dialToneInterval = setInterval(async () => {
           try {
             if (Haptics && Haptics.impactAsync) {
@@ -363,8 +355,8 @@ export const useCallStore = create<CallStore>((set, get) => ({
           }
         }, 2000);
         
-        // Store interval for cleanup with proper typing
-        set({ dialToneInterval });
+        // Store interval for cleanup
+        (get() as any).dialToneInterval = dialToneInterval;
       } else {
         console.log('Haptics not available, using console notification');
       }
@@ -397,11 +389,11 @@ export const useCallStore = create<CallStore>((set, get) => ({
       }
       
       // Stop any actual sounds if they exist
-      if (state.ringtoneSound?.stopAsync) {
+      if (state.ringtoneSound && state.ringtoneSound.stopAsync) {
         await state.ringtoneSound.stopAsync();
         console.log('Ringtone sound stopped');
       }
-      if (state.dialToneSound?.stopAsync) {
+      if (state.dialToneSound && state.dialToneSound.stopAsync) {
         await state.dialToneSound.stopAsync();
         console.log('Dial tone sound stopped');
       }
@@ -453,12 +445,11 @@ export const useCallStore = create<CallStore>((set, get) => ({
       (async () => {
         try {
           const { notificationService } = await import('@/services/notificationService');
-          // BUG FIX #18: Handle undefined caller
           const caller = users.find(u => u.id === randomCaller);
           
           await notificationService.sendLocalNotification({
             title: incomingCall.type === 'video' ? 'Gələn video zəng' : 'Gələn zəng',
-            body: `${caller?.name || 'Unknown User'} sizə ${incomingCall.type === 'video' ? 'video ' : ''}zəng edir`,
+            body: `${caller?.name || 'Naməlum istifadəçi'} sizə ${incomingCall.type === 'video' ? 'video ' : ''}zəng edir`,
             sound: true,
             data: {
               callId,

@@ -185,9 +185,12 @@ export const useMessageStore = create<MessageStore>((set, get) => ({
       console.log('MessageStore - updating conversation:', conversation.id, 'with message:', newMessage.text?.trim() || 'attachment');
       console.log('MessageStore - conversation messages after update:', updatedConversation.messages.length);
       
-      // BUG FIX #76: Simplified state update without redundant map
+      // Force state update by creating completely new state object
       return { 
-        conversations: updatedConversations
+        conversations: updatedConversations.map(conv => ({ 
+          ...conv,
+          messages: conv.id === conversationId ? [...updatedConversation.messages] : [...conv.messages]
+        })) 
       };
     });
   },
@@ -237,11 +240,9 @@ export const useMessageStore = create<MessageStore>((set, get) => ({
   
   getOrCreateConversation: (participants: string[], listingId: string) => {
     const state = get();
-    // BUG FIX #46: More robust conversation matching
     const existingConv = state.conversations.find((conv) => 
       conv.participants.length === participants.length &&
-      conv.participants.every((p) => participants.includes(p)) &&
-      participants.every((p) => conv.participants.includes(p))
+      conv.participants.every((p) => participants.includes(p))
     );
     
     if (existingConv) {
@@ -268,18 +269,11 @@ export const useMessageStore = create<MessageStore>((set, get) => ({
     ];
     
     const state = get();
-    // BUG FIX #19: Check if conversations exist
-    if (state.conversations.length === 0) {
-      console.warn('No conversations available for simulation');
-      return;
-    }
-    
     const randomConversation = state.conversations[Math.floor(Math.random() * state.conversations.length)];
     const randomMessage = incomingMessages[Math.floor(Math.random() * incomingMessages.length)];
     const currentUserId = useUserStore.getState().currentUser?.id || 'user1';
     const otherUserId = randomConversation.participants.find(id => id !== currentUserId);
     
-    // BUG FIX #20: Explicit check for otherUserId
     if (randomConversation && otherUserId) {
       const newMessage: Message = {
         id: Date.now().toString(),
@@ -303,13 +297,8 @@ export const useMessageStore = create<MessageStore>((set, get) => ({
     
     return conversations.filter(conversation => {
       const currentUserId = useUserStore.getState().currentUser?.id || 'user1';
-      // BUG FIX #21: Explicit check for otherUserId
       const otherUserId = conversation.participants.find(id => id !== currentUserId);
-      if (!otherUserId) {
-        console.warn('Conversation has no other user:', conversation.id);
-        return false;
-      }
-      return !isUserBlocked(otherUserId);
+      return otherUserId ? !isUserBlocked(otherUserId) : true;
     });
   },
   
