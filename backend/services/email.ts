@@ -15,6 +15,18 @@ interface PasswordResetEmailData {
   resetUrl: string;
 }
 
+/**
+ * SECURITY: Escape HTML to prevent XSS attacks in email templates
+ */
+function escapeHtml(unsafe: string): string {
+  return unsafe
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 class EmailService {
   private apiKey: string;
   private fromEmail: string;
@@ -69,6 +81,10 @@ class EmailService {
   }
 
   async sendVerificationEmail(email: string, data: VerificationEmailData): Promise<boolean> {
+    // SECURITY: Escape user input to prevent XSS
+    const safeName = escapeHtml(data.name);
+    const safeUrl = escapeHtml(data.verificationUrl);
+    
     const html = `
       <!DOCTYPE html>
       <html>
@@ -139,7 +155,7 @@ class EmailService {
           </div>
           
           <div class="content">
-            <h2>Salam ${data.name}!</h2>
+            <h2>Salam ${safeName}!</h2>
             <p>NaxtaPaz platformasına xoş gəlmisiniz! Hesabınızı aktivləşdirmək üçün aşağıdakı düyməyə klikləyin:</p>
             
             <div style="text-align: center;">
@@ -147,7 +163,7 @@ class EmailService {
             </div>
             
             <p>Əgər düymə işləmirsə, aşağıdakı linki brauzerinizə kopyalayın:</p>
-            <p style="word-break: break-all; color: #007AFF;">${data.verificationUrl}</p>
+            <p style="word-break: break-all; color: #007AFF;">${safeUrl}</p>
             
             <p style="margin-top: 30px; color: #666; font-size: 14px;">
               <strong>Qeyd:</strong> Bu link 24 saat ərzində etibarlıdır. Əgər siz bu qeydiyyatı tələb etməmisinizsə, bu emaili nəzərə almayın.
@@ -193,6 +209,10 @@ Telefon: +994504801313
   }
 
   async sendPasswordResetEmail(email: string, data: PasswordResetEmailData): Promise<boolean> {
+    // SECURITY: Escape user input to prevent XSS
+    const safeName = escapeHtml(data.name);
+    const safeUrl = escapeHtml(data.resetUrl);
+    
     const html = `
       <!DOCTYPE html>
       <html>
@@ -271,7 +291,7 @@ Telefon: +994504801313
           </div>
           
           <div class="content">
-            <h2>Salam ${data.name}!</h2>
+            <h2>Salam ${safeName}!</h2>
             <p>Şifrənizi sıfırlamaq üçün sorğu aldıq. Yeni şifrə təyin etmək üçün aşağıdakı düyməyə klikləyin:</p>
             
             <div style="text-align: center;">
@@ -279,7 +299,7 @@ Telefon: +994504801313
             </div>
             
             <p>Əgər düymə işləmirsə, aşağıdakı linki brauzerinizə kopyalayın:</p>
-            <p style="word-break: break-all; color: #007AFF;">${data.resetUrl}</p>
+            <p style="word-break: break-all; color: #007AFF;">${safeUrl}</p>
             
             <div class="warning">
               <strong>⚠️ Təhlükəsizlik Xəbərdarlığı:</strong><br>
@@ -328,6 +348,9 @@ Telefon: +994504801313
   }
 
   async sendWelcomeEmail(email: string, name: string): Promise<boolean> {
+    // SECURITY: Escape user input to prevent XSS
+    const safeName = escapeHtml(name);
+    
     const html = `
       <!DOCTYPE html>
       <html>
@@ -408,7 +431,7 @@ Telefon: +994504801313
           </div>
           
           <div class="content">
-            <h2>Xoş gəlmisiniz, ${name}!</h2>
+            <h2>Xoş gəlmisiniz, ${safeName}!</h2>
             <p>Email ünvanınız uğurla təsdiqləndi. İndi NaxtaPaz platformasının bütün imkanlarından istifadə edə bilərsiniz!</p>
             
             <div class="features">

@@ -63,7 +63,8 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
   const [subject, setSubject] = useState<string>('');
   const [priority, setPriority] = useState<'low' | 'medium' | 'high' | 'urgent'>('medium');
   const [currentChatId, setCurrentChatId] = useState<string | undefined>(chatId);
-  const [typingTimeout, setTypingTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
+  // FIXED: Use ref instead of state to avoid re-renders and ensure cleanup
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [shouldScrollToEnd, setShouldScrollToEnd] = useState<boolean>(true);
   const [isScrolling, setIsScrolling] = useState<boolean>(false);
   const [attachments, setAttachments] = useState<FileAttachment[]>([]);
@@ -106,6 +107,16 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
       }, 100);
     }
   }, [currentChat?.messages.length, shouldScrollToEnd, isScrolling]);
+
+  // FIXED: Cleanup typing timeout on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener(
@@ -183,17 +194,15 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
     // Set typing indicator
     setTyping(currentChatId, 'user', true);
     
-    // Clear previous timeout
-    if (typingTimeout) {
-      clearTimeout(typingTimeout);
+    // FIXED: Use ref to prevent memory leaks
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
     }
     
     // Set new timeout to clear typing indicator
-    const timeout: ReturnType<typeof setTimeout> = setTimeout(() => {
+    typingTimeoutRef.current = setTimeout(() => {
       setTyping(currentChatId, 'user', false);
     }, 2000);
-    
-    setTypingTimeout(timeout);
   };
 
   const handleCloseChat = () => {
