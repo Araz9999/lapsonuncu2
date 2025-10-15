@@ -129,71 +129,59 @@ export const useUserStore = create<UserState>()(
         });
       },
       addToWallet: (amount) => {
-        // FIXED: Use functional update to prevent race conditions
-        set((state) => ({ walletBalance: state.walletBalance + amount }));
+        const { walletBalance } = get();
+        set({ walletBalance: walletBalance + amount });
       },
       addBonus: (amount) => {
-        // FIXED: Use functional update to prevent race conditions
-        set((state) => ({ bonusBalance: state.bonusBalance + amount }));
+        const { bonusBalance } = get();
+        set({ bonusBalance: bonusBalance + amount });
       },
       spendFromWallet: (amount) => {
-        // FIXED: Use functional update with atomic check-and-set
-        let success = false;
-        set((state) => {
-          if (state.walletBalance >= amount) {
-            success = true;
-            return { walletBalance: state.walletBalance - amount };
-          }
-          return state;
-        });
-        return success;
+        const { walletBalance } = get();
+        if (walletBalance >= amount) {
+          set({ walletBalance: walletBalance - amount });
+          return true;
+        }
+        return false;
       },
       spendFromBonus: (amount) => {
-        // FIXED: Use functional update with atomic check-and-set
-        let success = false;
-        set((state) => {
-          if (state.bonusBalance >= amount) {
-            success = true;
-            return { bonusBalance: state.bonusBalance - amount };
-          }
-          return state;
-        });
-        return success;
+        const { bonusBalance } = get();
+        if (bonusBalance >= amount) {
+          set({ bonusBalance: bonusBalance - amount });
+          return true;
+        }
+        return false;
       },
       spendFromBalance: (amount) => {
-        // FIXED: Use functional update for truly atomic operations
-        let success = false;
-        set((state) => {
-          const totalBalance = state.walletBalance + state.bonusBalance;
-          
-          if (totalBalance < amount) {
-            return state; // Insufficient funds, no changes
-          }
-          
+        const { walletBalance, bonusBalance } = get();
+        const totalBalance = walletBalance + bonusBalance;
+        
+        if (totalBalance >= amount) {
           let remainingAmount = amount;
-          let newBonusBalance = state.bonusBalance;
-          let newWalletBalance = state.walletBalance;
+          let newBonusBalance = bonusBalance;
+          let newWalletBalance = walletBalance;
           
           // First spend from bonus balance
-          if (state.bonusBalance > 0) {
-            const bonusToSpend = Math.min(state.bonusBalance, remainingAmount);
-            newBonusBalance = state.bonusBalance - bonusToSpend;
+          if (bonusBalance > 0) {
+            const bonusToSpend = Math.min(bonusBalance, remainingAmount);
+            newBonusBalance = bonusBalance - bonusToSpend;
             remainingAmount -= bonusToSpend;
           }
           
           // Then spend from wallet balance if needed
           if (remainingAmount > 0) {
-            newWalletBalance = state.walletBalance - remainingAmount;
+            newWalletBalance = walletBalance - remainingAmount;
           }
           
-          success = true;
-          return { 
+          // Atomically update both balances in a single set() call to avoid race conditions
+          set({ 
             bonusBalance: newBonusBalance,
             walletBalance: newWalletBalance 
-          };
-        });
-        
-        return success;
+          });
+          
+          return true;
+        }
+        return false;
       },
       getTotalBalance: () => {
         const { walletBalance, bonusBalance } = get();

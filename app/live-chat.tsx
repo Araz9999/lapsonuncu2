@@ -57,7 +57,6 @@ export default function LiveChatScreen() {
   const [showAttachments, setShowAttachments] = useState<boolean>(false);
   
   const scrollViewRef = useRef<ScrollView>(null);
-  // FIXED: Use refs for timeouts to prevent memory leaks
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -173,18 +172,6 @@ export default function LiveChatScreen() {
       setTyping(currentChatId, 'user', false);
     }, 2000);
   };
-
-  // FIXED: Cleanup timeouts on unmount to prevent memory leaks
-  useEffect(() => {
-    return () => {
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-      }
-      if (scrollTimeoutRef.current) {
-        clearTimeout(scrollTimeoutRef.current);
-      }
-    };
-  }, []);
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString('az-AZ', { 

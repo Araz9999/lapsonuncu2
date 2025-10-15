@@ -87,15 +87,6 @@ class RateLimiter {
 
 const rateLimiter = new RateLimiter();
 
-// FIXED: Properly handle cleanup on process termination to prevent memory leaks
-process.on('SIGTERM', () => {
-  rateLimiter.destroy();
-});
-
-process.on('SIGINT', () => {
-  rateLimiter.destroy();
-});
-
 /**
  * Create rate limiting middleware
  */

@@ -50,12 +50,10 @@ export default function HomeScreen() {
     handleResetFilters();
   }, [handleResetFilters]);
   
-  // BUG FIX #49: Already properly cleaned up
   useEffect(() => {
     if (autoRefresh) {
       const interval = setInterval(() => {
         console.log('Auto refreshing data...');
-        // TODO: Implement actual data refresh logic
       }, 30000);
       
       return () => clearInterval(interval);

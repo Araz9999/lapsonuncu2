@@ -155,8 +155,7 @@ export default function CountdownTimer({
     const pulse = () => {
       if (!isActive) return;
       
-      // FIXED: Create animation sequence and store reference properly
-      const sequence = Animated.sequence([
+      animationRef = Animated.sequence([
         Animated.timing(pulseAnim, {
           toValue: 1.1,
           duration: 500,
@@ -169,10 +168,8 @@ export default function CountdownTimer({
         }),
       ]);
       
-      animationRef = sequence;
-      
-      animationRef.start((result: { finished: boolean }) => {
-        if (result.finished && !isExpired && isActive) {
+      animationRef.start((finished: boolean) => {
+        if (finished && !isExpired && isActive) {
           pulse();
         }
       });
@@ -184,12 +181,9 @@ export default function CountdownTimer({
     
     return () => {
       isActive = false;
-      // FIXED: Properly stop animation and reset to prevent memory leaks
       if (animationRef) {
         animationRef.stop();
-        animationRef = null;
       }
-      pulseAnim.setValue(1); // Reset to default state
     };
   }, [isExpired, pulseAnim]);
 
