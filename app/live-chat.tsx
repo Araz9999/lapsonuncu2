@@ -501,6 +501,8 @@ export default function LiveChatScreen() {
                   value={message}
                   onChangeText={handleTyping}
                   multiline={false}
+                  numberOfLines={1}
+                  textAlignVertical="center"
                   returnKeyType="send"
                   onSubmitEditing={handleSendMessage}
                   blurOnSubmit={false}
@@ -670,10 +672,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 20,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: Platform.OS === 'ios' ? 12 : 8,
     fontSize: 16,
     height: 44,
     marginRight: 12,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   attachButton: {
     width: 44,

@@ -601,6 +601,7 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
                           onChangeText={handleTyping}
                           multiline={false}
                           numberOfLines={1}
+                          textAlignVertical="center"
                           returnKeyType="send"
                           onSubmitEditing={handleSendMessage}
                           blurOnSubmit={false}
@@ -899,10 +900,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 20,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: Platform.OS === 'ios' ? 12 : 8,
     fontSize: 16,
     height: 44,
     marginHorizontal: 8,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   attachButton: {
     width: 44,
