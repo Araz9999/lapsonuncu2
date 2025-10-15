@@ -240,7 +240,12 @@ export const useRatingStore = create<RatingStore>((set, get) => ({
       set({ isLoading: true, error: null });
       const stored = await AsyncStorage.getItem(RATINGS_STORAGE_KEY);
       if (stored) {
-        const ratings = JSON.parse(stored);
+        let ratings;
+        try {
+          ratings = JSON.parse(stored);
+        } catch {
+          ratings = {};
+        }
         set({ ratings });
       }
       await get().loadRatingHistory();
@@ -266,7 +271,12 @@ export const useRatingStore = create<RatingStore>((set, get) => ({
     try {
       const stored = await AsyncStorage.getItem(RATING_HISTORY_STORAGE_KEY);
       if (stored) {
-        const ratingHistory = JSON.parse(stored);
+        let ratingHistory;
+        try {
+          ratingHistory = JSON.parse(stored);
+        } catch {
+          ratingHistory = {};
+        }
         set({ ratingHistory });
       }
     } catch (error) {

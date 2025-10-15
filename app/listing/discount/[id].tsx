@@ -764,9 +764,9 @@ export default function ListingDiscountScreen() {
                 <TouchableOpacity 
                   style={styles.compactApplyButton}
                   onPress={() => {
-                    const days = parseInt(customDays) || 0;
-                    const hours = parseInt(customHours) || 0;
-                    const minutes = parseInt(customMinutes) || 0;
+                    const days = parseInt(customDays, 10) || 0;
+                    const hours = parseInt(customHours, 10) || 0;
+                    const minutes = parseInt(customMinutes, 10) || 0;
                     
                     if (days === 0 && hours === 0 && minutes === 0) {
                       Alert.alert(

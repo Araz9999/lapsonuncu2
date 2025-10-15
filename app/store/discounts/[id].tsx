@@ -62,6 +62,10 @@ export default function StoreDiscountsScreen() {
     if (!selectedListing || !store) return;
     
     const discount = parseFloat(discountPercentage);
+    if (isNaN(discount) || discount <= 0 || discount > 100) {
+      Alert.alert('Xəta', 'Endirim 0-100 arasında olmalıdır');
+      return;
+    }
     if (isNaN(discount) || discount <= 0 || discount >= 100) {
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',

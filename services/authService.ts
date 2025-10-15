@@ -47,8 +47,13 @@ class AuthService {
       const storedUser = await AsyncStorage.getItem('auth_user');
 
       if (storedTokens && storedUser) {
-        this.tokens = JSON.parse(storedTokens);
-        this.currentUser = JSON.parse(storedUser);
+        try {
+          this.tokens = JSON.parse(storedTokens);
+          this.currentUser = JSON.parse(storedUser);
+        } catch {
+          // Invalid stored data, logout
+          await this.logout();
+        }
 
         if (this.tokens && new Date() > new Date(this.tokens.expiresAt)) {
           await this.refreshAccessToken();
@@ -132,15 +137,19 @@ class AuthService {
           const userData = url.searchParams.get('user');
 
           if (token && userData) {
-            const user = JSON.parse(userData);
-            const tokens = {
-              accessToken: token,
-              refreshToken: token,
-              expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-            };
-            
-            await this.setAuthData(user, tokens);
-            return user;
+            try {
+              const user = JSON.parse(userData);
+              const tokens = {
+                accessToken: token,
+                refreshToken: token,
+                expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+              };
+              
+              await this.setAuthData(user, tokens);
+              return user;
+            } catch {
+              // Invalid user data, will throw error below
+            }
           }
         }
 
