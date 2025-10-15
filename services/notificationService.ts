@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 
 // Configure notification behavior only for mobile platforms
 // Note: Push notifications are not available in Expo Go SDK 53+
-let Notifications: any = null;
+let Notifications: typeof import('expo-notifications') | null = null;
 let isNotificationsAvailable = false;
 
 if (Platform.OS !== 'web') {
@@ -13,7 +13,7 @@ if (Platform.OS !== 'web') {
     
     if (isExpoGo) {
       // In Expo Go, we can only use local notifications
-      console.log('Running in Expo Go - remote push notifications not available');
+      // Running in Expo Go - using local notifications only
     }
     
     Notifications = require('expo-notifications');
@@ -31,7 +31,7 @@ if (Platform.OS !== 'web') {
       });
     }
   } catch (error) {
-    console.log('Expo notifications module not available');
+    // Notifications module not available on this platform
     isNotificationsAvailable = false;
   }
 }
@@ -63,7 +63,7 @@ class NotificationService {
         return false;
       } else {
         if (!isNotificationsAvailable || !Notifications) {
-          console.log('Notifications not available on this platform');
+          // Notifications not available
           return false;
         }
         
@@ -78,25 +78,24 @@ class NotificationService {
           
           return finalStatus === 'granted';
         } catch (permError) {
-          // Permission API might not be available in Expo Go
-          console.log('Permission API not available, assuming granted for local notifications');
+          // Permission API might not be available - assume granted for local notifications
           return true;
         }
       }
     } catch (error) {
-      console.error('Failed to request notification permissions:', error);
+      // Permission request failed
       return false;
     }
   }
 
   async getExpoPushToken(): Promise<string | null> {
     if (Platform.OS === 'web') {
-      console.log('Push tokens not available on web platform');
+      // Push tokens not available on web
       return null;
     }
 
     if (!isNotificationsAvailable || !Notifications) {
-      console.log('Push notifications not available in Expo Go SDK 53+');
+      // Push notifications not available
       return null;
     }
 

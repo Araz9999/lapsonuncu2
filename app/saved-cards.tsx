@@ -17,6 +17,7 @@ import { CreditCard, Trash2, Plus, DollarSign, X } from 'lucide-react-native';
 import { payriffService } from '@/services/payriffService';
 import Colors from '@/constants/colors';
 import { trpc } from '@/lib/trpc';
+import { SavedCard } from '@/types/payment';
 
 export default function SavedCardsScreen() {
   const router = useRouter();
@@ -27,7 +28,7 @@ export default function SavedCardsScreen() {
   const savedCards = cardsData?.cards || [];
   const [refreshing, setRefreshing] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [selectedCard, setSelectedCard] = useState<any>(null);
+  const [selectedCard, setSelectedCard] = useState<SavedCard | null>(null);
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentDescription, setPaymentDescription] = useState('');
   const [processingPayment, setProcessingPayment] = useState(false);
@@ -42,7 +43,7 @@ export default function SavedCardsScreen() {
     setRefreshing(false);
   };
 
-  const handleDeleteCard = (card: any) => {
+  const handleDeleteCard = (card: SavedCard) => {
     Alert.alert(
       'Kartı Sil',
       `${card.pan} nömrəli kartı silmək istədiyinizdən əminsiniz?`,
@@ -57,7 +58,7 @@ export default function SavedCardsScreen() {
               await refetch();
               Alert.alert('Uğurlu', 'Kart silindi');
             } catch (error) {
-              console.error('Delete card error:', error);
+              // Error handled by mutation
               Alert.alert('Xəta', 'Kartı silmək mümkün olmadı');
             }
           },
@@ -66,7 +67,7 @@ export default function SavedCardsScreen() {
     );
   };
 
-  const handlePayWithCard = (card: any) => {
+  const handlePayWithCard = (card: SavedCard) => {
     setSelectedCard(card);
     setPaymentAmount('');
     setPaymentDescription('');
@@ -100,7 +101,7 @@ export default function SavedCardsScreen() {
         currencyType: 'AZN',
       });
 
-      console.log('Auto payment response:', response);
+      // Auto payment processed successfully
 
       if (response.payload?.orderStatus === 'APPROVED') {
         setShowPaymentModal(false);
@@ -113,7 +114,7 @@ export default function SavedCardsScreen() {
         throw new Error(response.payload?.responseDescription || 'Ödəniş uğursuz oldu');
       }
     } catch (error) {
-      console.error('Auto payment error:', error);
+      // Error will be shown to user
       const message = error instanceof Error ? error.message : 'Bilinməyən xəta baş verdi';
       Alert.alert('Xəta', message);
     } finally {

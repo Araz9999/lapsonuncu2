@@ -42,7 +42,7 @@ export class ApiService {
 
   async post<T>(
     endpoint: string,
-    data?: any,
+    data?: Record<string, unknown>,
     headers?: Record<string, string>
   ): Promise<T> {
     return this.request<T>(endpoint, {
@@ -54,7 +54,7 @@ export class ApiService {
 
   async put<T>(
     endpoint: string,
-    data?: any,
+    data?: Record<string, unknown>,
     headers?: Record<string, string>
   ): Promise<T> {
     return this.request<T>(endpoint, {
