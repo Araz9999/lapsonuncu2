@@ -58,7 +58,7 @@ export default function TopupScreen() {
       return;
     }
 
-    if (phoneNumber.length < 12 || !phoneNumber.startsWith('994')) {
+    if (phoneNumber.length !== 12 || !phoneNumber.startsWith('994')) {
       Alert.alert('Error', 'Please enter a valid phone number starting with 994 (994XXXXXXXXX)');
       return;
     }
@@ -69,13 +69,8 @@ export default function TopupScreen() {
     }
 
     const parsedAmount = parseFloat(amount);
-    if (isNaN(parsedAmount) || parsedAmount <= 0) {
-      Alert.alert('Error', 'Please enter a valid amount greater than 0');
-      return;
-    }
-
-    if (parsedAmount < 1) {
-      Alert.alert('Error', 'Minimum topup amount is 1 AZN');
+    if (isNaN(parsedAmount) || parsedAmount < 1) {
+      Alert.alert('Error', 'Please enter a valid amount (minimum 1 AZN)');
       return;
     }
 
