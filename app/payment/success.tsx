@@ -6,6 +6,7 @@ import { CheckCircle } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { trpc } from '@/lib/trpc';
 
+import { logger } from '@/utils/logger';
 export default function PaymentSuccessScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
@@ -24,7 +25,7 @@ export default function PaymentSuccessScreen() {
   const saveCardMutation = trpc.payriff.saveCard.useMutation();
 
   useEffect(() => {
-    console.log('Payment success:', { orderId, amount, cardUuid, brand });
+    logger.debug('Payment success:', { orderId, amount, cardUuid, brand });
     
     if (cardUuid && pan && brand && !cardSaved && !savingCard) {
       setSavingCard(true);
@@ -37,12 +38,12 @@ export default function PaymentSuccessScreen() {
         },
         {
           onSuccess: () => {
-            console.log('Card saved successfully!');
+            logger.debug('Card saved successfully!');
             setCardSaved(true);
             setSavingCard(false);
           },
           onError: (error) => {
-            console.error('Failed to save card:', error);
+            logger.error('Failed to save card:', error);
             setSavingCard(false);
           },
         }

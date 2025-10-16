@@ -2,6 +2,7 @@ import { publicProcedure } from "../../../create-context";
 import config from "@/constants/config";
 import { PayriffResponse, isPayriffSuccess, getPayriffErrorMessage } from '@/constants/payriffCodes';
 
+import { logger } from '@/utils/logger';
 export const getWalletProcedure = publicProcedure.query(async () => {
   try {
     const merchantId = config.PAYRIFF_MERCHANT_ID;
@@ -27,7 +28,7 @@ export const getWalletProcedure = publicProcedure.query(async () => {
 
     return data;
   } catch (error) {
-    console.error('Payriff get wallet failed');
+    logger.error('Payriff get wallet failed');
     throw error;
   }
 });

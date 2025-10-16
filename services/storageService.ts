@@ -1,6 +1,7 @@
 import config from '@/constants/config';
 import { Platform } from 'react-native';
 
+import { logger } from '@/utils/logger';
 export interface UploadResult {
   url: string;
   key: string;
@@ -97,7 +98,7 @@ class StorageService {
         type: fileType,
       };
     } catch (error) {
-      console.error('File upload failed:', error);
+      logger.error('File upload failed:', error);
       throw error;
     }
   }
@@ -126,7 +127,7 @@ class StorageService {
 
       return response.ok;
     } catch (error) {
-      console.error('File deletion failed:', error);
+      logger.error('File deletion failed:', error);
       return false;
     }
   }
@@ -153,7 +154,7 @@ class StorageService {
       const result = await response.json();
       return result.url;
     } catch (error) {
-      console.error('Failed to get signed URL:', error);
+      logger.error('Failed to get signed URL:', error);
       return null;
     }
   }
@@ -180,7 +181,7 @@ class StorageService {
       const result = await response.json();
       return result.files || [];
     } catch (error) {
-      console.error('Failed to list files:', error);
+      logger.error('Failed to list files:', error);
       return [];
     }
   }

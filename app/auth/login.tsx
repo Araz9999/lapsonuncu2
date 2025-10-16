@@ -71,10 +71,10 @@ export default function LoginScreen() {
           if (result.success && result.user) {
             login({
               ...users[0],
-              id: result.user.id,
-              name: result.user.name,
-              email: result.user.email,
-              avatar: result.user.avatar,
+              id: result.user.id as string,
+              name: result.user.name as string,
+              email: result.user.email as string,
+              avatar: result.user.avatar as string,
             });
             router.replace('/(tabs)');
           }

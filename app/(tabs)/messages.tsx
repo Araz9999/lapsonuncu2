@@ -9,15 +9,16 @@ import { users } from '@/mocks/users';
 import { listings } from '@/mocks/listings';
 import { MessageCircle } from 'lucide-react-native';
 
+import { logger } from '@/utils/logger';
 export default function MessagesScreen() {
   const router = useRouter();
   const { language } = useLanguageStore();
   const { isAuthenticated, currentUser } = useUserStore();
   const { conversations, simulateIncomingMessage, getFilteredConversations, deleteAllMessagesFromUser } = useMessageStore();
   
-  console.log('MessagesScreen - isAuthenticated:', isAuthenticated);
-  console.log('MessagesScreen - currentUser:', currentUser?.name);
-  console.log('MessagesScreen - conversations count:', conversations.length);
+  logger.debug('MessagesScreen - isAuthenticated:', isAuthenticated);
+  logger.debug('MessagesScreen - currentUser:', currentUser?.name);
+  logger.debug('MessagesScreen - conversations count:', conversations.length);
 
   if (!isAuthenticated) {
     return (
@@ -69,19 +70,19 @@ export default function MessagesScreen() {
     if (!otherUser || !listing) return null;
     
     const handlePress = () => {
-      console.log('Navigating to conversation:', item.id);
-      console.log('Other user:', otherUser?.name);
-      console.log('Listing:', listing?.title);
+      logger.debug('Navigating to conversation:', item.id);
+      logger.debug('Other user:', otherUser?.name);
+      logger.debug('Listing:', listing?.title);
       const conversationId = item.id;
       if (conversationId && typeof conversationId === 'string') {
-        console.log('Pushing to conversation route:', `/conversation/${conversationId}`);
+        logger.debug('Pushing to conversation route:', `/conversation/${conversationId}`);
         try {
           router.push(`/conversation/${conversationId}`);
         } catch (error) {
-          console.error('Navigation error:', error);
+          logger.error('Navigation error:', error);
         }
       } else {
-        console.error('Invalid conversation ID:', conversationId);
+        logger.error('Invalid conversation ID:', conversationId);
       }
     };
     
@@ -107,7 +108,7 @@ export default function MessagesScreen() {
             text: deleteAllButton,
             style: 'destructive',
             onPress: () => {
-              console.log('Deleting all messages from user:', otherUser.id);
+              logger.debug('Deleting all messages from user:', otherUser.id);
               deleteAllMessagesFromUser(otherUser.id);
             },
           },

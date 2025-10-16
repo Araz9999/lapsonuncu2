@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { userDB } from '../../../../db/users';
 import { emailService } from '../../../../services/email';
 
+import { logger } from '@/utils/logger';
 export const forgotPasswordProcedure = publicProcedure
   .input(
     z.object({
@@ -10,7 +11,7 @@ export const forgotPasswordProcedure = publicProcedure
     })
   )
   .mutation(async ({ input }) => {
-    console.log('[Auth] Forgot password attempt:', input.email);
+    logger.debug('[Auth] Forgot password attempt:', input.email);
 
     const user = await userDB.findByEmail(input.email);
     
@@ -33,10 +34,10 @@ export const forgotPasswordProcedure = publicProcedure
     });
 
     if (!emailSent) {
-      console.warn('[Auth] Failed to send password reset email');
+      logger.warn('[Auth] Failed to send password reset email');
     }
 
-    console.log('[Auth] Password reset email sent:', user.id);
+    logger.debug('[Auth] Password reset email sent:', user.id);
 
     return {
       success: true,

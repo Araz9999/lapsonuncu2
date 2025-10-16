@@ -3,16 +3,19 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, KeyboardAvo
 import { useRouter } from 'expo-router';
 import { useTranslation } from '@/constants/translations';
 import { useUserStore } from '@/store/userStore';
+import { useLanguageStore } from '@/store/languageStore';
 import Colors from '@/constants/colors';
 import { X, Eye, EyeOff, Check, Phone, Camera, User as UserIcon, Facebook, Chrome, MessageCircle } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { trpc } from '@/lib/trpc';
 import { initiateSocialLogin, showSocialLoginError } from '@/utils/socialAuth';
+import { authLogger } from '@/utils/logger';
 
 export default function RegisterScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { login } = useUserStore();
+  const { language } = useLanguageStore();
   
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -98,7 +101,7 @@ export default function RegisterScreen() {
         );
       }
     } catch (error: any) {
-      console.error('[Register] Error:', error);
+      authLogger.error('Registration failed', error);
       Alert.alert(
         t('error') || 'Xəta',
         error.message || 'Qeydiyyat zamanı xəta baş verdi'
@@ -142,11 +145,11 @@ export default function RegisterScreen() {
           setLoadingSocial(null);
           if (result.success && result.user) {
             login({
-              id: result.user.id,
-              name: result.user.name,
-              email: result.user.email,
+              id: result.user.id as string,
+              name: result.user.name as string,
+              email: result.user.email as string,
               phone: '',
-              avatar: result.user.avatar || '',
+              avatar: (result.user.avatar as string) || '',
               rating: 0,
               totalRatings: 0,
               memberSince: new Date().toISOString(),
@@ -204,7 +207,7 @@ export default function RegisterScreen() {
         setProfileImage(result.assets[0].uri);
       }
     } catch (error) {
-      console.error('Image picker error:', error);
+      authLogger.error('Image picker failed', error);
       Alert.alert(
         t('error'),
         language === 'az' ? 'Şəkil seçilə bilmədi' : 'Не удалось выбрать изображение'
@@ -242,7 +245,7 @@ export default function RegisterScreen() {
         setProfileImage(result.assets[0].uri);
       }
     } catch (error) {
-      console.error('Camera error:', error);
+      authLogger.error('Camera failed', error);
       Alert.alert(
         t('error'),
         language === 'az' ? 'Şəkil çəkilə bilmədi' : 'Не удалось сделать фото'

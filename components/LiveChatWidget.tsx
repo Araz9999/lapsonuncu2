@@ -32,6 +32,7 @@ import {
 import { LiveChatMessage } from '@/types/support';
 import FileAttachmentPicker, { FileAttachment } from '@/components/FileAttachmentPicker';
 
+import { logger } from '@/utils/logger';
 const { width, height } = Dimensions.get('window');
 
 interface LiveChatWidgetProps {
@@ -130,7 +131,7 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
 
   const handleStartChat = () => {
     if (!currentUser) {
-      console.log('[LiveChatWidget] Cannot start chat: user not logged in');
+      logger.debug('[LiveChatWidget] Cannot start chat: user not logged in');
       return;
     }
     if (!selectedCategory || !subject.trim()) return;
@@ -155,7 +156,7 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
     const attachmentUrls = attachments.map(att => att.uri);
     const messageText = message.trim() || (attachments.length > 0 ? `📎 ${attachments.length} fayl göndərildi` : '');
     
-    console.log('Sending message with attachments:', { messageText, attachmentUrls });
+    logger.debug('Sending message with attachments:', { messageText, attachmentUrls });
     
     sendMessage(
       currentChatId, 
@@ -569,7 +570,7 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
                           <FileAttachmentPicker
                             attachments={attachments}
                             onAttachmentsChange={(newAttachments) => {
-                              console.log('Attachments changed:', newAttachments);
+                              logger.debug('Attachments changed:', newAttachments);
                               setAttachments(newAttachments);
                             }}
                             maxFiles={3}
@@ -631,7 +632,7 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
                             }
                           ]}
                           onPress={() => {
-                            console.log('Send button pressed. Message:', message, 'Attachments:', attachments.length);
+                            logger.debug('Send button pressed. Message:', message, 'Attachments:', attachments.length);
                             handleSendMessage();
                           }}
                           disabled={!message.trim() && attachments.length === 0}

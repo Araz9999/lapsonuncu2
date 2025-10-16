@@ -34,6 +34,7 @@ import { useUserStore } from '@/store/userStore';
 import { useRatingStore } from '@/store/ratingStore';
 import COLORS from '@/constants/colors';
 
+import { logger } from '@/utils/logger';
 interface StoreReview {
   id: string;
   userId: string;
@@ -183,7 +184,7 @@ export default function StoreReviewsScreen() {
       setReviews(updatedReviews);
       
       // In a real app, this would send the response to the API
-      console.log('Store response added:', {
+      logger.debug('Store response added:', {
         reviewId: selectedReview.id,
         response: responseText.trim(),
         timestamp: new Date().toISOString()
@@ -194,7 +195,7 @@ export default function StoreReviewsScreen() {
       setResponseText('');
       setSelectedReview(null);
     } catch (error) {
-      console.error('Error sending response:', error);
+      logger.error('Error sending response:', error);
       Alert.alert('Xəta', 'Cavab göndərilə bilmədi');
     }
   };

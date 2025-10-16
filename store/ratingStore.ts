@@ -3,6 +3,7 @@ import { Rating, RatingWithUser, RatingStats, RatingValidation, UserRatingHistor
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
+import { logger } from '@/utils/logger';
 interface RatingStore {
   ratings: Rating[];
   ratingHistory: UserRatingHistory[];
@@ -51,7 +52,7 @@ export const useRatingStore = create<RatingStore>((set, get) => ({
           const Device = await import('expo-device');
           deviceId = Device.osInternalBuildId || Device.modelId || 'unknown';
         } catch (error) {
-          console.log('Device info not available:', error);
+          logger.debug('Device info not available:', error);
         }
       }
       
@@ -95,9 +96,9 @@ export const useRatingStore = create<RatingStore>((set, get) => ({
       await get().saveRatings();
       await get().saveRatingHistory();
       
-      console.log('Rating added successfully:', newRating);
+      logger.debug('Rating added successfully:', newRating);
     } catch (error) {
-      console.error('Error adding rating:', error);
+      logger.error('Error adding rating:', error);
       set({ error: error instanceof Error ? error.message : 'Failed to add rating' });
       throw error;
     } finally {
@@ -245,7 +246,7 @@ export const useRatingStore = create<RatingStore>((set, get) => ({
       }
       await get().loadRatingHistory();
     } catch (error) {
-      console.error('Error loading ratings:', error);
+      logger.error('Error loading ratings:', error);
       set({ error: 'Failed to load ratings' });
     } finally {
       set({ isLoading: false });
@@ -257,7 +258,7 @@ export const useRatingStore = create<RatingStore>((set, get) => ({
       const ratings = get().ratings;
       await AsyncStorage.setItem(RATINGS_STORAGE_KEY, JSON.stringify(ratings));
     } catch (error) {
-      console.error('Error saving ratings:', error);
+      logger.error('Error saving ratings:', error);
       set({ error: 'Failed to save ratings' });
     }
   },
@@ -270,7 +271,7 @@ export const useRatingStore = create<RatingStore>((set, get) => ({
         set({ ratingHistory });
       }
     } catch (error) {
-      console.error('Error loading rating history:', error);
+      logger.error('Error loading rating history:', error);
     }
   },
 
@@ -279,7 +280,7 @@ export const useRatingStore = create<RatingStore>((set, get) => ({
       const ratingHistory = get().ratingHistory;
       await AsyncStorage.setItem(RATING_HISTORY_STORAGE_KEY, JSON.stringify(ratingHistory));
     } catch (error) {
-      console.error('Error saving rating history:', error);
+      logger.error('Error saving rating history:', error);
     }
   },
 }));

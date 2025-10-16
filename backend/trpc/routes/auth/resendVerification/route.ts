@@ -2,9 +2,10 @@ import { protectedProcedure } from '../../../create-context';
 import { userDB } from '../../../../db/users';
 import { emailService } from '../../../../services/email';
 
+import { logger } from '@/utils/logger';
 export const resendVerificationProcedure = protectedProcedure
   .mutation(async ({ ctx }) => {
-    console.log('[Auth] Resend verification attempt:', ctx.user.userId);
+    logger.debug('[Auth] Resend verification attempt:', ctx.user.userId);
 
     const user = await userDB.findById(ctx.user.userId);
     if (!user) {
@@ -33,7 +34,7 @@ export const resendVerificationProcedure = protectedProcedure
       throw new Error('Email göndərilə bilmədi. Zəhmət olmasa bir az sonra yenidən cəhd edin.');
     }
 
-    console.log('[Auth] Verification email resent:', user.id);
+    logger.debug('[Auth] Verification email resent:', user.id);
 
     return {
       success: true,

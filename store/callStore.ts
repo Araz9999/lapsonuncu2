@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { Call, ActiveCall, CallStatus, CallType } from '@/types/call';
 import { users } from '@/mocks/users';
 import { Platform } from 'react-native';
+import { storeLogger } from '@/utils/logger';
 
 interface CallStore {
   calls: Call[];
@@ -86,9 +87,11 @@ export const useCallStore = create<CallStore>((set, get) => ({
   incomingCall: null,
   ringtoneSound: null,
   dialToneSound: null,
+  ringtoneInterval: null,
+  dialToneInterval: null,
   
   initiateCall: async (receiverId: string, listingId: string, type: CallType) => {
-    console.log('CallStore - initiating call to:', receiverId);
+    storeLogger.debug('Initiating call to:', receiverId);
     
     const callId = Date.now().toString();
     const newCall: Call = {

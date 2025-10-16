@@ -12,6 +12,7 @@ import LiveChatWidget from '@/components/LiveChatWidget';
 import { authService } from '@/services/authService';
 import { useSupportStore } from '@/store/supportStore';
 
+import { logger } from '@/utils/logger';
 export default function ProfileScreen() {
   const router = useRouter();
   const { t, language } = useTranslation();
@@ -46,7 +47,7 @@ export default function ProfileScreen() {
   };
 
   const handleDeleteProfile = () => {
-    console.log('[handleDeleteProfile] Delete profile button pressed');
+    logger.debug('[handleDeleteProfile] Delete profile button pressed');
     Alert.alert(
       t('deleteProfile'),
       t('cannotBeUndone'),
@@ -54,13 +55,13 @@ export default function ProfileScreen() {
         {
           text: t('cancel'),
           style: 'cancel',
-          onPress: () => console.log('[handleDeleteProfile] First confirmation cancelled')
+          onPress: () => logger.debug('[handleDeleteProfile] First confirmation cancelled')
         },
         {
           text: t('delete'),
           style: 'destructive',
           onPress: () => {
-            console.log('[handleDeleteProfile] First confirmation accepted, showing second confirmation');
+            logger.debug('[handleDeleteProfile] First confirmation accepted, showing second confirmation');
             setTimeout(() => {
               Alert.alert(
                 t('confirmDelete'),
@@ -69,17 +70,17 @@ export default function ProfileScreen() {
                   {
                     text: t('cancel'),
                     style: 'cancel',
-                    onPress: () => console.log('[handleDeleteProfile] Second confirmation cancelled')
+                    onPress: () => logger.debug('[handleDeleteProfile] Second confirmation cancelled')
                   },
                   {
                     text: t('yes'),
                     style: 'destructive',
                     onPress: async () => {
-                      console.log('[handleDeleteProfile] Profile deletion confirmed, calling API');
+                      logger.debug('[handleDeleteProfile] Profile deletion confirmed, calling API');
                       try {
                         await authService.deleteAccount();
                         logout();
-                        console.log('[handleDeleteProfile] Account deleted and logged out, navigating to login');
+                        logger.debug('[handleDeleteProfile] Account deleted and logged out, navigating to login');
                         Alert.alert(
                           t('success'),
                           language === 'az' ? 'Profil uğurla silindi' : 'Профиль успешно удален',
@@ -87,7 +88,7 @@ export default function ProfileScreen() {
                             {
                               text: 'OK',
                               onPress: () => {
-                                console.log('[handleDeleteProfile] Navigating to login screen');
+                                logger.debug('[handleDeleteProfile] Navigating to login screen');
                                 router.push('/auth/login');
                               }
                             }
@@ -95,7 +96,7 @@ export default function ProfileScreen() {
                           { cancelable: false }
                         );
                       } catch (error) {
-                        console.error('[handleDeleteProfile] Error during profile deletion:', error);
+                        logger.error('[handleDeleteProfile] Error during profile deletion:', error);
                         Alert.alert(
                           t('error'),
                           language === 'az' ? 'Profil silinərkən xəta baş verdi' : 'Произошла ошибка при удалении профиля'
@@ -247,7 +248,7 @@ export default function ProfileScreen() {
         <TouchableOpacity 
           style={styles.menuItem}
           onPress={() => {
-            console.log('Navigating to messages from profile');
+            logger.debug('Navigating to messages from profile');
             router.push('/(tabs)/messages');
           }}
         >

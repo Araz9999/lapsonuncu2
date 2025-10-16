@@ -1,5 +1,6 @@
 import { LiveChatMessage, LiveChatConversation, SupportAgent } from '@/types/liveChat';
 
+import { logger } from '@/utils/logger';
 const conversations: Map<string, LiveChatConversation> = new Map();
 const messages: Map<string, LiveChatMessage[]> = new Map();
 const messageIndex: Map<string, LiveChatMessage> = new Map();
@@ -28,32 +29,32 @@ export const liveChatDb = {
     ),
     getById: (id: string) => conversations.get(id) || null,
     getByUserId: (userId: string) => {
-      console.log('[LiveChatDB] Getting conversations for user:', userId);
+      logger.debug('[LiveChatDB] Getting conversations for user:', userId);
       const userConvs = Array.from(conversations.values())
         .filter(c => c.userId === userId)
         .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-      console.log('[LiveChatDB] Found conversations:', userConvs.length);
+      logger.debug('[LiveChatDB] Found conversations:', userConvs.length);
       return userConvs;
     },
     create: (conversation: LiveChatConversation) => {
-      console.log('[LiveChatDB] Creating conversation:', conversation.id);
+      logger.debug('[LiveChatDB] Creating conversation:', conversation.id);
       conversations.set(conversation.id, conversation);
       messages.set(conversation.id, []);
       return conversation;
     },
     update: (id: string, updates: Partial<LiveChatConversation>) => {
-      console.log('[LiveChatDB] Updating conversation:', id, updates);
+      logger.debug('[LiveChatDB] Updating conversation:', id, updates);
       const conversation = conversations.get(id);
       if (conversation) {
         const updated = { ...conversation, ...updates, updatedAt: new Date().toISOString() };
         conversations.set(id, updated);
         return updated;
       }
-      console.warn('[LiveChatDB] Conversation not found:', id);
+      logger.warn('[LiveChatDB] Conversation not found:', id);
       return null;
     },
     delete: (id: string) => {
-      console.log('[LiveChatDB] Deleting conversation:', id);
+      logger.debug('[LiveChatDB] Deleting conversation:', id);
       const deleted = conversations.delete(id);
       messages.delete(id);
       return deleted;
@@ -64,20 +65,20 @@ export const liveChatDb = {
     getAll: () => Array.from(messageIndex.values()),
     getById: (id: string) => messageIndex.get(id) || null,
     getByConversationId: (conversationId: string) => {
-      console.log('[LiveChatDB] Getting messages for conversation:', conversationId);
+      logger.debug('[LiveChatDB] Getting messages for conversation:', conversationId);
       const convMessages = messages.get(conversationId) || [];
-      console.log('[LiveChatDB] Found messages:', convMessages.length);
+      logger.debug('[LiveChatDB] Found messages:', convMessages.length);
       return [...convMessages].sort((a, b) => 
         new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
       );
     },
     create: (message: LiveChatMessage) => {
-      console.log('[LiveChatDB] Creating message:', message.id, 'in conversation:', message.conversationId);
+      logger.debug('[LiveChatDB] Creating message:', message.id, 'in conversation:', message.conversationId);
       const convMessages = messages.get(message.conversationId) || [];
       
       const exists = convMessages.find(m => m.id === message.id);
       if (exists) {
-        console.warn('[LiveChatDB] Message already exists:', message.id);
+        logger.warn('[LiveChatDB] Message already exists:', message.id);
         return exists;
       }
       
@@ -85,11 +86,11 @@ export const liveChatDb = {
       messages.set(message.conversationId, convMessages);
       messageIndex.set(message.id, message);
       
-      console.log('[LiveChatDB] Message created. Total messages in conversation:', convMessages.length);
+      logger.debug('[LiveChatDB] Message created. Total messages in conversation:', convMessages.length);
       return message;
     },
     updateStatus: (id: string, status: LiveChatMessage['status']) => {
-      console.log('[LiveChatDB] Updating message status:', id, 'to', status);
+      logger.debug('[LiveChatDB] Updating message status:', id, 'to', status);
       const message = messageIndex.get(id);
       if (message) {
         message.status = status;
@@ -105,11 +106,11 @@ export const liveChatDb = {
         }
         return message;
       }
-      console.warn('[LiveChatDB] Message not found:', id);
+      logger.warn('[LiveChatDB] Message not found:', id);
       return null;
     },
     delete: (id: string) => {
-      console.log('[LiveChatDB] Deleting message:', id);
+      logger.debug('[LiveChatDB] Deleting message:', id);
       const message = messageIndex.get(id);
       if (message) {
         const convMessages = messages.get(message.conversationId);

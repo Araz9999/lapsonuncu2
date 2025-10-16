@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { trpc } from '@/lib/trpc';
 import colors from '@/constants/colors';
 
+import { logger } from '@/utils/logger';
 export default function CreateInvoiceScreen() {
   const [amount, setAmount] = useState<string>('');
   const [description, setDescription] = useState<string>('');
@@ -88,7 +89,7 @@ export default function CreateInvoiceScreen() {
         languageType,
       });
 
-      console.log('Invoice created:', result);
+      logger.debug('Invoice created:', result);
 
       Alert.alert(
         'Uğurlu!',
@@ -112,7 +113,7 @@ export default function CreateInvoiceScreen() {
         ]
       );
     } catch (error) {
-      console.error('Failed to create invoice:', error);
+      logger.error('Failed to create invoice:', error);
       Alert.alert(
         'Xəta',
         error instanceof Error ? error.message : 'Faktura yaradılarkən xəta baş verdi'

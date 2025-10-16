@@ -12,7 +12,7 @@ export interface Notification {
   fromUserAvatar?: string;
   createdAt: string;
   isRead: boolean;
-  data?: any;
+  data?: Record<string, unknown>;
 }
 
 interface NotificationState {

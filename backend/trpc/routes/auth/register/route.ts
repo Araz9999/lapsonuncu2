@@ -4,6 +4,7 @@ import { userDB } from '../../../../db/users';
 import { generateTokenPair } from '../../../../utils/jwt';
 import { emailService } from '../../../../services/email';
 
+import { logger } from '@/utils/logger';
 export const registerProcedure = publicProcedure
   .input(
     z.object({
@@ -14,7 +15,7 @@ export const registerProcedure = publicProcedure
     })
   )
   .mutation(async ({ input }) => {
-    console.log('[Auth] Registration attempt:', input.email);
+    logger.debug('[Auth] Registration attempt:', input.email);
 
     const existingUser = await userDB.findByEmail(input.email);
     if (existingUser) {
@@ -46,7 +47,7 @@ export const registerProcedure = publicProcedure
     });
 
     if (!emailSent) {
-      console.warn('[Auth] Failed to send verification email, but user was created');
+      logger.warn('[Auth] Failed to send verification email, but user was created');
     }
 
     const tokens = await generateTokenPair({
@@ -55,7 +56,7 @@ export const registerProcedure = publicProcedure
       role: user.role,
     });
 
-    console.log('[Auth] User registered successfully:', user.id);
+    logger.debug('[Auth] User registered successfully:', user.id);
 
     return {
       user: {

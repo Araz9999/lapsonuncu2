@@ -1,6 +1,7 @@
 import config from '@/constants/config';
 import { Platform } from 'react-native';
 
+import { logger } from '@/utils/logger';
 export interface PayriffPaymentRequest {
   amount: number;
   currency: string;
@@ -279,7 +280,7 @@ class PayriffService {
     this.baseUrl = config.PAYRIFF_BASE_URL || 'https://api.payriff.com';
   }
 
-  private generateSignature(_data: any): string {
+  private generateSignature(_data: Record<string, unknown>): string {
     // Do not attempt to generate payment signatures on the client.
     // The server is responsible for secure signing. This function is a noop placeholder.
     return '';
@@ -329,7 +330,7 @@ class PayriffService {
         orderId: request.orderId,
       };
     } catch (error) {
-      console.error('Payriff payment creation failed:', error);
+      logger.error('Payriff payment creation failed:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error occurred',
@@ -368,16 +369,16 @@ class PayriffService {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('Card save error:', errorData);
+        logger.error('Card save error:', errorData);
         throw new Error(errorData.message || 'Failed to save card');
       }
 
       const data = await response.json();
-      console.log('Card save response:', JSON.stringify(data, null, 2));
+      logger.debug('Card save response:', JSON.stringify(data, null, 2));
 
       return data;
     } catch (error) {
-      console.error('Payriff card save failed:', error);
+      logger.error('Payriff card save failed:', error);
       throw error;
     }
   }
@@ -413,16 +414,16 @@ class PayriffService {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('Auto pay error:', errorData);
+        logger.error('Auto pay error:', errorData);
         throw new Error(errorData.message || 'Failed to process auto payment');
       }
 
       const data = await response.json();
-      console.log('Auto pay response:', JSON.stringify(data, null, 2));
+      logger.debug('Auto pay response:', JSON.stringify(data, null, 2));
 
       return data;
     } catch (error) {
-      console.error('Payriff auto pay failed:', error);
+      logger.error('Payriff auto pay failed:', error);
       throw error;
     }
   }
@@ -470,16 +471,16 @@ class PayriffService {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('Create invoice error:', errorData);
+        logger.error('Create invoice error:', errorData);
         throw new Error(errorData.message || 'Failed to create invoice');
       }
 
       const data = await response.json();
-      console.log('Create invoice response:', JSON.stringify(data, null, 2));
+      logger.debug('Create invoice response:', JSON.stringify(data, null, 2));
 
       return data;
     } catch (error) {
-      console.error('Payriff create invoice failed:', error);
+      logger.error('Payriff create invoice failed:', error);
       throw error;
     }
   }
@@ -508,16 +509,16 @@ class PayriffService {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('Transfer error:', errorData);
+        logger.error('Transfer error:', errorData);
         throw new Error(errorData.message || 'Failed to transfer money');
       }
 
       const data = await response.json();
-      console.log('Transfer response:', JSON.stringify(data, null, 2));
+      logger.debug('Transfer response:', JSON.stringify(data, null, 2));
 
       return data;
     } catch (error) {
-      console.error('Payriff transfer failed:', error);
+      logger.error('Payriff transfer failed:', error);
       throw error;
     }
   }
@@ -546,23 +547,23 @@ class PayriffService {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('Topup error:', errorData);
+        logger.error('Topup error:', errorData);
         throw new Error(errorData.message || 'Failed to topup MPAY wallet');
       }
 
       const data = await response.json();
-      console.log('Topup response:', JSON.stringify(data, null, 2));
+      logger.debug('Topup response:', JSON.stringify(data, null, 2));
 
       return data;
     } catch (error) {
-      console.error('Payriff topup failed:', error);
+      logger.error('Payriff topup failed:', error);
       throw error;
     }
   }
 
   async getWallet(): Promise<PayriffWalletResponse> {
     try {
-      console.log('Fetching wallet data...');
+      logger.debug('Fetching wallet data...');
 
       const response = await fetch(`${this.baseUrl}/api/v2/wallet`, {
         method: 'GET',
@@ -574,23 +575,23 @@ class PayriffService {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('Get wallet error:', errorData);
+        logger.error('Get wallet error:', errorData);
         throw new Error(errorData.message || 'Failed to get wallet data');
       }
 
       const data = await response.json();
-      console.log('Get wallet response:', JSON.stringify(data, null, 2));
+      logger.debug('Get wallet response:', JSON.stringify(data, null, 2));
 
       return data;
     } catch (error) {
-      console.error('Payriff get wallet failed:', error);
+      logger.error('Payriff get wallet failed:', error);
       throw error;
     }
   }
 
   async getWalletById(id: number): Promise<PayriffWalletByIdResponse> {
     try {
-      console.log('Fetching wallet by ID:', id);
+      logger.debug('Fetching wallet by ID:', id);
 
       const response = await fetch(`${this.baseUrl}/api/v2/wallet/${id}`, {
         method: 'GET',
@@ -602,16 +603,16 @@ class PayriffService {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('Get wallet by ID error:', errorData);
+        logger.error('Get wallet by ID error:', errorData);
         throw new Error(errorData.message || 'Failed to get wallet by ID');
       }
 
       const data = await response.json();
-      console.log('Get wallet by ID response:', JSON.stringify(data, null, 2));
+      logger.debug('Get wallet by ID response:', JSON.stringify(data, null, 2));
 
       return data;
     } catch (error) {
-      console.error('Payriff get wallet by ID failed:', error);
+      logger.error('Payriff get wallet by ID failed:', error);
       throw error;
     }
   }
@@ -631,7 +632,7 @@ class PayriffService {
         metadata: request.metadata,
       };
 
-      console.log('Create order request:', JSON.stringify(requestBody, null, 2));
+      logger.debug('Create order request:', JSON.stringify(requestBody, null, 2));
 
       const response = await fetch(`${this.baseUrl}/api/v3/orders`, {
         method: 'POST',
@@ -644,23 +645,23 @@ class PayriffService {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('Create order error:', errorData);
+        logger.error('Create order error:', errorData);
         throw new Error(errorData.message || 'Failed to create order');
       }
 
       const data = await response.json();
-      console.log('Create order response:', JSON.stringify(data, null, 2));
+      logger.debug('Create order response:', JSON.stringify(data, null, 2));
 
       return data;
     } catch (error) {
-      console.error('Payriff create order failed:', error);
+      logger.error('Payriff create order failed:', error);
       throw error;
     }
   }
 
   async getOrderInfo(orderId: string): Promise<PayriffOrderInfoResponse> {
     try {
-      console.log('Fetching order info:', orderId);
+      logger.debug('Fetching order info:', orderId);
 
       const response = await fetch(`${this.baseUrl}/api/v3/orders/${orderId}`, {
         method: 'GET',
@@ -672,16 +673,16 @@ class PayriffService {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('Get order info error:', errorData);
+        logger.error('Get order info error:', errorData);
         throw new Error(errorData.message || 'Failed to get order information');
       }
 
       const data = await response.json();
-      console.log('Get order info response:', JSON.stringify(data, null, 2));
+      logger.debug('Get order info response:', JSON.stringify(data, null, 2));
 
       return data;
     } catch (error) {
-      console.error('Payriff get order info failed:', error);
+      logger.error('Payriff get order info failed:', error);
       throw error;
     }
   }
@@ -722,7 +723,7 @@ class PayriffService {
         paymentDate: data.payment_date,
       };
     } catch (error) {
-      console.error('Failed to check payment status:', error);
+      logger.error('Failed to check payment status:', error);
       throw error;
     }
   }
@@ -771,7 +772,7 @@ class PayriffService {
       const data = await response.json();
       return data.success === true;
     } catch (error) {
-      console.error('Failed to refund payment:', error);
+      logger.error('Failed to refund payment:', error);
       return false;
     }
   }
@@ -786,7 +787,7 @@ class PayriffService {
     if (Platform.OS === 'web') {
       window.open(paymentUrl, '_blank');
     } else {
-      console.log('Opening payment URL:', paymentUrl);
+      logger.debug('Opening payment URL:', paymentUrl);
     }
   }
 }

@@ -14,6 +14,7 @@ import Colors from '@/constants/colors';
 import { Listing } from '@/types/listing';
 import { Camera, ChevronDown, Plus, Check, Clock, Award, Image as ImageIcon, MapPin, Info, AlertCircle, Search, ChevronLeft, ChevronRight } from 'lucide-react-native';
 
+import { logger } from '@/utils/logger';
 export default function CreateListingScreen() {
   const router = useRouter();
   const { t, language } = useTranslation();
@@ -132,7 +133,7 @@ export default function CreateListingScreen() {
         setImages([...images, result.assets[0].uri]);
       }
     } catch (error) {
-      console.error('Gallery error:', error);
+      logger.error('Gallery error:', error);
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Şəkil seçilə bilmədi' : 'Не удалось выбрать изображение'
@@ -182,7 +183,7 @@ export default function CreateListingScreen() {
         setImages([...images, result.assets[0].uri]);
       }
     } catch (error) {
-      console.error('Camera error:', error);
+      logger.error('Camera error:', error);
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Şəkil çəkilə bilmədi' : 'Не удалось сделать фото'

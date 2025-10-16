@@ -192,7 +192,7 @@ export default function StoreSettingsScreen() {
   useEffect(() => {
     if (currentUser?.id && currentStore?.id) {
       const storeSettings = getUserStoreSettings(currentUser.id, currentStore.id);
-      setSettings(storeSettings);
+      setSettings(storeSettings as typeof settings);
     }
   }, [currentUser?.id, currentStore?.id, getUserStoreSettings]);
 
@@ -215,7 +215,7 @@ export default function StoreSettingsScreen() {
       setShowStoreSelector(false);
       // Reload settings for new store
       const newSettings = getUserStoreSettings(currentUser.id, selectedStoreId);
-      setSettings(newSettings);
+      setSettings(newSettings as typeof settings);
     }
   };
 
