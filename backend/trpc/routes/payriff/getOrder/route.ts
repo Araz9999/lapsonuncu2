@@ -3,6 +3,7 @@ import { publicProcedure } from '../../../create-context';
 import config from '@/constants/config';
 import { PayriffResponse, isPayriffSuccess, getPayriffErrorMessage } from '@/constants/payriffCodes';
 
+import { logger } from '@/utils/logger';
 export const getOrderProcedure = publicProcedure
   .input(
     z.object({
@@ -17,7 +18,7 @@ export const getOrderProcedure = publicProcedure
       throw new Error('Payriff credentials not configured');
     }
 
-    console.log('Get order request:', input.orderId);
+    logger.debug('Get order request:', input.orderId);
 
     const response = await fetch(`${baseUrl}/api/v3/orders/${input.orderId}`, {
       method: 'GET',
@@ -28,19 +29,19 @@ export const getOrderProcedure = publicProcedure
     });
 
     const data: PayriffResponse = await response.json();
-    console.log('Get order response:', JSON.stringify(data, null, 2));
+    logger.debug('Get order response:', JSON.stringify(data, null, 2));
 
     if (!response.ok || !isPayriffSuccess(data)) {
       const errorMessage = getPayriffErrorMessage(data);
-      console.error('Get order error:', errorMessage);
+      logger.error('Get order error:', errorMessage);
       throw new Error(errorMessage);
     }
 
     // Mask PAN fields if present
     if (data?.payload?.transactions) {
-      data.payload.transactions = data.payload.transactions.map((t: any) => ({
+      data.payload.transactions = data.payload.transactions.map((t: Record<string, unknown>) => ({
         ...t,
-        pan: t.pan && t.pan.length >= 4 ? `**** **** **** ${t.pan.slice(-4)}` : t.pan,
+        pan: t.pan && typeof t.pan === 'string' && t.pan.length >= 4 ? `**** **** **** ${t.pan.slice(-4)}` : t.pan,
       }));
     }
     return data;

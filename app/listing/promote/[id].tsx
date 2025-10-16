@@ -31,6 +31,7 @@ import CreativeEffectsSection, { CreativeEffect } from '@/components/CreativeEff
 
 import { confirm } from '@/utils/confirm';
 
+import { logger } from '@/utils/logger';
 export default function PromoteListingScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -124,20 +125,20 @@ export default function PromoteListingScreen() {
   };
   
   const handleSelectEffect = (effect: CreativeEffect) => {
-    console.log('[handleSelectEffect] Called with effect:', effect.id);
-    console.log('[handleSelectEffect] Current selected effects:', selectedEffects.map(e => e.id));
+    logger.debug('[handleSelectEffect] Called with effect:', effect.id);
+    logger.debug('[handleSelectEffect] Current selected effects:', selectedEffects.map(e => e.id));
     
     setSelectedEffects(prev => {
       const isSelected = prev.some(selected => selected.id === effect.id);
-      console.log('[handleSelectEffect] Is effect already selected?', isSelected);
+      logger.debug('[handleSelectEffect] Is effect already selected?', isSelected);
       
       if (isSelected) {
         const newEffects = prev.filter(selected => selected.id !== effect.id);
-        console.log('[handleSelectEffect] Removing effect, new count:', newEffects.length);
+        logger.debug('[handleSelectEffect] Removing effect, new count:', newEffects.length);
         return newEffects;
       } else {
         const newEffects = [...prev, effect];
-        console.log('[handleSelectEffect] Adding effect, new count:', newEffects.length);
+        logger.debug('[handleSelectEffect] Adding effect, new count:', newEffects.length);
         return newEffects;
       }
     });

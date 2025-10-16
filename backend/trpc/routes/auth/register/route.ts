@@ -6,6 +6,7 @@ import { generateTokenPair } from '../../../../utils/jwt';
 import { emailService } from '../../../../services/email';
 import { hashPassword, generateRandomToken } from '../../../../utils/password';
 
+import { logger } from '@/utils/logger';
 export const registerProcedure = publicProcedure
   .input(
     z.object({
@@ -16,7 +17,11 @@ export const registerProcedure = publicProcedure
     })
   )
   .mutation(async ({ input }) => {
+< cursor/fix-many-bugs-and-errors-4e56
+    logger.debug('[Auth] Registration attempt:', input.email);
+=======
     logger.info('[Auth] Registration attempt:', input.email);
+> Araz
 
     const existingUser = await userDB.findByEmail(input.email);
     if (existingUser) {
@@ -71,7 +76,11 @@ export const registerProcedure = publicProcedure
       role: user.role,
     });
 
+< cursor/fix-many-bugs-and-errors-4e56
+    logger.debug('[Auth] User registered successfully:', user.id);
+=======
     logger.info('[Auth] User registered successfully:', user.id);
+> Araz
 
     return {
       user: {

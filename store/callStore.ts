@@ -2,8 +2,12 @@ import { create } from 'zustand';
 import { Call, ActiveCall, CallStatus, CallType } from '@/types/call';
 import { users } from '@/mocks/users';
 import { Platform } from 'react-native';
+< cursor/fix-many-bugs-and-errors-4e56
+import { storeLogger } from '@/utils/logger';
+=======
 import { logger } from '@/utils/logger';
 import { Audio } from 'expo-av';
+> Araz
 
 interface CallStore {
   calls: Call[];
@@ -92,7 +96,11 @@ export const useCallStore = create<CallStore>((set, get) => ({
   dialToneInterval: null,
   
   initiateCall: async (receiverId: string, listingId: string, type: CallType) => {
+< cursor/fix-many-bugs-and-errors-4e56
+    storeLogger.debug('Initiating call to:', receiverId);
+=======
     logger.info('CallStore - initiating call to:', receiverId);
+> Araz
     
     const callId = Date.now().toString();
     const newCall: Call = {

@@ -15,6 +15,7 @@ import { initializeServices } from '@/services';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { trpc, trpcClient } from '@/lib/trpc';
 
+import { logger } from '@/utils/logger';
 export const unstable_settings = {
   initialRouteName: "(tabs)",
 };
@@ -54,7 +55,7 @@ class ErrorBoundary extends Component<
   }
 
   componentDidCatch(error: Error, errorInfo: any) {
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
+    logger.error('ErrorBoundary caught an error:', error, errorInfo);
   }
 
   render() {
@@ -112,7 +113,7 @@ function RootLayoutNav() {
   // Load ratings on app start (only once)
   useEffect(() => {
     loadRatings().catch((error) => {
-      if (__DEV__) console.error('Failed to load ratings:', error);
+      if (__DEV__) logger.error('Failed to load ratings:', error);
     });
   }, []); // Safe to ignore loadRatings dependency as it's stable
   
@@ -120,7 +121,7 @@ function RootLayoutNav() {
   useEffect(() => {
     const timer = setTimeout(() => {
       initializeSounds().catch((error) => {
-        if (__DEV__) console.error('Failed to initialize sounds:', error);
+        if (__DEV__) logger.error('Failed to initialize sounds:', error);
       });
     }, 2000); // Increased delay for better startup
     
@@ -130,7 +131,7 @@ function RootLayoutNav() {
   // Initialize services (only once)
   useEffect(() => {
     initializeServices().catch((error) => {
-      if (__DEV__) console.error('Failed to initialize services:', error);
+      if (__DEV__) logger.error('Failed to initialize services:', error);
     });
   }, []);
   

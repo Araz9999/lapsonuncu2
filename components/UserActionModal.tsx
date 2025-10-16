@@ -40,6 +40,7 @@ import { useLanguageStore } from '@/store/languageStore';
 import { User } from '@/types/user';
 import { Share } from 'react-native';
 
+import { logger } from '@/utils/logger';
 interface UserActionModalProps {
   visible: boolean;
   onClose: () => void;

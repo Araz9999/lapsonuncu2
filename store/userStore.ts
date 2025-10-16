@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { User } from '@/types/user';
 
+import { logger } from '@/utils/logger';
 interface UserState {
   currentUser: User | null;
   isAuthenticated: boolean;
@@ -308,7 +309,7 @@ export const useUserStore = create<UserState>()(
         const { reportedUsers } = get();
         if (!reportedUsers.includes(userId)) {
           set({ reportedUsers: [...reportedUsers, userId] });
-          console.log(`User ${userId} reported for: ${reason}`);
+          logger.debug(`User ${userId} reported for: ${reason}`);
         }
       },
       isUserReported: (userId) => {

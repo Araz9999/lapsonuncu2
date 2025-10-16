@@ -8,6 +8,7 @@ import authRoutes from "./routes/auth";
 import paymentsRoutes from "./routes/payments";
 import { logger } from "../utils/logger";
 
+import { logger } from '@/utils/logger';
 // Simple in-memory rate limiter (per IP per window)
 type RateRecord = { count: number; resetAt: number };
 const rateBucket = new Map<string, RateRecord>();

@@ -6,6 +6,7 @@ import { useThemeStore, ThemeMode, ColorTheme, FontSize } from '@/store/themeSto
 import { useUserStore } from '@/store/userStore';
 import { useCallStore } from '@/store/callStore';
 import { getColors } from '@/constants/colors';
+import { logger } from '@/utils/logger';
 import { 
   Moon, 
   Sun, 
@@ -197,7 +198,7 @@ export default function SettingsScreen() {
         language === 'az' ? 'Səs testi tamamlandı' : 'Тест звука завершен'
       );
     } catch (error) {
-      console.error('Test sound failed:', error);
+      logger.error('Test sound failed:', error);
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Səs testi uğursuz oldu' : 'Тест звука не удался'
@@ -213,7 +214,7 @@ export default function SettingsScreen() {
         language === 'az' ? 'Vibrasiya testi tamamlandı' : 'Тест вибрации завершен'
       );
     } catch (error) {
-      console.error('Test vibration failed:', error);
+      logger.error('Test vibration failed:', error);
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Vibrasiya testi uğursuz oldu' : 'Тест вибрации не удался'
@@ -949,7 +950,7 @@ export default function SettingsScreen() {
                 [
                   {
                     text: language === 'az' ? 'Əlaqə' : 'Связаться',
-                    onPress: () => console.log('Contact for premium')
+                    onPress: () => logger.debug('Contact for premium')
                   },
                   {
                     text: language === 'az' ? 'Ləğv et' : 'Отмена',

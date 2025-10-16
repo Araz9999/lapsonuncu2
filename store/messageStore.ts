@@ -4,6 +4,7 @@ import { users } from '@/mocks/users';
 import { listings } from '@/mocks/listings';
 import { useUserStore } from './userStore';
 
+import { logger } from '@/utils/logger';
 export interface Conversation {
   id: string;
   participants: string[];
@@ -120,7 +121,7 @@ export const useMessageStore = create<MessageStore>((set, get) => ({
   conversations: initialConversations,
   
   addMessage: (conversationId: string, message: Message) => {
-    console.log('MessageStore - addMessage called:', { 
+    logger.debug('MessageStore - addMessage called:', { 
       conversationId, 
       messageText: message.text || '[empty]', 
       hasAttachments: message.attachments?.length || 0,
@@ -132,7 +133,7 @@ export const useMessageStore = create<MessageStore>((set, get) => ({
     const hasAttachments = message.attachments && message.attachments.length > 0;
     
     if (!hasText && !hasAttachments) {
-      console.log('MessageStore - Rejecting empty message with no attachments');
+      logger.debug('MessageStore - Rejecting empty message with no attachments');
       return;
     }
     
@@ -140,7 +141,7 @@ export const useMessageStore = create<MessageStore>((set, get) => ({
       const conversationIndex = state.conversations.findIndex(conv => conv.id === conversationId);
       
       if (conversationIndex === -1) {
-        console.log('MessageStore - Conversation not found:', conversationId);
+        logger.debug('MessageStore - Conversation not found:', conversationId);
         return state;
       }
       
@@ -149,7 +150,7 @@ export const useMessageStore = create<MessageStore>((set, get) => ({
       // Ensure no duplicate messages
       const existingMessage = conversation.messages.find(m => m.id === message.id);
       if (existingMessage) {
-        console.log('MessageStore - Message already exists, skipping:', message.id);
+        logger.debug('MessageStore - Message already exists, skipping:', message.id);
         return state;
       }
       
@@ -182,8 +183,8 @@ export const useMessageStore = create<MessageStore>((set, get) => ({
       const updatedConversations = [...state.conversations];
       updatedConversations[conversationIndex] = updatedConversation;
       
-      console.log('MessageStore - updating conversation:', conversation.id, 'with message:', newMessage.text?.trim() || 'attachment');
-      console.log('MessageStore - conversation messages after update:', updatedConversation.messages.length);
+      logger.debug('MessageStore - updating conversation:', conversation.id, 'with message:', newMessage.text?.trim() || 'attachment');
+      logger.debug('MessageStore - conversation messages after update:', updatedConversation.messages.length);
       
       // Force state update by creating completely new state object
       return { 
@@ -246,13 +247,13 @@ export const useMessageStore = create<MessageStore>((set, get) => ({
     );
     
     if (existingConv) {
-      console.log('MessageStore - Found existing conversation:', existingConv.id);
+      logger.debug('MessageStore - Found existing conversation:', existingConv.id);
       return existingConv.id;
     }
     
-    console.log('MessageStore - Creating new conversation for participants:', participants);
+    logger.debug('MessageStore - Creating new conversation for participants:', participants);
     const newId = state.createConversation(participants, listingId);
-    console.log('MessageStore - Created new conversation with ID:', newId);
+    logger.debug('MessageStore - Created new conversation with ID:', newId);
     return newId;
   },
   
@@ -303,13 +304,13 @@ export const useMessageStore = create<MessageStore>((set, get) => ({
   },
   
   deleteMessage: (conversationId: string, messageId: string) => {
-    console.log('MessageStore - deleteMessage called:', { conversationId, messageId });
+    logger.debug('MessageStore - deleteMessage called:', { conversationId, messageId });
     
     set((state) => {
       const conversationIndex = state.conversations.findIndex(conv => conv.id === conversationId);
       
       if (conversationIndex === -1) {
-        console.log('MessageStore - Conversation not found for deletion:', conversationId);
+        logger.debug('MessageStore - Conversation not found for deletion:', conversationId);
         return state;
       }
       
@@ -344,7 +345,7 @@ export const useMessageStore = create<MessageStore>((set, get) => ({
       const updatedConversations = [...state.conversations];
       updatedConversations[conversationIndex] = updatedConversation;
       
-      console.log('MessageStore - Message deleted, remaining messages:', updatedMessages.length);
+      logger.debug('MessageStore - Message deleted, remaining messages:', updatedMessages.length);
       
       return { 
         conversations: updatedConversations.map(conv => ({ ...conv })) 
@@ -353,7 +354,7 @@ export const useMessageStore = create<MessageStore>((set, get) => ({
   },
   
   deleteAllMessagesFromUser: (userId: string) => {
-    console.log('MessageStore - deleteAllMessagesFromUser called:', userId);
+    logger.debug('MessageStore - deleteAllMessagesFromUser called:', userId);
     
     set((state) => {
       const updatedConversations = state.conversations.map(conversation => {
@@ -392,7 +393,7 @@ export const useMessageStore = create<MessageStore>((set, get) => ({
         };
       });
       
-      console.log('MessageStore - All messages from user deleted:', userId);
+      logger.debug('MessageStore - All messages from user deleted:', userId);
       
       return { 
         conversations: updatedConversations.map(conv => ({ ...conv })) 

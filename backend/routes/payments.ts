@@ -5,6 +5,7 @@ import { z } from 'zod';
 import crypto from 'crypto';
 import { secureHeaders } from 'hono/secure-headers';
 
+import { logger } from '@/utils/logger';
 const payments = new Hono();
 payments.use('*', secureHeaders());
 

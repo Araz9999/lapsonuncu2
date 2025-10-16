@@ -17,6 +17,7 @@ import LiveChatWidget from './LiveChatWidget';
 
 
 
+import { logger } from '@/utils/logger';
 export default function FloatingChatButton() {
   const pathname = usePathname();
   const { language } = useLanguageStore();
@@ -61,10 +62,10 @@ export default function FloatingChatButton() {
 
   const handlePress = () => {
     if (!currentUser) {
-      console.log('[FloatingChatButton] User not logged in');
+      logger.debug('[FloatingChatButton] User not logged in');
       return;
     }
-    console.log('[FloatingChatButton] Opening chat');
+    logger.debug('[FloatingChatButton] Opening chat');
     setShowChat(true);
   };
 
