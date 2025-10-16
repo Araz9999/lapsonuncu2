@@ -3,6 +3,7 @@ import { publicProcedure } from '../../../create-context';
 import config from '@/constants/config';
 import { PayriffResponse, isPayriffSuccess, getPayriffErrorMessage } from '@/constants/payriffCodes';
 
+import { logger } from '@/utils/logger';
 export const autoPayV3Procedure = publicProcedure
   .input(
     z.object({
@@ -47,7 +48,7 @@ export const autoPayV3Procedure = publicProcedure
 
     if (!response.ok || !isPayriffSuccess(data)) {
       const errorMessage = getPayriffErrorMessage(data);
-      console.error('AutoPay V3 error:', errorMessage);
+      logger.error('AutoPay V3 error:', errorMessage);
       throw new Error(errorMessage);
     }
 

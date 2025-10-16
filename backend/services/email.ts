@@ -1,4 +1,8 @@
+< cursor/fix-many-bugs-and-errors-4e56
+import { apiLogger } from '@/utils/logger';
+=======
 import { logger } from '../../utils/logger';
+> Araz
 
 interface EmailOptions {
   to: string;
@@ -36,7 +40,11 @@ class EmailService {
 
   async sendEmail(options: EmailOptions): Promise<boolean> {
     if (!this.isConfigured()) {
+< cursor/fix-many-bugs-and-errors-4e56
+      apiLogger.warn('[Email] Resend not configured, skipping email send');
+=======
       logger.warn('[Email] Resend not configured, skipping email send');
+> Araz
       return false;
     }
 
@@ -61,6 +69,16 @@ class EmailService {
       if (!response.ok) {
 < cursor/fix-many-bugs-and-errors-2981
         const errorText = await response.text();
+< cursor/fix-many-bugs-and-errors-4e56
+        apiLogger.error('[Email] Resend API error:', errorText);
+        return false;
+      }
+
+      apiLogger.debug(`[Email] Successfully sent email to ${options.to}`);
+      return true;
+    } catch (error) {
+      apiLogger.error('[Email] Failed to send email:', error);
+=======
         logger.error('[Email] Resend API error:', errorText);
 
         // BUG FIX: Handle response parsing errors
@@ -87,6 +105,7 @@ class EmailService {
       } else {
         console.error('[Email] Failed to send email:', error);
       }
+> Araz
 > Araz
       return false;
     }

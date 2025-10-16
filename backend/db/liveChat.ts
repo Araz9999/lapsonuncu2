@@ -1,6 +1,7 @@
 import { LiveChatMessage, LiveChatConversation, SupportAgent } from '@/types/liveChat';
 import { logger } from '../../utils/logger';
 
+import { logger } from '@/utils/logger';
 const conversations: Map<string, LiveChatConversation> = new Map();
 const messages: Map<string, LiveChatMessage[]> = new Map();
 const messageIndex: Map<string, LiveChatMessage> = new Map();
@@ -29,6 +30,17 @@ export const liveChatDb = {
     ),
     getById: (id: string) => conversations.get(id) || null,
     getByUserId: (userId: string) => {
+< cursor/fix-many-bugs-and-errors-4e56
+      logger.debug('[LiveChatDB] Getting conversations for user:', userId);
+      const userConvs = Array.from(conversations.values())
+        .filter(c => c.userId === userId)
+        .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+      logger.debug('[LiveChatDB] Found conversations:', userConvs.length);
+      return userConvs;
+    },
+    create: (conversation: LiveChatConversation) => {
+      logger.debug('[LiveChatDB] Creating conversation:', conversation.id);
+
       logger.info('[LiveChatDB] Getting conversations for user:', userId);
       const userConvs = Array.from(conversations.values())
         .filter(c => c.userId === userId)
@@ -38,12 +50,17 @@ export const liveChatDb = {
     },
     create: (conversation: LiveChatConversation) => {
       logger.info('[LiveChatDB] Creating conversation:', conversation.id);
+> Araz
       conversations.set(conversation.id, conversation);
       messages.set(conversation.id, []);
       return conversation;
     },
     update: (id: string, updates: Partial<LiveChatConversation>) => {
+< cursor/fix-many-bugs-and-errors-4e56
+      logger.debug('[LiveChatDB] Updating conversation:', id, updates);
+=======
       logger.info('[LiveChatDB] Updating conversation:', id, updates);
+> Araz
       const conversation = conversations.get(id);
       if (conversation) {
         const updated = { ...conversation, ...updates, updatedAt: new Date().toISOString() };
@@ -54,7 +71,10 @@ export const liveChatDb = {
       return null;
     },
     delete: (id: string) => {
-      logger.info('[LiveChatDB] Deleting conversation:', id);
+< cursor/fix-many-bugs-and-errors-4e56
+      logger.debug('[LiveChatDB] Deleting conversation:', id);
+ logger.info('[LiveChatDB] Deleting conversation:', id);
+> Araz
       const deleted = conversations.delete(id);
       messages.delete(id);
       return deleted;
@@ -65,15 +85,23 @@ export const liveChatDb = {
     getAll: () => Array.from(messageIndex.values()),
     getById: (id: string) => messageIndex.get(id) || null,
     getByConversationId: (conversationId: string) => {
-      logger.info('[LiveChatDB] Getting messages for conversation:', conversationId);
+< cursor/fix-many-bugs-and-errors-4e56
+      logger.debug('[LiveChatDB] Getting messages for conversation:', conversationId);
+      const convMessages = messages.get(conversationId) || [];
+      logger.debug('[LiveChatDB] Found messages:', convMessages.length);
+  logger.info('[LiveChatDB] Getting messages for conversation:', conversationId);
       const convMessages = messages.get(conversationId) || [];
       logger.info('[LiveChatDB] Found messages:', convMessages.length);
+> Araz
       return [...convMessages].sort((a, b) => 
         new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
       );
     },
     create: (message: LiveChatMessage) => {
-      logger.info('[LiveChatDB] Creating message:', message.id, 'in conversation:', message.conversationId);
+< cursor/fix-many-bugs-and-errors-4e56
+      logger.debug('[LiveChatDB] Creating message:', message.id, 'in conversation:', message.conversationId);
+logger.info('[LiveChatDB] Creating message:', message.id, 'in conversation:', message.conversationId);
+> Araz
       const convMessages = messages.get(message.conversationId) || [];
       
       const exists = convMessages.find(m => m.id === message.id);
@@ -86,11 +114,19 @@ export const liveChatDb = {
       messages.set(message.conversationId, convMessages);
       messageIndex.set(message.id, message);
       
+< cursor/fix-many-bugs-and-errors-4e56
+      logger.debug('[LiveChatDB] Message created. Total messages in conversation:', convMessages.length);
+      return message;
+    },
+    updateStatus: (id: string, status: LiveChatMessage['status']) => {
+      logger.debug('[LiveChatDB] Updating message status:', id, 'to', status);
+=======
       logger.info('[LiveChatDB] Message created. Total messages in conversation:', convMessages.length);
       return message;
     },
     updateStatus: (id: string, status: LiveChatMessage['status']) => {
       logger.info('[LiveChatDB] Updating message status:', id, 'to', status);
+> Araz
       const message = messageIndex.get(id);
       if (message) {
         message.status = status;
@@ -110,7 +146,11 @@ export const liveChatDb = {
       return null;
     },
     delete: (id: string) => {
+< cursor/fix-many-bugs-and-errors-4e56
+      logger.debug('[LiveChatDB] Deleting message:', id);
+
       logger.info('[LiveChatDB] Deleting message:', id);
+> Araz
       const message = messageIndex.get(id);
       if (message) {
         const convMessages = messages.get(message.conversationId);

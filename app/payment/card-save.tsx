@@ -16,6 +16,7 @@ import { CreditCard, Save, AlertCircle } from 'lucide-react-native';
 import { payriffService } from '@/services/payriffService';
 import Colors from '@/constants/colors';
 
+import { logger } from '@/utils/logger';
 export default function CardSaveScreen() {
   const router = useRouter();
   
@@ -49,7 +50,7 @@ export default function CardSaveScreen() {
         directPay: true,
       });
 
-      console.log('Card save initiated:', response);
+      logger.debug('Card save initiated:', response);
 
       if (response.payload?.paymentUrl) {
         if (Platform.OS === 'web') {
@@ -61,7 +62,7 @@ export default function CardSaveScreen() {
         throw new Error('Payment URL not received');
       }
     } catch (error) {
-      console.error('Card save error:', error);
+      logger.error('Card save error:', error);
       const message = error instanceof Error ? error.message : 'Bilinməyən xəta baş verdi';
       setError(message);
       Alert.alert('Xəta', message);

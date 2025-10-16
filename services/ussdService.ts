@@ -1,6 +1,7 @@
 import { USSDMenu, USSDMenuItem, USSDResponse } from '@/types/ussd';
 import { Language } from '@/store/languageStore';
 
+import { logger } from '@/utils/logger';
 interface SessionState {
   currentMenuPath: string[];
   awaitingInput: boolean;
@@ -227,13 +228,13 @@ export class USSDService {
     });
     
     expiredSessions.forEach(id => {
-      console.log('[USSD Service] Cleaning up expired session:', id);
+      logger.debug('[USSD Service] Cleaning up expired session:', id);
       this.sessions.delete(id);
     });
   }
 
   async processUSSDCode(code: string, language: Language, sessionId?: string): Promise<USSDResponse & { sessionId: string }> {
-    console.log('[USSD Service] Processing code:', code, 'SessionId:', sessionId);
+    logger.debug('[USSD Service] Processing code:', code, 'SessionId:', sessionId);
     
     this.cleanupExpiredSessions();
     
@@ -248,7 +249,7 @@ export class USSDService {
     const mainMenu = ussdMenus.main;
     const menuText = this.formatMenu(mainMenu, language);
 
-    console.log('[USSD Service] Initial menu generated, SessionId:', id);
+    logger.debug('[USSD Service] Initial menu generated, SessionId:', id);
 
     return {
       text: menuText,
@@ -263,13 +264,13 @@ export class USSDService {
     sessionId: string,
     language: Language
   ): Promise<USSDResponse & { sessionId: string }> {
-    console.log('[USSD Service] Processing input:', input, 'SessionId:', sessionId);
+    logger.debug('[USSD Service] Processing input:', input, 'SessionId:', sessionId);
     
     this.cleanupExpiredSessions();
     
     const session = this.sessions.get(sessionId);
     if (!session) {
-      console.error('[USSD Service] Session not found:', sessionId);
+      logger.error('[USSD Service] Session not found:', sessionId);
       return {
         text: language === 'az' 
           ? 'Sessiya bitdi. Yenidən başlayın.' 
@@ -285,7 +286,7 @@ export class USSDService {
     session.inputHistory.push(input);
     
     const currentPath = session.currentMenuPath;
-    console.log('[USSD Service] Current path:', currentPath, 'Awaiting input:', session.awaitingInput);
+    logger.debug('[USSD Service] Current path:', currentPath, 'Awaiting input:', session.awaitingInput);
 
     if (session.awaitingInput && session.inputContext) {
       return await this.handleInputAction(input, sessionId, language);
@@ -293,7 +294,7 @@ export class USSDService {
 
     if (input === '0') {
       if (currentPath.length === 0) {
-        console.log('[USSD Service] User exited from main menu');
+        logger.debug('[USSD Service] User exited from main menu');
         this.sessions.delete(sessionId);
         return {
           text: language === 'az' 
@@ -308,13 +309,13 @@ export class USSDService {
 
       const newPath = currentPath.slice(0, -1);
       session.currentMenuPath = newPath;
-      console.log('[USSD Service] Navigating back to path:', newPath);
+      logger.debug('[USSD Service] Navigating back to path:', newPath);
       return await this.navigateToMenu(newPath, sessionId, language);
     }
 
     const currentMenu = this.getMenuByPath(currentPath);
     if (!currentMenu) {
-      console.error('[USSD Service] Menu not found for path:', currentPath);
+      logger.error('[USSD Service] Menu not found for path:', currentPath);
       this.sessions.delete(sessionId);
       return {
         text: language === 'az' 
@@ -329,7 +330,7 @@ export class USSDService {
 
     const selectedItem = currentMenu.items.find((item) => item.option === input);
     if (!selectedItem) {
-      console.warn('[USSD Service] Invalid option selected:', input);
+      logger.warn('[USSD Service] Invalid option selected:', input);
       const errorText = this.formatMenu(currentMenu, language);
       return {
         text: `${language === 'az' ? 'Yanlış seçim! Zəhmət olmasa düzgün rəqəm daxil edin.' : language === 'ru' ? 'Неверный выбор! Пожалуйста, введите правильный номер.' : 'Invalid choice! Please enter a valid number.'}\n\n${errorText}`,
@@ -342,7 +343,7 @@ export class USSDService {
     if (selectedItem.type === 'menu' && selectedItem.children) {
       const newPath = [...currentPath, selectedItem.id];
       session.currentMenuPath = newPath;
-      console.log('[USSD Service] Navigating to submenu:', selectedItem.id, 'New path:', newPath);
+      logger.debug('[USSD Service] Navigating to submenu:', selectedItem.id, 'New path:', newPath);
       
       const submenu: USSDMenu = {
         id: selectedItem.id,
@@ -361,7 +362,7 @@ export class USSDService {
     }
 
     if (selectedItem.type === 'action' && selectedItem.action) {
-      console.log('[USSD Service] Executing action:', selectedItem.id);
+      logger.debug('[USSD Service] Executing action:', selectedItem.id);
       try {
         const result = await selectedItem.action();
         return {
@@ -371,7 +372,7 @@ export class USSDService {
           sessionId,
         };
       } catch (error) {
-        console.error('[USSD Service] Action execution failed:', error);
+        logger.error('[USSD Service] Action execution failed:', error);
         return {
           text: language === 'az' 
             ? 'Əməliyyat zamanı xəta baş verdi. Zəhmət olmasa yenidən cəhd edin.' 
@@ -386,7 +387,7 @@ export class USSDService {
     }
 
     if (selectedItem.type === 'input' && selectedItem.action) {
-      console.log('[USSD Service] Starting input flow:', selectedItem.id);
+      logger.debug('[USSD Service] Starting input flow:', selectedItem.id);
       session.awaitingInput = true;
       session.inputContext = { menuId: currentMenu.id, itemId: selectedItem.id, step: 0 };
       
@@ -400,7 +401,7 @@ export class USSDService {
           sessionId,
         };
       } catch (error) {
-        console.error('[USSD Service] Input action failed:', error);
+        logger.error('[USSD Service] Input action failed:', error);
         session.awaitingInput = false;
         session.inputContext = null;
         return {
@@ -416,7 +417,7 @@ export class USSDService {
       }
     }
 
-    console.log('[USSD Service] Operation completed');
+    logger.debug('[USSD Service] Operation completed');
     return {
       text: language === 'az' 
         ? 'Əməliyyat tamamlandı' 
@@ -432,7 +433,7 @@ export class USSDService {
     const session = this.sessions.get(sessionId);
     
     if (!session || !session.inputContext) {
-      console.error('[USSD Service] No input context found');
+      logger.error('[USSD Service] No input context found');
       return {
         text: language === 'az' 
           ? 'Xəta baş verdi' 
@@ -446,7 +447,7 @@ export class USSDService {
 
     const menu = this.getMenuByPath(session.currentMenuPath);
     if (!menu) {
-      console.error('[USSD Service] Menu not found for input action');
+      logger.error('[USSD Service] Menu not found for input action');
       return {
         text: language === 'az' 
           ? 'Xəta baş verdi' 
@@ -460,7 +461,7 @@ export class USSDService {
 
     const item = menu.items.find((i) => i.id === session.inputContext!.itemId);
     if (item && item.action) {
-      console.log('[USSD Service] Processing input action with value:', input);
+      logger.debug('[USSD Service] Processing input action with value:', input);
       
       try {
         const result = await item.action(input);
@@ -475,7 +476,7 @@ export class USSDService {
           sessionId,
         };
       } catch (error) {
-        console.error('[USSD Service] Input action execution failed:', error);
+        logger.error('[USSD Service] Input action execution failed:', error);
         session.awaitingInput = false;
         session.inputContext = null;
         
@@ -492,7 +493,7 @@ export class USSDService {
       }
     }
 
-    console.log('[USSD Service] Input action completed');
+    logger.debug('[USSD Service] Input action completed');
     return {
       text: language === 'az' 
         ? 'Əməliyyat tamamlandı' 
@@ -507,7 +508,7 @@ export class USSDService {
   private async navigateToMenu(path: string[], sessionId: string, language: Language): Promise<USSDResponse & { sessionId: string }> {
     const menu = this.getMenuByPath(path);
     if (!menu) {
-      console.error('[USSD Service] Navigation failed - menu not found for path:', path);
+      logger.error('[USSD Service] Navigation failed - menu not found for path:', path);
       return {
         text: language === 'az' 
           ? 'Xəta baş verdi' 
@@ -519,7 +520,7 @@ export class USSDService {
       };
     }
 
-    console.log('[USSD Service] Navigated to menu:', menu.id);
+    logger.debug('[USSD Service] Navigated to menu:', menu.id);
     const menuText = this.formatMenu(menu, language);
     return {
       text: menuText,
@@ -568,13 +569,13 @@ export class USSDService {
 
   reset(sessionId?: string): void {
     if (sessionId) {
-      console.log('[USSD Service] Resetting session:', sessionId);
+      logger.debug('[USSD Service] Resetting session:', sessionId);
       this.sessions.delete(sessionId);
       if (this.currentSessionId === sessionId) {
         this.currentSessionId = null;
       }
     } else {
-      console.log('[USSD Service] Resetting all sessions');
+      logger.debug('[USSD Service] Resetting all sessions');
       this.sessions.clear();
       this.currentSessionId = null;
     }

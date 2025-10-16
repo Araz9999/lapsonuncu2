@@ -6,6 +6,7 @@ import { userDB } from '../db/users';
 import { generateTokenPair, verifyToken } from '../utils/jwt';
 import { authRateLimit } from '../middleware/rateLimit';
 
+import { logger } from '@/utils/logger';
 const auth = new Hono();
 
 // SECURITY: Apply rate limiting to all auth routes
@@ -38,7 +39,11 @@ function validateState(state: string): boolean {
 auth.get('/:provider/login', async (c) => {
   const provider = c.req.param('provider');
   
+< cursor/fix-many-bugs-and-errors-4e56
+  logger.debug(`[Auth] Initiating ${provider} login`);
+=======
   logger.info(`[Auth] Initiating ${provider} login`);
+> Araz
 
   if (!['google', 'facebook', 'vk'].includes(provider)) {
     return c.json({ error: 'Invalid provider' }, 400);
@@ -57,7 +62,11 @@ auth.get('/:provider/login', async (c) => {
 
     const authUrl = oauthService.getAuthorizationUrl(provider, state);
     
+< cursor/fix-many-bugs-and-errors-4e56
+    logger.debug(`[Auth] Redirecting to ${provider} authorization URL`);
+=======
     logger.info(`[Auth] Redirecting to ${provider} authorization URL`);
+> Araz
     return c.redirect(authUrl);
   } catch (error) {
     logger.error(`[Auth] Error initiating ${provider} login:`, error);
@@ -71,7 +80,11 @@ auth.get('/:provider/callback', async (c) => {
   const state = c.req.query('state');
   const error = c.req.query('error');
 
+< cursor/fix-many-bugs-and-errors-4e56
+  logger.debug(`[Auth] Received ${provider} callback`);
+=======
   logger.info(`[Auth] Received ${provider} callback`);
+> Araz
 
   if (error) {
     logger.error(`[Auth] OAuth error from ${provider}:`, error);
@@ -90,6 +103,23 @@ auth.get('/:provider/callback', async (c) => {
   }
 
   try {
+< cursor/fix-many-bugs-and-errors-4e56
+    logger.debug(`[Auth] Exchanging code for token with ${provider}`);
+    const tokenResponse = await oauthService.exchangeCodeForToken(provider, code);
+    
+    logger.debug(`[Auth] Fetching user info from ${provider}`);
+    const userInfo = await oauthService.getUserInfo(provider, tokenResponse.access_token, tokenResponse);
+
+    logger.debug(`[Auth] Looking up user by social ID`);
+    let user = await userDB.findBySocialId(provider, userInfo.id);
+
+    if (!user) {
+      logger.debug(`[Auth] User not found, checking by email: ${userInfo.email}`);
+      user = await userDB.findByEmail(userInfo.email);
+
+      if (user) {
+        logger.debug(`[Auth] Found existing user by email, linking ${provider} account`);
+=======
     logger.info(`[Auth] Exchanging code for token with ${provider}`);
     const tokenResponse = await oauthService.exchangeCodeForToken(provider, code);
     
@@ -113,6 +143,7 @@ auth.get('/:provider/callback', async (c) => {
           throw new Error('Invalid OAuth provider');
         }
 > Araz
+> Araz
         await userDB.addSocialProvider(user.id, {
           provider: provider,
           socialId: userInfo.id,
@@ -121,6 +152,9 @@ auth.get('/:provider/callback', async (c) => {
           avatar: userInfo.avatar,
         });
       } else {
+< cursor/fix-many-bugs-and-errors-4e56
+        logger.debug(`[Auth] Creating new user from ${provider} data`);
+=======
 < cursor/fix-many-bugs-and-errors-2981
         logger.info(`[Auth] Creating new user from ${provider} data`);
 
@@ -129,6 +163,7 @@ auth.get('/:provider/callback', async (c) => {
         if (provider !== 'google' && provider !== 'facebook' && provider !== 'vk') {
           throw new Error('Invalid OAuth provider');
         }
+> Araz
 > Araz
         user = await userDB.createUser({
           email: userInfo.email,
@@ -148,7 +183,11 @@ auth.get('/:provider/callback', async (c) => {
       }
     }
 
+< cursor/fix-many-bugs-and-errors-4e56
+    logger.debug(`[Auth] Generating JWT tokens for user`);
+=======
     logger.info(`[Auth] Generating JWT tokens for user`);
+> Araz
     const tokens = await generateTokenPair({
       userId: user.id,
       email: user.email,
@@ -178,7 +217,11 @@ auth.get('/:provider/callback', async (c) => {
     // Pass only user ID in URL, client can fetch full user data with the cookie
     const redirectUrl = `${frontendUrl}/auth/success?userId=${user.id}`;
 
+< cursor/fix-many-bugs-and-errors-4e56
+    logger.debug(`[Auth] ${provider} login successful, redirecting to app`);
+=======
     logger.info(`[Auth] ${provider} login successful, redirecting to app`);
+> Araz
     return c.redirect(redirectUrl);
   } catch (error) {
     logger.error(`[Auth] Error processing ${provider} callback:`, error);
@@ -188,7 +231,11 @@ auth.get('/:provider/callback', async (c) => {
 });
 
 auth.post('/logout', async (c) => {
+< cursor/fix-many-bugs-and-errors-4e56
+  logger.debug('[Auth] User logout');
+=======
   logger.info('[Auth] User logout');
+> Araz
   
   setCookie(c, 'accessToken', '', {
     httpOnly: true,

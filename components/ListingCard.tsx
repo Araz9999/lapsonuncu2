@@ -16,6 +16,7 @@ import { users } from '@/mocks/users';
 import CountdownTimer from '@/components/CountdownTimer';
 import type { Language } from '@/store/languageStore';
 
+import { logger } from '@/utils/logger';
 // Stable, top-level modal component to avoid remounts while typing
 interface MessageModalProps {
   visible: boolean;
@@ -26,7 +27,7 @@ interface MessageModalProps {
   isSending: boolean;
   listing: Listing;
   language: Language;
-  colors: any;
+  colors: Record<string, string>;
 }
 
 const MessageModal = React.memo(function MessageModal({
@@ -508,7 +509,7 @@ const ListingCard = React.memo(function ListingCard({
 
   const handlePress = useCallback(() => {
     if (__DEV__) {
-      console.log(`[ListingCard] Navigating to listing ${listing.id}`);
+      logger.debug(`[ListingCard] Navigating to listing ${listing.id}`);
     }
     router.push(`/listing/${listing.id}`);
   }, [listing.id, router]);
@@ -643,7 +644,7 @@ const ListingCard = React.memo(function ListingCard({
         ]
       );
     } catch (error) {
-      console.error('Failed to send message:', error);
+      logger.error('Failed to send message:', error);
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Mesaj göndərilmədi' : 'Сообщение не отправлено'

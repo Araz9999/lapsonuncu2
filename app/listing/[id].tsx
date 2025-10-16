@@ -18,6 +18,7 @@ import { Heart, Share, ChevronLeft, ChevronRight, MapPin, Calendar, Eye, Phone, 
 import { SocialIcons } from '@/components/Icons';
 import CountdownTimer from '@/components/CountdownTimer';
 
+import { logger } from '@/utils/logger';
 const { width } = Dimensions.get('window');
 
 export default function ListingDetailScreen() {
@@ -36,12 +37,12 @@ export default function ListingDetailScreen() {
   // Get listings from store instead of mock data
   const { listings } = useListingStore();
   
-  console.log('[ListingDetail] Looking for listing with ID:', id);
-  console.log('[ListingDetail] Available listings count:', listings.length);
-  console.log('[ListingDetail] Available listing IDs:', listings.map(l => l.id).slice(0, 10));
+  logger.debug('[ListingDetail] Looking for listing with ID:', id);
+  logger.debug('[ListingDetail] Available listings count:', listings.length);
+  logger.debug('[ListingDetail] Available listing IDs:', listings.map(l => l.id).slice(0, 10));
   
   const listing = listings.find(item => item.id === id);
-  console.log('[ListingDetail] Found listing:', listing ? 'Yes' : 'No');
+  logger.debug('[ListingDetail] Found listing:', listing ? 'Yes' : 'No');
   
   // Get active discounts for this listing
   const activeDiscounts = listing?.storeId ? getActiveDiscounts(listing.storeId).filter(discount => 
@@ -58,7 +59,7 @@ export default function ListingDetailScreen() {
     let discountType: 'percentage' | 'fixed_amount' = 'percentage';
     let discountValue = 0;
 
-    console.log(`[ListingDetail] Calculating discount for listing ${listing.id}:`, {
+    logger.debug(`[ListingDetail] Calculating discount for listing ${listing.id}:`, {
       activeDiscounts: activeDiscounts.length,
       hasDiscount: listing.hasDiscount,
       originalPrice,
@@ -72,7 +73,7 @@ export default function ListingDetailScreen() {
       discountType = discount.type === 'buy_x_get_y' ? 'percentage' : discount.type as 'percentage' | 'fixed_amount';
       discountValue = discount.value;
 
-      console.log(`[ListingDetail] Applying store discount:`, {
+      logger.debug(`[ListingDetail] Applying store discount:`, {
         type: discount.type,
         value: discount.value,
         originalPrice
@@ -109,7 +110,7 @@ export default function ListingDetailScreen() {
         originalPrice = listing.originalPrice;
         discountedPrice = listing.price;
         discountPercentage = originalPrice > 0 ? ((originalPrice - discountedPrice) / originalPrice) * 100 : 0;
-        console.log('[ListingDetail] Derived fixed-amount listing discount', { discountValue, originalPrice, discountedPrice });
+        logger.debug('[ListingDetail] Derived fixed-amount listing discount', { discountValue, originalPrice, discountedPrice });
       } else if (typeof listing.discountPercentage === 'number' && listing.discountPercentage < 1 && listing.discountPercentage > 0) {
         // This looks like a calculated percentage from a fixed amount discount
         // Try to derive the original fixed amount
@@ -119,7 +120,7 @@ export default function ListingDetailScreen() {
           originalPrice = listing.originalPrice;
           discountedPrice = listing.price;
           discountPercentage = listing.discountPercentage;
-          console.log('[ListingDetail] Detected fixed-amount from small percentage', { discountValue, originalPrice, discountedPrice });
+          logger.debug('[ListingDetail] Detected fixed-amount from small percentage', { discountValue, originalPrice, discountedPrice });
         } else {
           // Fallback to percentage
           discountPercentage = listing.discountPercentage;
@@ -145,7 +146,7 @@ export default function ListingDetailScreen() {
       discount: { type: discountType, value: discountValue }
     } as const;
 
-    console.log(`[ListingDetail] Final discount calculation:`, result);
+    logger.debug(`[ListingDetail] Final discount calculation:`, result);
 
     return result;
   };
@@ -159,8 +160,8 @@ export default function ListingDetailScreen() {
     }
   }, [id, incrementViewCount]);
   if (!listing) {
-    console.log('[ListingDetail] Listing not found. ID:', id);
-    console.log('[ListingDetail] All listing IDs:', listings.map(l => ({ id: l.id, title: l.title.az })));
+    logger.debug('[ListingDetail] Listing not found. ID:', id);
+    logger.debug('[ListingDetail] All listing IDs:', listings.map(l => ({ id: l.id, title: l.title.az })));
     return (
       <View style={styles.notFound}>
         <Text style={styles.notFoundText}>
@@ -411,7 +412,7 @@ export default function ListingDetailScreen() {
                 const callId = await initiateCall(seller.id, listing.id, 'voice');
                 router.push(`/call/${callId}`);
               } catch (error) {
-                console.error('Failed to initiate call:', error);
+                logger.error('Failed to initiate call:', error);
               }
             },
           },
@@ -422,7 +423,7 @@ export default function ListingDetailScreen() {
                 const callId = await initiateCall(seller.id, listing.id, 'video');
                 router.push(`/call/${callId}`);
               } catch (error) {
-                console.error('Failed to initiate video call:', error);
+                logger.error('Failed to initiate video call:', error);
               }
             },
           },

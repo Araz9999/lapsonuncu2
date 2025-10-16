@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { publicProcedure } from '../../../create-context';
 import { payriffService } from '../../../../services/payriff';
 
+import { logger } from '@/utils/logger';
 export const verifyPaymentProcedure = publicProcedure
   .input(
     z.object({
@@ -10,7 +11,7 @@ export const verifyPaymentProcedure = publicProcedure
     })
   )
   .query(async ({ input }) => {
-    console.log('Verifying Payriff payment:', input);
+    logger.debug('Verifying Payriff payment:', input);
 
     const status = await payriffService.getTransactionStatus(input.transactionId);
 

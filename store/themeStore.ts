@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { Platform, Appearance } from 'react-native';
 
+import { logger } from '@/utils/logger';
 export type ThemeMode = 'light' | 'dark' | 'auto';
 export type ColorTheme = 'default' | 'blue' | 'green' | 'purple' | 'orange' | 'red';
 export type FontSize = 'small' | 'medium' | 'large';
@@ -57,7 +58,7 @@ export const useThemeStore = create<ThemeState>()(
         // Apply system theme changes immediately
         if (mode === 'auto') {
           const colorScheme = Appearance.getColorScheme();
-          console.log('Auto theme mode activated, system theme:', colorScheme);
+          logger.debug('Auto theme mode activated, system theme:', colorScheme);
         }
       },
       setColorTheme: (theme) => set({ colorTheme: theme }),
@@ -70,10 +71,10 @@ export const useThemeStore = create<ThemeState>()(
             const Notifications = await import('expo-notifications');
             const { status } = await Notifications.requestPermissionsAsync();
             if (status !== 'granted') {
-              console.log('Notification permissions not granted');
+              logger.debug('Notification permissions not granted');
             }
           } catch (error) {
-            console.log('Notifications not available:', error);
+            logger.debug('Notifications not available:', error);
           }
         }
       },
@@ -84,15 +85,15 @@ export const useThemeStore = create<ThemeState>()(
       setCompactMode: (enabled) => set({ compactMode: enabled }),
       setAnimationEffectsEnabled: (enabled) => {
         set({ animationEffectsEnabled: enabled });
-        console.log('Animation effects:', enabled ? 'enabled' : 'disabled');
+        logger.debug('Animation effects:', enabled ? 'enabled' : 'disabled');
       },
       setDynamicColorsEnabled: (enabled) => {
         set({ dynamicColorsEnabled: enabled });
-        console.log('Dynamic colors:', enabled ? 'enabled' : 'disabled');
+        logger.debug('Dynamic colors:', enabled ? 'enabled' : 'disabled');
       },
       setAdaptiveInterfaceEnabled: (enabled) => {
         set({ adaptiveInterfaceEnabled: enabled });
-        console.log('Adaptive interface:', enabled ? 'enabled' : 'disabled');
+        logger.debug('Adaptive interface:', enabled ? 'enabled' : 'disabled');
       },
       sendNotification: async (title: string, body: string) => {
         const state = get();
@@ -115,11 +116,11 @@ export const useThemeStore = create<ThemeState>()(
                 const Haptics = await import('expo-haptics');
                 await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
               } catch (hapticsError) {
-                console.log('Haptics not available:', hapticsError);
+                logger.debug('Haptics not available:', hapticsError);
               }
             }
           } catch (error) {
-            console.log('Failed to send notification:', error);
+            logger.debug('Failed to send notification:', error);
           }
         } else {
           // Web fallback
@@ -137,9 +138,9 @@ export const useThemeStore = create<ThemeState>()(
             // Use system notification sound with haptic feedback
             const Haptics = await import('expo-haptics');
             await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            console.log('Playing notification sound with haptic feedback');
+            logger.debug('Playing notification sound with haptic feedback');
           } catch (error) {
-            console.log('Failed to play notification sound:', error);
+            logger.debug('Failed to play notification sound:', error);
           }
         } else {
           // Web fallback - create audio context beep
@@ -160,9 +161,9 @@ export const useThemeStore = create<ThemeState>()(
             oscillator.start(audioContext.currentTime);
             oscillator.stop(audioContext.currentTime + 0.5);
             
-            console.log('Playing web notification sound');
+            logger.debug('Playing web notification sound');
           } catch (error) {
-            console.log('Web audio not available:', error);
+            logger.debug('Web audio not available:', error);
           }
         }
       },
@@ -175,7 +176,7 @@ export const useThemeStore = create<ThemeState>()(
             const Haptics = await import('expo-haptics');
             await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
           } catch (error) {
-            console.log('Vibration not available:', error);
+            logger.debug('Vibration not available:', error);
           }
         }
       },
@@ -202,7 +203,7 @@ if (Platform.OS !== 'web') {
         }),
       });
     } catch (error) {
-      console.log('Notifications not available:', error);
+      logger.debug('Notifications not available:', error);
     }
   })();
 }
@@ -212,7 +213,7 @@ if (Platform.OS !== 'web') {
   Appearance.addChangeListener(({ colorScheme }) => {
     const store = useThemeStore.getState();
     if (store.themeMode === 'auto') {
-      console.log('System theme changed to:', colorScheme);
+      logger.debug('System theme changed to:', colorScheme);
       // Force re-render by updating a dummy state
       store.setThemeMode('auto');
     }

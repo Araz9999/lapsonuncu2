@@ -15,6 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Colors from '@/constants/colors';
 import { useLanguageStore } from '@/store/languageStore';
 
+import { logger } from '@/utils/logger';
 interface CreativeEffect {
   id: string;
   name: { az: string; ru: string };
@@ -166,16 +167,16 @@ export default function CreativeEffectsSection({ onSelectEffect, selectedEffects
                 isSelected && { borderColor: effect.color, borderWidth: 2 }
               ]}
               onPress={() => {
-                console.log('[CreativeEffects] Effect card pressed:', effect.id);
-                console.log('[CreativeEffects] Effect name:', effect.name);
-                console.log('[CreativeEffects] Effect price:', effect.price);
-                console.log('[CreativeEffects] Is currently selected:', isSelected);
-                console.log('[CreativeEffects] Calling onSelectEffect...');
+                logger.debug('[CreativeEffects] Effect card pressed:', effect.id);
+                logger.debug('[CreativeEffects] Effect name:', effect.name);
+                logger.debug('[CreativeEffects] Effect price:', effect.price);
+                logger.debug('[CreativeEffects] Is currently selected:', isSelected);
+                logger.debug('[CreativeEffects] Calling onSelectEffect...');
                 try {
                   onSelectEffect(effect);
-                  console.log('[CreativeEffects] onSelectEffect called successfully');
+                  logger.debug('[CreativeEffects] onSelectEffect called successfully');
                 } catch (error) {
-                  console.error('[CreativeEffects] Error calling onSelectEffect:', error);
+                  logger.error('[CreativeEffects] Error calling onSelectEffect:', error);
                 }
               }}
               activeOpacity={0.7}

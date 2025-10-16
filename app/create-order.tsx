@@ -15,6 +15,7 @@ import { Stack } from 'expo-router';
 import { trpc } from '@/lib/trpc';
 import colors from '@/constants/colors';
 
+import { logger } from '@/utils/logger';
 export default function CreateOrderScreen() {
   const [amount, setAmount] = useState<string>('0.01');
   const [description, setDescription] = useState<string>('Test purchase');
@@ -25,7 +26,7 @@ export default function CreateOrderScreen() {
 
   const createOrderMutation = trpc.payriff.createOrder.useMutation({
     onSuccess: (data) => {
-      console.log('Order created successfully:', data);
+      logger.debug('Order created successfully:', data);
       
       if (data.payload?.paymentUrl) {
         Alert.alert(
@@ -53,7 +54,7 @@ export default function CreateOrderScreen() {
       }
     },
     onError: (error) => {
-      console.error('Create order error:', error);
+      logger.error('Create order error:', error);
       Alert.alert('Error', error.message || 'Failed to create order');
     },
   });

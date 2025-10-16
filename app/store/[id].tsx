@@ -43,6 +43,7 @@ import RatingModal from '@/components/RatingModal';
 import RatingsList from '@/components/RatingsList';
 import { RatingWithUser } from '@/types/rating';
 
+import { storeLogger } from '@/utils/logger';
 export default function StoreDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -63,7 +64,7 @@ export default function StoreDetailScreen() {
       const notDeleted = !listing.deletedAt;
       const match = (byStoreId || byOwnerFallback) && notDeleted;
       if (__DEV__) {
-        console.log('[StoreDetail] Filter listing', {
+        storeLogger.debug('[StoreDetail] Filter listing', {
           listingId: listing.id,
           listingStoreId: listing.storeId,
           listingUserId: listing.userId,

@@ -35,6 +35,7 @@ import {
 } from 'lucide-react-native';
 import AutoRenewalManager from '@/components/AutoRenewalManager';
 
+import { logger } from '@/utils/logger';
 type FormData = {
   title: LocalizedText;
   description: LocalizedText;
@@ -188,7 +189,7 @@ export default function EditListingScreen() {
         }));
       }
     } catch (error) {
-      console.log('Camera error:', error);
+      logger.debug('Camera error:', error);
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Şəkil çəkərkən xəta baş verdi' : 'Произошла ошибка при съемке'
@@ -221,7 +222,7 @@ export default function EditListingScreen() {
         }));
       }
     } catch (error) {
-      console.log('Gallery error:', error);
+      logger.debug('Gallery error:', error);
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Şəkil seçərkən xəta baş verdi' : 'Произошла ошибка при выборе изображения'

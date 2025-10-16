@@ -1,6 +1,7 @@
 import { Context, Next } from 'hono';
 import { logger } from '../../utils/logger';
 
+import { logger } from '@/utils/logger';
 interface RateLimitConfig {
   windowMs: number; // Time window in milliseconds
   maxRequests: number; // Maximum requests per window

@@ -10,6 +10,7 @@ import Colors from '@/constants/colors';
 import { ArrowLeft, Tag, Percent, Info, Save, Trash2, Plus, HelpCircle, Timer } from 'lucide-react-native';
 import CountdownTimer from '@/components/CountdownTimer';
 
+import { logger } from '@/utils/logger';
 export default function ListingDiscountScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -77,14 +78,14 @@ export default function ListingDiscountScreen() {
   }
   
   const handleCreateDiscount = () => {
-    console.log('[handleCreateDiscount] Button clicked');
-    console.log('[handleCreateDiscount] Listing storeId:', listing.storeId);
-    console.log('[handleCreateDiscount] Discount title:', discountTitle);
-    console.log('[handleCreateDiscount] Discount value:', discountValue);
-    console.log('[handleCreateDiscount] Discount type:', discountType);
+    logger.debug('[handleCreateDiscount] Button clicked');
+    logger.debug('[handleCreateDiscount] Listing storeId:', listing.storeId);
+    logger.debug('[handleCreateDiscount] Discount title:', discountTitle);
+    logger.debug('[handleCreateDiscount] Discount value:', discountValue);
+    logger.debug('[handleCreateDiscount] Discount type:', discountType);
     
     if (listing.storeId && !discountTitle.trim()) {
-      console.log('[handleCreateDiscount] Validation failed: Missing title for store discount');
+      logger.debug('[handleCreateDiscount] Validation failed: Missing title for store discount');
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Endirim başlığını daxil edin' : 'Введите название скидки'
@@ -93,7 +94,7 @@ export default function ListingDiscountScreen() {
     }
     
     if (!discountValue.trim() || isNaN(Number(discountValue))) {
-      console.log('[handleCreateDiscount] Validation failed: Invalid discount value');
+      logger.debug('[handleCreateDiscount] Validation failed: Invalid discount value');
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Düzgün endirim dəyəri daxil edin' : 'Введите корректное значение скидки'
@@ -103,7 +104,7 @@ export default function ListingDiscountScreen() {
     
     const value = Number(discountValue);
     if (value <= 0 || (discountType === 'percentage' && value >= 100)) {
-      console.log('[handleCreateDiscount] Validation failed: Value out of range');
+      logger.debug('[handleCreateDiscount] Validation failed: Value out of range');
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' 
@@ -113,7 +114,7 @@ export default function ListingDiscountScreen() {
       return;
     }
     
-    console.log('[handleCreateDiscount] Validation passed, showing confirmation dialog');
+    logger.debug('[handleCreateDiscount] Validation passed, showing confirmation dialog');
     
     Alert.alert(
       language === 'az' ? 'Endirim tətbiq edilsin?' : 'Применить скидку?',
@@ -124,22 +125,22 @@ export default function ListingDiscountScreen() {
         {
           text: language === 'az' ? 'Ləğv et' : 'Отмена',
           style: 'cancel',
-          onPress: () => console.log('[handleCreateDiscount] User cancelled')
+          onPress: () => logger.debug('[handleCreateDiscount] User cancelled')
         },
         {
           text: language === 'az' ? 'Təsdiq et' : 'Подтвердить',
           onPress: () => {
-            console.log('[handleCreateDiscount] User confirmed, applying discount');
+            logger.debug('[handleCreateDiscount] User confirmed, applying discount');
             try {
               if (listing.storeId) {
-                console.log('[handleCreateDiscount] Creating store discount');
+                logger.debug('[handleCreateDiscount] Creating store discount');
                 handleCreateStoreDiscount();
               } else {
-                console.log('[handleCreateDiscount] Creating individual discount');
+                logger.debug('[handleCreateDiscount] Creating individual discount');
                 handleCreateIndividualDiscount();
               }
             } catch (error) {
-              console.error('[handleCreateDiscount] Error applying discount:', error);
+              logger.error('[handleCreateDiscount] Error applying discount:', error);
               Alert.alert(
                 language === 'az' ? 'Xəta!' : 'Ошибка!',
                 language === 'az' ? 'Endirim tətbiq edilərkən xəta baş verdi' : 'Произошла ошибка при применении скидки'
@@ -152,7 +153,7 @@ export default function ListingDiscountScreen() {
   };
   
   const handleCreateStoreDiscount = () => {
-    console.log('[handleCreateStoreDiscount] Creating store discount');
+    logger.debug('[handleCreateStoreDiscount] Creating store discount');
     
     try {
       const discountData = {
@@ -171,9 +172,9 @@ export default function ListingDiscountScreen() {
         isActive,
       };
       
-      console.log('[handleCreateStoreDiscount] Discount data:', discountData);
+      logger.debug('[handleCreateStoreDiscount] Discount data:', discountData);
       addDiscount(discountData);
-      console.log('[handleCreateStoreDiscount] Discount added successfully');
+      logger.debug('[handleCreateStoreDiscount] Discount added successfully');
       
       Alert.alert(
         language === 'az' ? 'Uğurlu!' : 'Успешно!',
@@ -182,14 +183,14 @@ export default function ListingDiscountScreen() {
           {
             text: language === 'az' ? 'Tamam' : 'OK',
             onPress: () => {
-              console.log('[handleCreateStoreDiscount] Navigating back');
+              logger.debug('[handleCreateStoreDiscount] Navigating back');
               router.back();
             },
           },
         ]
       );
     } catch (error) {
-      console.error('[handleCreateStoreDiscount] Error creating store discount:', error);
+      logger.error('[handleCreateStoreDiscount] Error creating store discount:', error);
       Alert.alert(
         language === 'az' ? 'Xəta!' : 'Ошибка!',
         language === 'az' ? 'Mağaza endirimi yaradılarkən xəta baş verdi' : 'Произошла ошибка при создании скидки магазина'
@@ -198,7 +199,7 @@ export default function ListingDiscountScreen() {
   };
   
   const handleCreateIndividualDiscount = () => {
-    console.log('[handleCreateIndividualDiscount] Starting individual discount creation');
+    logger.debug('[handleCreateIndividualDiscount] Starting individual discount creation');
     
     try {
       const value = Number(discountValue);
@@ -206,17 +207,17 @@ export default function ListingDiscountScreen() {
       let originalPrice = listing.originalPrice || listing.price;
       let finalPrice = listing.price;
       
-      console.log('[handleCreateIndividualDiscount] Discount type:', discountType, 'Value:', value);
-      console.log('[handleCreateIndividualDiscount] Original price:', originalPrice, 'Current price:', listing.price);
+      logger.debug('[handleCreateIndividualDiscount] Discount type:', discountType, 'Value:', value);
+      logger.debug('[handleCreateIndividualDiscount] Original price:', originalPrice, 'Current price:', listing.price);
       
       if (discountType === 'percentage') {
         discountPercentage = value;
         finalPrice = originalPrice * (1 - value / 100);
-        console.log('[handleCreateIndividualDiscount] Percentage discount - Final price:', finalPrice);
+        logger.debug('[handleCreateIndividualDiscount] Percentage discount - Final price:', finalPrice);
       } else if (discountType === 'fixed_amount') {
         finalPrice = Math.max(0, originalPrice - value);
         discountPercentage = originalPrice > 0 ? ((originalPrice - finalPrice) / originalPrice) * 100 : 0;
-        console.log('[handleCreateIndividualDiscount] Fixed amount discount:', {
+        logger.debug('[handleCreateIndividualDiscount] Fixed amount discount:', {
           originalPrice,
           discountAmount: value,
           finalPrice,
@@ -226,7 +227,7 @@ export default function ListingDiscountScreen() {
       
       const chosenEndDate = enableTimerBar && showTimerBar ? timerEndDate : endDate;
       
-      console.log('[handleCreateIndividualDiscount] Timer settings:', {
+      logger.debug('[handleCreateIndividualDiscount] Timer settings:', {
         enableTimerBar,
         showTimerBar,
         chosenEndDate: chosenEndDate.toISOString(),
@@ -242,9 +243,9 @@ export default function ListingDiscountScreen() {
         discountPercentage: discountType === 'percentage' ? value : discountPercentage,
       };
       
-      console.log('[handleCreateIndividualDiscount] Update data:', updateData);
+      logger.debug('[handleCreateIndividualDiscount] Update data:', updateData);
       updateListing(listing.id, updateData);
-      console.log('[handleCreateIndividualDiscount] Listing updated successfully');
+      logger.debug('[handleCreateIndividualDiscount] Listing updated successfully');
       
       Alert.alert(
         language === 'az' ? 'Uğurlu!' : 'Успешно!',
@@ -253,14 +254,14 @@ export default function ListingDiscountScreen() {
           {
             text: language === 'az' ? 'Tamam' : 'OK',
             onPress: () => {
-              console.log('[handleCreateIndividualDiscount] Navigating back');
+              logger.debug('[handleCreateIndividualDiscount] Navigating back');
               router.back();
             },
           },
         ]
       );
     } catch (error) {
-      console.error('[handleCreateIndividualDiscount] Error:', error);
+      logger.error('[handleCreateIndividualDiscount] Error:', error);
       Alert.alert(
         language === 'az' ? 'Xəta!' : 'Ошибка!',
         language === 'az' ? 'Elan endirimi tətbiq edilərkən xəta baş verdi' : 'Произошла ошибка при применении скидки на объявление'
@@ -823,7 +824,7 @@ export default function ListingDiscountScreen() {
                   </View>
                   <CountdownTimer
                     endDate={timerEndDate}
-                    style={[styles.timerContent, { backgroundColor: `${timerBarColor}15` }]}
+                    style={[styles.timerContent, { backgroundColor: `${timerBarColor}15` }] as unknown as Record<string, unknown>}
                     compact={false}
                   />
                 </View>
@@ -920,7 +921,7 @@ export default function ListingDiscountScreen() {
         <TouchableOpacity
           style={styles.createButton}
           onPress={() => {
-            console.log('[Apply Discount Button] Button pressed');
+            logger.debug('[Apply Discount Button] Button pressed');
             handleCreateDiscount();
           }}
           activeOpacity={0.7}
