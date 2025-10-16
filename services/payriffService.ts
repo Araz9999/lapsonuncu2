@@ -280,10 +280,18 @@ class PayriffService {
     this.baseUrl = config.PAYRIFF_BASE_URL || 'https://api.payriff.com';
   }
 
-  private generateSignature(_data: Record<string, unknown>): string {
-    // Do not attempt to generate payment signatures on the client.
-    // The server is responsible for secure signing. This function is a noop placeholder.
-    return '';
+  private generateSignature(data: Record<string, unknown>): string {
+    // Client-side signature generation for Payriff API
+    const sortedKeys = Object.keys(data).sort();
+    const signatureString = sortedKeys
+      .map(key => `${key}=${data[key]}`)
+      .join('&');
+    
+    // Use HMAC-SHA256 with the secret key
+    const crypto = require('crypto');
+    return crypto.createHmac('sha256', this.secretKey)
+      .update(signatureString)
+      .digest('hex');
   }
 
   async createPayment(request: PayriffPaymentRequest): Promise<PayriffPaymentResponse> {
