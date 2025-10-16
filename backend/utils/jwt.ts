@@ -52,10 +52,20 @@ export async function verifyToken(token: string): Promise<JWTPayload | null> {
       audience: JWT_AUDIENCE,
     });
 
+    // BUG FIX: Validate payload fields before using
+    if (
+      typeof payload.userId !== 'string' ||
+      typeof payload.email !== 'string' ||
+      typeof payload.role !== 'string'
+    ) {
+      console.error('[JWT] Invalid payload structure');
+      return null;
+    }
+
     return {
-      userId: payload.userId as string,
-      email: payload.email as string,
-      role: payload.role as string,
+      userId: payload.userId,
+      email: payload.email,
+      role: payload.role,
     };
   } catch (error) {
     console.error('[JWT] Token verification failed:', error);

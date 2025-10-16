@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { userDB } from '../../../../db/users';
 import { generateTokenPair } from '../../../../utils/jwt';
 import { emailService } from '../../../../services/email';
+import { hashPassword, generateRandomToken } from '../../../../utils/password';
 
 export const registerProcedure = publicProcedure
   .input(
@@ -19,6 +20,20 @@ export const registerProcedure = publicProcedure
     const existingUser = await userDB.findByEmail(input.email);
     if (existingUser) {
       throw new Error('Bu email artıq qeydiyyatdan keçib');
+    }
+
+    // BUG FIX: Add stronger password validation on backend
+    if (input.password.length < 8) {
+      throw new Error('Şifrə ən azı 8 simvol olmalıdır');
+    }
+    if (!/[A-Z]/.test(input.password)) {
+      throw new Error('Şifrə ən azı 1 böyük hərf olmalıdır');
+    }
+    if (!/[a-z]/.test(input.password)) {
+      throw new Error('Şifrə ən azı 1 kiçik hərf olmalıdır');
+    }
+    if (!/[0-9]/.test(input.password)) {
+      throw new Error('Şifrə ən azı 1 rəqəm olmalıdır');
     }
 
     const passwordHash = await hashPassword(input.password);
@@ -73,42 +88,3 @@ export const registerProcedure = publicProcedure
     };
   });
 
-/**
- * SECURITY: Hash password using PBKDF2 with salt
- * This is a secure password hashing implementation
- */
-async function hashPassword(password: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const salt = crypto.getRandomValues(new Uint8Array(16));
-  
-  const keyMaterial = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(password),
-    { name: 'PBKDF2' },
-    false,
-    ['deriveBits']
-  );
-  
-  const hashBuffer = await crypto.subtle.deriveBits(
-    {
-      name: 'PBKDF2',
-      salt,
-      iterations: 100000,
-      hash: 'SHA-256'
-    },
-    keyMaterial,
-    256
-  );
-  
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const saltArray = Array.from(salt);
-  
-  // Store salt:hash format
-  return `${saltArray.map(b => b.toString(16).padStart(2, '0')).join('')}:${hashArray.map(b => b.toString(16).padStart(2, '0')).join('')}`;
-}
-
-function generateRandomToken(): string {
-  const array = new Uint8Array(32);
-  crypto.getRandomValues(array);
-  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
-}
