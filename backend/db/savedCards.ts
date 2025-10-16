@@ -1,3 +1,5 @@
+import { apiLogger } from '@/utils/logger';
+
 export interface SavedCard {
   id: string;
   userId: string;
@@ -32,7 +34,7 @@ class SavedCardsDatabase {
     }
     this.userCardsIndex.get(cardData.userId)!.add(id);
 
-    console.log(`[DB] Saved card: ${id} for user: ${cardData.userId}`);
+    apiLogger.debug(`[DB] Saved card: ${id} for user: ${cardData.userId}`);
     return card;
   }
 
@@ -78,7 +80,7 @@ class SavedCardsDatabase {
       }
     }
 
-    console.log(`[DB] Deleted card: ${id}`);
+    apiLogger.debug(`[DB] Deleted card: ${id}`);
     return true;
   }
 
@@ -89,7 +91,7 @@ class SavedCardsDatabase {
     card.lastUsed = new Date().toISOString();
     this.cards.set(id, card);
 
-    console.log(`[DB] Updated last used for card: ${id}`);
+    apiLogger.debug(`[DB] Updated last used for card: ${id}`);
     return true;
   }
 

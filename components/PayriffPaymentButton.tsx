@@ -12,6 +12,7 @@ import {
 import { CreditCard } from 'lucide-react-native';
 import { trpc } from '@/lib/trpc';
 
+import { logger } from '@/utils/logger';
 interface PayriffPaymentButtonProps {
   amount: number;
   orderId: string;
@@ -35,7 +36,7 @@ export default function PayriffPaymentButton({
 
   const createPaymentMutation = trpc.payriff.createPayment.useMutation({
     onSuccess: async (data) => {
-      console.log('Payment created:', data);
+      logger.debug('Payment created:', data);
       
       if (data.paymentUrl) {
         const canOpen = await Linking.canOpenURL(data.paymentUrl);
@@ -54,7 +55,7 @@ export default function PayriffPaymentButton({
       }
     },
     onError: (error) => {
-      console.error('Payment creation error:', error);
+      logger.error('Payment creation error:', error);
       Alert.alert('Xəta', error.message || 'Ödəniş yaradıla bilmədi');
       onError?.(error.message);
       setLoading(false);
@@ -74,7 +75,7 @@ export default function PayriffPaymentButton({
         language: 'az',
       });
     } catch (error) {
-      console.error('Payment error:', error);
+      logger.error('Payment error:', error);
       setLoading(false);
     }
   };

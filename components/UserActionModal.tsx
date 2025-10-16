@@ -39,6 +39,7 @@ import { useLanguageStore } from '@/store/languageStore';
 import { User } from '@/types/user';
 import { Share } from 'react-native';
 
+import { logger } from '@/utils/logger';
 interface UserActionModalProps {
   visible: boolean;
   onClose: () => void;
@@ -252,7 +253,7 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
       Alert.alert('', t.nudgeSuccess);
       onClose();
     } catch (error) {
-      console.error('Nudge error:', error);
+      logger.error('Nudge error:', error);
     } finally {
       setIsLoading(false);
     }
@@ -346,7 +347,7 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
         title: user.name,
       });
     } catch (error) {
-      console.error('Share error:', error);
+      logger.error('Share error:', error);
     }
   };
 

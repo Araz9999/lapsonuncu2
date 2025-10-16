@@ -1,6 +1,7 @@
 import config from '@/constants/config';
 import { Platform } from 'react-native';
 
+import { logger } from '@/utils/logger';
 export interface PaymentMethod {
   id: string;
   type: 'card' | 'paypal' | 'apple_pay' | 'google_pay';
@@ -46,7 +47,7 @@ class PaymentService {
       return (window as any).Stripe;
     } else {
       // Mobile Stripe initialization would require expo-stripe or similar
-      console.log('Mobile Stripe initialization - requires expo-stripe package');
+      logger.debug('Mobile Stripe initialization - requires expo-stripe package');
       return null;
     }
   }
@@ -70,7 +71,7 @@ class PaymentService {
 
       return await response.json();
     } catch (error) {
-      console.error('Payment intent creation failed:', error);
+      logger.error('Payment intent creation failed:', error);
       throw error;
     }
   }
@@ -94,7 +95,7 @@ class PaymentService {
 
       return await response.json();
     } catch (error) {
-      console.error('Payment confirmation failed:', error);
+      logger.error('Payment confirmation failed:', error);
       throw error;
     }
   }
@@ -114,7 +115,7 @@ class PaymentService {
 
       return await response.json();
     } catch (error) {
-      console.error('Failed to fetch payment methods:', error);
+      logger.error('Failed to fetch payment methods:', error);
       throw error;
     }
   }
@@ -138,7 +139,7 @@ class PaymentService {
 
       return await response.json();
     } catch (error) {
-      console.error('PayPal payment failed:', error);
+      logger.error('PayPal payment failed:', error);
       throw error;
     }
   }

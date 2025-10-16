@@ -15,6 +15,7 @@ import { CreditCard, AlertCircle, CheckCircle } from 'lucide-react-native';
 import { payriffService } from '@/services/payriffService';
 import Colors from '@/constants/colors';
 
+import { logger } from '@/utils/logger';
 export default function PayriffPaymentScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
@@ -120,7 +121,7 @@ export default function PayriffPaymentScreen() {
         setErrorMessage('Ödəniş ləğv edildi');
       }
     } catch (error) {
-      console.error('Payment status check failed:', error);
+      logger.error('Payment status check failed:', error);
     }
   };
 

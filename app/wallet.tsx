@@ -8,6 +8,7 @@ import { Wallet, Gift, Plus, ArrowUpRight, ArrowDownLeft, CreditCard, RefreshCw 
 import { trpc } from '@/lib/trpc';
 import type { PayriffWalletHistory } from '@/services/payriffService';
 
+import { logger } from '@/utils/logger';
 export default function WalletScreen() {
   const { language } = useLanguageStore();
   const { walletBalance, bonusBalance, addToWallet, addBonus } = useUserStore();
@@ -73,7 +74,7 @@ export default function WalletScreen() {
         },
       });
 
-      console.log('Order created:', result);
+      logger.debug('Order created:', result);
 
       if (result.payload?.paymentUrl) {
         const paymentUrl = result.payload.paymentUrl;
@@ -106,9 +107,9 @@ export default function WalletScreen() {
         );
       }
     } catch (error) {
-      console.error('Top-up error:', error);
+      logger.error('Top-up error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      console.error('Error details:', errorMessage);
+      logger.error('Error details:', errorMessage);
       
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',

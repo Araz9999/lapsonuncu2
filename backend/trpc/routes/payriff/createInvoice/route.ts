@@ -3,6 +3,7 @@ import { publicProcedure } from '../../../create-context';
 import config from '@/constants/config';
 import { PayriffResponse, isPayriffSuccess, getPayriffErrorMessage } from '@/constants/payriffCodes';
 
+import { logger } from '@/utils/logger';
 export const createInvoiceProcedure = publicProcedure
   .input(
     z.object({
@@ -76,7 +77,7 @@ export const createInvoiceProcedure = publicProcedure
 
     if (!response.ok || !isPayriffSuccess(data)) {
       const errorMessage = getPayriffErrorMessage(data);
-      console.error('Create invoice error:', errorMessage);
+      logger.error('Create invoice error:', errorMessage);
       throw new Error(errorMessage);
     }
 

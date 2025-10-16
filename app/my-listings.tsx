@@ -10,6 +10,7 @@ import { users } from '@/mocks/users';
 import { Clock, AlertCircle, Edit, Trash2, TrendingUp, Eye, RefreshCw, Archive, Settings, Bell, DollarSign, Tag } from 'lucide-react-native';
 import { Listing } from '@/types/listing';
 
+import { logger } from '@/utils/logger';
 export default function MyListingsScreen() {
   const router = useRouter();
   const { language } = useLanguageStore();
@@ -137,7 +138,7 @@ export default function MyListingsScreen() {
                 );
               }
             } catch (error) {
-              console.error('Error toggling auto renewal:', error);
+              logger.error('Error toggling auto renewal:', error);
               Alert.alert(
                 language === 'az' ? 'Xəta!' : 'Ошибка!',
                 language === 'az' ? 'Tənzimləmə zamanı xəta baş verdi' : 'Произошла ошибка при настройке'
@@ -209,7 +210,7 @@ export default function MyListingsScreen() {
                 );
               }
             } catch (error) {
-              console.error('Error extending listing:', error);
+              logger.error('Error extending listing:', error);
               Alert.alert(
                 language === 'az' ? 'Xəta!' : 'Ошибка!',
                 language === 'az' ? 'Uzatma zamanı xəta baş verdi' : 'Произошла ошибка при продлении'
@@ -254,7 +255,7 @@ export default function MyListingsScreen() {
                 );
               }
             } catch (error) {
-              console.error('Error extending listing:', error);
+              logger.error('Error extending listing:', error);
               Alert.alert(
                 language === 'az' ? 'Xəta!' : 'Ошибка!',
                 language === 'az' ? 'Uzatma zamanı xəta baş verdi' : 'Произошла ошибка при продлении'
@@ -293,7 +294,7 @@ export default function MyListingsScreen() {
                   : 'Объявление перемещено в архив. Вы можете реактивировать его из раздела архива.'
               );
             } catch (error) {
-              console.error('Error archiving listing:', error);
+              logger.error('Error archiving listing:', error);
               Alert.alert(
                 language === 'az' ? 'Xəta!' : 'Ошибка!',
                 language === 'az' ? 'Arxivləmə zamanı xəta baş verdi' : 'Произошла ошибка при архивировании'
@@ -346,7 +347,7 @@ export default function MyListingsScreen() {
                   : 'Объявление реактивировано и будет опубликовано на 30 дней'
               );
             } catch (error) {
-              console.error('Error reactivating listing:', error);
+              logger.error('Error reactivating listing:', error);
               Alert.alert(
                 language === 'az' ? 'Xəta!' : 'Ошибка!',
                 language === 'az' ? 'Aktivləşdirmə zamanı xəta baş verdi' : 'Произошла ошибка при реактивации'

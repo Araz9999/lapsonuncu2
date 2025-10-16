@@ -16,6 +16,7 @@ import { useStoreStore } from '@/store/storeStore';
 import { useUserStore } from '@/store/userStore';
 import { paymentMethods } from '@/constants/paymentMethods';
 import Colors from '@/constants/colors';
+import { storeLogger } from '@/utils/logger';
 import {
   Check,
   ArrowLeft,
@@ -64,7 +65,7 @@ export default function CreateStoreScreen() {
   const selectedPlanPrice = selectedPlan ? getPlanPrice(selectedPlan) : 0;
 
   const handleNext = () => {
-    console.log('handleNext called, currentStep:', currentStep, 'selectedPlan:', selectedPlan);
+    storeLogger.debug('handleNext called, currentStep:', currentStep, 'selectedPlan:', selectedPlan);
     
     // Step 1: Package selection validation - CRITICAL CHECK
     if (currentStep === 1) {
@@ -77,7 +78,7 @@ export default function CreateStoreScreen() {
         );
         return;
       }
-      console.log('✅ Package validation passed:', selectedPlan, 'Price:', getPlanPrice(selectedPlan));
+      storeLogger.debug('✅ Package validation passed:', selectedPlan, 'Price:', getPlanPrice(selectedPlan));
     }
     
     // Step 2: Store information validation
@@ -94,15 +95,15 @@ export default function CreateStoreScreen() {
     // Skip payment validation - no payment required
     
     // IMPORTANT: Only move to next step, NO PAYMENT HERE
-    console.log('✅ Moving to next step, no payment processing');
+    storeLogger.debug('✅ Moving to next step, no payment processing');
     setCurrentStep(prev => prev + 1);
   };
 
   const handleCreateStore = async () => {
-    console.log('🔥 handleCreateStore called - WITH PAYMENT PROCESSING');
-    console.log('isAuthenticated:', isAuthenticated);
-    console.log('currentUser:', currentUser?.id);
-    console.log('selectedPlan:', selectedPlan);
+    storeLogger.debug('🔥 handleCreateStore called - WITH PAYMENT PROCESSING');
+    storeLogger.debug('isAuthenticated:', isAuthenticated);
+    storeLogger.debug('currentUser:', currentUser?.id);
+    storeLogger.debug('selectedPlan:', selectedPlan);
     
     if (!isAuthenticated || !currentUser) {
       Alert.alert(
@@ -134,7 +135,7 @@ export default function CreateStoreScreen() {
     }
     
     const finalPrice = getPlanPrice(selectedPlan);
-    console.log('💰 Final price calculated:', finalPrice, 'AZN');
+    storeLogger.debug('💰 Final price calculated:', finalPrice, 'AZN');
     
     // Import wallet functions
     const { walletBalance, spendFromWallet } = useUserStore.getState();
@@ -164,7 +165,7 @@ export default function CreateStoreScreen() {
         {
           text: language === 'az' ? '💳 Ödə və Yarat' : '💳 Оплатить и создать',
           onPress: async () => {
-            console.log('💳 Processing payment and creating store...');
+            storeLogger.debug('💳 Processing payment and creating store...');
             
             try {
               // First, process payment
@@ -177,12 +178,12 @@ export default function CreateStoreScreen() {
                 return;
               }
               
-              console.log('✅ Payment processed successfully');
+              storeLogger.debug('✅ Payment processed successfully');
               
               // Then create the store
               await activateStore(currentUser.id, selectedPlan, storeData);
               
-              console.log('✅ Store created successfully');
+              storeLogger.debug('✅ Store created successfully');
               
               Alert.alert(
                 language === 'az' ? '🎉 Mağaza Yaradıldı!' : '🎉 Магазин создан!',
@@ -192,7 +193,7 @@ export default function CreateStoreScreen() {
                 [{ text: 'OK', onPress: () => router.back() }]
               );
             } catch (error) {
-              console.error('❌ Store creation error:', error);
+              storeLogger.error('❌ Store creation error:', error);
               Alert.alert(
                 language === 'az' ? 'Yaratma Xətası' : 'Ошибка создания',
                 language === 'az' ? 'Mağaza yaradılarkən xəta baş verdi' : 'Произошла ошибка при создании магазина'
@@ -309,7 +310,7 @@ export default function CreateStoreScreen() {
           ]}
           onPress={() => {
             setSelectedPlan(plan.id);
-            console.log('Package selected:', plan.id, 'Price:', getPlanPrice(plan.id));
+            storeLogger.debug('Package selected:', plan.id, 'Price:', getPlanPrice(plan.id));
           }}
         >
           <View style={styles.planHeader}>
@@ -389,7 +390,7 @@ export default function CreateStoreScreen() {
 
   const pickProfileImageFromCamera = async () => {
     try {
-      console.log('📸 Requesting camera permissions for profile image...');
+      storeLogger.debug('📸 Requesting camera permissions for profile image...');
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert(
@@ -399,7 +400,7 @@ export default function CreateStoreScreen() {
         return;
       }
 
-      console.log('📸 Launching camera for profile image...');
+      storeLogger.debug('📸 Launching camera for profile image...');
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
@@ -407,9 +408,9 @@ export default function CreateStoreScreen() {
         quality: 0.8,
       });
 
-      console.log('📸 Camera result:', result);
+      storeLogger.debug('📸 Camera result:', result);
       if (!result.canceled && result.assets && result.assets[0]) {
-        console.log('✅ Profile image selected:', result.assets[0].uri);
+        storeLogger.debug('✅ Profile image selected:', result.assets[0].uri);
         setStoreData(prev => ({ ...prev, logo: result.assets[0].uri }));
         Alert.alert(
           language === 'az' ? 'Uğurlu!' : 'Успешно!',
@@ -417,7 +418,7 @@ export default function CreateStoreScreen() {
         );
       }
     } catch (error) {
-      console.error('❌ Camera error:', error);
+      storeLogger.error('❌ Camera error:', error);
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Şəkil çəkərkən xəta baş verdi' : 'Произошла ошибка при съемке'
@@ -427,7 +428,7 @@ export default function CreateStoreScreen() {
 
   const pickProfileImageFromGallery = async () => {
     try {
-      console.log('🖼️ Requesting media library permissions for profile image...');
+      storeLogger.debug('🖼️ Requesting media library permissions for profile image...');
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert(
@@ -437,7 +438,7 @@ export default function CreateStoreScreen() {
         return;
       }
 
-      console.log('🖼️ Launching image library for profile image...');
+      storeLogger.debug('🖼️ Launching image library for profile image...');
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
@@ -445,9 +446,9 @@ export default function CreateStoreScreen() {
         quality: 0.8,
       });
 
-      console.log('🖼️ Gallery result:', result);
+      storeLogger.debug('🖼️ Gallery result:', result);
       if (!result.canceled && result.assets && result.assets[0]) {
-        console.log('✅ Profile image selected from gallery:', result.assets[0].uri);
+        storeLogger.debug('✅ Profile image selected from gallery:', result.assets[0].uri);
         setStoreData(prev => ({ ...prev, logo: result.assets[0].uri }));
         Alert.alert(
           language === 'az' ? 'Uğurlu!' : 'Успешно!',
@@ -455,7 +456,7 @@ export default function CreateStoreScreen() {
         );
       }
     } catch (error) {
-      console.error('❌ Gallery error:', error);
+      storeLogger.error('❌ Gallery error:', error);
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Qalereya açarkən xəta baş verdi' : 'Произошла ошибка при открытии галереи'
@@ -465,7 +466,7 @@ export default function CreateStoreScreen() {
 
   const pickCoverImageFromCamera = async () => {
     try {
-      console.log('📸 Requesting camera permissions for cover image...');
+      storeLogger.debug('📸 Requesting camera permissions for cover image...');
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert(
@@ -475,7 +476,7 @@ export default function CreateStoreScreen() {
         return;
       }
 
-      console.log('📸 Launching camera for cover image...');
+      storeLogger.debug('📸 Launching camera for cover image...');
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
@@ -483,9 +484,9 @@ export default function CreateStoreScreen() {
         quality: 0.8,
       });
 
-      console.log('📸 Camera result for cover:', result);
+      storeLogger.debug('📸 Camera result for cover:', result);
       if (!result.canceled && result.assets && result.assets[0]) {
-        console.log('✅ Cover image selected:', result.assets[0].uri);
+        storeLogger.debug('✅ Cover image selected:', result.assets[0].uri);
         setStoreData(prev => ({ ...prev, coverImage: result.assets[0].uri }));
         Alert.alert(
           language === 'az' ? 'Uğurlu!' : 'Успешно!',
@@ -493,7 +494,7 @@ export default function CreateStoreScreen() {
         );
       }
     } catch (error) {
-      console.error('❌ Camera error for cover:', error);
+      storeLogger.error('❌ Camera error for cover:', error);
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Şəkil çəkərkən xəta baş verdi' : 'Произошла ошибка при съемке'
@@ -503,7 +504,7 @@ export default function CreateStoreScreen() {
 
   const pickCoverImageFromGallery = async () => {
     try {
-      console.log('🖼️ Requesting media library permissions for cover image...');
+      storeLogger.debug('🖼️ Requesting media library permissions for cover image...');
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert(
@@ -513,7 +514,7 @@ export default function CreateStoreScreen() {
         return;
       }
 
-      console.log('🖼️ Launching image library for cover image...');
+      storeLogger.debug('🖼️ Launching image library for cover image...');
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
@@ -521,9 +522,9 @@ export default function CreateStoreScreen() {
         quality: 0.8,
       });
 
-      console.log('🖼️ Gallery result for cover:', result);
+      storeLogger.debug('🖼️ Gallery result for cover:', result);
       if (!result.canceled && result.assets && result.assets[0]) {
-        console.log('✅ Cover image selected from gallery:', result.assets[0].uri);
+        storeLogger.debug('✅ Cover image selected from gallery:', result.assets[0].uri);
         setStoreData(prev => ({ ...prev, coverImage: result.assets[0].uri }));
         Alert.alert(
           language === 'az' ? 'Uğurlu!' : 'Успешno!',
@@ -531,7 +532,7 @@ export default function CreateStoreScreen() {
         );
       }
     } catch (error) {
-      console.error('❌ Gallery error for cover:', error);
+      storeLogger.error('❌ Gallery error for cover:', error);
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Qalereya açarkən xəta baş verdi' : 'Произошла ошибка при открытии галереи'
@@ -1171,15 +1172,15 @@ export default function CreateStoreScreen() {
               (currentStep === 1 && !selectedPlan) && styles.nextButtonDisabled
             ]}
             onPress={() => {
-              console.log('Next/Create button pressed, currentStep:', currentStep);
-              console.log('selectedPlan:', selectedPlan, 'selectedPayment:', selectedPayment);
+              storeLogger.debug('Next/Create button pressed, currentStep:', currentStep);
+              storeLogger.debug('selectedPlan:', selectedPlan, 'selectedPayment:', selectedPayment);
               
               // CRITICAL: Only create store on final step (step 3)
               if (currentStep === 3) {
-                console.log('🔥 FINAL STEP: Creating store');
+                storeLogger.debug('🔥 FINAL STEP: Creating store');
                 handleCreateStore();
               } else {
-                console.log('📝 NAVIGATION: Moving to next step');
+                storeLogger.debug('📝 NAVIGATION: Moving to next step');
                 handleNext();
               }
             }}

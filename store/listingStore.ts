@@ -3,6 +3,7 @@ import { listings as mockListings } from '@/mocks/listings';
 import { Listing } from '@/types/listing';
 import { useThemeStore } from './themeStore';
 
+import { logger } from '@/utils/logger';
 interface ListingState {
   listings: Listing[];
   filteredListings: Listing[];
@@ -175,7 +176,7 @@ export const useListingStore = create<ListingState>((set, get) => ({
   },
   
   addListing: (listing) => {
-    console.log('[ListingStore] Adding listing:', listing.id, listing.title);
+    logger.debug('[ListingStore] Adding listing:', listing.id, listing.title);
     set(state => ({
       listings: [listing, ...state.listings]
     }));
@@ -197,11 +198,11 @@ export const useListingStore = create<ListingState>((set, get) => ({
     }
     
     get().applyFilters();
-    console.log('[ListingStore] Listing added successfully. Total listings:', get().listings.length);
+    logger.debug('[ListingStore] Listing added successfully. Total listings:', get().listings.length);
   },
 
   addListingToStore: async (listing, storeId) => {
-    console.log('[ListingStore] addListingToStore called:', { listingId: listing.id, storeId });
+    logger.debug('[ListingStore] addListingToStore called:', { listingId: listing.id, storeId });
     
     // Add listing to main listings first
     const { addListing } = get();
@@ -209,19 +210,19 @@ export const useListingStore = create<ListingState>((set, get) => ({
     
     // Verify listing was added
     const addedListing = get().listings.find(l => l.id === listing.id);
-    console.log('[ListingStore] Listing verification after add:', addedListing ? 'Found' : 'Not found');
+    logger.debug('[ListingStore] Listing verification after add:', addedListing ? 'Found' : 'Not found');
     
     // If storeId is provided, add to store and notify followers
     if (storeId) {
       try {
-        console.log('[ListingStore] Adding listing to store:', storeId);
+        logger.debug('[ListingStore] Adding listing to store:', storeId);
         // Import store functions dynamically to avoid circular dependency
         const { useStoreStore } = await import('@/store/storeStore');
         const { addListingToStore } = useStoreStore.getState();
         await addListingToStore(storeId, listing.id);
-        console.log('[ListingStore] Successfully added listing to store');
+        logger.debug('[ListingStore] Successfully added listing to store');
       } catch (error) {
-        console.error('[ListingStore] Failed to add listing to store:', error);
+        logger.error('[ListingStore] Failed to add listing to store:', error);
       }
     }
   },
@@ -258,7 +259,7 @@ export const useListingStore = create<ListingState>((set, get) => ({
       const { deleteListingEarly } = useStoreStore.getState();
       await deleteListingEarly(storeId, id);
     } catch (error) {
-      console.error('Failed to update store deleted listings:', error);
+      logger.error('Failed to update store deleted listings:', error);
     }
     
     get().applyFilters();

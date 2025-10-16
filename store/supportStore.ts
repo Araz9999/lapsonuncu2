@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { SupportTicket, SupportResponse, SupportCategory, LiveChat, LiveChatMessage, Operator, ChatNotification } from '@/types/support';
 import { useNotificationStore } from '@/store/notificationStore';
 
+import { logger } from '@/utils/logger';
 interface SupportStore {
   tickets: SupportTicket[];
   categories: SupportCategory[];
@@ -149,7 +150,7 @@ export const useSupportStore = create<SupportStore>((set, get) => ({
         data: { ticketId: newTicket.id, type: 'support_ticket' }
       });
     } catch (error) {
-      console.log('Notification store not available:', error);
+      logger.debug('Notification store not available:', error);
     }
 
     // Simulate admin auto-response after 2 seconds
@@ -177,7 +178,7 @@ export const useSupportStore = create<SupportStore>((set, get) => ({
           data: { ticketId: newTicket.id, type: 'support_response' }
         });
       } catch (error) {
-        console.log('Notification store not available:', error);
+        logger.debug('Notification store not available:', error);
       }
     }, 2000);
   },
@@ -202,7 +203,7 @@ export const useSupportStore = create<SupportStore>((set, get) => ({
       )
     }));
 
-    console.log('Response added to ticket:', ticketId, newResponse);
+    logger.debug('Response added to ticket:', ticketId, newResponse);
   },
 
   updateTicketStatus: (ticketId, status) => {
@@ -279,7 +280,7 @@ export const useSupportStore = create<SupportStore>((set, get) => ({
         data: { chatId, type: 'support_chat' }
       });
     } catch (error) {
-      console.log('Notification store not available:', error);
+      logger.debug('Notification store not available:', error);
     }
 
     // Add notification
@@ -289,7 +290,7 @@ export const useSupportStore = create<SupportStore>((set, get) => ({
       message: `Yeni söhbət başladı: ${subject}`
     });
 
-    console.log('Live chat started:', chatId);
+    logger.debug('Live chat started:', chatId);
     return chatId;
   },
 
@@ -340,7 +341,7 @@ export const useSupportStore = create<SupportStore>((set, get) => ({
           });
         }
       } catch (error) {
-        console.log('Notification store not available:', error);
+        logger.debug('Notification store not available:', error);
       }
       
       get().addNotification({
@@ -367,7 +368,7 @@ export const useSupportStore = create<SupportStore>((set, get) => ({
       }
     }
 
-    console.log('Message sent:', newMessage);
+    logger.debug('Message sent:', newMessage);
   },
 
   assignOperator: (chatId, operatorId) => {
@@ -408,7 +409,7 @@ export const useSupportStore = create<SupportStore>((set, get) => ({
         data: { chatId, operatorId, type: 'operator_assigned' }
       });
     } catch (error) {
-      console.log('Notification store not available:', error);
+      logger.debug('Notification store not available:', error);
     }
 
     // Add notification
@@ -418,7 +419,7 @@ export const useSupportStore = create<SupportStore>((set, get) => ({
       message: `Operator təyin edildi: ${operator?.name}`
     });
 
-    console.log('Operator assigned:', operatorId, 'to chat:', chatId);
+    logger.debug('Operator assigned:', operatorId, 'to chat:', chatId);
   },
 
   closeLiveChat: (chatId) => {
@@ -457,7 +458,7 @@ export const useSupportStore = create<SupportStore>((set, get) => ({
         data: { chatId, type: 'chat_closed' }
       });
     } catch (error) {
-      console.log('Notification store not available:', error);
+      logger.debug('Notification store not available:', error);
     }
 
     // Add notification
@@ -467,7 +468,7 @@ export const useSupportStore = create<SupportStore>((set, get) => ({
       message: 'Söhbət bağlandı'
     });
 
-    console.log('Chat closed:', chatId);
+    logger.debug('Chat closed:', chatId);
   },
 
   setTyping: (chatId, userType, isTyping) => {

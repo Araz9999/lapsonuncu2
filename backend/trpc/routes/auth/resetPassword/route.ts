@@ -2,6 +2,7 @@ import { publicProcedure } from '../../../create-context';
 import { z } from 'zod';
 import { userDB } from '../../../../db/users';
 
+import { logger } from '@/utils/logger';
 export const resetPasswordProcedure = publicProcedure
   .input(
     z.object({
@@ -10,7 +11,7 @@ export const resetPasswordProcedure = publicProcedure
     })
   )
   .mutation(async ({ input }) => {
-    console.log('[Auth] Password reset attempt');
+    logger.debug('[Auth] Password reset attempt');
 
     const user = await userDB.findByPasswordResetToken(input.token);
     if (!user) {
@@ -20,7 +21,7 @@ export const resetPasswordProcedure = publicProcedure
     const passwordHash = await hashPassword(input.password);
     await userDB.updatePassword(user.id, passwordHash);
 
-    console.log('[Auth] Password reset successfully:', user.id);
+    logger.debug('[Auth] Password reset successfully:', user.id);
 
     return {
       success: true,

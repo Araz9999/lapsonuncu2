@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { userDB } from '../../../../db/users';
 import { emailService } from '../../../../services/email';
 
+import { logger } from '@/utils/logger';
 export const verifyEmailProcedure = publicProcedure
   .input(
     z.object({
@@ -10,7 +11,7 @@ export const verifyEmailProcedure = publicProcedure
     })
   )
   .mutation(async ({ input }) => {
-    console.log('[Auth] Email verification attempt');
+    logger.debug('[Auth] Email verification attempt');
 
     const user = await userDB.findByVerificationToken(input.token);
     if (!user) {
@@ -29,7 +30,7 @@ export const verifyEmailProcedure = publicProcedure
 
     await emailService.sendWelcomeEmail(user.email, user.name);
 
-    console.log('[Auth] Email verified successfully:', user.id);
+    logger.debug('[Auth] Email verified successfully:', user.id);
 
     return {
       success: true,

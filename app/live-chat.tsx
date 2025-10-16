@@ -27,6 +27,7 @@ import {
 } from 'lucide-react-native';
 import FileAttachmentPicker, { FileAttachment } from '@/components/FileAttachmentPicker';
 
+import { logger } from '@/utils/logger';
 const { width } = Dimensions.get('window');
 
 export default function LiveChatScreen() {
@@ -107,7 +108,7 @@ export default function LiveChatScreen() {
 
   const handleStartChat = () => {
     if (!currentUser) {
-      console.log('[LiveChat] Cannot start chat: user not logged in');
+      logger.debug('[LiveChat] Cannot start chat: user not logged in');
       return;
     }
     if (!selectedCategory || !subject.trim()) return;

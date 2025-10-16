@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { userDB } from '../../../../db/users';
 import { generateTokenPair } from '../../../../utils/jwt';
 
+import { logger } from '@/utils/logger';
 export const loginProcedure = publicProcedure
   .input(
     z.object({
@@ -11,7 +12,7 @@ export const loginProcedure = publicProcedure
     })
   )
   .mutation(async ({ input }) => {
-    console.log('[Auth] Login attempt:', input.email);
+    logger.debug('[Auth] Login attempt:', input.email);
 
     const user = await userDB.findByEmail(input.email);
     if (!user || !user.passwordHash) {
@@ -29,7 +30,7 @@ export const loginProcedure = publicProcedure
       role: user.role,
     });
 
-    console.log('[Auth] User logged in successfully:', user.id);
+    logger.debug('[Auth] User logged in successfully:', user.id);
 
     return {
       user: {

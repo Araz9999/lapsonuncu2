@@ -3,6 +3,7 @@ import { publicProcedure } from '../../../create-context';
 import config from '@/constants/config';
 import { PayriffResponse, isPayriffSuccess, getPayriffErrorMessage } from '@/constants/payriffCodes';
 
+import { logger } from '@/utils/logger';
 export const refundProcedure = publicProcedure
   .input(
     z.object({
@@ -38,7 +39,7 @@ export const refundProcedure = publicProcedure
 
     if (!response.ok || !isPayriffSuccess(data)) {
       const errorMessage = getPayriffErrorMessage(data);
-      console.error('Refund error:', errorMessage);
+      logger.error('Refund error:', errorMessage);
       throw new Error(errorMessage);
     }
 

@@ -17,6 +17,7 @@ import RatingsList from '@/components/RatingsList';
 import { RatingWithUser } from '@/types/rating';
 import UserActionModal from '@/components/UserActionModal';
 
+import { logger } from '@/utils/logger';
 export default function UserProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { language } = useLanguageStore();
@@ -133,7 +134,7 @@ export default function UserProfileScreen() {
                 Linking.openURL(`tel:${user.phone}`);
               }
             } catch (error) {
-              console.error('Failed to initiate call:', error);
+              logger.error('Failed to initiate call:', error);
             }
           }}
         >
