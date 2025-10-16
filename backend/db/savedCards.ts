@@ -1,4 +1,7 @@
+< cursor/fix-many-bugs-and-errors-4e56
 import { apiLogger } from '@/utils/logger';
+import { logger } from '../../utils/logger';
+> Araz
 
 export interface SavedCard {
   id: string;
@@ -34,7 +37,10 @@ class SavedCardsDatabase {
     }
     this.userCardsIndex.get(cardData.userId)!.add(id);
 
+< cursor/fix-many-bugs-and-errors-4e56
     apiLogger.debug(`[DB] Saved card: ${id} for user: ${cardData.userId}`);
+logger.info(`[DB] Saved card: ${id} for user: ${cardData.userId}`);
+> Araz
     return card;
   }
 
@@ -80,7 +86,11 @@ class SavedCardsDatabase {
       }
     }
 
+< cursor/fix-many-bugs-and-errors-4e56
     apiLogger.debug(`[DB] Deleted card: ${id}`);
+=======
+    logger.info(`[DB] Deleted card: ${id}`);
+> Araz
     return true;
   }
 
@@ -91,7 +101,11 @@ class SavedCardsDatabase {
     card.lastUsed = new Date().toISOString();
     this.cards.set(id, card);
 
+< cursor/fix-many-bugs-and-errors-4e56
     apiLogger.debug(`[DB] Updated last used for card: ${id}`);
+=======
+    logger.info(`[DB] Updated last used for card: ${id}`);
+> Araz
     return true;
   }
 

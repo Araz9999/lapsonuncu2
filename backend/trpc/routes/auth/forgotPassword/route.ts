@@ -2,6 +2,7 @@ import { publicProcedure } from '../../../create-context';
 import { z } from 'zod';
 import { userDB } from '../../../../db/users';
 import { emailService } from '../../../../services/email';
+import { generateRandomToken } from '../../../../utils/password';
 
 import { logger } from '@/utils/logger';
 export const forgotPasswordProcedure = publicProcedure
@@ -45,8 +46,3 @@ export const forgotPasswordProcedure = publicProcedure
     };
   });
 
-function generateRandomToken(): string {
-  const array = new Uint8Array(32);
-  crypto.getRandomValues(array);
-  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
-}

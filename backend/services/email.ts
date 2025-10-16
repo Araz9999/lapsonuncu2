@@ -1,4 +1,8 @@
+< cursor/fix-many-bugs-and-errors-4e56
 import { apiLogger } from '@/utils/logger';
+=======
+import { logger } from '../../utils/logger';
+> Araz
 
 interface EmailOptions {
   to: string;
@@ -36,11 +40,16 @@ class EmailService {
 
   async sendEmail(options: EmailOptions): Promise<boolean> {
     if (!this.isConfigured()) {
+< cursor/fix-many-bugs-and-errors-4e56
       apiLogger.warn('[Email] Resend not configured, skipping email send');
+=======
+      logger.warn('[Email] Resend not configured, skipping email send');
+> Araz
       return false;
     }
 
     try {
+      // BUG FIX: Add timeout to prevent hanging requests
       const response = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
@@ -54,10 +63,13 @@ class EmailService {
           html: options.html,
           ...(options.text ? { text: options.text } : {}),
         }),
+        signal: AbortSignal.timeout(15000), // 15 second timeout
       });
 
       if (!response.ok) {
+< cursor/fix-many-bugs-and-errors-2981
         const errorText = await response.text();
+< cursor/fix-many-bugs-and-errors-4e56
         apiLogger.error('[Email] Resend API error:', errorText);
         return false;
       }
@@ -66,6 +78,35 @@ class EmailService {
       return true;
     } catch (error) {
       apiLogger.error('[Email] Failed to send email:', error);
+=======
+        logger.error('[Email] Resend API error:', errorText);
+
+        // BUG FIX: Handle response parsing errors
+        let errorText = 'Unknown error';
+        try {
+          errorText = await response.text();
+        } catch (parseError) {
+          console.error('[Email] Failed to parse error response:', parseError);
+        }
+        console.error('[Email] Resend API error:', errorText);
+> Araz
+        return false;
+      }
+
+      logger.info(`[Email] Successfully sent email to ${options.to}`);
+      return true;
+    } catch (error) {
+< cursor/fix-many-bugs-and-errors-2981
+      logger.error('[Email] Failed to send email:', error);
+
+      // BUG FIX: More detailed error logging
+      if (error instanceof Error) {
+        console.error('[Email] Failed to send email:', error.message);
+      } else {
+        console.error('[Email] Failed to send email:', error);
+      }
+> Araz
+> Araz
       return false;
     }
   }

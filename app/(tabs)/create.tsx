@@ -12,6 +12,7 @@ import { locations } from '@/constants/locations';
 import { adPackages } from '@/constants/adPackages';
 import Colors from '@/constants/colors';
 import { Listing } from '@/types/listing';
+import { Category } from '@/types/category';
 import { Camera, ChevronDown, Plus, Check, Clock, Award, Image as ImageIcon, MapPin, Info, AlertCircle, Search, ChevronLeft, ChevronRight } from 'lucide-react-native';
 
 import { logger } from '@/utils/logger';
@@ -490,7 +491,7 @@ export default function CreateListingScreen() {
   };
 
   // Category navigation functions
-  const handleCategoryPress = (category: any) => {
+  const handleCategoryPress = (category: Category) => {
     if (currentCategoryLevel === 'main') {
       setSelectedCategory(category.id);
       setSelectedSubcategory(null);
@@ -601,7 +602,7 @@ export default function CreateListingScreen() {
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.categoriesContainer}
             >
-              {currentCategories.map((item: any) => (
+              {currentCategories.map((item: Category) => (
                 <TouchableOpacity
                   key={item.id}
                   style={styles.modalItem}

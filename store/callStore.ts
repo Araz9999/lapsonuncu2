@@ -2,14 +2,19 @@ import { create } from 'zustand';
 import { Call, ActiveCall, CallStatus, CallType } from '@/types/call';
 import { users } from '@/mocks/users';
 import { Platform } from 'react-native';
+< cursor/fix-many-bugs-and-errors-4e56
 import { storeLogger } from '@/utils/logger';
+=======
+import { logger } from '@/utils/logger';
+import { Audio } from 'expo-av';
+> Araz
 
 interface CallStore {
   calls: Call[];
   activeCall: ActiveCall | null;
   incomingCall: Call | null;
-  ringtoneSound: any | null;
-  dialToneSound: any | null;
+  ringtoneSound: Audio.Sound | null;
+  dialToneSound: Audio.Sound | null;
   ringtoneInterval: NodeJS.Timeout | null;
   dialToneInterval: NodeJS.Timeout | null;
   
@@ -91,7 +96,11 @@ export const useCallStore = create<CallStore>((set, get) => ({
   dialToneInterval: null,
   
   initiateCall: async (receiverId: string, listingId: string, type: CallType) => {
+< cursor/fix-many-bugs-and-errors-4e56
     storeLogger.debug('Initiating call to:', receiverId);
+=======
+    logger.info('CallStore - initiating call to:', receiverId);
+> Araz
     
     const callId = Date.now().toString();
     const newCall: Call = {
@@ -147,7 +156,7 @@ export const useCallStore = create<CallStore>((set, get) => ({
   },
   
   answerCall: (callId: string) => {
-    console.log('CallStore - answering call:', callId);
+    logger.info('CallStore - answering call:', callId);
     
     const call = get().calls.find(c => c.id === callId);
     if (!call) return;
@@ -182,7 +191,7 @@ export const useCallStore = create<CallStore>((set, get) => ({
   },
   
   declineCall: (callId: string) => {
-    console.log('CallStore - declining call:', callId);
+    logger.info('CallStore - declining call:', callId);
     
     // Stop ringtone
     get().stopAllSounds();
@@ -198,7 +207,7 @@ export const useCallStore = create<CallStore>((set, get) => ({
   },
   
   endCall: (callId: string) => {
-    console.log('CallStore - ending call:', callId);
+    logger.info('CallStore - ending call:', callId);
     
     const activeCall = get().activeCall;
     if (!activeCall) return;
@@ -274,45 +283,45 @@ export const useCallStore = create<CallStore>((set, get) => ({
   },
   
   deleteCall: (callId: string) => {
-    console.log('CallStore - deleting call:', callId);
+    logger.info('CallStore - deleting call:', callId);
     set((state) => ({
       calls: state.calls.filter(call => call.id !== callId),
     }));
   },
   
   clearAllCallHistory: () => {
-    console.log('CallStore - clearing all call history');
+    logger.info('CallStore - clearing all call history');
     set({ calls: [] });
   },
   
   initializeSounds: async () => {
     if (Platform.OS === 'web') {
-      console.log('Sound initialization skipped for web platform');
+      logger.info('Sound initialization skipped for web platform');
       return;
     }
 
     try {
-      console.log('Initializing sounds (no audio engine required in Expo Go v53)...');
+      logger.info('Initializing sounds (no audio engine required in Expo Go v53)...');
       set({ ringtoneSound: null, dialToneSound: null });
     } catch (error) {
-      console.log('Sound init fallback used:', error);
+      logger.warn('Sound init fallback used:', error);
       set({ ringtoneSound: null, dialToneSound: null });
     }
   },
   
   playRingtone: async () => {
     if (Platform.OS === 'web') {
-      console.log('Ringtone playback skipped for web platform');
+      logger.info('Ringtone playback skipped for web platform');
       return;
     }
     
     try {
-      console.log('Playing ringtone with haptic feedback...');
+      logger.info('Playing ringtone with haptic feedback...');
       const Haptics = await import('expo-haptics');
       
       if (Haptics && Haptics.notificationAsync) {
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        console.log('Initial ringtone haptic feedback played');
+        logger.info('Initial ringtone haptic feedback played');
         
         // Create a repeating pattern for incoming call
         const ringtoneInterval = setInterval(async () => {
@@ -328,26 +337,26 @@ export const useCallStore = create<CallStore>((set, get) => ({
         // Store interval for cleanup
         set({ ringtoneInterval });
       } else {
-        console.log('Haptics not available, using console notification');
+        logger.warn('Haptics not available, using console notification');
       }
     } catch (error) {
-      console.error('Failed to play ringtone, using fallback:', error);
+      logger.error('Failed to play ringtone, using fallback:', error);
     }
   },
   
   playDialTone: async () => {
     if (Platform.OS === 'web') {
-      console.log('Dial tone playback skipped for web platform');
+      logger.info('Dial tone playback skipped for web platform');
       return;
     }
     
     try {
-      console.log('Playing dial tone with haptic feedback...');
+      logger.info('Playing dial tone with haptic feedback...');
       const Haptics = await import('expo-haptics');
       
       if (Haptics && Haptics.impactAsync) {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        console.log('Initial dial tone haptic feedback played');
+        logger.info('Initial dial tone haptic feedback played');
         
         // Create a repeating pattern for outgoing call
         const dialToneInterval = setInterval(async () => {
@@ -363,49 +372,49 @@ export const useCallStore = create<CallStore>((set, get) => ({
         // Store interval for cleanup
         set({ dialToneInterval });
       } else {
-        console.log('Haptics not available, using console notification');
+        logger.warn('Haptics not available, using console notification');
       }
     } catch (error) {
-      console.error('Failed to play dial tone, using fallback:', error);
+      logger.error('Failed to play dial tone, using fallback:', error);
     }
   },
   
   stopAllSounds: async () => {
     if (Platform.OS === 'web') {
-      console.log('Sound stopping skipped for web platform');
+      logger.info('Sound stopping skipped for web platform');
       return;
     }
     
     const state = get();
     
     try {
-      console.log('Stopping all sounds and haptic patterns...');
+      logger.info('Stopping all sounds and haptic patterns...');
       
       // Clear haptic intervals
       if (state.ringtoneInterval) {
         clearInterval(state.ringtoneInterval);
         set({ ringtoneInterval: null });
-        console.log('Ringtone interval cleared');
+        logger.info('Ringtone interval cleared');
       }
       if (state.dialToneInterval) {
         clearInterval(state.dialToneInterval);
         set({ dialToneInterval: null });
-        console.log('Dial tone interval cleared');
+        logger.info('Dial tone interval cleared');
       }
       
       // Stop any actual sounds if they exist
       if (state.ringtoneSound && state.ringtoneSound.stopAsync) {
         await state.ringtoneSound.stopAsync();
-        console.log('Ringtone sound stopped');
+        logger.info('Ringtone sound stopped');
       }
       if (state.dialToneSound && state.dialToneSound.stopAsync) {
         await state.dialToneSound.stopAsync();
-        console.log('Dial tone sound stopped');
+        logger.info('Dial tone sound stopped');
       }
       
-      console.log('All sounds and haptic patterns stopped successfully');
+      logger.info('All sounds and haptic patterns stopped successfully');
     } catch (error) {
-      console.error('Failed to stop sounds, continuing anyway:', error);
+      logger.error('Failed to stop sounds, continuing anyway:', error);
     }
   },
   
@@ -463,7 +472,7 @@ export const useCallStore = create<CallStore>((set, get) => ({
             }
           });
         } catch (error) {
-          console.log('Notifications not available:', error);
+          logger.warn('Notifications not available:', error);
         }
       })();
     }

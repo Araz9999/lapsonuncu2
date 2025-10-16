@@ -39,14 +39,22 @@ export const createOrderProcedure = publicProcedure
 
     // Avoid logging sensitive request bodies
 
-    const response = await fetch(`${baseUrl}/api/v3/orders`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': secretKey,
-      },
-      body: JSON.stringify(requestBody),
-    });
+    // BUG FIX: Add error handling for network failures
+    let response;
+    try {
+      response = await fetch(`${baseUrl}/api/v3/orders`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': secretKey,
+        },
+        body: JSON.stringify(requestBody),
+        signal: AbortSignal.timeout(30000), // 30 second timeout
+      });
+    } catch (error) {
+      console.error('Network error during order creation:', error);
+      throw new Error('Network error: Unable to connect to payment service');
+    }
 
     const data: PayriffResponse = await response.json();
 

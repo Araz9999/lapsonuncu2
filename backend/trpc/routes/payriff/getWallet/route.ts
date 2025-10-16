@@ -9,15 +9,28 @@ export const getWalletProcedure = publicProcedure.query(async () => {
     const secretKey = config.PAYRIFF_SECRET_KEY;
     const baseUrl = config.PAYRIFF_BASE_URL || 'https://api.payriff.com';
 
+    // BUG FIX: Validate secretKey before using
+    if (!secretKey) {
+      throw new Error('Payriff credentials not configured');
+    }
+
     // Avoid verbose logs in production
 
-    const response = await fetch(`${baseUrl}/api/v2/wallet`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': secretKey as string,
-      },
-    });
+    // BUG FIX: Add network error handling with timeout
+    let response;
+    try {
+      response = await fetch(`${baseUrl}/api/v2/wallet`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': secretKey,
+        },
+        signal: AbortSignal.timeout(30000),
+      });
+    } catch (error) {
+      console.error('Network error fetching wallet:', error);
+      throw new Error('Network error: Unable to connect to payment service');
+    }
 
     const data: PayriffResponse = await response.json();
 
@@ -28,7 +41,11 @@ export const getWalletProcedure = publicProcedure.query(async () => {
 
     return data;
   } catch (error) {
+< cursor/fix-many-bugs-and-errors-4e56
     logger.error('Payriff get wallet failed');
+=======
+    console.error('Payriff get wallet failed:', error);
+> Araz
     throw error;
   }
 });

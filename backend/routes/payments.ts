@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { logger } from '../../utils/logger';
 import { payriffService } from '../services/payriff';
 import { z } from 'zod';
 import crypto from 'crypto';

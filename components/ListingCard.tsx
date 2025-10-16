@@ -490,7 +490,7 @@ const ListingCard = React.memo(function ListingCard({
       frameBlinkAnim.setValue(1);
       frameGlowAnim.setValue(0);
     };
-  }, [hasActivePromotion, hasCreativeEffects]);
+  }, [hasActivePromotion, hasCreativeEffects, activeCreativeEffects, activeCampaigns.length, pulseAnim, rotateAnim, glowAnim, sparkleAnim, fireAnim, frameBlinkAnim, frameGlowAnim]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);

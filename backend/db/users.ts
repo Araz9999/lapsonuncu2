@@ -1,4 +1,8 @@
+< cursor/fix-many-bugs-and-errors-4e56
 import { apiLogger } from '@/utils/logger';
+=======
+import { logger } from '../../utils/logger';
+> Araz
 
 export interface SocialProvider {
   provider: 'google' | 'facebook' | 'vk';
@@ -33,9 +37,61 @@ class UserDatabase {
   private socialIndex: Map<string, string> = new Map();
   private verificationTokenIndex: Map<string, string> = new Map();
   private passwordResetTokenIndex: Map<string, string> = new Map();
+  private cleanupInterval: NodeJS.Timeout | null = null;
 
   constructor() {
     this.initializeDefaultUsers();
+    this.startCleanupTask();
+  }
+
+  /**
+   * BUG FIX: Periodically clean up expired tokens to prevent memory leaks
+   */
+  private startCleanupTask() {
+    // Run cleanup every hour
+    this.cleanupInterval = setInterval(() => {
+      this.cleanupExpiredTokens();
+    }, 60 * 60 * 1000);
+  }
+
+  /**
+   * BUG FIX: Remove expired tokens from memory
+   */
+  private cleanupExpiredTokens() {
+    const now = new Date();
+    let cleanedCount = 0;
+
+    // Clean up verification tokens
+    for (const [token, userId] of this.verificationTokenIndex.entries()) {
+      const user = this.users.get(userId);
+      if (user?.verificationTokenExpiry && new Date(user.verificationTokenExpiry) < now) {
+        this.verificationTokenIndex.delete(token);
+        cleanedCount++;
+      }
+    }
+
+    // Clean up password reset tokens
+    for (const [token, userId] of this.passwordResetTokenIndex.entries()) {
+      const user = this.users.get(userId);
+      if (user?.passwordResetTokenExpiry && new Date(user.passwordResetTokenExpiry) < now) {
+        this.passwordResetTokenIndex.delete(token);
+        cleanedCount++;
+      }
+    }
+
+    if (cleanedCount > 0) {
+      console.log(`[DB] Cleaned up ${cleanedCount} expired tokens`);
+    }
+  }
+
+  /**
+   * BUG FIX: Cleanup method for graceful shutdown
+   */
+  public cleanup() {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
   }
 
   private initializeDefaultUsers() {
@@ -105,7 +161,11 @@ class UserDatabase {
       this.socialIndex.set(key, id);
     });
 
+< cursor/fix-many-bugs-and-errors-4e56
     apiLogger.debug(`[DB] Created user: ${user.id} (${user.email})`);
+=======
+    logger.info(`[DB] Created user: ${user.id} (${user.email})`);
+> Araz
     return user;
   }
 
@@ -128,7 +188,11 @@ class UserDatabase {
       this.emailIndex.set(updates.email.toLowerCase(), id);
     }
 
+< cursor/fix-many-bugs-and-errors-4e56
     apiLogger.debug(`[DB] Updated user: ${id}`);
+=======
+    logger.info(`[DB] Updated user: ${id}`);
+> Araz
     return updatedUser;
   }
 
@@ -152,7 +216,11 @@ class UserDatabase {
     user.updatedAt = new Date().toISOString();
     this.users.set(userId, user);
 
+< cursor/fix-many-bugs-and-errors-4e56
     apiLogger.debug(`[DB] Added ${provider.provider} provider to user: ${userId}`);
+=======
+    logger.info(`[DB] Added ${provider.provider} provider to user: ${userId}`);
+> Araz
     return user;
   }
 
@@ -160,6 +228,7 @@ class UserDatabase {
     const user = this.users.get(id);
     if (!user) return false;
 
+    // BUG FIX: Remove from all indexes to prevent stale references
     this.emailIndex.delete(user.email.toLowerCase());
     
     user.socialProviders.forEach(provider => {
@@ -167,8 +236,20 @@ class UserDatabase {
       this.socialIndex.delete(key);
     });
 
+    // BUG FIX: Clean up token indexes
+    if (user.verificationToken) {
+      this.verificationTokenIndex.delete(user.verificationToken);
+    }
+    if (user.passwordResetToken) {
+      this.passwordResetTokenIndex.delete(user.passwordResetToken);
+    }
+
     this.users.delete(id);
+< cursor/fix-many-bugs-and-errors-4e56
     apiLogger.debug(`[DB] Deleted user: ${id}`);
+=======
+    logger.info(`[DB] Deleted user: ${id}`);
+> Araz
     return true;
   }
 
@@ -216,7 +297,11 @@ class UserDatabase {
     this.users.set(userId, user);
     this.verificationTokenIndex.set(token, userId);
 
+< cursor/fix-many-bugs-and-errors-4e56
     apiLogger.debug(`[DB] Set verification token for user: ${userId}`);
+=======
+    logger.info(`[DB] Set verification token for user: ${userId}`);
+> Araz
     return true;
   }
 
@@ -234,7 +319,11 @@ class UserDatabase {
     this.users.set(userId, user);
     this.passwordResetTokenIndex.set(token, userId);
 
+< cursor/fix-many-bugs-and-errors-4e56
     apiLogger.debug(`[DB] Set password reset token for user: ${userId}`);
+=======
+    logger.info(`[DB] Set password reset token for user: ${userId}`);
+> Araz
     return true;
   }
 
@@ -253,7 +342,11 @@ class UserDatabase {
 
     this.users.set(userId, user);
 
+< cursor/fix-many-bugs-and-errors-4e56
     apiLogger.debug(`[DB] Verified email for user: ${userId}`);
+=======
+    logger.info(`[DB] Verified email for user: ${userId}`);
+> Araz
     return true;
   }
 
@@ -272,7 +365,11 @@ class UserDatabase {
 
     this.users.set(userId, user);
 
+< cursor/fix-many-bugs-and-errors-4e56
     apiLogger.debug(`[DB] Updated password for user: ${userId}`);
+=======
+    logger.info(`[DB] Updated password for user: ${userId}`);
+> Araz
     return true;
   }
 }
