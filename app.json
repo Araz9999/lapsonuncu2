@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "papap",
-    "slug": "azerbaijan-rus-avito-app",
+    "name": "Naxtap",
+    "slug": "naxtap-marketplace",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -22,7 +22,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "app.rork.azerbaijan-rus-avito-app",
+      "bundleIdentifier": "com.naxtap.marketplace",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Allow $(PRODUCT_NAME) to access your photos",
         "NSCameraUsageDescription": "Allow $(PRODUCT_NAME) to access your camera",
@@ -38,7 +38,7 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "app.rork.azerbaijan-rus-avito-app",
+      "package": "com.naxtap.marketplace",
       "permissions": [
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
@@ -57,7 +57,7 @@
       [
         "expo-router",
         {
-          "origin": "https://rork.com/"
+          "origin": "https://naxtap.az/"
         }
       ],
       [

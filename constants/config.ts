@@ -4,8 +4,8 @@ import { Platform } from 'react-native';
 export const API_CONFIG = {
   // Base URLs
   BASE_URL: Platform.select({
-    web: typeof window !== 'undefined' && window.location ? `${window.location.origin}/api` : 'http://localhost:8081/api',
-    default: 'http://localhost:8081/api'
+    web: typeof window !== 'undefined' && window.location ? `${window.location.origin}/api` : 'https://naxtap.az/api',
+    default: 'https://naxtap.az/api'
   }),
   
   // AI Services
@@ -23,7 +23,7 @@ export const API_CONFIG = {
   PAYRIFF_MERCHANT_ID: '',
   PAYRIFF_SECRET_KEY: '',
   PAYRIFF_BASE_URL: 'https://api.payriff.com',
-  FRONTEND_URL: 'https://1r36dhx42va8pxqbqz5ja.rork.app',
+  FRONTEND_URL: 'https://naxtap.az',
   
   // Push Notifications
   EXPO_PUSH_TOKEN: '',
@@ -92,8 +92,8 @@ export const getEnvironmentConfig = () => {
     return {
       ...API_CONFIG,
       BASE_URL: Platform.select({
-        web: typeof window !== 'undefined' && window.location ? `${window.location.origin}/api` : 'http://localhost:8081/api',
-        default: 'http://localhost:8081/api'
+        web: typeof window !== 'undefined' && window.location ? `${window.location.origin}/api` : 'https://naxtap.az/api',
+        default: 'https://naxtap.az/api'
       }),
       ENABLE_ANALYTICS: false, // Disable analytics in development
     };
