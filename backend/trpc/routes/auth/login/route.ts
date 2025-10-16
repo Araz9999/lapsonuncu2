@@ -1,5 +1,6 @@
 import { publicProcedure } from '../../../create-context';
 import { z } from 'zod';
+import { logger } from '../../../../../utils/logger';
 import { userDB } from '../../../../db/users';
 import { generateTokenPair } from '../../../../utils/jwt';
 
@@ -12,7 +13,11 @@ export const loginProcedure = publicProcedure
     })
   )
   .mutation(async ({ input }) => {
+< cursor/fix-many-bugs-and-errors-4e56
     logger.debug('[Auth] Login attempt:', input.email);
+=======
+    logger.info('[Auth] Login attempt:', input.email);
+> Araz
 
     const user = await userDB.findByEmail(input.email);
     if (!user || !user.passwordHash) {
@@ -30,7 +35,11 @@ export const loginProcedure = publicProcedure
       role: user.role,
     });
 
+< cursor/fix-many-bugs-and-errors-4e56
     logger.debug('[Auth] User logged in successfully:', user.id);
+=======
+    logger.info('[Auth] User logged in successfully:', user.id);
+> Araz
 
     return {
       user: {
@@ -58,7 +67,13 @@ async function verifyPassword(password: string, storedHash: string): Promise<boo
   }
   
   const encoder = new TextEncoder();
-  const salt = new Uint8Array(saltHex.match(/.{2}/g)!.map(byte => parseInt(byte, 16)));
+  const saltBytes = saltHex.match(/.{2}/g);
+  if (!saltBytes) {
+    // Invalid salt format - reject authentication
+    console.error('[Auth] Invalid salt format in stored hash');
+    return false;
+  }
+  const salt = new Uint8Array(saltBytes.map(byte => parseInt(byte, 16)));
   
   const keyMaterial = await crypto.subtle.importKey(
     'raw',

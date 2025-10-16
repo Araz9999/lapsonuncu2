@@ -1,4 +1,5 @@
 import { Context, Next } from 'hono';
+import { logger } from '../../utils/logger';
 
 import { logger } from '@/utils/logger';
 interface RateLimitConfig {

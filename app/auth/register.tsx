@@ -9,7 +9,10 @@ import { X, Eye, EyeOff, Check, Phone, Camera, User as UserIcon, Facebook, Chrom
 import * as ImagePicker from 'expo-image-picker';
 import { trpc } from '@/lib/trpc';
 import { initiateSocialLogin, showSocialLoginError } from '@/utils/socialAuth';
+< cursor/fix-many-bugs-and-errors-4e56
 import { authLogger } from '@/utils/logger';
+import { logger } from '@/utils/logger';
+> Araz
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -100,11 +103,15 @@ export default function RegisterScreen() {
           ]
         );
       }
+< cursor/fix-many-bugs-and-errors-4e56
     } catch (error: any) {
       authLogger.error('Registration failed', error);
+   } catch (error: unknown) {
+      logger.error('[Register] Error:', error);
+> Araz
       Alert.alert(
         t('error') || 'Xəta',
-        error.message || 'Qeydiyyat zamanı xəta baş verdi'
+        error instanceof Error ? error.message : 'Qeydiyyat zamanı xəta baş verdi'
       );
     } finally {
       setIsLoading(false);
@@ -207,7 +214,11 @@ export default function RegisterScreen() {
         setProfileImage(result.assets[0].uri);
       }
     } catch (error) {
+< cursor/fix-many-bugs-and-errors-4e56
       authLogger.error('Image picker failed', error);
+=======
+      logger.error('Image picker error:', error);
+> Araz
       Alert.alert(
         t('error'),
         language === 'az' ? 'Şəkil seçilə bilmədi' : 'Не удалось выбрать изображение'
@@ -245,7 +256,10 @@ export default function RegisterScreen() {
         setProfileImage(result.assets[0].uri);
       }
     } catch (error) {
+< cursor/fix-many-bugs-and-errors-4e56
       authLogger.error('Camera failed', error);
+    logger.error('Camera error:', error);
+> Araz
       Alert.alert(
         t('error'),
         language === 'az' ? 'Şəkil çəkilə bilmədi' : 'Не удалось сделать фото'

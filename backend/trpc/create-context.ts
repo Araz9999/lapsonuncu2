@@ -2,6 +2,7 @@ import { FetchCreateContextFnOptions } from "@trpc/server/adapters/fetch";
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { verifyToken } from "../utils/jwt";
+import { logger } from "../../utils/logger";
 
 import { logger } from '@/utils/logger';
 export const createContext = async (opts: FetchCreateContextFnOptions) => {

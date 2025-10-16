@@ -7,9 +7,9 @@ import { logger } from '@/utils/logger';
 export const transferProcedure = publicProcedure
   .input(
     z.object({
-      toMerchant: z.string(),
+      toMerchant: z.string().min(1),
       amount: z.number().positive(),
-      description: z.string(),
+      description: z.string().min(1),
     })
   )
   .mutation(async ({ ctx, input }) => {
@@ -19,6 +19,14 @@ export const transferProcedure = publicProcedure
 
     if (!merchantId || !secretKey) {
       throw new Error('Payriff credentials not configured');
+    }
+
+    // BUG FIX: Add amount bounds validation
+    if (input.amount > 10000) {
+      throw new Error('Maximum transfer amount is 10,000 AZN');
+    }
+    if (input.amount < 0.01) {
+      throw new Error('Minimum transfer amount is 0.01 AZN');
     }
 
     const requestBody = {
@@ -32,14 +40,22 @@ export const transferProcedure = publicProcedure
 
     // Avoid logging sensitive headers/body
 
-    const response = await fetch(`${baseUrl}/api/v2/transfer`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': secretKey,
-      },
-      body: JSON.stringify(requestBody),
-    });
+    // BUG FIX: Add network error handling
+    let response;
+    try {
+      response = await fetch(`${baseUrl}/api/v2/transfer`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': secretKey,
+        },
+        body: JSON.stringify(requestBody),
+        signal: AbortSignal.timeout(30000),
+      });
+    } catch (error) {
+      console.error('Network error during transfer:', error);
+      throw new Error('Network error: Unable to connect to payment service');
+    }
 
     const data: PayriffResponse = await response.json();
     logger.debug('Transfer response:', JSON.stringify(data, null, 2));
