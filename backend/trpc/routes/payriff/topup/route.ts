@@ -20,6 +20,12 @@ export const topupProcedure = publicProcedure
       throw new Error('Payriff credentials not configured');
     }
 
+    // BUG FIX: Validate phone number format on backend
+    const phoneRegex = /^994\d{9}$/;
+    if (!phoneRegex.test(input.phoneNumber)) {
+      throw new Error('Invalid phone number format. Must be 994XXXXXXXXX (12 digits)');
+    }
+
     const requestBody = {
       merchant: merchantId,
       body: {
@@ -31,14 +37,22 @@ export const topupProcedure = publicProcedure
 
     // Avoid logging sensitive request bodies
 
-    const response = await fetch(`${baseUrl}/api/v2/topup`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': secretKey,
-      },
-      body: JSON.stringify(requestBody),
-    });
+    // BUG FIX: Add network error handling
+    let response;
+    try {
+      response = await fetch(`${baseUrl}/api/v2/topup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': secretKey,
+        },
+        body: JSON.stringify(requestBody),
+        signal: AbortSignal.timeout(30000),
+      });
+    } catch (error) {
+      console.error('Network error during topup:', error);
+      throw new Error('Network error: Unable to connect to payment service');
+    }
 
     const data: PayriffResponse = await response.json();
 

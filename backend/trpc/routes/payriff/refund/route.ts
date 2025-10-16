@@ -25,14 +25,22 @@ export const refundProcedure = publicProcedure
 
     // Avoid logging sensitive request bodies
 
-    const response = await fetch(`${baseUrl}/api/v3/refund`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': secretKey,
-      },
-      body: JSON.stringify(requestBody),
-    });
+    // BUG FIX: Add network error handling
+    let response;
+    try {
+      response = await fetch(`${baseUrl}/api/v3/refund`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': secretKey,
+        },
+        body: JSON.stringify(requestBody),
+        signal: AbortSignal.timeout(30000),
+      });
+    } catch (error) {
+      console.error('Network error during refund:', error);
+      throw new Error('Network error: Unable to connect to payment service');
+    }
 
     const data: PayriffResponse = await response.json();
 
