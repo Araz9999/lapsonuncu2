@@ -58,7 +58,13 @@ async function verifyPassword(password: string, storedHash: string): Promise<boo
   }
   
   const encoder = new TextEncoder();
-  const salt = new Uint8Array(saltHex.match(/.{2}/g)!.map(byte => parseInt(byte, 16)));
+  const saltBytes = saltHex.match(/.{2}/g);
+  if (!saltBytes) {
+    // Invalid salt format - reject authentication
+    console.error('[Auth] Invalid salt format in stored hash');
+    return false;
+  }
+  const salt = new Uint8Array(saltBytes.map(byte => parseInt(byte, 16)));
   
   const keyMaterial = await crypto.subtle.importKey(
     'raw',
