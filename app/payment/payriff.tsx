@@ -20,7 +20,7 @@ export default function PayriffPaymentScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
   
-  const amount = parseFloat(params.amount as string) || 0;
+  const amount = parseFloat(params.amount as string);
   const description = params.description as string || 'Ödəniş';
   const orderId = params.orderId as string || `ORDER-${Date.now()}`;
   
@@ -54,7 +54,7 @@ export default function PayriffPaymentScreen() {
   }, []);
 
   const handlePayment = async () => {
-    if (amount <= 0) {
+    if (isNaN(amount) || amount <= 0) {
       Alert.alert('Xəta', 'Məbləğ 0-dan böyük olmalıdır');
       return;
     }
@@ -79,7 +79,7 @@ export default function PayriffPaymentScreen() {
           payriffService.openPaymentPage(response.paymentUrl);
           
           paymentCheckTimeoutRef.current = setTimeout(() => {
-            checkPaymentStatus(orderId);
+            checkPaymentStatusWithRetry(orderId, 0);
           }, 3000);
         }
       } else {
@@ -122,6 +122,59 @@ export default function PayriffPaymentScreen() {
       }
     } catch (error) {
       logger.error('Payment status check failed:', error);
+    }
+  };
+
+  const checkPaymentStatusWithRetry = async (orderId: string, retryCount: number) => {
+    const maxRetries = 5;
+    const retryDelay = 2000; // 2 seconds
+
+    try {
+      const status = await payriffService.checkPaymentStatus(orderId);
+      
+      if (status.status === 'success') {
+        setPaymentStatus('success');
+        Alert.alert(
+          'Uğurlu ödəniş',
+          `Ödənişiniz uğurla tamamlandı!\nMəbləğ: ${status.amount} ${status.currency}`,
+          [
+            {
+              text: 'OK',
+              onPress: () => router.back(),
+            },
+          ]
+        );
+        return;
+      } else if (status.status === 'failed') {
+        setPaymentStatus('error');
+        setErrorMessage('Ödəniş uğursuz oldu');
+        return;
+      } else if (status.status === 'cancelled') {
+        setPaymentStatus('error');
+        setErrorMessage('Ödəniş ləğv edildi');
+        return;
+      }
+
+      // If still pending and we haven't exceeded max retries, retry
+      if (status.status === 'pending' && retryCount < maxRetries) {
+        paymentCheckTimeoutRef.current = setTimeout(() => {
+          checkPaymentStatusWithRetry(orderId, retryCount + 1);
+        }, retryDelay);
+      } else if (retryCount >= maxRetries) {
+        setPaymentStatus('error');
+        setErrorMessage('Ödəniş statusu yoxlanıla bilmədi. Zəhmət olmasa daha sonra yoxlayın.');
+      }
+    } catch (error) {
+      logger.error('Payment status check failed:', error);
+      
+      if (retryCount < maxRetries) {
+        paymentCheckTimeoutRef.current = setTimeout(() => {
+          checkPaymentStatusWithRetry(orderId, retryCount + 1);
+        }, retryDelay);
+      } else {
+        setPaymentStatus('error');
+        setErrorMessage('Ödəniş statusu yoxlanıla bilmədi. Zəhmət olmasa daha sonra yoxlayın.');
+      }
     }
   };
 

@@ -60,7 +60,7 @@ class PaymentService {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          amount: amount * 100, // Convert to cents
+          amount: Math.round(amount * 100), // Convert to cents
           currency,
         }),
       });
