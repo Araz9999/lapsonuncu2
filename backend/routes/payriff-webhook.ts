@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { logger } from '../../utils/logger';
 import { secureHeaders } from 'hono/secure-headers';
 import { payriffService } from '../services/payriff';
 
@@ -15,21 +16,21 @@ payriffWebhook.post('/callback', async (c) => {
     const isValid = payriffService.verifyWebhookSignature(body, signature);
 
     if (!isValid) {
-      console.error('Invalid webhook signature');
+      logger.error('Invalid webhook signature');
       return c.json({ error: 'Invalid signature' }, 401);
     }
 
     const { transactionId, orderId, status } = body;
 
     if (status === 'approved') {
-      console.log(`Payment approved: Order ${orderId}`);
+      logger.info(`Payment approved: Order ${orderId}`);
     } else if (status === 'declined') {
-      console.log(`Payment declined: Order ${orderId}`);
+      logger.info(`Payment declined: Order ${orderId}`);
     }
 
     return c.json({ success: true });
   } catch (error) {
-    console.error('Webhook processing error:', error);
+    logger.error('Webhook processing error:', error);
     return c.json({ error: 'Webhook processing failed' }, 500);
   }
 });

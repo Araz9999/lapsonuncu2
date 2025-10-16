@@ -3,6 +3,12 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Animated, Dimensi
 import { useRouter, Stack } from 'expo-router';
 import { useLanguageStore } from '@/store/languageStore';
 import { useThemeStore } from '@/store/themeStore';
+
+interface TermsSection {
+  icon: React.ComponentType<any>;
+  title: string;
+  content: string;
+}
 import { getColors } from '@/constants/colors';
 import { 
   FileText, 
@@ -164,7 +170,7 @@ export default function TermsScreen() {
 
   const currentTerms = termsData[language as keyof typeof termsData];
 
-  const SectionItem = ({ section, index }: { section: any; index: number }) => {
+  const SectionItem = ({ section, index }: { section: TermsSection; index: number }) => {
     const Icon = section.icon;
     
     return (
