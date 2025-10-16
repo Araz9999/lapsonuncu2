@@ -39,6 +39,7 @@ class EmailService {
     }
 
     try {
+      // BUG FIX: Add timeout to prevent hanging requests
       const response = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
@@ -52,10 +53,17 @@ class EmailService {
           html: options.html,
           ...(options.text ? { text: options.text } : {}),
         }),
+        signal: AbortSignal.timeout(15000), // 15 second timeout
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
+        // BUG FIX: Handle response parsing errors
+        let errorText = 'Unknown error';
+        try {
+          errorText = await response.text();
+        } catch (parseError) {
+          console.error('[Email] Failed to parse error response:', parseError);
+        }
         console.error('[Email] Resend API error:', errorText);
         return false;
       }
@@ -63,7 +71,12 @@ class EmailService {
       console.log(`[Email] Successfully sent email to ${options.to}`);
       return true;
     } catch (error) {
-      console.error('[Email] Failed to send email:', error);
+      // BUG FIX: More detailed error logging
+      if (error instanceof Error) {
+        console.error('[Email] Failed to send email:', error.message);
+      } else {
+        console.error('[Email] Failed to send email:', error);
+      }
       return false;
     }
   }

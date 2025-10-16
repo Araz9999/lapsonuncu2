@@ -104,8 +104,12 @@ auth.get('/:provider/callback', async (c) => {
 
       if (user) {
         console.log(`[Auth] Found existing user by email, linking ${provider} account`);
+        // BUG FIX: Validate provider type before using
+        if (provider !== 'google' && provider !== 'facebook' && provider !== 'vk') {
+          throw new Error('Invalid OAuth provider');
+        }
         await userDB.addSocialProvider(user.id, {
-          provider: provider as any,
+          provider: provider,
           socialId: userInfo.id,
           email: userInfo.email,
           name: userInfo.name,
@@ -113,13 +117,17 @@ auth.get('/:provider/callback', async (c) => {
         });
       } else {
         console.log(`[Auth] Creating new user from ${provider} data`);
+        // BUG FIX: Validate provider type before using
+        if (provider !== 'google' && provider !== 'facebook' && provider !== 'vk') {
+          throw new Error('Invalid OAuth provider');
+        }
         user = await userDB.createUser({
           email: userInfo.email,
           name: userInfo.name,
           avatar: userInfo.avatar,
           verified: true,
           socialProviders: [{
-            provider: provider as any,
+            provider: provider,
             socialId: userInfo.id,
             email: userInfo.email,
             name: userInfo.name,
