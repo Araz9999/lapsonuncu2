@@ -41,7 +41,7 @@ app.use('*', secureHeaders());
 const ALLOWED_ORIGINS = [
   process.env.FRONTEND_URL,
   process.env.EXPO_PUBLIC_FRONTEND_URL,
-  'https://1r36dhx42va8pxqbqz5ja.rork.app',
+  'https://naxtap.az',
   'http://localhost:8081',
   'http://localhost:19006',
 ].filter(Boolean);
