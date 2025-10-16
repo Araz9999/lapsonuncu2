@@ -1,3 +1,5 @@
+import { logger } from '../../utils/logger';
+
 interface OAuthConfig {
   clientId: string;
   clientSecret: string;
@@ -32,7 +34,7 @@ class OAuthService {
 
   private initializeConfigs() {
     const frontendUrl = process.env.FRONTEND_URL || process.env.EXPO_PUBLIC_FRONTEND_URL || 'https://1r36dhx42va8pxqbqz5ja.rork.app';
-    console.log('[OAuth] Frontend URL:', frontendUrl);
+    logger.info('[OAuth] Frontend URL:', frontendUrl);
 
     this.configs.google = {
       clientId: process.env.GOOGLE_CLIENT_ID || process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '',
@@ -98,7 +100,7 @@ class OAuthService {
       throw new Error(`Unknown OAuth provider: ${provider}`);
     }
 
-    console.log(`[OAuth] Exchanging code for token with ${provider}`);
+    logger.info(`[OAuth] Exchanging code for token with ${provider}`);
 
     const params = new URLSearchParams({
       client_id: config.clientId,
@@ -120,15 +122,15 @@ class OAuthService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`[OAuth] Token exchange failed for ${provider}:`, errorText);
+        logger.error(`[OAuth] Token exchange failed for ${provider}:`, errorText);
         throw new Error(`Token exchange failed: ${response.statusText}`);
       }
 
       const data = await response.json();
-      console.log(`[OAuth] Successfully exchanged code for token with ${provider}`);
+      logger.info(`[OAuth] Successfully exchanged code for token with ${provider}`);
       return data;
     } catch (error) {
-      console.error(`[OAuth] Error exchanging code for token with ${provider}:`, error);
+      logger.error(`[OAuth] Error exchanging code for token with ${provider}:`, error);
       throw error;
     }
   }
@@ -139,7 +141,7 @@ class OAuthService {
       throw new Error(`Unknown OAuth provider: ${provider}`);
     }
 
-    console.log(`[OAuth] Fetching user info from ${provider}`);
+    logger.info(`[OAuth] Fetching user info from ${provider}`);
 
     try {
       let url = config.userInfoUrl;
@@ -162,16 +164,16 @@ class OAuthService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`[OAuth] User info fetch failed for ${provider}:`, errorText);
+        logger.error(`[OAuth] User info fetch failed for ${provider}:`, errorText);
         throw new Error(`Failed to fetch user info: ${response.statusText}`);
       }
 
       const data = await response.json();
-      console.log(`[OAuth] Successfully fetched user info from ${provider}`);
+      logger.info(`[OAuth] Successfully fetched user info from ${provider}`);
 
       return this.normalizeUserInfo(provider, data, tokenResponse);
     } catch (error) {
-      console.error(`[OAuth] Error fetching user info from ${provider}:`, error);
+      logger.error(`[OAuth] Error fetching user info from ${provider}:`, error);
       throw error;
     }
   }

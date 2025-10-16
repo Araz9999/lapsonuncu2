@@ -1,5 +1,6 @@
 import { publicProcedure } from '../../../create-context';
 import { z } from 'zod';
+import { logger } from '../../../../../utils/logger';
 import { userDB } from '../../../../db/users';
 import { generateTokenPair } from '../../../../utils/jwt';
 import { emailService } from '../../../../services/email';
@@ -14,7 +15,7 @@ export const registerProcedure = publicProcedure
     })
   )
   .mutation(async ({ input }) => {
-    console.log('[Auth] Registration attempt:', input.email);
+    logger.info('[Auth] Registration attempt:', input.email);
 
     const existingUser = await userDB.findByEmail(input.email);
     if (existingUser) {
@@ -46,7 +47,7 @@ export const registerProcedure = publicProcedure
     });
 
     if (!emailSent) {
-      console.warn('[Auth] Failed to send verification email, but user was created');
+      logger.warn('[Auth] Failed to send verification email, but user was created');
     }
 
     const tokens = await generateTokenPair({
@@ -55,7 +56,7 @@ export const registerProcedure = publicProcedure
       role: user.role,
     });
 
-    console.log('[Auth] User registered successfully:', user.id);
+    logger.info('[Auth] User registered successfully:', user.id);
 
     return {
       user: {

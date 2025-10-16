@@ -2,6 +2,7 @@ import { FetchCreateContextFnOptions } from "@trpc/server/adapters/fetch";
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { verifyToken } from "../utils/jwt";
+import { logger } from "../../utils/logger";
 
 export const createContext = async (opts: FetchCreateContextFnOptions) => {
   const authHeader = opts.req.headers.get('authorization');
@@ -12,7 +13,7 @@ export const createContext = async (opts: FetchCreateContextFnOptions) => {
     try {
       user = await verifyToken(token);
     } catch (error) {
-      console.error('[Context] Token verification failed:', error);
+      logger.error('[Context] Token verification failed:', error);
     }
   }
 
