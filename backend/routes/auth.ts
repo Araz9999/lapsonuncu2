@@ -104,23 +104,39 @@ auth.get('/:provider/callback', async (c) => {
       user = await userDB.findByEmail(userInfo.email);
 
       if (user) {
+< cursor/fix-many-bugs-and-errors-2981
         logger.info(`[Auth] Found existing user by email, linking ${provider} account`);
+=======
+        console.log(`[Auth] Found existing user by email, linking ${provider} account`);
+        // BUG FIX: Validate provider type before using
+        if (provider !== 'google' && provider !== 'facebook' && provider !== 'vk') {
+          throw new Error('Invalid OAuth provider');
+        }
+> Araz
         await userDB.addSocialProvider(user.id, {
-          provider: provider as any,
+          provider: provider,
           socialId: userInfo.id,
           email: userInfo.email,
           name: userInfo.name,
           avatar: userInfo.avatar,
         });
       } else {
+< cursor/fix-many-bugs-and-errors-2981
         logger.info(`[Auth] Creating new user from ${provider} data`);
+
+        console.log(`[Auth] Creating new user from ${provider} data`);
+        // BUG FIX: Validate provider type before using
+        if (provider !== 'google' && provider !== 'facebook' && provider !== 'vk') {
+          throw new Error('Invalid OAuth provider');
+        }
+> Araz
         user = await userDB.createUser({
           email: userInfo.email,
           name: userInfo.name,
           avatar: userInfo.avatar,
           verified: true,
           socialProviders: [{
-            provider: provider as any,
+            provider: provider,
             socialId: userInfo.id,
             email: userInfo.email,
             name: userInfo.name,
