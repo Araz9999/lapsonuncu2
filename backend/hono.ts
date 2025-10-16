@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { Hono, Context, Next } from "hono";
 import { trpcServer } from "@hono/trpc-server";
 import { cors } from "hono/cors";
 import { secureHeaders } from "hono/secure-headers";
@@ -11,7 +11,7 @@ import paymentsRoutes from "./routes/payments";
 type RateRecord = { count: number; resetAt: number };
 const rateBucket = new Map<string, RateRecord>();
 function rateLimit(limit: number, windowMs: number) {
-  return async (c: any, next: any) => {
+  return async (c: Context, next: Next) => {
     const now = Date.now();
     const headerIp = c.req.header('x-forwarded-for') || c.req.header('X-Forwarded-For');
     const ip = headerIp?.split(',')[0]?.trim() || c.req.header('cf-connecting-ip') || c.req.header('x-real-ip') || 'unknown';

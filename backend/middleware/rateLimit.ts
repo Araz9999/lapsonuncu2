@@ -1,4 +1,5 @@
 import { Context, Next } from 'hono';
+import { logger } from '../../utils/logger';
 
 interface RateLimitConfig {
   windowMs: number; // Time window in milliseconds
@@ -110,7 +111,7 @@ export function createRateLimitMiddleware(config: RateLimitConfig) {
     }
 
     if (!isAllowed) {
-      console.warn(`[RateLimit] Request blocked from ${identifier}`);
+      logger.warn(`[RateLimit] Request blocked from ${identifier}`);
       return c.json(
         { 
           error: config.message || 'Too many requests, please try again later',

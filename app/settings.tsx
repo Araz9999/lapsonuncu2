@@ -128,7 +128,7 @@ export default function SettingsScreen() {
     return () => pulseLoop.stop();
   }, []);
 
-  const themeModes: { key: ThemeMode; label: string; labelRu: string; icon: any }[] = [
+  const themeModes: { key: ThemeMode; label: string; labelRu: string; icon: React.ComponentType<any> }[] = [
     { key: 'light', label: 'İşıqlı', labelRu: 'Светлая', icon: Sun },
     { key: 'dark', label: 'Qaranlıq', labelRu: 'Темная', icon: Moon },
     { key: 'auto', label: 'Avtomatik', labelRu: 'Автоматическая', icon: RefreshCw },
@@ -288,7 +288,7 @@ export default function SettingsScreen() {
     isNew = false,
     gradient = false
   }: {
-    icon: any;
+    icon: React.ComponentType<any>;
     title: string;
     subtitle?: string;
     onPress?: () => void;
