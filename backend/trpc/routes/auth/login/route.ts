@@ -1,5 +1,6 @@
 import { publicProcedure } from '../../../create-context';
 import { z } from 'zod';
+import { logger } from '../../../../../utils/logger';
 import { userDB } from '../../../../db/users';
 import { generateTokenPair } from '../../../../utils/jwt';
 
@@ -11,7 +12,7 @@ export const loginProcedure = publicProcedure
     })
   )
   .mutation(async ({ input }) => {
-    console.log('[Auth] Login attempt:', input.email);
+    logger.info('[Auth] Login attempt:', input.email);
 
     const user = await userDB.findByEmail(input.email);
     if (!user || !user.passwordHash) {
@@ -29,7 +30,7 @@ export const loginProcedure = publicProcedure
       role: user.role,
     });
 
-    console.log('[Auth] User logged in successfully:', user.id);
+    logger.info('[Auth] User logged in successfully:', user.id);
 
     return {
       user: {

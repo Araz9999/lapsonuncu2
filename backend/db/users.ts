@@ -1,3 +1,5 @@
+import { logger } from '../../utils/logger';
+
 export interface SocialProvider {
   provider: 'google' | 'facebook' | 'vk';
   socialId: string;
@@ -103,7 +105,7 @@ class UserDatabase {
       this.socialIndex.set(key, id);
     });
 
-    console.log(`[DB] Created user: ${user.id} (${user.email})`);
+    logger.info(`[DB] Created user: ${user.id} (${user.email})`);
     return user;
   }
 
@@ -126,7 +128,7 @@ class UserDatabase {
       this.emailIndex.set(updates.email.toLowerCase(), id);
     }
 
-    console.log(`[DB] Updated user: ${id}`);
+    logger.info(`[DB] Updated user: ${id}`);
     return updatedUser;
   }
 
@@ -150,7 +152,7 @@ class UserDatabase {
     user.updatedAt = new Date().toISOString();
     this.users.set(userId, user);
 
-    console.log(`[DB] Added ${provider.provider} provider to user: ${userId}`);
+    logger.info(`[DB] Added ${provider.provider} provider to user: ${userId}`);
     return user;
   }
 
@@ -166,7 +168,7 @@ class UserDatabase {
     });
 
     this.users.delete(id);
-    console.log(`[DB] Deleted user: ${id}`);
+    logger.info(`[DB] Deleted user: ${id}`);
     return true;
   }
 
@@ -214,7 +216,7 @@ class UserDatabase {
     this.users.set(userId, user);
     this.verificationTokenIndex.set(token, userId);
 
-    console.log(`[DB] Set verification token for user: ${userId}`);
+    logger.info(`[DB] Set verification token for user: ${userId}`);
     return true;
   }
 
@@ -232,7 +234,7 @@ class UserDatabase {
     this.users.set(userId, user);
     this.passwordResetTokenIndex.set(token, userId);
 
-    console.log(`[DB] Set password reset token for user: ${userId}`);
+    logger.info(`[DB] Set password reset token for user: ${userId}`);
     return true;
   }
 
@@ -251,7 +253,7 @@ class UserDatabase {
 
     this.users.set(userId, user);
 
-    console.log(`[DB] Verified email for user: ${userId}`);
+    logger.info(`[DB] Verified email for user: ${userId}`);
     return true;
   }
 
@@ -270,7 +272,7 @@ class UserDatabase {
 
     this.users.set(userId, user);
 
-    console.log(`[DB] Updated password for user: ${userId}`);
+    logger.info(`[DB] Updated password for user: ${userId}`);
     return true;
   }
 }

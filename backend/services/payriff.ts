@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { logger } from '../../utils/logger';
 
 export interface PayriffPaymentData {
   amount: number;
@@ -39,7 +40,7 @@ class PayriffService {
     this.environment = process.env.PAYRIFF_ENVIRONMENT || 'production';
 
     if (!this.merchantId || !this.secretKey) {
-      console.warn('Payriff credentials not configured');
+      logger.warn('Payriff credentials not configured');
     }
   }
 
@@ -80,7 +81,7 @@ class PayriffService {
         ...urls,
       };
 
-      console.log('Creating Payriff payment:', {
+      logger.info('Creating Payriff payment:', {
         orderId: data.orderId,
         amount: amountInQepik,
         merchantId: this.merchantId,
@@ -97,7 +98,7 @@ class PayriffService {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('Payriff API error:', errorData);
+        logger.error('Payriff API error:', errorData);
         throw new Error(errorData.message || 'Failed to create payment');
       }
 
@@ -109,7 +110,7 @@ class PayriffService {
         transactionId: result.transactionId,
       };
     } catch (error) {
-      console.error('Payriff payment creation error:', error);
+      logger.error('Payriff payment creation error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -144,7 +145,7 @@ class PayriffService {
       const result = await response.json();
       return result;
     } catch (error) {
-      console.error('Payriff transaction status error:', error);
+      logger.error('Payriff transaction status error:', error);
       return null;
     }
   }
@@ -157,7 +158,7 @@ class PayriffService {
       // SECURITY: Use constant-time comparison to prevent timing attacks
       return this.constantTimeCompare(receivedSignature, computedSignature);
     } catch (error) {
-      console.error('Signature verification error:', error);
+      logger.error('Signature verification error:', error);
       return false;
     }
   }
@@ -240,7 +241,7 @@ class PayriffService {
    * Provided for compatibility with existing routes; returns false.
    */
   async refundPayment(_orderId: string, _amount?: number): Promise<boolean> {
-    console.warn('refundPayment is not implemented');
+    logger.warn('refundPayment is not implemented');
     return false;
   }
 }

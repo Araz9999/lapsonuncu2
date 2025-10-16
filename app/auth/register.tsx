@@ -104,7 +104,7 @@ export default function RegisterScreen() {
       logger.error('[Register] Error:', error);
       Alert.alert(
         t('error') || 'Xəta',
-        error.message || 'Qeydiyyat zamanı xəta baş verdi'
+        error instanceof Error ? error.message : 'Qeydiyyat zamanı xəta baş verdi'
       );
     } finally {
       setIsLoading(false);

@@ -1,3 +1,5 @@
+import { logger } from '../../utils/logger';
+
 interface EmailOptions {
   to: string;
   subject: string;
@@ -34,7 +36,7 @@ class EmailService {
 
   async sendEmail(options: EmailOptions): Promise<boolean> {
     if (!this.isConfigured()) {
-      console.warn('[Email] Resend not configured, skipping email send');
+      logger.warn('[Email] Resend not configured, skipping email send');
       return false;
     }
 
@@ -56,14 +58,14 @@ class EmailService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('[Email] Resend API error:', errorText);
+        logger.error('[Email] Resend API error:', errorText);
         return false;
       }
 
-      console.log(`[Email] Successfully sent email to ${options.to}`);
+      logger.info(`[Email] Successfully sent email to ${options.to}`);
       return true;
     } catch (error) {
-      console.error('[Email] Failed to send email:', error);
+      logger.error('[Email] Failed to send email:', error);
       return false;
     }
   }

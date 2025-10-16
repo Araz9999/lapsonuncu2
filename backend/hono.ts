@@ -6,6 +6,7 @@ import { appRouter } from "./trpc/app-router";
 import { createContext } from "./trpc/create-context";
 import authRoutes from "./routes/auth";
 import paymentsRoutes from "./routes/payments";
+import { logger } from "../utils/logger";
 
 // Simple in-memory rate limiter (per IP per window)
 type RateRecord = { count: number; resetAt: number };
@@ -59,7 +60,7 @@ app.use("*", cors({
       return origin;
     }
     
-    console.warn(`[CORS] Rejected origin: ${origin}`);
+    logger.warn(`[CORS] Rejected origin: ${origin}`);
     return null;
   },
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
