@@ -42,11 +42,9 @@ const queryClient = new QueryClient({
   },
 });
 
-< Araz
 class ErrorBoundary extends Component<
   { children: ReactNode },
   { hasError: boolean; error?: Error }
-> {
   constructor(props: { children: ReactNode }) {
     super(props);
     this.state = { hasError: false };
@@ -76,8 +74,6 @@ class ErrorBoundary extends Component<
   }
 }
 
-=======
-> main
 export default function RootLayout() {
   // Skip font loading - use system fonts for better performance
   const [loaded] = useFonts({});

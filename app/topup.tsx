@@ -79,12 +79,8 @@ export default function TopupScreen() {
       return;
     }
 
-    if (parsedAmount < 1) {
-      Alert.alert('Error', 'Minimum topup amount is 1 AZN');
-=======
     if (isNaN(parsedAmount) || parsedAmount < 1) {
       Alert.alert('Error', 'Please enter a valid amount (minimum 1 AZN)');
-> main
       return;
     }
 
