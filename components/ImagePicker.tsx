@@ -66,7 +66,7 @@ export default function ImagePickerComponent({ conversationId, onClose }: ImageP
     try {
       selectedImages.forEach((uri, index) => {
         // BUG FIX: Added unique ID generation to prevent conflicts
-        const uniqueId = `${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`;
+        const uniqueId = `${Date.now()}-${index}-${Math.random().toString(36).substring(2, 11)}`;
         
         const attachment: MessageAttachment = {
           id: uniqueId,

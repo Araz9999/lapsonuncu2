@@ -78,7 +78,7 @@ export const useModerationStore = create<ModerationState>()(
       createReport: (reportData) => {
         const newReport: Report = {
           ...reportData,
-          id: `report_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          id: `report_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
           status: 'pending',
           priority: reportData.priority || 'medium',
           createdAt: new Date().toISOString(),
@@ -164,7 +164,7 @@ export const useModerationStore = create<ModerationState>()(
       createModerationAction: (actionData) => {
         const newAction: ModerationAction = {
           ...actionData,
-          id: `action_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          id: `action_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
           createdAt: new Date().toISOString(),
           isActive: true,
         };
@@ -185,7 +185,7 @@ export const useModerationStore = create<ModerationState>()(
       createSupportTicket: (ticketData) => {
         const newTicket: SupportTicket = {
           ...ticketData,
-          id: `ticket_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          id: `ticket_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
           status: 'open',
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -229,7 +229,7 @@ export const useModerationStore = create<ModerationState>()(
       addTicketResponse: (ticketId, responseData) => {
         const newResponse: SupportResponse = {
           ...responseData,
-          id: `response_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          id: `response_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
           createdAt: new Date().toISOString(),
         };
 

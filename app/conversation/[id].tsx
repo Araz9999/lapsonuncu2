@@ -285,7 +285,7 @@ export default function ConversationScreen() {
       }
 
       const newMessage: Message = {
-        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        id: `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
         senderId: currentUser.id,
         receiverId: otherUser.id,
         listingId: currentConversation.listingId,
@@ -486,7 +486,7 @@ export default function ConversationScreen() {
         const fileType = uriParts[uriParts.length - 1];
         
         const attachment: MessageAttachment = {
-          id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // BUG FIX: Unique ID
+          id: `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`, // BUG FIX: Unique ID
           type: 'audio',
           uri,
           name: `recording_${Date.now()}.${fileType}`,

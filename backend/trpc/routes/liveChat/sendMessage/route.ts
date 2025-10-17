@@ -22,7 +22,7 @@ export default publicProcedure
     });
 
     const message: LiveChatMessage = {
-      id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
       conversationId: input.conversationId,
       senderId: input.senderId,
       senderName: input.senderName,

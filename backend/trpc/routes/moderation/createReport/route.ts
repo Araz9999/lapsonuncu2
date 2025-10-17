@@ -16,7 +16,7 @@ export const createReportProcedure = protectedProcedure
   }))
   .mutation(({ input, ctx }) => {
     const report: Report = {
-      id: `report_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: `report_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
       reporterId: ctx.user.userId,
       reportedUserId: input.reportedUserId,
       reportedListingId: input.reportedListingId,
