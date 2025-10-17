@@ -214,12 +214,82 @@ export default function AddStoreListingScreen() {
   };
   
   const handleSubmit = async () => {
-    if (!title.trim() || !description.trim() || (!priceByAgreement && !price.trim()) || !selectedLocation || !selectedCategory) {
+    // Validation: Title
+    if (!title.trim()) {
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' 
-          ? 'Bütün məcburi sahələri doldurun' 
-          : 'Заполните все обязательные поля'
+        language === 'az' ? 'Elan başlığını daxil edin' : 'Введите заголовок объявления'
+      );
+      return;
+    }
+    
+    if (title.trim().length < 5) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Başlıq ən azı 5 simvol olmalıdır' : 'Заголовок должен быть не менее 5 символов'
+      );
+      return;
+    }
+    
+    // Validation: Description
+    if (!description.trim()) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Təsvir daxil edin' : 'Введите описание'
+      );
+      return;
+    }
+    
+    if (description.trim().length < 10) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Təsvir ən azı 10 simvol olmalıdır' : 'Описание должно быть не менее 10 символов'
+      );
+      return;
+    }
+    
+    // Validation: Price (if not by agreement)
+    if (!priceByAgreement) {
+      if (!price.trim()) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Qiymət daxil edin' : 'Введите цену'
+        );
+        return;
+      }
+      
+      const priceValue = parseFloat(price);
+      if (isNaN(priceValue) || priceValue <= 0) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Düzgün qiymət daxil edin' : 'Введите корректную цену'
+        );
+        return;
+      }
+      
+      if (priceValue > 1000000) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Qiymət maksimum 1,000,000 ola bilər' : 'Цена не должна превышать 1,000,000'
+        );
+        return;
+      }
+    }
+    
+    // Validation: Location
+    if (!selectedLocation) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Yerləşdiyiniz yeri seçin' : 'Выберите местоположение'
+      );
+      return;
+    }
+    
+    // Validation: Category
+    if (!selectedCategory) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Kateqoriya seçin' : 'Выберите категорию'
       );
       return;
     }

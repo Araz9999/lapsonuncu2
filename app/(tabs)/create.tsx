@@ -179,7 +179,7 @@ export default function CreateListingScreen() {
             language === 'az' ? 'Limit aşıldı' : 'Лимит превышен',
             language === 'az' 
               ? `Seçdiyiniz paket maksimum ${selectedPackageData?.features.photosCount} şəkil əlavə etməyə imkan verir` 
-              : `Выбранный пакет позволяет добавить максимум ${selectedPackageData?.features.photosCount} izображений`
+              : `Выбранный пакет позволяет добавить максимум ${selectedPackageData?.features.photosCount} изображений`
           );
           return;
         }
@@ -196,24 +196,102 @@ export default function CreateListingScreen() {
 
   const handleNextStep = () => {
     if (currentStep === 1) {
-      let hasRequiredFields = Boolean(
-        title && 
-        description && 
-        (!priceByAgreement ? price : true) && 
-        selectedLocation && 
-        selectedCategory && 
-        selectedSubcategory
-      );
-      
-      if (!hasRequiredFields) {
+      // Validation: Title
+      if (!title.trim()) {
         Alert.alert(
           language === 'az' ? 'Xəta' : 'Ошибка',
-          language === 'az' 
-            ? 'Bütün məlumatları doldurun' 
-            : 'Заполните все данные'
+          language === 'az' ? 'Elan başlığını daxil edin' : 'Введите заголовок объявления'
         );
         return;
       }
+      
+      if (title.trim().length < 5) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Başlıq ən azı 5 simvol olmalıdır' : 'Заголовок должен быть не менее 5 символов'
+        );
+        return;
+      }
+      
+      if (title.trim().length > 100) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Başlıq maksimum 100 simvol ola bilər' : 'Заголовок не должен превышать 100 символов'
+        );
+        return;
+      }
+      
+      // Validation: Description
+      if (!description.trim()) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Təsvir daxil edin' : 'Введите описание'
+        );
+        return;
+      }
+      
+      if (description.trim().length < 10) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Təsvir ən azı 10 simvol olmalıdır' : 'Описание должно быть не менее 10 символов'
+        );
+        return;
+      }
+      
+      // Validation: Price (if not by agreement)
+      if (!priceByAgreement) {
+        if (!price.trim()) {
+          Alert.alert(
+            language === 'az' ? 'Xəta' : 'Ошибка',
+            language === 'az' ? 'Qiymət daxil edin' : 'Введите цену'
+          );
+          return;
+        }
+        
+        const priceValue = parseFloat(price);
+        if (isNaN(priceValue) || priceValue <= 0) {
+          Alert.alert(
+            language === 'az' ? 'Xəta' : 'Ошибка',
+            language === 'az' ? 'Düzgün qiymət daxil edin' : 'Введите корректную цену'
+          );
+          return;
+        }
+        
+        if (priceValue > 1000000) {
+          Alert.alert(
+            language === 'az' ? 'Xəta' : 'Ошибка',
+            language === 'az' ? 'Qiymət maksimum 1,000,000 ola bilər' : 'Цена не должна превышать 1,000,000'
+          );
+          return;
+        }
+      }
+      
+      // Validation: Location
+      if (!selectedLocation) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Yerləşdiyiniz yeri seçin' : 'Выберите местоположение'
+        );
+        return;
+      }
+      
+      // Validation: Category
+      if (!selectedCategory) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Kateqoriya seçin' : 'Выберите категорию'
+        );
+        return;
+      }
+      
+      if (!selectedSubcategory) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Alt kateqoriya seçin' : 'Выберите подкатегорию'
+        );
+        return;
+      }
+      
       setCurrentStep(2);
     } else if (currentStep === 2) {
       // Check if adding to store with available slots (no payment required)
