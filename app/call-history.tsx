@@ -48,19 +48,45 @@ export default function CallHistoryScreen() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    const now = new Date();
-    const diffTime = Math.abs(now.getTime() - date.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 1) {
-      return language === 'az' ? 'Bu gün' : 'Сегодня';
-    } else if (diffDays === 2) {
-      return language === 'az' ? 'Dünən' : 'Вчера';
-    } else if (diffDays <= 7) {
-      return `${diffDays} ${language === 'az' ? 'gün əvvəl' : 'дней назад'}`;
-    } else {
-      return date.toLocaleDateString();
+    
+    // ✅ Validate date
+    if (isNaN(date.getTime())) {
+      return language === 'az' ? 'Tarix məlum deyil' : 'Дата неизвестна';
     }
+    
+    const now = new Date();
+    
+    // ✅ Check if same day (not time difference, but calendar day)
+    const isSameDay = 
+      date.getDate() === now.getDate() &&
+      date.getMonth() === now.getMonth() &&
+      date.getFullYear() === now.getFullYear();
+    
+    if (isSameDay) {
+      return language === 'az' ? 'Bu gün' : 'Сегодня';
+    }
+    
+    // ✅ Check if yesterday
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const isYesterday = 
+      date.getDate() === yesterday.getDate() &&
+      date.getMonth() === yesterday.getMonth() &&
+      date.getFullYear() === yesterday.getFullYear();
+    
+    if (isYesterday) {
+      return language === 'az' ? 'Dünən' : 'Вчера';
+    }
+    
+    // ✅ For other days, calculate difference
+    const diffTime = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays > 0 && diffDays <= 7) {
+      return `${diffDays} ${language === 'az' ? 'gün əvvəl' : 'дней назад'}`;
+    }
+    
+    return date.toLocaleDateString(language === 'az' ? 'az-AZ' : 'ru-RU');
   };
 
   const getCallIcon = (call: Call) => {
@@ -122,7 +148,11 @@ export default function CallHistoryScreen() {
     if (otherUser?.privacySettings.hidePhoneNumber) {
       // Initiate app call with same type as previous call
       try {
-        const callId = await initiateCall(otherUserId, call.listingId, call.type);
+        if (!currentUser?.id) {
+          logger.error('No current user for call initiation');
+          return;
+        }
+        const callId = await initiateCall(currentUser.id, otherUserId, call.listingId, call.type);
         router.push(`/call/${callId}`);
       } catch (error) {
         logger.error('Failed to initiate call:', error);
@@ -254,7 +284,11 @@ export default function CallHistoryScreen() {
               onPress={async () => {
                 const otherUserId = item.callerId === currentUser?.id ? item.receiverId : item.callerId;
                 try {
-                  const callId = await initiateCall(otherUserId, item.listingId, 'video');
+                  if (!currentUser?.id) {
+                    logger.error('No current user for video call initiation');
+                    return;
+                  }
+                  const callId = await initiateCall(currentUser.id, otherUserId, item.listingId, 'video');
                   router.push(`/call/${callId}`);
                 } catch (error) {
                   logger.error('Failed to initiate video call:', error);
