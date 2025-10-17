@@ -171,10 +171,10 @@ class UserDatabase {
         this.socialIndex.set(key, id);
       });
 
-      console.log(`[DB] Created user: ${user.id} (${user.email})`);
+      logger.info(`[DB] Created user: ${user.id} (${user.email})`);
       return user;
     } catch (error) {
-      // Rollback on error
+      // BUG FIX: Rollback on error
       this.users.delete(id);
       if (user.email) {
         this.emailIndex.delete(user.email.toLowerCase());
@@ -183,14 +183,6 @@ class UserDatabase {
     }
   }
 
-< Araz
-< cursor/fix-many-bugs-and-errors-4e56
-    apiLogger.debug(`[DB] Created user: ${user.id} (${user.email})`);
-=======
-    logger.info(`[DB] Created user: ${user.id} (${user.email})`);
-> Araz
-    return user;
-=======
   /**
    * Generate cryptographically secure user ID
    */
@@ -199,7 +191,6 @@ class UserDatabase {
     const randomBytes = crypto.getRandomValues(new Uint8Array(16));
     const randomHex = Array.from(randomBytes, b => b.toString(16).padStart(2, '0')).join('');
     return `user_${timestamp}_${randomHex}`;
-> main
   }
 
   async updateUser(id: string, updates: Partial<DBUser>): Promise<DBUser | null> {
@@ -221,11 +212,7 @@ class UserDatabase {
       this.emailIndex.set(updates.email.toLowerCase(), id);
     }
 
-< cursor/fix-many-bugs-and-errors-4e56
-    apiLogger.debug(`[DB] Updated user: ${id}`);
-=======
     logger.info(`[DB] Updated user: ${id}`);
-> Araz
     return updatedUser;
   }
 
@@ -249,11 +236,7 @@ class UserDatabase {
     user.updatedAt = new Date().toISOString();
     this.users.set(userId, user);
 
-< cursor/fix-many-bugs-and-errors-4e56
-    apiLogger.debug(`[DB] Added ${provider.provider} provider to user: ${userId}`);
-=======
     logger.info(`[DB] Added ${provider.provider} provider to user: ${userId}`);
-> Araz
     return user;
   }
 
@@ -278,11 +261,7 @@ class UserDatabase {
     }
 
     this.users.delete(id);
-< cursor/fix-many-bugs-and-errors-4e56
-    apiLogger.debug(`[DB] Deleted user: ${id}`);
-=======
     logger.info(`[DB] Deleted user: ${id}`);
-> Araz
     return true;
   }
 
@@ -330,11 +309,7 @@ class UserDatabase {
     this.users.set(userId, user);
     this.verificationTokenIndex.set(token, userId);
 
-< cursor/fix-many-bugs-and-errors-4e56
-    apiLogger.debug(`[DB] Set verification token for user: ${userId}`);
-=======
     logger.info(`[DB] Set verification token for user: ${userId}`);
-> Araz
     return true;
   }
 
@@ -352,11 +327,7 @@ class UserDatabase {
     this.users.set(userId, user);
     this.passwordResetTokenIndex.set(token, userId);
 
-< cursor/fix-many-bugs-and-errors-4e56
-    apiLogger.debug(`[DB] Set password reset token for user: ${userId}`);
-=======
     logger.info(`[DB] Set password reset token for user: ${userId}`);
-> Araz
     return true;
   }
 
@@ -375,11 +346,7 @@ class UserDatabase {
 
     this.users.set(userId, user);
 
-< cursor/fix-many-bugs-and-errors-4e56
-    apiLogger.debug(`[DB] Verified email for user: ${userId}`);
-=======
     logger.info(`[DB] Verified email for user: ${userId}`);
-> Araz
     return true;
   }
 
@@ -398,11 +365,7 @@ class UserDatabase {
 
     this.users.set(userId, user);
 
-< cursor/fix-many-bugs-and-errors-4e56
-    apiLogger.debug(`[DB] Updated password for user: ${userId}`);
-=======
     logger.info(`[DB] Updated password for user: ${userId}`);
-> Araz
     return true;
   }
 }

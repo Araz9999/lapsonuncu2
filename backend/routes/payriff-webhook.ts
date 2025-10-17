@@ -22,15 +22,9 @@ payriffWebhook.post('/callback', async (c) => {
     const { transactionId, orderId, status } = body;
 
     if (status === 'approved') {
-< cursor/fix-many-bugs-and-errors-4e56
-      logger.debug(`Payment approved: Order ${orderId}`);
-    } else if (status === 'declined') {
-      logger.debug(`Payment declined: Order ${orderId}`);
-=======
       logger.info(`Payment approved: Order ${orderId}`);
     } else if (status === 'declined') {
       logger.info(`Payment declined: Order ${orderId}`);
-> Araz
     }
 
     return c.json({ success: true });

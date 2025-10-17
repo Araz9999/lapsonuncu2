@@ -108,11 +108,8 @@ export default function LiveChatScreen() {
 
   const handleStartChat = () => {
     if (!currentUser) {
-< Araz
       logger.debug('[LiveChat] Cannot start chat: user not logged in');
-=======
       // Cannot start chat: user not logged in
-> main
       return;
     }
     if (!selectedCategory || !subject.trim()) return;
