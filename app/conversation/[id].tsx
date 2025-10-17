@@ -257,6 +257,12 @@ export default function ConversationScreen() {
       
       if (!currentConversation) {
         logger.debug('Creating new conversation');
+        // BUG FIX: Check if listings array is not empty before accessing first element
+        if (!listings || listings.length === 0) {
+          logger.error('No listings available to create conversation');
+          Alert.alert(language === 'az' ? 'Xəta' : 'Ошибка', language === 'az' ? 'Elan tapılmadı' : 'Объявление не найдено');
+          return;
+        }
         const defaultListing = listings[0]; // Use first listing as default
         actualConversationId = getOrCreateConversation([currentUser.id, otherUser.id], defaultListing.id);
         currentConversation = getConversation(actualConversationId);
@@ -385,7 +391,8 @@ export default function ConversationScreen() {
         copyToCacheDirectory: true,
       });
 
-      if (!result.canceled && result.assets[0]) {
+      // BUG FIX: Check if assets array exists and has elements
+      if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0]) {
         const asset = result.assets[0];
         const attachment: MessageAttachment = {
           id: Date.now().toString(),

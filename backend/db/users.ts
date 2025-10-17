@@ -171,10 +171,10 @@ class UserDatabase {
         this.socialIndex.set(key, id);
       });
 
-      console.log(`[DB] Created user: ${user.id} (${user.email})`);
+      logger.info(`[DB] Created user: ${user.id} (${user.email})`);
       return user;
     } catch (error) {
-      // Rollback on error
+      // BUG FIX: Rollback on error
       this.users.delete(id);
       if (user.email) {
         this.emailIndex.delete(user.email.toLowerCase());
@@ -183,8 +183,6 @@ class UserDatabase {
     }
   }
 
-    logger.info(`[DB] Created user: ${user.id} (${user.email})`);
-    return user;
   /**
    * Generate cryptographically secure user ID
    */
