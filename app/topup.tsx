@@ -69,28 +69,29 @@ export default function TopupScreen() {
     }
 
     const parsedAmount = parseFloat(amount);
-< lapsonuncu-degisiklikleri
-    if (isNaN(parsedAmount)) {
-      Alert.alert('Xəta', 'Düzgün məbləğ daxil edin');
-      return;
-    }
-    if (isNaN(parsedAmount) || parsedAmount <= 0) {
-      Alert.alert('Error', 'Please enter a valid amount greater than 0');
-      return;
-    }
-
+    
+    // BUG FIX: Consolidated duplicate validation checks
     if (isNaN(parsedAmount) || parsedAmount < 1) {
-      Alert.alert('Error', 'Please enter a valid amount (minimum 1 AZN)');
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Error',
+        language === 'az' ? 'Minimum məbləğ 1 AZN olmalıdır' : 'Please enter a valid amount (minimum 1 AZN)'
+      );
       return;
     }
 
     if (parsedAmount > 5000) {
-      Alert.alert('Error', 'Maximum topup amount is 5,000 AZN');
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Error',
+        language === 'az' ? 'Maksimum məbləğ 5,000 AZN-dir' : 'Maximum topup amount is 5,000 AZN'
+      );
       return;
     }
 
     if (!description.trim()) {
-      Alert.alert('Error', 'Please enter a description');
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Error',
+        language === 'az' ? 'Təsvir daxil edin' : 'Please enter a description'
+      );
       return;
     }
 

@@ -134,7 +134,8 @@ export default function RegisterScreen() {
         quality: 0.8,
       });
 
-      if (!result.canceled && result.assets[0]) {
+      // BUG FIX: Check if assets array exists and has elements
+      if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0]) {
         setProfileImage(result.assets[0].uri);
       }
     } catch (error) {
