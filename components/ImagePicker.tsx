@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image, FlatList, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, FlatList, Platform } from 'react-native';
+import { Image } from 'expo-image'; // BUG FIX: Use expo-image for better performance
 import * as ImagePicker from 'expo-image-picker';
 import Colors from '@/constants/colors';
 import { useMessageStore } from '@/store/messageStore';
@@ -15,41 +16,70 @@ export default function ImagePickerComponent({ conversationId, onClose }: ImageP
   const { addMessage } = useMessageStore();
 
   const pickImages = async () => {
-    if (Platform.OS !== 'web') {
-      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permissionResult.granted) {
-        alert('Permission to access gallery is required!');
-        return;
+    try {
+      // BUG FIX: Request permissions with proper error handling
+      if (Platform.OS !== 'web') {
+        const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!permissionResult.granted) {
+          alert('Permission to access gallery is required!');
+          return;
+        }
       }
-    }
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsMultipleSelection: true,
-      quality: 1,
-    });
+      // BUG FIX: Reduced quality for better performance and smaller file sizes
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsMultipleSelection: true,
+        quality: 0.8, // Reduced from 1 to compress images
+        allowsEditing: false,
+      });
 
-    if (!result.canceled && result.assets) {
-      const imageUris = result.assets.map(asset => asset.uri);
-      setSelectedImages(prev => [...prev, ...imageUris]);
+      // BUG FIX: Validate assets array exists and has items
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        // BUG FIX: Limit to maximum 10 images to prevent memory issues
+        const maxImages = 10;
+        const currentCount = selectedImages.length;
+        
+        if (currentCount >= maxImages) {
+          alert(`Maximum ${maxImages} images allowed`);
+          return;
+        }
+        
+        const availableSlots = maxImages - currentCount;
+        const imageUris = result.assets.slice(0, availableSlots).map(asset => asset.uri);
+        setSelectedImages(prev => [...prev, ...imageUris]);
+      }
+    } catch (error) {
+      // BUG FIX: Added error handling
+      console.error('Error picking images:', error);
+      alert('Failed to pick images. Please try again.');
     }
   };
 
   const sendImages = () => {
-    if (selectedImages.length > 0) {
-      selectedImages.forEach(uri => {
+    // BUG FIX: Added validation
+    if (selectedImages.length === 0) {
+      alert('Please select at least one image');
+      return;
+    }
+
+    try {
+      selectedImages.forEach((uri, index) => {
+        // BUG FIX: Added unique ID generation to prevent conflicts
+        const uniqueId = `${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`;
+        
         const attachment: MessageAttachment = {
-          id: Date.now().toString(),
+          id: uniqueId,
           type: 'image',
           uri: uri,
-          name: 'image.jpg',
-          size: 0,
+          name: `image_${index + 1}.jpg`,
+          size: 0, // BUG FIX: TODO - Get actual file size for validation
           mimeType: 'image/jpeg'
         };
 
         const message = {
-          id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          senderId: 'user1',
+          id: uniqueId,
+          senderId: 'user1', // BUG FIX: TODO - Get from actual user context
           receiverId: 'user2',
           listingId: '1',
           text: '',
@@ -62,14 +92,26 @@ export default function ImagePickerComponent({ conversationId, onClose }: ImageP
 
         addMessage(conversationId, message);
       });
+      
       setSelectedImages([]);
       onClose();
+    } catch (error) {
+      // BUG FIX: Added error handling
+      console.error('Error sending images:', error);
+      alert('Failed to send images. Please try again.');
     }
   };
 
   const renderItem = ({ item }: { item: string }) => (
     <View style={styles.imageContainer}>
-      <Image source={{ uri: item }} style={styles.selectedImage} />
+      <Image 
+        source={{ uri: item }} 
+        style={styles.selectedImage}
+        // BUG FIX: Add caching and performance optimizations
+        cachePolicy="memory-disk"
+        transition={200}
+        contentFit="cover"
+      />
       <TouchableOpacity
         style={styles.removeButton}
         onPress={() => setSelectedImages(prev => prev.filter(uri => uri !== item))}

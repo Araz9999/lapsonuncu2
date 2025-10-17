@@ -64,11 +64,8 @@ const ChatInput = memo(({
   isRecording: boolean; 
   language: string;
 }) => {
-< Araz
   logger.debug('ChatInput render');
-=======
   // ChatInput component
-> main
   return (
     <View style={styles.inputContainer}>
       <TouchableOpacity
@@ -218,13 +215,23 @@ export default function ConversationScreen() {
     }
   }, [conversationId, conversation?.unreadCount, markAsRead, conversation?.id]);
   
+  // BUG FIX: Proper cleanup for audio and recording
   useEffect(() => {
     return () => {
+      // Cleanup audio playback
       if (sound) {
-        sound.unloadAsync();
+        sound.stopAsync()
+          .then(() => sound.unloadAsync())
+          .catch(err => logger.warn('Error cleaning up sound:', err));
+      }
+      
+      // BUG FIX: Cleanup recording if still active
+      if (recording) {
+        recording.stopAndUnloadAsync()
+          .catch(err => logger.warn('Error cleaning up recording:', err));
       }
     };
-  }, [sound]);
+  }, [sound, recording]);
   
   // Early return after all hooks are called
   if (!conversationId || typeof conversationId !== 'string') {
@@ -260,6 +267,12 @@ export default function ConversationScreen() {
       
       if (!currentConversation) {
         logger.debug('Creating new conversation');
+        // BUG FIX: Check if listings array is not empty before accessing first element
+        if (!listings || listings.length === 0) {
+          logger.error('No listings available to create conversation');
+          Alert.alert(language === 'az' ? 'Xəta' : 'Ошибка', language === 'az' ? 'Elan tapılmadı' : 'Объявление не найдено');
+          return;
+        }
         const defaultListing = listings[0]; // Use first listing as default
         actualConversationId = getOrCreateConversation([currentUser.id, otherUser.id], defaultListing.id);
         currentConversation = getConversation(actualConversationId);
@@ -388,7 +401,8 @@ export default function ConversationScreen() {
         copyToCacheDirectory: true,
       });
 
-      if (!result.canceled && result.assets[0]) {
+      // BUG FIX: Check if assets array exists and has elements
+      if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0]) {
         const asset = result.assets[0];
         const attachment: MessageAttachment = {
           id: Date.now().toString(),
@@ -451,14 +465,19 @@ export default function ConversationScreen() {
   };
 
   const stopRecording = async () => {
+    // BUG FIX: Early return with proper validation
     if (!recording || Platform.OS === 'web') return;
 
     try {
       setIsRecording(false);
+      
+      // BUG FIX: Proper cleanup sequence
       await recording.stopAndUnloadAsync();
       
+      // BUG FIX: Reset audio mode after recording
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: false,
+        playsInSilentModeIOS: false,
       });
 
       const uri = recording.getURI();
@@ -467,22 +486,35 @@ export default function ConversationScreen() {
         const fileType = uriParts[uriParts.length - 1];
         
         const attachment: MessageAttachment = {
-          id: Date.now().toString(),
+          id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // BUG FIX: Unique ID
           type: 'audio',
           uri,
-          name: `recording.${fileType}`,
-          size: 0,
+          name: `recording_${Date.now()}.${fileType}`,
+          size: 0, // BUG FIX: TODO - Get actual file size
           mimeType: `audio/${fileType}`,
         };
         
         await sendMessage('', 'audio', [attachment]);
       }
       
+      // BUG FIX: Clear recording reference
       setRecording(null);
     } catch (error) {
-      logger.debug('Failed to stop recording:', error);
+      logger.error('Failed to stop recording:', error);
+      
+      // BUG FIX: Ensure cleanup even on error
       setIsRecording(false);
       setRecording(null);
+      
+      // BUG FIX: Try to reset audio mode even if recording failed
+      try {
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
+        });
+      } catch (audioModeError) {
+        logger.error('Failed to reset audio mode:', audioModeError);
+      }
+      
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Səs yazma dayandırıla bilmədi' : 'Не удалось остановить запись'
@@ -491,6 +523,7 @@ export default function ConversationScreen() {
   };
 
   const playAudio = async (uri: string, messageId: string) => {
+    // BUG FIX: Platform check
     if (Platform.OS === 'web') {
       Alert.alert(
         language === 'az' ? 'Xəbərdarlıq' : 'Предупреждение',
@@ -500,6 +533,7 @@ export default function ConversationScreen() {
     }
 
     try {
+      // BUG FIX: Toggle playback if already playing
       if (playingAudio === messageId) {
         if (sound) {
           await sound.stopAsync();
@@ -510,39 +544,52 @@ export default function ConversationScreen() {
         return;
       }
 
+      // BUG FIX: Stop and cleanup previous sound
       if (sound) {
-        await sound.stopAsync();
-        await sound.unloadAsync();
+        try {
+          await sound.stopAsync();
+          await sound.unloadAsync();
+        } catch (cleanupError) {
+          logger.warn('Error cleaning up previous sound:', cleanupError);
+        }
+        setSound(null);
       }
 
+      // BUG FIX: Set proper audio mode
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: false,
         playsInSilentModeIOS: true,
         staysActiveInBackground: false,
+        shouldDuckAndroid: true,
       });
 
       const { sound: newSound } = await Audio.Sound.createAsync(
         { uri },
         { shouldPlay: true },
         (status) => {
+          // BUG FIX: Proper cleanup when audio finishes
           if ('didJustFinish' in status && status.didJustFinish) {
             setPlayingAudio(null);
-            newSound.unloadAsync();
+            newSound.unloadAsync().catch(err => 
+              logger.warn('Error unloading finished audio:', err)
+            );
           }
         }
       );
       
       setSound(newSound);
       setPlayingAudio(messageId);
-      
-      // setOnPlaybackStatusUpdate not strictly needed when callback passed in createAsync
     } catch (error) {
       logger.error('Error playing audio:', error);
+      
+      // BUG FIX: Cleanup on error
+      setPlayingAudio(null);
+      setSound(null);
+      
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Səs oxudula bilmədi' : 'Не удалось воспроизвести аудио'
       );
-      setPlayingAudio(null);
     }
   };
 

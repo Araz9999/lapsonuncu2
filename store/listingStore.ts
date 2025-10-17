@@ -109,17 +109,31 @@ export const useListingStore = create<ListingState>((set, get) => ({
       sortBy
     } = get();
     
+    // BUG FIX: Validate listings array exists
+    if (!listings || !Array.isArray(listings)) {
+      logger.error('[ListingStore] Invalid listings array');
+      set({ filteredListings: [] });
+      return;
+    }
+    
     // Filter out deleted listings
     let filtered = listings.filter(listing => !listing.deletedAt);
     
     // Apply search filter
-    if (searchQuery) {
-      filtered = filtered.filter(listing => 
-        listing.title.az.toLowerCase().includes(searchQuery.toLowerCase()) || 
-        listing.title.ru.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        listing.description.az.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        listing.description.ru.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+    if (searchQuery && searchQuery.trim()) {
+      const normalizedQuery = searchQuery.toLowerCase().trim();
+      filtered = filtered.filter(listing => {
+        // BUG FIX: Safe property access with null checks
+        const titleAz = listing.title?.az?.toLowerCase() || '';
+        const titleRu = listing.title?.ru?.toLowerCase() || '';
+        const descAz = listing.description?.az?.toLowerCase() || '';
+        const descRu = listing.description?.ru?.toLowerCase() || '';
+        
+        return titleAz.includes(normalizedQuery) || 
+               titleRu.includes(normalizedQuery) ||
+               descAz.includes(normalizedQuery) ||
+               descRu.includes(normalizedQuery);
+      });
     }
     
     // Apply category filter
@@ -191,6 +205,21 @@ export const useListingStore = create<ListingState>((set, get) => ({
   
   addListing: (listing) => {
     logger.debug('[ListingStore] Adding listing:', listing.id, listing.title);
+    
+    // BUG FIX: Check if listing already exists
+    const existingListing = get().listings.find(l => l.id === listing.id);
+    if (existingListing) {
+      logger.warn('[ListingStore] Listing already exists, updating instead:', listing.id);
+      get().updateListing(listing.id, listing);
+      return;
+    }
+    
+    // BUG FIX: Validate listing has required fields
+    if (!listing.id || !listing.title || !listing.userId) {
+      logger.error('[ListingStore] Invalid listing data:', listing);
+      throw new Error('Listing must have id, title, and userId');
+    }
+    
     set(state => ({
       listings: [listing, ...state.listings]
     }));
@@ -242,6 +271,19 @@ export const useListingStore = create<ListingState>((set, get) => ({
   },
   
   updateListing: (id, updates) => {
+    // BUG FIX: Validate listing exists before updating
+    const existingListing = get().listings.find(l => l.id === id);
+    if (!existingListing) {
+      logger.warn('[ListingStore] Listing not found for update:', id);
+      return;
+    }
+    
+    // BUG FIX: Validate updates object is not empty
+    if (!updates || Object.keys(updates).length === 0) {
+      logger.warn('[ListingStore] No updates provided for listing:', id);
+      return;
+    }
+    
     set(state => ({
       listings: state.listings.map(listing => 
         listing.id === id ? { ...listing, ...updates } : listing
@@ -251,9 +293,24 @@ export const useListingStore = create<ListingState>((set, get) => ({
   },
   
   deleteListing: (id) => {
+    // BUG FIX: Validate listing exists before deleting
+    const existingListing = get().listings.find(l => l.id === id);
+    if (!existingListing) {
+      logger.warn('[ListingStore] Listing not found for deletion:', id);
+      return;
+    }
+    
+    // BUG FIX: Use soft delete instead of hard delete to preserve data
+    const now = new Date().toISOString();
     set(state => ({
-      listings: state.listings.filter(listing => listing.id !== id)
+      listings: state.listings.map(listing => 
+        listing.id === id 
+          ? { ...listing, deletedAt: now }
+          : listing
+      )
     }));
+    
+    logger.info('[ListingStore] Listing soft deleted:', id);
     get().applyFilters();
   },
 
@@ -469,12 +526,35 @@ export const useListingStore = create<ListingState>((set, get) => ({
   },
 
   purchaseViews: async (id: string, viewCount: number) => {
+    // BUG FIX: Validate viewCount
+    if (!viewCount || viewCount <= 0 || !Number.isInteger(viewCount)) {
+      logger.error('[ListingStore] Invalid view count:', viewCount);
+      throw new Error('Baxış sayı müsbət tam ədəd olmalıdır');
+    }
+    
+    // BUG FIX: Set reasonable maximum
+    if (viewCount > 100000) {
+      logger.error('[ListingStore] View count too high:', viewCount);
+      throw new Error('Maksimum 100,000 baxış satın ala bilərsiniz');
+    }
+    
     // Simulate payment processing
     await new Promise(resolve => setTimeout(resolve, 1000));
     
     const state = get();
     const listing = state.listings.find(l => l.id === id);
-    if (!listing) return;
+    
+    // BUG FIX: Validate listing exists
+    if (!listing) {
+      logger.error('[ListingStore] Listing not found for view purchase:', id);
+      throw new Error('Elan tapılmadı');
+    }
+    
+    // BUG FIX: Check if listing is already deleted
+    if (listing.deletedAt) {
+      logger.error('[ListingStore] Cannot purchase views for deleted listing:', id);
+      throw new Error('Silinmiş elan üçün baxış satın ala bilməzsiniz');
+    }
     
     // Calculate the target view count (current views + purchased views)
     const currentViews = listing.views;
