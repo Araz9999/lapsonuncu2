@@ -24,6 +24,14 @@ export default function ListingDiscountScreen() {
   const [discountDescription, setDiscountDescription] = useState('');
   const [discountType, setDiscountType] = useState<'percentage' | 'fixed_amount'>('percentage');
   const [discountValue, setDiscountValue] = useState('');
+  
+  // ✅ BUG FIX: Sanitize numeric input to prevent invalid characters
+  const handleDiscountValueChange = (text: string) => {
+    const cleaned = text.replace(/[^0-9.]/g, '');
+    const parts = cleaned.split('.');
+    const sanitized = parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : cleaned;
+    setDiscountValue(sanitized);
+  };
   const [minPurchaseAmount, setMinPurchaseAmount] = useState('');
   const [maxDiscountAmount, setMaxDiscountAmount] = useState('');
   const [startDate] = useState(new Date());
@@ -569,10 +577,11 @@ export default function ListingDiscountScreen() {
           <TextInput
             style={styles.textInput}
             value={discountValue}
-            onChangeText={setDiscountValue}
+            onChangeText={handleDiscountValueChange}
             placeholder={discountType === 'percentage' ? '10' : '50'}
             placeholderTextColor={Colors.textSecondary}
-            keyboardType="numeric"
+            keyboardType="decimal-pad"
+            maxLength={discountType === 'percentage' ? 5 : 8}
           />
         </View>
         
@@ -745,10 +754,10 @@ export default function ListingDiscountScreen() {
                     <TextInput
                       style={styles.compactTimeInput}
                       value={customDays}
-                      onChangeText={setCustomDays}
+                      onChangeText={(text) => handleTimeInputChange(text, setCustomDays, 365)}
                       placeholder="0"
                       placeholderTextColor={Colors.textSecondary}
-                      keyboardType="numeric"
+                      keyboardType="number-pad"
                       maxLength={3}
                     />
                   </View>
@@ -760,10 +769,11 @@ export default function ListingDiscountScreen() {
                     <TextInput
                       style={styles.compactTimeInput}
                       value={customHours}
-                      onChangeText={setCustomHours}
+                      onChangeText={(text) => handleTimeInputChange(text, setCustomHours, 23)}
                       placeholder="0"
                       placeholderTextColor={Colors.textSecondary}
-                      keyboardType="numeric"
+                      keyboardType="number-pad"
+                      maxLength={2}
                       maxLength={2}
                     />
                   </View>
@@ -775,10 +785,11 @@ export default function ListingDiscountScreen() {
                     <TextInput
                       style={styles.compactTimeInput}
                       value={customMinutes}
-                      onChangeText={setCustomMinutes}
+                      onChangeText={(text) => handleTimeInputChange(text, setCustomMinutes, 59)}
                       placeholder="0"
                       placeholderTextColor={Colors.textSecondary}
-                      keyboardType="numeric"
+                      keyboardType="number-pad"
+                      maxLength={2}
                       maxLength={2}
                     />
                   </View>
