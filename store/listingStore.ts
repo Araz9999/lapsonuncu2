@@ -587,12 +587,35 @@ export const useListingStore = create<ListingState>((set, get) => ({
   },
 
   applyCreativeEffects: async (id: string, effects: any[], effectEndDates: any[]) => {
+    // Validation: Check if effects array is valid
+    if (!effects || !Array.isArray(effects) || effects.length === 0) {
+      logger.error('[ListingStore] Invalid effects array:', effects);
+      throw new Error('Effektlər düzgün deyil');
+    }
+    
+    // Validation: Check if effectEndDates array is valid and matches effects length
+    if (!effectEndDates || !Array.isArray(effectEndDates) || effectEndDates.length !== effects.length) {
+      logger.error('[ListingStore] Invalid effectEndDates array:', effectEndDates);
+      throw new Error('Effekt tarixləri düzgün deyil');
+    }
+    
+    // Validation: Check each effect has required properties
+    for (const effect of effects) {
+      if (!effect.id || !effect.name || !effect.price || !effect.duration) {
+        logger.error('[ListingStore] Invalid effect structure:', effect);
+        throw new Error('Effekt məlumatları tam deyil');
+      }
+    }
+    
     // Simulate payment processing
     await new Promise(resolve => setTimeout(resolve, 1000));
     
     const state = get();
     const listing = state.listings.find(l => l.id === id);
-    if (!listing) return;
+    if (!listing) {
+      logger.error('[ListingStore] Listing not found:', id);
+      throw new Error('Elan tapılmadı');
+    }
     
     // Apply creative effects to the listing
     set(state => ({

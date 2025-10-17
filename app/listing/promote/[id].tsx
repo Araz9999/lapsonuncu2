@@ -74,7 +74,7 @@ export default function PromoteListingScreen() {
     // Check if listing expires before package duration
     const currentDate = new Date();
     const listingExpiryDate = new Date(listing.expiresAt);
-    const daysUntilExpiry = Math.ceil((listingExpiryDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24));
+    const daysUntilExpiry = Math.max(0, Math.ceil((listingExpiryDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24)));
     
     let confirmMessage = language === 'az'
       ? `${selectedPackage.name.az} paketini ${selectedPackage.price} AZN-ə almaq istədiyinizə əminsiniz?`
@@ -163,20 +163,20 @@ export default function PromoteListingScreen() {
     // Check if any effect duration exceeds listing expiry
     const currentDate = new Date();
     const listingExpiryDate = new Date(listing.expiresAt);
-    const daysUntilExpiry = Math.ceil((listingExpiryDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24));
+    const daysUntilExpiry = Math.max(0, Math.ceil((listingExpiryDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24)));
     
     const longestEffect = selectedEffects.reduce((longest, effect) => 
-      effect.duration > longest.duration ? effect : longest
-    );
+      (effect.duration && effect.duration > (longest.duration || 0)) ? effect : longest
+    , selectedEffects[0]);
     
     let confirmMessage = language === 'az'
       ? `Seçilmiş kreativ effektləri ${totalPrice} AZN-ə almaq istədiyinizə əminsiniz?`
       : `Вы уверены, что хотите купить выбранные креативные эффекты за ${totalPrice} AZN?`;
     
-    if (daysUntilExpiry < longestEffect.duration) {
+    if (longestEffect && longestEffect.duration && daysUntilExpiry < longestEffect.duration) {
       confirmMessage += language === 'az'
-        ? `\n\n⚠️ Diqqət: Elanınızın bitməsinə ${daysUntilExpiry} gün qalır, lakin "${longestEffect.name.az}" effekti ${longestEffect.duration} günlükdür. Effekt elanınızın bitməsindən sonra ${longestEffect.duration - daysUntilExpiry} gün əlavə müddətə qədər aktiv olacaq və yeni elanlarınızda istifadə edilə bilər.`
-        : `\n\n⚠️ Внимание: До истечения вашего объявления осталось ${daysUntilExpiry} дней, но эффект "${longestEffect.name.ru}" рассчитан на ${longestEffect.duration} дней. Эффект будет активен еще ${longestEffect.duration - daysUntilExpiry} дней после истечения объявления и может быть использован для новых объявлений.`;
+        ? `\n\n⚠️ Diqqət: Elanınızın bitməsinə ${daysUntilExpiry} gün qalır, lakin "${longestEffect.name?.az || 'Effekt'}" effekti ${longestEffect.duration} günlükdür. Effekt elanınızın bitməsindən sonra ${longestEffect.duration - daysUntilExpiry} gün əlavə müddətə qədər aktiv olacaq və yeni elanlarınızda istifadə edilə bilər.`
+        : `\n\n⚠️ Внимание: До истечения вашего объявления осталось ${daysUntilExpiry} дней, но эффект "${longestEffect.name?.ru || 'Эффект'}" рассчитан на ${longestEffect.duration} дней. Эффект будет активен еще ${longestEffect.duration - daysUntilExpiry} дней после истечения объявления и может быть использован для новых объявлений.`;
     }
     
     const approved = await confirm(confirmMessage, language === 'az' ? 'Təsdiq edin' : 'Подтвердите');
@@ -203,7 +203,7 @@ export default function PromoteListingScreen() {
       let successMessage = language === 'az'
         ? `Kreativ effektlər elanınıza tətbiq edildi!`
         : `Креативные эффекты применены к вашему объявлению!`;
-      if (daysUntilExpiry < longestEffect.duration) {
+      if (longestEffect && longestEffect.duration && daysUntilExpiry < longestEffect.duration && effectEndDates.length > 0) {
         const latestEndDate = effectEndDates.reduce((latest, item) => 
           item.endDate > latest ? item.endDate : latest
         , effectEndDates[0].endDate);
@@ -240,12 +240,13 @@ export default function PromoteListingScreen() {
     // Check if listing will expire before all views are consumed
     const currentDate = new Date();
     const listingExpiryDate = new Date(listing.expiresAt);
-    const daysUntilExpiry = Math.ceil((listingExpiryDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24));
+    const daysUntilExpiry = Math.max(0, Math.ceil((listingExpiryDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24)));
     const targetViews = listing.views + selectedViewPackage.views;
     
     // Estimate daily views (assume average 10-50 views per day based on listing activity)
-    const estimatedDailyViews = Math.max(10, Math.min(50, listing.views / Math.max(1, Math.ceil((currentDate.getTime() - new Date(listing.createdAt).getTime()) / (1000 * 60 * 60 * 24)))));
-    const estimatedDaysToReachTarget = Math.ceil(selectedViewPackage.views / estimatedDailyViews);
+    const listingAgeDays = Math.max(1, Math.ceil((currentDate.getTime() - new Date(listing.createdAt).getTime()) / (1000 * 60 * 60 * 24)));
+    const estimatedDailyViews = Math.max(10, Math.min(50, listing.views / listingAgeDays));
+    const estimatedDaysToReachTarget = Math.ceil(selectedViewPackage.views / Math.max(1, estimatedDailyViews));
     
     let confirmMessage = language === 'az'
       ? `${selectedViewPackage.name.az} paketini ${selectedViewPackage.price} AZN-ə almaq istədiyinizə əminsiniz?\n\n📊 Elanınız ${targetViews} baxışa çatana qədər ön sıralarda qalacaq.`
