@@ -13,6 +13,7 @@ import { useLanguageStore } from '@/store/languageStore';
 import { useStoreStore } from '@/store/storeStore';
 import { useUserStore } from '@/store/userStore';
 import Colors from '@/constants/colors';
+import { logger } from '@/utils/logger';
 import {
   ArrowLeft,
   TrendingUp,
@@ -29,7 +30,7 @@ export default function StorePromotionScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { language } = useLanguageStore();
   const { stores } = useStoreStore();
-  const { currentUser } = useUserStore();
+  const { currentUser, walletBalance, bonusBalance, spendFromWallet, spendFromBonus } = useUserStore();
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   
@@ -106,17 +107,33 @@ export default function StorePromotionScreen() {
     setSelectedPlan(planId);
   };
 
-  const handlePurchase = () => {
+  const handlePurchase = async () => {
     if (!selectedPlan) return;
     
     const plan = promotionPlans.find(p => p.id === selectedPlan);
     if (!plan) return;
+    
+    // ✅ Check balance first
+    const totalBalance = walletBalance + bonusBalance;
+    if (totalBalance < plan.price) {
+      Alert.alert(
+        language === 'az' ? 'Balans kifayət etmir' : 'Недостаточно средств',
+        language === 'az' 
+          ? `Bu plan üçün ${plan.price} AZN lazımdır. Balansınız: ${totalBalance.toFixed(2)} AZN`
+          : `Для этого плана требуется ${plan.price} AZN. Ваш баланс: ${totalBalance.toFixed(2)} AZN`,
+        [
+          { text: language === 'az' ? 'Ləğv et' : 'Отмена', style: 'cancel' },
+          { text: language === 'az' ? 'Balans artır' : 'Пополнить баланс', onPress: () => router.push('/wallet') }
+        ]
+      );
+      return;
+    }
 
     Alert.alert(
       language === 'az' ? 'Ödəniş təsdiqi' : 'Подтверждение оплаты',
       language === 'az' 
-        ? `${plan.name} planını ${plan.price} AZN-ə satın almaq istədiyinizə əminsiniz?`
-        : `Вы уверены, что хотите купить план ${plan.name} за ${plan.price} AZN?`,
+        ? `${plan.name} planını ${plan.price} AZN-ə satın almaq istədiyinizə əminsiniz?\n\nBalansınız: ${totalBalance.toFixed(2)} AZN`
+        : `Вы уверены, что хотите купить план ${plan.name} за ${plan.price} AZN?\n\nВаш баланс: ${totalBalance.toFixed(2)} AZN`,
       [
         {
           text: language === 'az' ? 'Ləğv et' : 'Отмена',
@@ -124,20 +141,57 @@ export default function StorePromotionScreen() {
         },
         {
           text: language === 'az' ? 'Ödə' : 'Оплатить',
-          onPress: () => {
-            // In a real app, integrate with payment gateway
-            Alert.alert(
-              language === 'az' ? 'Uğurlu!' : 'Успешно!',
-              language === 'az' 
-                ? 'Mağazanız uğurla təşviq edildi!' 
-                : 'Ваш магазин успешно продвинут!',
-              [
-                {
-                  text: 'OK',
-                  onPress: () => router.back(),
-                },
-              ]
-            );
+          onPress: async () => {
+            try {
+              // ✅ Spend money with proper validation
+              let remainingAmount = plan.price;
+              let paymentSuccess = true;
+              
+              if (bonusBalance > 0) {
+                const bonusToSpend = Math.min(bonusBalance, remainingAmount);
+                const bonusSuccess = spendFromBonus(bonusToSpend);
+                if (bonusSuccess) {
+                  remainingAmount -= bonusToSpend;
+                } else {
+                  paymentSuccess = false;
+                }
+              }
+              
+              if (paymentSuccess && remainingAmount > 0) {
+                const walletSuccess = spendFromWallet(remainingAmount);
+                if (!walletSuccess) {
+                  paymentSuccess = false;
+                }
+              }
+              
+              if (!paymentSuccess) {
+                Alert.alert(
+                  language === 'az' ? 'Xəta' : 'Ошибка',
+                  language === 'az' ? 'Ödəniş uğursuz oldu' : 'Платеж не удался'
+                );
+                return;
+              }
+              
+              // ✅ Payment successful - show success
+              Alert.alert(
+                language === 'az' ? 'Uğurlu!' : 'Успешно!',
+                language === 'az' 
+                  ? `Mağazanız ${plan.name} paketi ilə uğurla təşviq edildi! ${plan.price} AZN balansınızdan çıxarıldı.` 
+                  : `Ваш магазин успешно продвинут с пакетом ${plan.name}! ${plan.price} AZN списано с баланса.`,
+                [
+                  {
+                    text: 'OK',
+                    onPress: () => router.back(),
+                  },
+                ]
+              );
+            } catch (error) {
+              logger.error('Store promotion error:', error);
+              Alert.alert(
+                language === 'az' ? 'Xəta' : 'Ошибка',
+                language === 'az' ? 'Təşviq zamanı xəta baş verdi' : 'Произошла ошибка при продвижении'
+              );
+            }
           },
         },
       ]
@@ -164,6 +218,26 @@ export default function StorePromotionScreen() {
               ? 'Mağazanızın görünürlüyünü artırın və daha çox müştəri cəlb edin'
               : 'Увеличьте видимость вашего магазина и привлеките больше клиентов'}
           </Text>
+        </View>
+        
+        {/* Balance Display */}
+        <View style={styles.balanceCard}>
+          <View style={styles.balanceRow}>
+            <Text style={styles.balanceLabel}>
+              {language === 'az' ? 'Cari Balans:' : 'Текущий баланс:'}
+            </Text>
+            <Text style={styles.balanceAmount}>
+              {(walletBalance + bonusBalance).toFixed(2)} AZN
+            </Text>
+          </View>
+          <View style={styles.balanceBreakdown}>
+            <Text style={styles.balanceDetail}>
+              {language === 'az' ? 'Əsas:' : 'Основной:'} {walletBalance.toFixed(2)} AZN
+            </Text>
+            <Text style={styles.balanceDetail}>
+              {language === 'az' ? 'Bonus:' : 'Бонус:'} {bonusBalance.toFixed(2)} AZN
+            </Text>
+          </View>
         </View>
 
         <View style={styles.plansContainer}>
@@ -422,5 +496,41 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.textSecondary || '#6B7280',
     textAlign: 'center',
+  },
+  balanceCard: {
+    backgroundColor: Colors.card || '#FFFFFF',
+    marginHorizontal: 16,
+    marginTop: 16,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border || '#E5E7EB',
+  },
+  balanceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  balanceLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: Colors.text || '#1F2937',
+  },
+  balanceAmount: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: Colors.primary || '#0E7490',
+  },
+  balanceBreakdown: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border || '#E5E7EB',
+  },
+  balanceDetail: {
+    fontSize: 12,
+    color: Colors.textSecondary || '#6B7280',
   },
 });

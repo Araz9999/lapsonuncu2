@@ -74,7 +74,17 @@ export default function PromoteListingScreen() {
     // Check if listing expires before package duration
     const currentDate = new Date();
     const listingExpiryDate = new Date(listing.expiresAt);
-    const daysUntilExpiry = Math.ceil((listingExpiryDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24));
+    
+    // ✅ Validate date
+    if (isNaN(listingExpiryDate.getTime())) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Elanın müddəti düzgün deyil' : 'Неверная дата истечения объявления'
+      );
+      return;
+    }
+    
+    const daysUntilExpiry = Math.max(0, Math.ceil((listingExpiryDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24)));
     
     let confirmMessage = language === 'az'
       ? `${selectedPackage.name.az} paketini ${selectedPackage.price} AZN-ə almaq istədiyinizə əminsiniz?`
@@ -90,14 +100,33 @@ export default function PromoteListingScreen() {
     if (!approved) return;
     setIsProcessing(true);
     try {
+      // ✅ Spend money with proper validation
       let remainingAmount = selectedPackage.price;
+      let paymentSuccess = true;
+      
       if (bonusBalance > 0) {
         const bonusToSpend = Math.min(bonusBalance, remainingAmount);
-        spendFromBonus(bonusToSpend);
-        remainingAmount -= bonusToSpend;
+        const bonusSuccess = spendFromBonus(bonusToSpend);
+        if (bonusSuccess) {
+          remainingAmount -= bonusToSpend;
+        } else {
+          paymentSuccess = false;
+        }
       }
-      if (remainingAmount > 0) {
-        spendFromWallet(remainingAmount);
+      
+      if (paymentSuccess && remainingAmount > 0) {
+        const walletSuccess = spendFromWallet(remainingAmount);
+        if (!walletSuccess) {
+          paymentSuccess = false;
+        }
+      }
+      
+      if (!paymentSuccess) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Ödəniş uğursuz oldu' : 'Платеж не удался'
+        );
+        return;
       }
       const promotionEndDate = new Date(Math.max(
         listingExpiryDate.getTime(),
@@ -163,7 +192,17 @@ export default function PromoteListingScreen() {
     // Check if any effect duration exceeds listing expiry
     const currentDate = new Date();
     const listingExpiryDate = new Date(listing.expiresAt);
-    const daysUntilExpiry = Math.ceil((listingExpiryDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24));
+    
+    // ✅ Validate date
+    if (isNaN(listingExpiryDate.getTime())) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Elanın müddəti düzgün deyil' : 'Неверная дата истечения объявления'
+      );
+      return;
+    }
+    
+    const daysUntilExpiry = Math.max(0, Math.ceil((listingExpiryDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24)));
     
     const longestEffect = selectedEffects.reduce((longest, effect) => 
       effect.duration > longest.duration ? effect : longest
@@ -183,14 +222,33 @@ export default function PromoteListingScreen() {
     if (!approved) return;
     setIsProcessing(true);
     try {
+      // ✅ Spend money with proper validation
       let remainingAmount = totalPrice;
+      let paymentSuccess = true;
+      
       if (bonusBalance > 0) {
         const bonusToSpend = Math.min(bonusBalance, remainingAmount);
-        spendFromBonus(bonusToSpend);
-        remainingAmount -= bonusToSpend;
+        const bonusSuccess = spendFromBonus(bonusToSpend);
+        if (bonusSuccess) {
+          remainingAmount -= bonusToSpend;
+        } else {
+          paymentSuccess = false;
+        }
       }
-      if (remainingAmount > 0) {
-        spendFromWallet(remainingAmount);
+      
+      if (paymentSuccess && remainingAmount > 0) {
+        const walletSuccess = spendFromWallet(remainingAmount);
+        if (!walletSuccess) {
+          paymentSuccess = false;
+        }
+      }
+      
+      if (!paymentSuccess) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Ödəniş uğursuz oldu' : 'Платеж не удался'
+        );
+        return;
       }
       const effectEndDates = selectedEffects.map(effect => {
         const effectEndDate = new Date(Math.max(
@@ -240,7 +298,17 @@ export default function PromoteListingScreen() {
     // Check if listing will expire before all views are consumed
     const currentDate = new Date();
     const listingExpiryDate = new Date(listing.expiresAt);
-    const daysUntilExpiry = Math.ceil((listingExpiryDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24));
+    
+    // ✅ Validate date
+    if (isNaN(listingExpiryDate.getTime())) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Elanın müddəti düzgün deyil' : 'Неверная дата истечения объявления'
+      );
+      return;
+    }
+    
+    const daysUntilExpiry = Math.max(0, Math.ceil((listingExpiryDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24)));
     const targetViews = listing.views + selectedViewPackage.views;
     
     // Estimate daily views (assume average 10-50 views per day based on listing activity)
@@ -262,14 +330,33 @@ export default function PromoteListingScreen() {
     if (!approved) return;
     setIsProcessing(true);
     try {
+      // ✅ Spend money with proper validation
       let remainingAmount = selectedViewPackage.price;
+      let paymentSuccess = true;
+      
       if (bonusBalance > 0) {
         const bonusToSpend = Math.min(bonusBalance, remainingAmount);
-        spendFromBonus(bonusToSpend);
-        remainingAmount -= bonusToSpend;
+        const bonusSuccess = spendFromBonus(bonusToSpend);
+        if (bonusSuccess) {
+          remainingAmount -= bonusToSpend;
+        } else {
+          paymentSuccess = false;
+        }
       }
-      if (remainingAmount > 0) {
-        spendFromWallet(remainingAmount);
+      
+      if (paymentSuccess && remainingAmount > 0) {
+        const walletSuccess = spendFromWallet(remainingAmount);
+        if (!walletSuccess) {
+          paymentSuccess = false;
+        }
+      }
+      
+      if (!paymentSuccess) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Ödəniş uğursuz oldu' : 'Платеж не удался'
+        );
+        return;
       }
       await purchaseViews(listing.id, selectedViewPackage.views);
       let successMessage = language === 'az'
