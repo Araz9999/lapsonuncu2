@@ -13,7 +13,7 @@ import { logger } from '@/utils/logger';
 
 export default function RegisterScreen() {
   const router = useRouter();
-  const { t, language } = useTranslation();
+  const { t } = useTranslation();
   const { login } = useUserStore();
   const { language } = useLanguageStore();
   
@@ -139,3 +139,127 @@ export default function RegisterScreen() {
         setProfileImage(result.assets[0].uri);
       }
     } catch (error) {
+      logger.error('Camera error:', error);
+      Alert.alert(
+        t('error'),
+        language === 'az' ? 'Kamera açıla bilmədi' : 'Не удалось открыть камеру'
+      );
+    }
+  };
+
+  const pickImage = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (status !== 'granted') {
+        Alert.alert(
+          t('permissionRequired'),
+          language === 'az' ? 'Qalereya icazəsi tələb olunur' : 'Требуется разрешение галереи'
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0]) {
+        setProfileImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      logger.error('Image picker error:', error);
+      Alert.alert(
+        t('error'),
+        language === 'az' ? 'Şəkil seçilə bilmədi' : 'Не удалось выбрать изображение'
+      );
+    }
+  };
+
+  const handleClose = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/');
+    }
+  };
+
+  const handleLogin = () => {
+    router.push('/auth/login');
+  };
+
+  const handleSocialLogin = async (provider: 'google' | 'facebook' | 'vk') => {
+    try {
+      setLoadingSocial(provider);
+      
+      const baseUrl = 'https://1r36dhx42va8pxqbqz5ja.rork.app';
+      const statusResponse = await fetch(`${baseUrl}/api/auth/status`);
+      
+      if (statusResponse.ok) {
+        const statusData = await statusResponse.json();
+        if (!statusData.configured[provider]) {
+          setLoadingSocial(null);
+          showSocialLoginError(provider, `${provider.charAt(0).toUpperCase() + provider.slice(1)} login is not configured yet. Please contact support.`);
+          return;
+        }
+      }
+      
+      await initiateSocialLogin(
+        provider,
+        (result) => {
+          setLoadingSocial(null);
+          if (result.success && result.user) {
+            login({
+              id: result.user.id as string,
+              name: result.user.name as string,
+              email: result.user.email as string,
+              avatar: result.user.avatar as string,
+              phone: '',
+              rating: 0,
+              totalRatings: 0,
+              memberSince: new Date().toISOString(),
+              location: { az: '', ru: '', en: '' },
+              privacySettings: {
+                hidePhoneNumber: false,
+                allowDirectContact: true,
+                onlyAppMessaging: false,
+              },
+              analytics: {
+                lastOnline: new Date().toISOString(),
+                messageResponseRate: 0,
+                averageResponseTime: 0,
+                totalMessages: 0,
+                totalResponses: 0,
+                isOnline: true,
+              },
+            });
+            router.replace('/(tabs)');
+          }
+        },
+        (error) => {
+          setLoadingSocial(null);
+          showSocialLoginError(provider, error);
+        }
+      );
+    } catch (error) {
+      setLoadingSocial(null);
+      showSocialLoginError(provider, 'Failed to initiate registration. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
+    >
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <Text>Register Screen - TODO: Complete UI</Text>
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
+}
