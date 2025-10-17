@@ -6,9 +6,13 @@ import { useThemeStore, ThemeMode, ColorTheme, FontSize } from '@/store/themeSto
 import { useUserStore } from '@/store/userStore';
 import { useCallStore } from '@/store/callStore';
 import { getColors } from '@/constants/colors';
+< Araz
 import { logger } from '@/utils/logger';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system';
+=======
+import { LucideIcon } from 'lucide-react-native';
+> main
 import { 
   Moon, 
   Sun, 
@@ -131,7 +135,11 @@ export default function SettingsScreen() {
     return () => pulseLoop.stop();
   }, []);
 
+< Araz
   const themeModes: { key: ThemeMode; label: string; labelRu: string; icon: React.ComponentType<any> }[] = [
+=======
+  const themeModes: { key: ThemeMode; label: string; labelRu: string; icon: LucideIcon }[] = [
+>main
     { key: 'light', label: 'İşıqlı', labelRu: 'Светлая', icon: Sun },
     { key: 'dark', label: 'Qaranlıq', labelRu: 'Темная', icon: Moon },
     { key: 'auto', label: 'Avtomatik', labelRu: 'Автоматическая', icon: RefreshCw },
@@ -214,7 +222,11 @@ export default function SettingsScreen() {
         language === 'az' ? 'Səs testi tamamlandı' : 'Тест звука завершен'
       );
     } catch (error) {
+< Araz
       logger.error('Test sound failed:', error);
+=======
+      // Sound test failed silently
+> main
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Səs testi uğursuz oldu' : 'Тест звука не удался'

@@ -78,11 +78,20 @@ export default function ListingDiscountScreen() {
   }
   
   const handleCreateDiscount = () => {
+< Araz
     logger.debug('[handleCreateDiscount] Button clicked');
     logger.debug('[handleCreateDiscount] Listing storeId:', listing.storeId);
     logger.debug('[handleCreateDiscount] Discount title:', discountTitle);
     logger.debug('[handleCreateDiscount] Discount value:', discountValue);
     logger.debug('[handleCreateDiscount] Discount type:', discountType);
+=======
+    console.log('[handleCreateDiscount] Button clicked');
+    console.log('[handleCreateDiscount] Listing storeId:', listing.storeId);
+    console.log('[handleCreateDiscount] Discount title:', discountTitle);
+    console.log('[handleCreateDiscount] Discount value:', discountValue);
+    console.log('[handleCreateDiscount] Discount type:', discountType);
+    console.log('[handleCreateDiscount] Timer settings:', { enableTimerBar, showTimerBar, timerTitle, timerBarColor });
+> main
     
     if (listing.storeId && !discountTitle.trim()) {
       logger.debug('[handleCreateDiscount] Validation failed: Missing title for store discount');
@@ -114,7 +123,21 @@ export default function ListingDiscountScreen() {
       return;
     }
     
+< Araz
     logger.debug('[handleCreateDiscount] Validation passed, showing confirmation dialog');
+=======
+    // Validate timer bar settings if enabled
+    if (enableTimerBar && showTimerBar && !timerTitle.trim()) {
+      console.log('[handleCreateDiscount] Validation failed: Missing timer title');
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Sayğac başlığını daxil edin' : 'Введите заголовок таймера'
+      );
+      return;
+    }
+    
+    console.log('[handleCreateDiscount] Validation passed, showing confirmation dialog');
+> main
     
     Alert.alert(
       language === 'az' ? 'Endirim tətbiq edilsin?' : 'Применить скидку?',
@@ -234,16 +257,31 @@ export default function ListingDiscountScreen() {
         timerEndDate: timerEndDate.toISOString()
       });
       
-      const updateData: any = {
+      const updateData: Partial<typeof listing> = {
         hasDiscount: true,
         originalPrice,
         price: Math.round(finalPrice),
         promotionEndDate: chosenEndDate.toISOString(),
         discountEndDate: chosenEndDate.toISOString(),
         discountPercentage: discountType === 'percentage' ? value : discountPercentage,
+        // Timer bar settings
+        timerBarEnabled: enableTimerBar && showTimerBar,
+        timerBarTitle: enableTimerBar && showTimerBar ? timerTitle : undefined,
+        timerBarColor: enableTimerBar && showTimerBar ? timerBarColor : undefined,
+        timerBarEndDate: enableTimerBar && showTimerBar ? timerEndDate.toISOString() : undefined,
       };
       
+< Araz
       logger.debug('[handleCreateIndividualDiscount] Update data:', updateData);
+=======
+      console.log('[handleCreateIndividualDiscount] Update data:', updateData);
+      console.log('[handleCreateIndividualDiscount] Timer bar enabled:', enableTimerBar && showTimerBar);
+      console.log('[handleCreateIndividualDiscount] Timer bar settings:', {
+        title: timerTitle,
+        color: timerBarColor,
+        endDate: timerEndDate.toISOString()
+      });
+> main
       updateListing(listing.id, updateData);
       logger.debug('[handleCreateIndividualDiscount] Listing updated successfully');
       
@@ -765,9 +803,9 @@ export default function ListingDiscountScreen() {
                 <TouchableOpacity 
                   style={styles.compactApplyButton}
                   onPress={() => {
-                    const days = parseInt(customDays) || 0;
-                    const hours = parseInt(customHours) || 0;
-                    const minutes = parseInt(customMinutes) || 0;
+                    const days = parseInt(customDays, 10) || 0;
+                    const hours = parseInt(customHours, 10) || 0;
+                    const minutes = parseInt(customMinutes, 10) || 0;
                     
                     if (days === 0 && hours === 0 && minutes === 0) {
                       Alert.alert(

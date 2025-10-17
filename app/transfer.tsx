@@ -54,6 +54,10 @@ export default function TransferScreen() {
     }
 
     const parsedAmount = parseFloat(amount);
+    if (isNaN(parsedAmount)) {
+      Alert.alert('Xəta', 'Düzgün məbləğ daxil edin');
+      return;
+    }
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
       Alert.alert('Error', 'Please enter a valid amount greater than 0');
       return;

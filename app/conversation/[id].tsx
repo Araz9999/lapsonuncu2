@@ -64,7 +64,11 @@ const ChatInput = memo(({
   isRecording: boolean; 
   language: string;
 }) => {
+< Araz
   logger.debug('ChatInput render');
+=======
+  // ChatInput component
+> main
   return (
     <View style={styles.inputContainer}>
       <TouchableOpacity
