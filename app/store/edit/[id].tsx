@@ -69,6 +69,7 @@ export default function EditStoreScreen() {
   const handleSave = async () => {
     if (!store || !currentUser) return;
     
+    // Validation: Store name
     if (!formData.name.trim()) {
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
@@ -77,10 +78,71 @@ export default function EditStoreScreen() {
       return;
     }
     
+    if (formData.name.trim().length < 3) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Mağaza adı ən azı 3 simvol olmalıdır' : 'Название магазина должно быть не менее 3 символов'
+      );
+      return;
+    }
+    
+    if (formData.name.trim().length > 50) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Mağaza adı maksimum 50 simvol ola bilər' : 'Название магазина не должно превышать 50 символов'
+      );
+      return;
+    }
+    
+    // Validation: Address
     if (!formData.address.trim()) {
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Ünvan tələb olunur' : 'Адрес обязателен'
+      );
+      return;
+    }
+    
+    if (formData.address.trim().length < 5) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Ünvan ən azı 5 simvol olmalıdır' : 'Адрес должен быть не менее 5 символов'
+      );
+      return;
+    }
+    
+    // Validation: Email format if provided
+    if (formData.contactInfo.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.contactInfo.email.trim())) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Düzgün email formatı daxil edin' : 'Введите корректный формат email'
+      );
+      return;
+    }
+    
+    // Validation: Phone number if provided
+    if (formData.contactInfo.phone.trim() && formData.contactInfo.phone.trim().length < 9) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Telefon nömrəsi ən azı 9 rəqəm olmalıdır' : 'Номер телефона должен содержать не менее 9 цифр'
+      );
+      return;
+    }
+    
+    // Validation: WhatsApp number if provided
+    if (formData.contactInfo.whatsapp.trim() && formData.contactInfo.whatsapp.trim().length < 9) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'WhatsApp nömrəsi ən azı 9 rəqəm olmalıdır' : 'Номер WhatsApp должен содержать не менее 9 цифр'
+      );
+      return;
+    }
+    
+    // Validation: Website URL if provided
+    if (formData.contactInfo.website.trim() && !formData.contactInfo.website.trim().match(/^https?:\/\/.+/)) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Vebsayt http:// və ya https:// ilə başlamalıdır' : 'Веб-сайт должен начинаться с http:// или https://'
       );
       return;
     }
@@ -94,10 +156,10 @@ export default function EditStoreScreen() {
         address: formData.address.trim(),
         description: formData.description.trim(),
         contactInfo: {
-          phone: formData.contactInfo.phone.trim(),
-          email: formData.contactInfo.email.trim(),
-          website: formData.contactInfo.website.trim(),
-          whatsapp: formData.contactInfo.whatsapp.trim()
+          phone: formData.contactInfo.phone.trim() || undefined,
+          email: formData.contactInfo.email.trim() || undefined,
+          website: formData.contactInfo.website.trim() || undefined,
+          whatsapp: formData.contactInfo.whatsapp.trim() || undefined
         }
       });
       

@@ -259,16 +259,56 @@ export default function StoreSettingsScreen() {
   };
 
   const handleSaveEdit = async () => {
+    // Validation: Store name is required
+    if (!editForm.name.trim()) {
+      Alert.alert('Xəta', 'Mağaza adı daxil edilməlidir');
+      return;
+    }
+    
+    if (editForm.name.trim().length < 3) {
+      Alert.alert('Xəta', 'Mağaza adı ən azı 3 simvol olmalıdır');
+      return;
+    }
+    
+    if (editForm.name.trim().length > 50) {
+      Alert.alert('Xəta', 'Mağaza adı maksimum 50 simvol ola bilər');
+      return;
+    }
+    
+    // Validation: Email format if provided
+    if (editForm.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editForm.email.trim())) {
+      Alert.alert('Xəta', 'Düzgün email formatı daxil edin');
+      return;
+    }
+    
+    // Validation: Phone number if provided
+    if (editForm.phone.trim() && editForm.phone.trim().length < 9) {
+      Alert.alert('Xəta', 'Telefon nömrəsi ən azı 9 rəqəm olmalıdır');
+      return;
+    }
+    
+    // Validation: WhatsApp number if provided
+    if (editForm.whatsapp.trim() && editForm.whatsapp.trim().length < 9) {
+      Alert.alert('Xəta', 'WhatsApp nömrəsi ən azı 9 rəqəm olmalıdır');
+      return;
+    }
+    
+    // Validation: Website URL if provided
+    if (editForm.website.trim() && !editForm.website.trim().match(/^https?:\/\/.+/)) {
+      Alert.alert('Xəta', 'Vebsayt http:// və ya https:// ilə başlamalıdır');
+      return;
+    }
+    
     try {
       await editStore(store.id, {
-        name: editForm.name,
-        description: editForm.description,
+        name: editForm.name.trim(),
+        description: editForm.description.trim(),
         contactInfo: {
           ...store.contactInfo,
-          phone: editForm.phone,
-          email: editForm.email,
-          website: editForm.website,
-          whatsapp: editForm.whatsapp
+          phone: editForm.phone.trim() || undefined,
+          email: editForm.email.trim() || undefined,
+          website: editForm.website.trim() || undefined,
+          whatsapp: editForm.whatsapp.trim() || undefined
         }
       });
       setShowEditModal(false);
