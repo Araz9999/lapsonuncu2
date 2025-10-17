@@ -126,12 +126,24 @@ class UserDatabase {
   }
 
   async createUser(userData: Partial<DBUser>): Promise<DBUser> {
-    const id = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    // Generate cryptographically secure ID
+    const id = await this.generateSecureId();
     const now = new Date().toISOString();
+
+    // Validate required fields
+    if (!userData.email) {
+      throw new Error('Email is required');
+    }
+
+    // Check for duplicate email
+    const existingId = this.emailIndex.get(userData.email.toLowerCase());
+    if (existingId) {
+      throw new Error('Email already exists');
+    }
 
     const user: DBUser = {
       id,
-      email: userData.email || '',
+      email: userData.email,
       name: userData.name || 'User',
       avatar: userData.avatar,
       phone: userData.phone,
@@ -144,19 +156,39 @@ class UserDatabase {
       balance: userData.balance || 0,
     };
 
-    this.users.set(id, user);
-    
-    if (user.email) {
-      this.emailIndex.set(user.email.toLowerCase(), id);
+    // Atomic-like operation
+    try {
+      this.users.set(id, user);
+      
+      if (user.email) {
+        this.emailIndex.set(user.email.toLowerCase(), id);
+      }
+
+      user.socialProviders.forEach(provider => {
+        const key = `${provider.provider}:${provider.socialId}`;
+        this.socialIndex.set(key, id);
+      });
+
+      console.log(`[DB] Created user: ${user.id} (${user.email})`);
+      return user;
+    } catch (error) {
+      // Rollback on error
+      this.users.delete(id);
+      if (user.email) {
+        this.emailIndex.delete(user.email.toLowerCase());
+      }
+      throw error;
     }
+  }
 
-    user.socialProviders.forEach(provider => {
-      const key = `${provider.provider}:${provider.socialId}`;
-      this.socialIndex.set(key, id);
-    });
-
-    console.log(`[DB] Created user: ${user.id} (${user.email})`);
-    return user;
+  /**
+   * Generate cryptographically secure user ID
+   */
+  private async generateSecureId(): Promise<string> {
+    const timestamp = Date.now();
+    const randomBytes = crypto.getRandomValues(new Uint8Array(16));
+    const randomHex = Array.from(randomBytes, b => b.toString(16).padStart(2, '0')).join('');
+    return `user_${timestamp}_${randomHex}`;
   }
 
   async updateUser(id: string, updates: Partial<DBUser>): Promise<DBUser | null> {

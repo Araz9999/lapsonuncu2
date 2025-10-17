@@ -6,6 +6,7 @@ import { useThemeStore, ThemeMode, ColorTheme, FontSize } from '@/store/themeSto
 import { useUserStore } from '@/store/userStore';
 import { useCallStore } from '@/store/callStore';
 import { getColors } from '@/constants/colors';
+import { LucideIcon } from 'lucide-react-native';
 import { 
   Moon, 
   Sun, 
@@ -128,7 +129,7 @@ export default function SettingsScreen() {
     return () => pulseLoop.stop();
   }, []);
 
-  const themeModes: { key: ThemeMode; label: string; labelRu: string; icon: any }[] = [
+  const themeModes: { key: ThemeMode; label: string; labelRu: string; icon: LucideIcon }[] = [
     { key: 'light', label: 'İşıqlı', labelRu: 'Светлая', icon: Sun },
     { key: 'dark', label: 'Qaranlıq', labelRu: 'Темная', icon: Moon },
     { key: 'auto', label: 'Avtomatik', labelRu: 'Автоматическая', icon: RefreshCw },
@@ -197,7 +198,7 @@ export default function SettingsScreen() {
         language === 'az' ? 'Səs testi tamamlandı' : 'Тест звука завершен'
       );
     } catch (error) {
-      console.error('Test sound failed:', error);
+      // Sound test failed silently
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Səs testi uğursuz oldu' : 'Тест звука не удался'

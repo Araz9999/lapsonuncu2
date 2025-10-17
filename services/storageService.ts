@@ -41,15 +41,15 @@ class StorageService {
     // Validate file size. On native, attempt to use provided size when available
     const fileSize = Platform.OS === 'web'
       ? (file as File).size
-      : (typeof (file as any).size === 'number' ? (file as any).size : 0);
-    if (fileSize > maxSize) {
+      : (typeof (file as { uri: string; name: string; type: string; size?: number }).size === 'number' ? (file as { uri: string; name: string; type: string; size?: number }).size : 0);
+    if (fileSize && fileSize > maxSize) {
       throw new Error(`File size exceeds maximum allowed size of ${maxSize} bytes`);
     }
 
     // Validate file type
     const fileType = Platform.OS === 'web'
       ? (file as File).type
-      : ((file as any).type || 'application/octet-stream');
+      : ((file as { uri: string; name: string; type: string }).type || 'application/octet-stream');
     if (!allowedTypes.includes(fileType)) {
       throw new Error(`File type ${fileType} is not allowed`);
     }
@@ -57,7 +57,7 @@ class StorageService {
     try {
       const formData = new FormData();
       const fileName = this.generateFileName(
-        Platform.OS === 'web' ? (file as File).name : (file as any).name
+        Platform.OS === 'web' ? (file as File).name : (file as { uri: string; name: string; type: string }).name
       );
       const key = `${folder}/${fileName}`;
 
@@ -65,7 +65,7 @@ class StorageService {
         formData.append('file', file as File);
       } else {
         // Ensure name and type are passed for React Native uploads
-        const nativeFile: any = file as any;
+        const nativeFile = file as { uri: string; name: string; type: string };
         formData.append('file', {
           uri: nativeFile.uri,
           name: nativeFile.name || this.generateFileName('upload.bin'),
@@ -93,12 +93,12 @@ class StorageService {
       return {
         url: result.url,
         key: result.key,
-        size: fileSize,
+        size: fileSize || 0,
         type: fileType,
       };
     } catch (error) {
-      console.error('File upload failed:', error);
-      throw error;
+      const errorMessage = error instanceof Error ? error.message : 'File upload failed';
+      throw new Error(errorMessage);
     }
   }
 
@@ -126,7 +126,7 @@ class StorageService {
 
       return response.ok;
     } catch (error) {
-      console.error('File deletion failed:', error);
+      // Silently fail - deletion errors are not critical
       return false;
     }
   }
@@ -153,7 +153,7 @@ class StorageService {
       const result = await response.json();
       return result.url;
     } catch (error) {
-      console.error('Failed to get signed URL:', error);
+      // Return null on error - caller will handle
       return null;
     }
   }
@@ -180,7 +180,7 @@ class StorageService {
       const result = await response.json();
       return result.files || [];
     } catch (error) {
-      console.error('Failed to list files:', error);
+      // Return empty array on error
       return [];
     }
   }

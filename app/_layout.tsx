@@ -1,7 +1,7 @@
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { useEffect, Component, ReactNode, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { StatusBar } from 'expo-status-bar';
 import { View, Text } from 'react-native';
 import { useThemeStore } from '@/store/themeStore';
@@ -10,6 +10,7 @@ import { useCallStore } from '@/store/callStore';
 import { getColors } from '@/constants/colors';
 import IncomingCallModal from '@/components/IncomingCallModal';
 import { LanguageProvider } from '@/store/languageStore';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 import { initializeServices } from '@/services';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -39,39 +40,6 @@ const queryClient = new QueryClient({
     },
   },
 });
-
-class ErrorBoundary extends Component<
-  { children: ReactNode },
-  { hasError: boolean; error?: Error }
-> {
-  constructor(props: { children: ReactNode }) {
-    super(props);
-    this.state = { hasError: false };
-  }
-
-  static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error: Error, errorInfo: any) {
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-          <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 10 }}>Something went wrong</Text>
-          <Text style={{ textAlign: 'center', color: '#666' }}>
-            {this.state.error?.message || 'An unexpected error occurred'}
-          </Text>
-        </View>
-      );
-    }
-
-    return this.props.children;
-  }
-}
 
 export default function RootLayout() {
   // Skip font loading - use system fonts for better performance
