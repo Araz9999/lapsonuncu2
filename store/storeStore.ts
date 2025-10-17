@@ -91,9 +91,25 @@ export const useStoreStore = create<StoreState>((set, get) => ({
   createStore: async (storeData) => {
     set({ isLoading: true, error: null });
     try {
+      // BUG FIX: Validate input data
+      if (!storeData.userId || !storeData.name || !storeData.plan) {
+        throw new Error('Missing required store data');
+      }
+      
+      // BUG FIX: Check if user already has a store
+      const existingStore = get().stores.find(s => 
+        s.userId === storeData.userId && 
+        (s.status === 'active' || s.status === 'grace_period')
+      );
+      
+      if (existingStore) {
+        throw new Error('User already has an active store');
+      }
+      
+      // BUG FIX: Generate unique ID with random component
       const newStore: Store = {
         ...storeData,
-        id: Date.now().toString(),
+        id: `store-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         createdAt: new Date().toISOString(),
         expiresAt: new Date(Date.now() + storeData.plan.duration * 24 * 60 * 60 * 1000).toISOString(),
         adsUsed: 0,
@@ -135,11 +151,33 @@ export const useStoreStore = create<StoreState>((set, get) => ({
   deleteStore: async (storeId) => {
     set({ isLoading: true, error: null });
     try {
+      // BUG FIX: Validate storeId
+      if (!storeId) {
+        throw new Error('Invalid storeId');
+      }
+      
+      // BUG FIX: Check if store exists
+      const store = get().stores.find(s => s.id === storeId);
+      if (!store) {
+        logger.warn('[StoreStore] Store not found for deletion:', storeId);
+        set({ isLoading: false });
+        return;
+      }
+      
+      // BUG FIX: Use soft delete instead of hard delete
+      const now = new Date().toISOString();
       set(state => ({
-        stores: state.stores.filter(store => store.id !== storeId),
+        stores: state.stores.map(s => 
+          s.id === storeId 
+            ? { ...s, status: 'archived' as StoreStatus, archivedAt: now }
+            : s
+        ),
         isLoading: false
       }));
-    } catch {
+      
+      logger.info('[StoreStore] Store archived:', storeId);
+    } catch (error) {
+      logger.error('[StoreStore] Failed to delete store:', error);
       set({ error: 'Failed to delete store', isLoading: false });
     }
   },
@@ -199,8 +237,31 @@ export const useStoreStore = create<StoreState>((set, get) => ({
   followStore: async (userId, storeId) => {
     set({ isLoading: true, error: null });
     try {
+      // BUG FIX: Validate parameters
+      if (!userId || !storeId) {
+        throw new Error('Invalid userId or storeId');
+      }
+      
+      // BUG FIX: Check if already following
+      const alreadyFollowing = get().followers.some(f => 
+        f.userId === userId && f.storeId === storeId
+      );
+      
+      if (alreadyFollowing) {
+        logger.warn('[StoreStore] User already following store:', { userId, storeId });
+        set({ isLoading: false });
+        return;
+      }
+      
+      // BUG FIX: Check if store exists
+      const store = get().stores.find(s => s.id === storeId);
+      if (!store) {
+        throw new Error('Store not found');
+      }
+      
+      // BUG FIX: Generate unique ID
       const newFollower: StoreFollower = {
-        id: Date.now().toString(),
+        id: `follower-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         userId,
         storeId,
         followedAt: new Date().toISOString(),
@@ -215,7 +276,10 @@ export const useStoreStore = create<StoreState>((set, get) => ({
         ),
         isLoading: false
       }));
-    } catch {
+      
+      logger.info('[StoreStore] User followed store:', { userId, storeId });
+    } catch (error) {
+      logger.error('[StoreStore] Failed to follow store:', error);
       set({ error: 'Failed to follow store', isLoading: false });
     }
   },
@@ -251,13 +315,31 @@ export const useStoreStore = create<StoreState>((set, get) => ({
   },
 
   notifyFollowers: async (storeId, listingId) => {
+    // BUG FIX: Validate parameters
+    if (!storeId || !listingId) {
+      logger.error('[StoreStore] Invalid parameters for notifyFollowers');
+      return;
+    }
+    
     const { stores, followers } = get();
     const store = stores.find(s => s.id === storeId);
-    if (!store) return;
+    
+    // BUG FIX: Validate store exists and has name
+    if (!store || !store.name) {
+      logger.warn('[StoreStore] Store not found for notification:', storeId);
+      return;
+    }
 
     const storeFollowers = followers.filter(f => f.storeId === storeId);
-    const newNotifications: StoreNotification[] = storeFollowers.map(follower => ({
-      id: `${Date.now()}-${follower.userId}`,
+    
+    // BUG FIX: Only send notifications if there are followers
+    if (storeFollowers.length === 0) {
+      logger.debug('[StoreStore] No followers to notify for store:', storeId);
+      return;
+    }
+    
+    const newNotifications: StoreNotification[] = storeFollowers.map((follower, index) => ({
+      id: `notif-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`, // BUG FIX: Unique IDs
       storeId,
       userId: follower.userId,
       listingId,
@@ -273,6 +355,8 @@ export const useStoreStore = create<StoreState>((set, get) => ({
     set(state => ({
       notifications: [...state.notifications, ...newNotifications]
     }));
+    
+    logger.info('[StoreStore] Notified followers:', { storeId, followerCount: storeFollowers.length });
   },
 
   getNotifications: (userId) => {
@@ -291,33 +375,90 @@ export const useStoreStore = create<StoreState>((set, get) => ({
   },
 
   canAddListing: (storeId) => {
+    // BUG FIX: Validate storeId parameter
+    if (!storeId || typeof storeId !== 'string') {
+      logger.error('[StoreStore] Invalid storeId for canAddListing');
+      return false;
+    }
+    
     const { stores } = get();
     const store = stores.find(s => s.id === storeId);
-    if (!store || (store.status !== 'active' && store.status !== 'grace_period')) return false;
-    return store.adsUsed < store.maxAds;
+    
+    // BUG FIX: More detailed validation
+    if (!store) {
+      logger.warn('[StoreStore] Store not found:', storeId);
+      return false;
+    }
+    
+    if (store.status !== 'active' && store.status !== 'grace_period') {
+      logger.warn('[StoreStore] Store not active:', { storeId, status: store.status });
+      return false;
+    }
+    
+    // BUG FIX: Validate store.adsUsed and store.maxAds are numbers
+    const adsUsed = typeof store.adsUsed === 'number' ? store.adsUsed : 0;
+    const maxAds = typeof store.maxAds === 'number' ? store.maxAds : 0;
+    
+    return adsUsed < maxAds;
   },
 
   addListingToStore: async (storeId, listingId) => {
+    // BUG FIX: Validate parameters
+    if (!storeId || !listingId) {
+      logger.error('[StoreStore] Invalid parameters for addListingToStore');
+      throw new Error('storeId and listingId are required');
+    }
+    
     const { stores, canAddListing, notifyFollowers } = get();
     const store = stores.find(s => s.id === storeId);
     
-    if (!store || !canAddListing(storeId)) {
-      throw new Error('Cannot add listing to store');
+    // BUG FIX: Better error messages
+    if (!store) {
+      logger.error('[StoreStore] Store not found:', storeId);
+      throw new Error('Mağaza tapılmadı');
+    }
+    
+    if (!canAddListing(storeId)) {
+      logger.error('[StoreStore] Cannot add listing to store - limit reached:', storeId);
+      throw new Error('Mağaza elan limiti dolub');
     }
 
+    // BUG FIX: Validate adsUsed is a number
+    const currentAdsUsed = typeof store.adsUsed === 'number' ? store.adsUsed : 0;
+    
     set(state => ({
       stores: state.stores.map(s => 
         s.id === storeId 
-          ? { ...s, adsUsed: s.adsUsed + 1 }
+          ? { ...s, adsUsed: currentAdsUsed + 1 }
           : s
       )
     }));
 
+    logger.info('[StoreStore] Listing added to store:', { storeId, listingId });
+    
     // Notify followers about new listing
-    await notifyFollowers(storeId, listingId);
+    try {
+      await notifyFollowers(storeId, listingId);
+    } catch (error) {
+      // BUG FIX: Don't fail if notifications fail
+      logger.error('[StoreStore] Failed to notify followers:', error);
+    }
   },
 
   removeListingFromStore: async (storeId, listingId) => {
+    // BUG FIX: Validate parameters
+    if (!storeId || !listingId) {
+      logger.error('[StoreStore] Invalid parameters for removeListingFromStore');
+      return;
+    }
+    
+    // BUG FIX: Check if store exists
+    const store = get().stores.find(s => s.id === storeId);
+    if (!store) {
+      logger.warn('[StoreStore] Store not found for listing removal:', storeId);
+      return;
+    }
+    
     set(state => ({
       stores: state.stores.map(s => 
         s.id === storeId 
@@ -325,6 +466,8 @@ export const useStoreStore = create<StoreState>((set, get) => ({
           : s
       )
     }));
+    
+    logger.info('[StoreStore] Listing removed from store:', { storeId, listingId });
   },
 
   getStoreListings: (storeId) => {

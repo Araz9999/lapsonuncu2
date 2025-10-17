@@ -223,7 +223,20 @@ export const useMessageStore = create<MessageStore>((set, get) => ({
   },
   
   createConversation: (participants: string[], listingId: string) => {
-    const conversationId = Date.now().toString();
+    // BUG FIX: Validate input parameters
+    if (!participants || !Array.isArray(participants) || participants.length < 2) {
+      logger.error('[MessageStore] Invalid participants for conversation');
+      throw new Error('Conversation must have at least 2 participants');
+    }
+    
+    if (!listingId) {
+      logger.error('[MessageStore] Invalid listingId for conversation');
+      throw new Error('ListingId is required');
+    }
+    
+    // BUG FIX: Generate unique ID with random component to prevent conflicts
+    const conversationId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
     const newConversation: Conversation = {
       id: conversationId,
       participants,
@@ -236,6 +249,7 @@ export const useMessageStore = create<MessageStore>((set, get) => ({
       conversations: [...state.conversations, newConversation],
     }));
     
+    logger.info('[MessageStore] Conversation created:', conversationId);
     return conversationId;
   },
   
@@ -306,15 +320,29 @@ export const useMessageStore = create<MessageStore>((set, get) => ({
   deleteMessage: (conversationId: string, messageId: string) => {
     logger.debug('MessageStore - deleteMessage called:', { conversationId, messageId });
     
+    // BUG FIX: Validate input parameters
+    if (!conversationId || !messageId) {
+      logger.error('[MessageStore] Invalid parameters for deleteMessage');
+      return;
+    }
+    
     set((state) => {
       const conversationIndex = state.conversations.findIndex(conv => conv.id === conversationId);
       
       if (conversationIndex === -1) {
-        logger.debug('MessageStore - Conversation not found for deletion:', conversationId);
+        logger.warn('MessageStore - Conversation not found for deletion:', conversationId);
         return state;
       }
       
       const conversation = state.conversations[conversationIndex];
+      
+      // BUG FIX: Check if message exists before deleting
+      const messageExists = conversation.messages.some(msg => msg.id === messageId);
+      if (!messageExists) {
+        logger.warn('MessageStore - Message not found for deletion:', messageId);
+        return state;
+      }
+      
       const updatedMessages = conversation.messages.filter(msg => msg.id !== messageId);
       
       // Update last message if the deleted message was the last one

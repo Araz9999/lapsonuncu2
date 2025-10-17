@@ -39,11 +39,7 @@ class PayriffService {
     this.environment = process.env.PAYRIFF_ENVIRONMENT || 'production';
 
     if (!this.merchantId || !this.secretKey) {
-< cursor/fix-many-bugs-and-errors-4e56
-      apiLogger.warn('Payriff credentials not configured');
-=======
       logger.warn('Payriff credentials not configured');
-> Araz
     }
   }
 
@@ -84,11 +80,7 @@ class PayriffService {
         ...urls,
       };
 
-< cursor/fix-many-bugs-and-errors-4e56
-      apiLogger.debug('Creating Payriff payment:', {
-=======
       logger.info('Creating Payriff payment:', {
-> Araz
         orderId: data.orderId,
         amount: amountInQepik,
         merchantId: this.merchantId,
@@ -105,11 +97,7 @@ class PayriffService {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-< cursor/fix-many-bugs-and-errors-4e56
-        apiLogger.error('Payriff API error:', errorData);
-=======
         logger.error('Payriff API error:', errorData);
-> Araz
         throw new Error(errorData.message || 'Failed to create payment');
       }
 
@@ -121,11 +109,7 @@ class PayriffService {
         transactionId: result.transactionId,
       };
     } catch (error) {
-< cursor/fix-many-bugs-and-errors-4e56
-      apiLogger.error('Payriff payment creation error:', error);
-=======
       logger.error('Payriff payment creation error:', error);
-> Araz
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -160,11 +144,7 @@ class PayriffService {
       const result = await response.json();
       return result;
     } catch (error) {
-< cursor/fix-many-bugs-and-errors-4e56
-      apiLogger.error('Payriff transaction status error:', error);
-=======
       logger.error('Payriff transaction status error:', error);
-> Araz
       return null;
     }
   }
@@ -177,11 +157,7 @@ class PayriffService {
       // SECURITY: Use constant-time comparison to prevent timing attacks
       return this.constantTimeCompare(receivedSignature, computedSignature);
     } catch (error) {
-< cursor/fix-many-bugs-and-errors-4e56
-      apiLogger.error('Signature verification error:', error);
-=======
       logger.error('Signature verification error:', error);
-> Araz
       return false;
     }
   }
@@ -264,11 +240,7 @@ class PayriffService {
    * Provided for compatibility with existing routes; returns false.
    */
   async refundPayment(_orderId: string, _amount?: number): Promise<boolean> {
-< cursor/fix-many-bugs-and-errors-4e56
-    apiLogger.warn('refundPayment is not implemented');
-=======
     logger.warn('refundPayment is not implemented');
-> Araz
     return false;
   }
 }

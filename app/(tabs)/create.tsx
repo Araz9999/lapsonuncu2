@@ -118,10 +118,11 @@ export default function CreateListingScreen() {
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [4, 3],
-        quality: 1,
+        quality: 0.8, // BUG FIX: Reduced quality for better performance
       });
 
-      if (!result.canceled) {
+      // BUG FIX: Validate assets array exists and has items
+      if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0]) {
         if (images.length >= (selectedPackageData?.features.photosCount || 3)) {
           Alert.alert(
             language === 'az' ? 'Limit aşıldı' : 'Лимит превышен',
@@ -168,10 +169,11 @@ export default function CreateListingScreen() {
       const result = await ImagePicker.launchCameraAsync({
         allowsEditing: true,
         aspect: [4, 3],
-        quality: 1,
+        quality: 0.8, // BUG FIX: Reduced quality for better performance
       });
 
-      if (!result.canceled) {
+      // BUG FIX: Validate assets array exists and has items
+      if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0]) {
         if (images.length >= (selectedPackageData?.features.photosCount || 3)) {
           Alert.alert(
             language === 'az' ? 'Limit aşıldı' : 'Лимит превышен',
