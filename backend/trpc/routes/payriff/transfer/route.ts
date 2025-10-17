@@ -3,6 +3,7 @@ import { publicProcedure } from '../../../create-context';
 import config from '@/constants/config';
 import { PayriffResponse, isPayriffSuccess, getPayriffErrorMessage } from '@/constants/payriffCodes';
 
+import { logger } from '@/utils/logger';
 export const transferProcedure = publicProcedure
   .input(
     z.object({
@@ -57,11 +58,11 @@ export const transferProcedure = publicProcedure
     }
 
     const data: PayriffResponse = await response.json();
-    console.log('Transfer response:', JSON.stringify(data, null, 2));
+    logger.debug('Transfer response:', JSON.stringify(data, null, 2));
 
     if (!response.ok || !isPayriffSuccess(data)) {
       const errorMessage = getPayriffErrorMessage(data);
-      console.error('Transfer error:', errorMessage);
+      logger.error('Transfer error:', errorMessage);
       throw new Error(errorMessage);
     }
 

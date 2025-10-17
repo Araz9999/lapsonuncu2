@@ -1,6 +1,7 @@
 import config from '@/constants/config';
 import { Platform } from 'react-native';
 
+import { logger } from '@/utils/logger';
 export interface AnalyticsEvent {
   name: string;
   properties?: Record<string, string | number | boolean | null>;
@@ -29,7 +30,7 @@ class AnalyticsService {
 
   async initialize(): Promise<void> {
     if (!this.isEnabled || !this.isConfigured()) {
-      console.log('Analytics not configured or disabled');
+      logger.debug('Analytics not configured or disabled');
       return;
     }
 
@@ -47,7 +48,7 @@ class AnalyticsService {
       // SECURITY: Validate Google Analytics ID format before injection
       const gaIdPattern = /^(G|UA|AW|DC)-[A-Z0-9-]+$/;
       if (!gaIdPattern.test(this.googleAnalyticsId)) {
-        console.error('[Analytics] Invalid Google Analytics ID format');
+        logger.error('[Analytics] Invalid Google Analytics ID format');
         return;
       }
 
@@ -76,7 +77,7 @@ class AnalyticsService {
         (windowWithGtag.dataLayer = windowWithGtag.dataLayer || []).push(args);
       };
     } catch (error) {
-      console.error('Failed to initialize Google Analytics:', error);
+      logger.error('Failed to initialize Google Analytics:', error);
     }
   }
 
@@ -95,17 +96,17 @@ class AnalyticsService {
           (window as any).mixpanel.init(this.mixpanelToken);
         };
       } else {
-        console.log('Mixpanel mobile SDK would need to be installed separately');
+        logger.debug('Mixpanel mobile SDK would need to be installed separately');
       }
     } catch (error) {
-      console.error('Failed to initialize Mixpanel:', error);
+      logger.error('Failed to initialize Mixpanel:', error);
     }
   }
 
   track(event: AnalyticsEvent): void {
     if (!this.isEnabled) return;
 
-    console.log('Analytics Event:', event);
+    logger.debug('Analytics Event:', event);
 
     if (Platform.OS === 'web') {
       this.trackGoogleAnalytics(event);
@@ -130,7 +131,7 @@ class AnalyticsService {
         });
       }
     } catch (error) {
-      console.error('Google Analytics tracking error:', error);
+      logger.error('Google Analytics tracking error:', error);
     }
   }
 
@@ -153,17 +154,17 @@ class AnalyticsService {
           windowWithMixpanel.mixpanel.identify(event.userId);
         }
       } else {
-        console.log('Mixpanel mobile tracking would be implemented here');
+        logger.debug('Mixpanel mobile tracking would be implemented here');
       }
     } catch (error) {
-      console.error('Mixpanel tracking error:', error);
+      logger.error('Mixpanel tracking error:', error);
     }
   }
 
   identify(userProperties: UserProperties): void {
     if (!this.isEnabled) return;
 
-    console.log('Analytics Identify:', userProperties);
+    logger.debug('Analytics Identify:', userProperties);
 
     if (Platform.OS === 'web') {
       if ((window as any).gtag) {
@@ -182,7 +183,7 @@ class AnalyticsService {
   setUserProperties(properties: Partial<UserProperties>): void {
     if (!this.isEnabled) return;
 
-    console.log('Analytics Set User Properties:', properties);
+    logger.debug('Analytics Set User Properties:', properties);
 
     if (Platform.OS === 'web' && (window as any).mixpanel) {
       (window as any).mixpanel.people.set(properties);

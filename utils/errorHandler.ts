@@ -184,7 +184,7 @@ export function safeJSONParse<T = any>(
  * Safe JSON stringify with error handling
  */
 export function safeJSONStringify(
-  data: any,
+  data: unknown,
   fallback: string = '{}'
 ): string {
   try {

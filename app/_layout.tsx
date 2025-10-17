@@ -16,6 +16,7 @@ import { initializeServices } from '@/services';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { trpc, trpcClient } from '@/lib/trpc';
 
+import { logger } from '@/utils/logger';
 export const unstable_settings = {
   initialRouteName: "(tabs)",
 };
@@ -41,6 +42,42 @@ const queryClient = new QueryClient({
   },
 });
 
+< Araz
+class ErrorBoundary extends Component<
+  { children: ReactNode },
+  { hasError: boolean; error?: Error }
+> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: any) {
+    logger.error('ErrorBoundary caught an error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 10 }}>Something went wrong</Text>
+          <Text style={{ textAlign: 'center', color: '#666' }}>
+            {this.state.error?.message || 'An unexpected error occurred'}
+          </Text>
+        </View>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+=======
+> main
 export default function RootLayout() {
   // Skip font loading - use system fonts for better performance
   const [loaded] = useFonts({});
@@ -80,7 +117,7 @@ function RootLayoutNav() {
   // Load ratings on app start (only once)
   useEffect(() => {
     loadRatings().catch((error) => {
-      if (__DEV__) console.error('Failed to load ratings:', error);
+      if (__DEV__) logger.error('Failed to load ratings:', error);
     });
   }, []); // Safe to ignore loadRatings dependency as it's stable
   
@@ -88,7 +125,7 @@ function RootLayoutNav() {
   useEffect(() => {
     const timer = setTimeout(() => {
       initializeSounds().catch((error) => {
-        if (__DEV__) console.error('Failed to initialize sounds:', error);
+        if (__DEV__) logger.error('Failed to initialize sounds:', error);
       });
     }, 2000); // Increased delay for better startup
     
@@ -98,7 +135,7 @@ function RootLayoutNav() {
   // Initialize services (only once)
   useEffect(() => {
     initializeServices().catch((error) => {
-      if (__DEV__) console.error('Failed to initialize services:', error);
+      if (__DEV__) logger.error('Failed to initialize services:', error);
     });
   }, []);
   

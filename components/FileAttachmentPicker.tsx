@@ -14,6 +14,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { useThemeStore } from '@/store/themeStore';
 import { useLanguageStore } from '@/store/languageStore';
 import { getColors } from '@/constants/colors';
+import { logger } from '@/utils/logger';
 import { 
   FileText, 
   X, 
@@ -168,7 +169,7 @@ export default function FileAttachmentPicker({
         onAttachmentsChange([...attachments, ...newAttachments]);
       }
     } catch (error) {
-      console.log('Document picker error:', error);
+      logger.debug('Document picker error:', error);
     }
   };
 

@@ -1,15 +1,26 @@
 import { publicProcedure } from '../../../create-context';
+< Araz
+import { z } from 'zod';
+import { logger } from '../../../../../utils/logger';
+import { userDB } from '../../../../db/users';
+import { generateTokenPair } from '../../../../utils/jwt';
+=======
 import { userDB } from '../../../../db/users';
 import { generateTokenPair } from '../../../../utils/jwt';
 import { userLoginSchema } from '../../../../utils/validation';
 import { AuthenticationError } from '../../../../utils/errors';
 import { logger } from '../../../../utils/logger';
 
+> main
 export const loginProcedure = publicProcedure
   .input(userLoginSchema)
   .mutation(async ({ input }) => {
+< Araz
+    logger.info('[Auth] Login attempt:', input.email);
+=======
     try {
       logger.auth('Login attempt', { email: input.email });
+> main
 
       const user = await userDB.findByEmail(input.email);
       if (!user || !user.passwordHash) {
@@ -20,6 +31,9 @@ export const loginProcedure = publicProcedure
         );
       }
 
+< Araz
+    logger.info('[Auth] User logged in successfully:', user.id);
+=======
       const isValidPassword = await verifyPassword(input.password, user.passwordHash);
       if (!isValidPassword) {
         logger.security('Failed login attempt', { 
@@ -31,6 +45,7 @@ export const loginProcedure = publicProcedure
           'invalid_credentials'
         );
       }
+> main
 
       const tokens = await generateTokenPair({
         userId: user.id,

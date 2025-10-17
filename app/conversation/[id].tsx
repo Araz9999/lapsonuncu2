@@ -44,6 +44,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { Audio } from 'expo-av';
 import UserActionModal from '@/components/UserActionModal';
 
+import { logger } from '@/utils/logger';
 const { width: screenWidth } = Dimensions.get('window');
 
 const ChatInput = memo(({ 
@@ -63,7 +64,11 @@ const ChatInput = memo(({
   isRecording: boolean; 
   language: string;
 }) => {
+< Araz
+  logger.debug('ChatInput render');
+=======
   // ChatInput component
+> main
   return (
     <View style={styles.inputContainer}>
       <TouchableOpacity
@@ -142,7 +147,7 @@ export default function ConversationScreen() {
   
   const flatListRef = useRef<FlatList>(null);
   
-  console.log('ConversationScreen - ID:', conversationId);
+  logger.debug('ConversationScreen - ID:', conversationId);
   
   // Get conversation data or try to find/create one
   const [conversation, setConversation] = useState<any>(null);
@@ -168,7 +173,7 @@ export default function ConversationScreen() {
         );
         if (existingConv) {
           foundConversation = existingConv;
-          console.log('ConversationScreen - Found existing conversation:', existingConv.id);
+          logger.debug('ConversationScreen - Found existing conversation:', existingConv.id);
         }
       }
     }
@@ -182,7 +187,7 @@ export default function ConversationScreen() {
     } else {
       setConversation(null);
     }
-    console.log('ConversationScreen - Updated conversation:', !!foundConversation, 'Messages:', foundConversation?.messages?.length || 0);
+    logger.debug('ConversationScreen - Updated conversation:', !!foundConversation, 'Messages:', foundConversation?.messages?.length || 0);
   }, [conversationId, conversations, currentUser, getConversation]);
   
   const messages = conversation?.messages ? [...conversation.messages].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()) : [];
@@ -197,8 +202,8 @@ export default function ConversationScreen() {
     lastCountRef.current = messages.length;
   }, [messages.length]);
   
-  console.log('ConversationScreen - Conversation found:', !!conversation);
-  console.log('ConversationScreen - Messages count:', messages.length);
+  logger.debug('ConversationScreen - Conversation found:', !!conversation);
+  logger.debug('ConversationScreen - Messages count:', messages.length);
 
   const otherUser = conversation ? users.find(user => 
     conversation.participants.includes(user.id) && user.id !== currentUser?.id
@@ -223,7 +228,7 @@ export default function ConversationScreen() {
   
   // Early return after all hooks are called
   if (!conversationId || typeof conversationId !== 'string') {
-    console.log('ConversationScreen - Invalid ID:', conversationId);
+    logger.debug('ConversationScreen - Invalid ID:', conversationId);
     return (
       <View style={styles.errorContainer}>
         <Text style={styles.errorText}>
@@ -234,17 +239,17 @@ export default function ConversationScreen() {
   }
 
   const sendMessage = async (text: string, type: MessageType = 'text', attachments?: MessageAttachment[]) => {
-    console.log('sendMessage called with:', { text: text || '[empty]', type, attachments: attachments?.length || 0 });
+    logger.debug('sendMessage called with:', { text: text || '[empty]', type, attachments: attachments?.length || 0 });
     
     // Strict validation - don't send empty messages
     const trimmedText = text?.trim() || '';
     if (!trimmedText && (!attachments || attachments.length === 0)) {
-      console.log('Preventing empty message send - no text and no attachments');
+      logger.debug('Preventing empty message send - no text and no attachments');
       return;
     }
     
     if (!otherUser || !currentUser) {
-      console.log('No other user or current user, returning');
+      logger.debug('No other user or current user, returning');
       return;
     }
 
@@ -254,15 +259,15 @@ export default function ConversationScreen() {
       let currentConversation = conversation;
       
       if (!currentConversation) {
-        console.log('Creating new conversation');
+        logger.debug('Creating new conversation');
         const defaultListing = listings[0]; // Use first listing as default
         actualConversationId = getOrCreateConversation([currentUser.id, otherUser.id], defaultListing.id);
         currentConversation = getConversation(actualConversationId);
-        console.log('Created conversation with ID:', actualConversationId);
+        logger.debug('Created conversation with ID:', actualConversationId);
       }
       
       if (!actualConversationId || !currentConversation) {
-        console.log('Failed to get or create conversation');
+        logger.debug('Failed to get or create conversation');
         return;
       }
 
@@ -279,7 +284,7 @@ export default function ConversationScreen() {
         isDelivered: true,
       };
 
-      console.log('Adding message:', { id: newMessage.id, text: newMessage.text || '[empty]', type: newMessage.type });
+      logger.debug('Adding message:', { id: newMessage.id, text: newMessage.text || '[empty]', type: newMessage.type });
       addMessage(actualConversationId, newMessage);
       
       // Clear input immediately after adding message
@@ -288,7 +293,7 @@ export default function ConversationScreen() {
       // Force immediate re-render by updating conversation state
       const updatedConversation = getConversation(actualConversationId);
       if (updatedConversation) {
-        console.log('Updated conversation with new message, total messages:', updatedConversation.messages.length);
+        logger.debug('Updated conversation with new message, total messages:', updatedConversation.messages.length);
         setConversation({
           ...updatedConversation,
           messages: [...updatedConversation.messages]
@@ -300,7 +305,7 @@ export default function ConversationScreen() {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
     } catch (error) {
-      console.error('Error sending message:', error);
+      logger.error('Error sending message:', error);
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Mesaj göndərilə bilmədi' : 'Не удалось отправить сообщение'
@@ -310,10 +315,10 @@ export default function ConversationScreen() {
 
   const handleSendMessage = () => {
     const textToSend = inputText.trim();
-    console.log('handleSendMessage called with text:', textToSend || '[empty]');
+    logger.debug('handleSendMessage called with text:', textToSend || '[empty]');
     
     if (!textToSend) {
-      console.log('No text to send, ignoring');
+      logger.debug('No text to send, ignoring');
       return;
     }
     
@@ -322,10 +327,10 @@ export default function ConversationScreen() {
 
   const handleTextInputSubmit = () => {
     const textToSend = inputText.trim();
-    console.log('handleTextInputSubmit called with text:', textToSend || '[empty]');
+    logger.debug('handleTextInputSubmit called with text:', textToSend || '[empty]');
     
     if (!textToSend) {
-      console.log('No text to submit, ignoring');
+      logger.debug('No text to submit, ignoring');
       return;
     }
     
@@ -367,7 +372,7 @@ export default function ConversationScreen() {
         }
       }
     } catch (error) {
-      console.log('Image picker error:', error);
+      logger.debug('Image picker error:', error);
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Şəkil seçilə bilmədi' : 'Не удалось выбрать изображение'
@@ -397,7 +402,7 @@ export default function ConversationScreen() {
         await sendMessage('', 'file', [attachment]);
       }
     } catch (error) {
-      console.log('Document picker error:', error);
+      logger.debug('Document picker error:', error);
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Fayl seçilə bilmədi' : 'Не удалось выбрать файл'
@@ -437,7 +442,7 @@ export default function ConversationScreen() {
       setRecording(recording);
       setIsRecording(true);
     } catch (error) {
-      console.log('Failed to start recording:', error);
+      logger.debug('Failed to start recording:', error);
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Səs yazma başladıla bilmədi' : 'Не удалось начать запись'
@@ -475,7 +480,7 @@ export default function ConversationScreen() {
       
       setRecording(null);
     } catch (error) {
-      console.log('Failed to stop recording:', error);
+      logger.debug('Failed to stop recording:', error);
       setIsRecording(false);
       setRecording(null);
       Alert.alert(
@@ -532,7 +537,7 @@ export default function ConversationScreen() {
       
       // setOnPlaybackStatusUpdate not strictly needed when callback passed in createAsync
     } catch (error) {
-      console.error('Error playing audio:', error);
+      logger.error('Error playing audio:', error);
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Səs oxudula bilmədi' : 'Не удалось воспроизвести аудио'
@@ -696,7 +701,7 @@ export default function ConversationScreen() {
                   const callId = await initiateCall(otherUser.id, conversation?.listingId || '', 'voice');
                   router.push(`/call/${callId}`);
                 } catch (error) {
-                  console.error('Failed to initiate call:', error);
+                  logger.error('Failed to initiate call:', error);
                 }
               }}
             >

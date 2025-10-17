@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { Store, StorePlan, storePlans, StoreFollower, StoreNotification, StoreStatus } from '@/types/store';
 import { mockStores } from '@/mocks/stores';
 
+import { logger } from '@/utils/logger';
 interface StoreState {
   stores: Store[];
   userStore: Store | null;
@@ -26,7 +27,7 @@ interface StoreState {
   getUserStore: (userId: string) => Store | null;
   getAllUserStores: (userId: string) => Store[];
   getStorePlans: () => StorePlan[];
-  activateStore: (userId: string, planId: string, storeData: any) => Promise<void>;
+  activateStore: (userId: string, planId: string, storeData: Partial<Store>) => Promise<void>;
   deactivateStore: (storeId: string) => Promise<void>;
   followStore: (userId: string, storeId: string) => Promise<void>;
   unfollowStore: (userId: string, storeId: string) => Promise<void>;
@@ -57,8 +58,8 @@ interface StoreState {
   // Multi-store management
   getActiveStoreForUser: (userId: string) => Store | null;
   switchActiveStore: (userId: string, storeId: string) => Promise<void>;
-  getUserStoreSettings: (userId: string, storeId: string) => any;
-  updateUserStoreSettings: (userId: string, storeId: string, settings: any) => Promise<void>;
+  getUserStoreSettings: (userId: string, storeId: string) => Record<string, unknown>;
+  updateUserStoreSettings: (userId: string, storeId: string, settings: Record<string, unknown>) => Promise<void>;
   canUserCreateNewStore: (userId: string) => boolean;
   getUserStoreLimit: (userId: string) => number;
   sendExpirationNotification: (storeId: string, type: 'warning' | 'grace_period' | 'deactivated') => Promise<void>;
@@ -175,7 +176,15 @@ export const useStoreStore = create<StoreState>((set, get) => ({
     
     const { createStore } = get();
     await createStore({
-      ...storeData,
+      name: storeData.name || '',
+      categoryName: storeData.categoryName || '',
+      address: storeData.address || '',
+      contactInfo: storeData.contactInfo || { phone: '', email: '', website: '', whatsapp: '' },
+      description: storeData.description || '',
+      logo: storeData.logo || '',
+      coverImage: storeData.coverImage || '',
+      theme: storeData.theme || { colorScheme: 'light', layout: 'grid' },
+      ratingStats: storeData.ratingStats || { averageRating: 0, totalRatings: 0, ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } },
       userId,
       plan,
       maxAds: plan.maxAds
@@ -386,7 +395,7 @@ export const useStoreStore = create<StoreState>((set, get) => ({
         hasDiscount: true
       });
     } catch (error) {
-      console.error('Failed to apply discount:', error);
+      logger.error('Failed to apply discount:', error);
       throw error;
     }
   },
@@ -406,7 +415,7 @@ export const useStoreStore = create<StoreState>((set, get) => ({
         hasDiscount: false
       });
     } catch (error) {
-      console.error('Failed to remove discount:', error);
+      logger.error('Failed to remove discount:', error);
       throw error;
     }
   },
@@ -435,7 +444,7 @@ export const useStoreStore = create<StoreState>((set, get) => ({
         });
       }
     } catch (error) {
-      console.error('Failed to apply store-wide discount:', error);
+      logger.error('Failed to apply store-wide discount:', error);
       throw error;
     }
   },
@@ -460,7 +469,7 @@ export const useStoreStore = create<StoreState>((set, get) => ({
         });
       }
     } catch (error) {
-      console.error('Failed to remove store-wide discount:', error);
+      logger.error('Failed to remove store-wide discount:', error);
       throw error;
     }
   },
@@ -471,7 +480,7 @@ export const useStoreStore = create<StoreState>((set, get) => ({
       const discounts: { listingId: string; originalPrice: number; discountedPrice: number; discountPercentage: number }[] = [];
       return discounts;
     } catch (error) {
-      console.error('Failed to get store discounts:', error);
+      logger.error('Failed to get store discounts:', error);
       return [];
     }
   },
@@ -668,7 +677,7 @@ export const useStoreStore = create<StoreState>((set, get) => ({
     if (!store) return;
     
     // In a real app, this would send push notifications or emails
-    console.log(`📧 Expiration notification sent for store ${store.name}:`, type);
+    logger.debug(`📧 Expiration notification sent for store ${store.name}:`, type);
     
     // Update last notification time
     const now = new Date().toISOString();
@@ -836,7 +845,7 @@ export const useStoreStore = create<StoreState>((set, get) => ({
       
       return [];
     } catch (error) {
-      console.error('Failed to get store listing conflicts:', error);
+      logger.error('Failed to get store listing conflicts:', error);
       return [];
     }
   }

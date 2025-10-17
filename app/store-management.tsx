@@ -39,6 +39,7 @@ import {
 } from 'lucide-react-native';
 import { users } from '@/mocks/users';
 
+import { logger } from '@/utils/logger';
 export default function StoreManagementScreen() {
   const router = useRouter();
   const { language } = useLanguageStore();
@@ -59,8 +60,8 @@ export default function StoreManagementScreen() {
   const primaryStore = userStores.length > 0 ? userStores[0] : null;
   
   const handleCreateStore = (isFirstStore: boolean = false) => {
-    console.log('🏪 handleCreateStore called - SIMPLE NAVIGATION');
-    console.log('isFirstStore:', isFirstStore);
+    logger.debug('🏪 handleCreateStore called - SIMPLE NAVIGATION');
+    logger.debug('isFirstStore:', isFirstStore);
     
     // IMPORTANT: NO PAYMENT HERE - Just navigate to store creation
     // Payment will be handled AFTER package selection in the store creation flow

@@ -1,16 +1,18 @@
 import { SignJWT, jwtVerify } from 'jose';
+import { logger } from '../../utils/logger';
 
+import { logger } from '@/utils/logger';
 // SECURITY: JWT_SECRET must be set in production
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_ISSUER = 'marketplace-app';
 const JWT_AUDIENCE = 'marketplace-users';
 
 if (!JWT_SECRET) {
-  console.error('[JWT] CRITICAL: JWT_SECRET environment variable is not set!');
+  logger.error('[JWT] CRITICAL: JWT_SECRET environment variable is not set!');
   if (process.env.NODE_ENV === 'production') {
     throw new Error('JWT_SECRET must be set in production');
   }
-  console.warn('[JWT] Using fallback secret for development only');
+  logger.warn('[JWT] Using fallback secret for development only');
 }
 
 const secret = new TextEncoder().encode(JWT_SECRET || 'dev-only-fallback-secret-change-immediately');
@@ -68,7 +70,7 @@ export async function verifyToken(token: string): Promise<JWTPayload | null> {
       role: payload.role,
     };
   } catch (error) {
-    console.error('[JWT] Token verification failed:', error);
+    logger.error('[JWT] Token verification failed:', error);
     return null;
   }
 }

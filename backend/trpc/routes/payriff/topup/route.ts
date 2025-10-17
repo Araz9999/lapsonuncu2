@@ -3,6 +3,7 @@ import { publicProcedure } from '../../../create-context';
 import config from '@/constants/config';
 import { PayriffResponse, isPayriffSuccess, getPayriffErrorMessage } from '@/constants/payriffCodes';
 
+import { logger } from '@/utils/logger';
 export const topupProcedure = publicProcedure
   .input(
     z.object({
@@ -58,7 +59,7 @@ export const topupProcedure = publicProcedure
 
     if (!response.ok || !isPayriffSuccess(data)) {
       const errorMessage = getPayriffErrorMessage(data);
-      console.error('Topup error:', errorMessage);
+      logger.error('Topup error:', errorMessage);
       throw new Error(errorMessage);
     }
 

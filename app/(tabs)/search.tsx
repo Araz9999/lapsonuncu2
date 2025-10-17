@@ -9,6 +9,7 @@ import Colors from '@/constants/colors';
 import { ChevronDown, ChevronUp, Filter, ArrowUpDown, Camera, Image as ImageIcon } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 
+import { logger } from '@/utils/logger';
 export default function SearchScreen() {
   const { language } = useLanguageStore();
   const { 
@@ -113,7 +114,7 @@ export default function SearchScreen() {
         );
       }
     } catch (error) {
-      console.error('Error picking image:', error);
+      logger.error('Error picking image:', error);
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Şəkil seçilə bilmədi' : 'Не удалось выбрать изображение'
@@ -161,7 +162,7 @@ export default function SearchScreen() {
         );
       }
     } catch (error) {
-      console.error('Error using camera:', error);
+      logger.error('Error using camera:', error);
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Şəkil çəkilə bilmədi' : 'Не удалось сделать фото'

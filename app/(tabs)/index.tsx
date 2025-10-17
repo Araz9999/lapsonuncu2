@@ -14,6 +14,7 @@ import { getColors } from '@/constants/colors';
 import { t } from '@/constants/translations';
 import { Store } from 'lucide-react-native';
 
+import { logger } from '@/utils/logger';
 export default function HomeScreen() {
   const router = useRouter();
   const { resetFilters, listings } = useListingStore();
@@ -53,7 +54,7 @@ export default function HomeScreen() {
   useEffect(() => {
     if (autoRefresh) {
       const interval = setInterval(() => {
-        console.log('Auto refreshing data...');
+        logger.debug('Auto refreshing data...');
       }, 30000);
       
       return () => clearInterval(interval);
@@ -162,7 +163,7 @@ export default function HomeScreen() {
       naxcivanFadeAnim.stopAnimation();
       naxcivanScaleAnim.stopAnimation();
     };
-  }, []); // Empty dependency array is correct here for one-time setup
+  }, [fadeAnim, naxcivanFadeAnim, naxcivanScaleAnim, naxcivanSlideAnim, scaleAnim, slideAnim]); // Include all animation values
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>

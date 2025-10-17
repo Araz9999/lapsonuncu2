@@ -44,25 +44,25 @@ class Logger {
 
   debug(message: string, ...args: any[]): void {
     if (this.shouldLog('debug')) {
-      console.log(this.formatMessage('debug', message), ...args);
+      logger.debug(this.formatMessage('debug', message), ...args);
     }
   }
 
   info(message: string, ...args: any[]): void {
     if (this.shouldLog('info')) {
-      console.info(this.formatMessage('info', message), ...args);
+      logger.info(this.formatMessage('info', message), ...args);
     }
   }
 
   warn(message: string, ...args: any[]): void {
     if (this.shouldLog('warn')) {
-      console.warn(this.formatMessage('warn', message), ...args);
+      logger.warn(this.formatMessage('warn', message), ...args);
     }
   }
 
   error(message: string, error?: Error | unknown, ...args: any[]): void {
     if (this.shouldLog('error')) {
-      console.error(this.formatMessage('error', message), error, ...args);
+      logger.error(this.formatMessage('error', message), error, ...args);
       
       // In production, send to error tracking service
       if (!__DEV__ && error) {
@@ -75,7 +75,7 @@ class Logger {
     // TODO: Integrate with error tracking service (Sentry, Bugsnag, etc.)
     // For now, just ensure it's logged
     if (error instanceof Error) {
-      console.error('Error Report:', {
+      logger.error('Error Report:', {
         message,
         error: error.message,
         stack: error.stack,
