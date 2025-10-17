@@ -13,6 +13,7 @@ import { useLocalSearchParams, Stack, router } from 'expo-router';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { useCallStore } from '@/store/callStore';
 import { useLanguageStore } from '@/store/languageStore';
+import { useUserStore } from '@/store/userStore';
 import { users } from '@/mocks/users';
 import { listings } from '@/mocks/listings';
 import Colors from '@/constants/colors';
@@ -36,6 +37,7 @@ export default function CallScreen() {
   
   const { activeCall, endCall, toggleMute, toggleSpeaker, toggleVideo } = useCallStore();
   const { language } = useLanguageStore();
+  const { currentUser } = useUserStore();
   const [permission, requestPermission] = useCameraPermissions();
   
   const [callDuration, setCallDuration] = useState<number>(0);
@@ -65,12 +67,24 @@ export default function CallScreen() {
 
     return () => clearInterval(interval);
   }, [isConnected]);
+  
+  // ✅ Cleanup camera and resources when component unmounts
+  useEffect(() => {
+    return () => {
+      // Cleanup camera when leaving call screen
+      if (activeCall?.isVideoEnabled) {
+        // Camera will be automatically released when CameraView unmounts
+        logger.info('Call screen unmounting, camera will be released');
+      }
+    };
+  }, []);
 
   if (!activeCall || !callId) {
     return null;
   }
 
-  const otherUserId = activeCall.callerId === 'user1' ? activeCall.receiverId : activeCall.callerId;
+  // ✅ Use actual current user ID, not hardcoded
+  const otherUserId = activeCall.callerId === currentUser?.id ? activeCall.receiverId : activeCall.callerId;
   const otherUser = users.find(user => user.id === otherUserId);
   const listing = listings.find(l => l.id === activeCall.listingId);
 

@@ -13,9 +13,10 @@ interface CallStore {
   dialToneSound: Audio.Sound | null;
   ringtoneInterval: NodeJS.Timeout | null;
   dialToneInterval: NodeJS.Timeout | null;
+  incomingCallTimeouts: Map<string, NodeJS.Timeout>; // ✅ Track timeouts for cleanup
   
   // Call actions
-  initiateCall: (receiverId: string, listingId: string, type: CallType) => Promise<string>;
+  initiateCall: (currentUserId: string, receiverId: string, listingId: string, type: CallType) => Promise<string>;
   answerCall: (callId: string) => void;
   declineCall: (callId: string) => void;
   endCall: (callId: string) => void;
@@ -28,7 +29,7 @@ interface CallStore {
   // Call history
   getCallHistory: (userId: string) => Call[];
   markCallAsRead: (callId: string) => void;
-  getMissedCallsCount: () => number;
+  getMissedCallsCount: (currentUserId: string) => number;
   deleteCall: (callId: string) => void;
   clearAllCallHistory: () => void;
   
@@ -90,14 +91,16 @@ export const useCallStore = create<CallStore>((set, get) => ({
   dialToneSound: null,
   ringtoneInterval: null,
   dialToneInterval: null,
+  incomingCallTimeouts: new Map(), // ✅ Initialize timeout map
   
-  initiateCall: async (receiverId: string, listingId: string, type: CallType) => {
+  initiateCall: async (currentUserId: string, receiverId: string, listingId: string, type: CallType) => {
     logger.info('CallStore - initiating call to:', receiverId);
     
-    const callId = Date.now().toString();
+    // ✅ Generate unique ID with random component
+    const callId = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
     const newCall: Call = {
       id: callId,
-      callerId: 'user1', // Current user
+      callerId: currentUserId, // ✅ Use actual current user ID
       receiverId,
       listingId,
       type,
@@ -114,7 +117,7 @@ export const useCallStore = create<CallStore>((set, get) => ({
     // Create active call
     const activeCall: ActiveCall = {
       id: callId,
-      callerId: 'user1',
+      callerId: currentUserId, // ✅ Use actual current user ID
       receiverId,
       listingId,
       type,
@@ -153,6 +156,15 @@ export const useCallStore = create<CallStore>((set, get) => ({
     const call = get().calls.find(c => c.id === callId);
     if (!call) return;
     
+    // ✅ Clear incoming call timeout if exists
+    const timeout = get().incomingCallTimeouts.get(callId);
+    if (timeout) {
+      clearTimeout(timeout);
+      const newTimeouts = new Map(get().incomingCallTimeouts);
+      newTimeouts.delete(callId);
+      set({ incomingCallTimeouts: newTimeouts });
+    }
+    
     // Stop ringtone
     get().stopAllSounds();
     
@@ -185,6 +197,15 @@ export const useCallStore = create<CallStore>((set, get) => ({
   declineCall: (callId: string) => {
     logger.info('CallStore - declining call:', callId);
     
+    // ✅ Clear incoming call timeout if exists
+    const timeout = get().incomingCallTimeouts.get(callId);
+    if (timeout) {
+      clearTimeout(timeout);
+      const newTimeouts = new Map(get().incomingCallTimeouts);
+      newTimeouts.delete(callId);
+      set({ incomingCallTimeouts: newTimeouts });
+    }
+    
     // Stop ringtone
     get().stopAllSounds();
     
@@ -209,7 +230,15 @@ export const useCallStore = create<CallStore>((set, get) => ({
     
     const endTime = new Date().toISOString();
     const startTime = new Date(activeCall.startTime).getTime();
-    const duration = Math.floor((new Date(endTime).getTime() - startTime) / 1000);
+    
+    // ✅ Validate startTime and ensure positive duration
+    if (isNaN(startTime)) {
+      logger.error('Invalid call startTime, cannot calculate duration');
+      set({ activeCall: null });
+      return;
+    }
+    
+    const duration = Math.max(0, Math.floor((new Date(endTime).getTime() - startTime) / 1000));
     
     set((state) => ({
       calls: state.calls.map(call => 
@@ -266,9 +295,9 @@ export const useCallStore = create<CallStore>((set, get) => ({
     }));
   },
   
-  getMissedCallsCount: () => {
+  getMissedCallsCount: (currentUserId: string) => {
     return get().calls.filter(call => 
-      call.receiverId === 'user1' && 
+      call.receiverId === currentUserId &&  // ✅ Use actual current user ID
       call.status === 'missed' && 
       !call.isRead
     ).length;
@@ -322,7 +351,7 @@ export const useCallStore = create<CallStore>((set, get) => ({
               await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
             }
           } catch (error) {
-            console.log('Haptic feedback interval error:', error);
+            logger.warn('Haptic feedback interval error:', error);
           }
         }, 1000);
         
@@ -357,7 +386,7 @@ export const useCallStore = create<CallStore>((set, get) => ({
               await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             }
           } catch (error) {
-            console.log('Haptic feedback interval error:', error);
+            logger.warn('Haptic feedback interval error:', error);
           }
         }, 2000);
         
@@ -412,7 +441,18 @@ export const useCallStore = create<CallStore>((set, get) => ({
   
   cleanupSounds: async () => {
     await get().stopAllSounds();
-    set({ ringtoneSound: null, dialToneSound: null, ringtoneInterval: null, dialToneInterval: null });
+    
+    // ✅ Clear all incoming call timeouts
+    const timeouts = get().incomingCallTimeouts;
+    timeouts.forEach((timeout) => clearTimeout(timeout));
+    
+    set({ 
+      ringtoneSound: null, 
+      dialToneSound: null, 
+      ringtoneInterval: null, 
+      dialToneInterval: null,
+      incomingCallTimeouts: new Map()
+    });
   },
   
   simulateIncomingCall: async () => {
@@ -423,7 +463,8 @@ export const useCallStore = create<CallStore>((set, get) => ({
     const randomListing = listings[Math.floor(Math.random() * listings.length)];
     const randomCallType = callTypes[Math.floor(Math.random() * callTypes.length)];
     
-    const callId = Date.now().toString();
+    // ✅ Generate unique ID with random component
+    const callId = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
     const incomingCall: Call = {
       id: callId,
       callerId: randomCaller,
@@ -469,8 +510,8 @@ export const useCallStore = create<CallStore>((set, get) => ({
       })();
     }
     
-    // Auto-decline after 30 seconds if not answered
-    setTimeout(() => {
+    // ✅ Auto-decline after 30 seconds if not answered
+    const timeout = setTimeout(() => {
       const currentState = get();
       if (currentState.incomingCall?.id === callId) {
         get().declineCall(callId);
@@ -484,6 +525,16 @@ export const useCallStore = create<CallStore>((set, get) => ({
           ),
         }));
       }
+      
+      // ✅ Remove from timeout map
+      const newTimeouts = new Map(get().incomingCallTimeouts);
+      newTimeouts.delete(callId);
+      set({ incomingCallTimeouts: newTimeouts });
     }, 30000);
+    
+    // ✅ Store timeout for potential cleanup
+    set((state) => ({
+      incomingCallTimeouts: new Map(state.incomingCallTimeouts).set(callId, timeout)
+    }));
   },
 }));
