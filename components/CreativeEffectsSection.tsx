@@ -98,7 +98,7 @@ interface CreativeEffectsSectionProps {
   title: string;
 }
 
-const EffectPreview = ({ effect }: { effect: CreativeEffect; isSelected: boolean }) => {
+const EffectPreview = ({ effect }: { effect: CreativeEffect }) => {
   const azFlagRing = useMemo(() => (
     <View pointerEvents="none" style={styles.flagRing}>
       <LinearGradient
@@ -182,7 +182,7 @@ export default function CreativeEffectsSection({ onSelectEffect, selectedEffects
               activeOpacity={0.7}
             >
               <View style={styles.effectHeader}>
-                <EffectPreview effect={effect} isSelected={isSelected} />
+                <EffectPreview effect={effect} />
                 {isSelected && (
                   <View style={[styles.selectedIndicator, { backgroundColor: effect.color }]}>
                     <Check size={14} color="white" />
@@ -219,7 +219,7 @@ export default function CreativeEffectsSection({ onSelectEffect, selectedEffects
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.selectedEffects}>
             {selectedEffects.map((effect) => (
               <View key={effect.id} style={[styles.selectedEffect, { borderColor: effect.color }]}>
-                <EffectPreview effect={effect} isSelected={true} />
+                <EffectPreview effect={effect} />
                 <Text style={styles.selectedEffectName}>
                   {effect.name[language as keyof typeof effect.name]}
                 </Text>
