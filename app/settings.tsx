@@ -132,9 +132,7 @@ export default function SettingsScreen() {
     return () => pulseLoop.stop();
   }, []);
 
-  const themeModes: { key: ThemeMode; label: string; labelRu: string; icon: React.ComponentType<any> }[] = [
   const themeModes: { key: ThemeMode; label: string; labelRu: string; icon: LucideIcon }[] = [
->main
     { key: 'light', label: 'İşıqlı', labelRu: 'Светлая', icon: Sun },
     { key: 'dark', label: 'Qaranlıq', labelRu: 'Темная', icon: Moon },
     { key: 'auto', label: 'Avtomatik', labelRu: 'Автоматическая', icon: RefreshCw },

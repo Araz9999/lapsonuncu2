@@ -33,47 +33,52 @@ export default function CreateInvoiceScreen() {
   const createInvoiceMutation = trpc.payriff.createInvoice.useMutation();
 
   const handleCreateInvoice = async () => {
-    if (!amount || parseFloat(amount) <= 0) {
+    // Amount validation
+    const parsedAmount = parseFloat(amount);
+    if (!amount || isNaN(parsedAmount) || parsedAmount <= 0) {
       Alert.alert('Xəta', 'Zəhmət olmasa düzgün məbləğ daxil edin');
       return;
     }
 
+    if (parsedAmount > 50000) {
+      Alert.alert('Xəta', 'Maksimum faktura məbləği 50,000 AZN-dir');
+      return;
+    }
+
+    // Description validation
     if (!description.trim()) {
       Alert.alert('Xəta', 'Zəhmət olmasa təsvir daxil edin');
       return;
     }
 
+    if (description.trim().length < 5) {
+      Alert.alert('Xəta', 'Təsvir ən azı 5 simvol olmalıdır');
+      return;
+    }
+
+    // Email validation (more comprehensive)
     if (sendEmail && !email.trim()) {
       Alert.alert('Xəta', 'Email göndərmək üçün email ünvanı daxil edin');
       return;
     }
 
+    if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      Alert.alert('Xəta', 'Düzgün email formatı daxil edin (məsələn: email@example.com)');
+      return;
+    }
+
+    // Phone validation
     if ((sendSms || sendWhatsapp) && !phoneNumber.trim()) {
       Alert.alert('Xəta', 'SMS və ya WhatsApp göndərmək üçün telefon nömrəsi daxil edin');
       return;
     }
 
+    if (phoneNumber.trim() && phoneNumber.trim().length < 9) {
+      Alert.alert('Xəta', 'Düzgün telefon nömrəsi daxil edin (ən azı 9 rəqəm)');
+      return;
+    }
+
     try {
-      const parsedAmount = parseFloat(amount);
-      if (isNaN(parsedAmount) || parsedAmount <= 0) {
-        Alert.alert('Xəta', 'Məbləğ 0-dan böyük olmalıdır');
-        return;
-      }
-
-      if (parsedAmount > 50000) {
-        Alert.alert('Xəta', 'Maksimum faktura məbləği 50,000 AZN-dir');
-        return;
-      }
-
-      if (email.trim() && !email.includes('@')) {
-        Alert.alert('Xəta', 'Düzgün email daxil edin');
-        return;
-      }
-
-      if (phoneNumber.trim() && phoneNumber.trim().length < 9) {
-        Alert.alert('Xəta', 'Düzgün telefon nömrəsi daxil edin');
-        return;
-      }
 
       const result = await createInvoiceMutation.mutateAsync({
         amount: parsedAmount,
