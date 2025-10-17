@@ -228,14 +228,35 @@ export const useUserStore = create<UserState>()(
         }
       },
       blockUser: (userId) => {
+        // BUG FIX: Validate userId
+        if (!userId || typeof userId !== 'string') {
+          logger.error('[UserStore] Invalid userId for blocking');
+          return;
+        }
+        
+        // BUG FIX: Don't allow blocking yourself
+        const { currentUser } = get();
+        if (currentUser && currentUser.id === userId) {
+          logger.warn('[UserStore] Cannot block yourself');
+          return;
+        }
+        
         const { blockedUsers } = get();
         if (!blockedUsers.includes(userId)) {
           set({ blockedUsers: [...blockedUsers, userId] });
+          logger.info('[UserStore] User blocked:', userId);
         }
       },
       unblockUser: (userId) => {
+        // BUG FIX: Validate userId
+        if (!userId || typeof userId !== 'string') {
+          logger.error('[UserStore] Invalid userId for unblocking');
+          return;
+        }
+        
         const { blockedUsers } = get();
         set({ blockedUsers: blockedUsers.filter(id => id !== userId) });
+        logger.info('[UserStore] User unblocked:', userId);
       },
       isUserBlocked: (userId) => {
         const { blockedUsers } = get();
