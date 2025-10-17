@@ -61,11 +61,17 @@ export default function StoreDiscountsScreen() {
   const handleApplyDiscount = async () => {
     if (!selectedListing || !store) return;
     
-    const discount = parseFloat(discountPercentage);
-    if (isNaN(discount) || discount <= 0 || discount > 100) {
-      Alert.alert('Xəta', 'Endirim 0-100 arasında olmalıdır');
+    // Validation: Empty check
+    if (!discountPercentage.trim()) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Endirim faizini daxil edin' : 'Введите процент скидки'
+      );
       return;
     }
+    
+    // Validation: Range check
+    const discount = parseFloat(discountPercentage);
     if (isNaN(discount) || discount <= 0 || discount >= 100) {
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
@@ -159,6 +165,16 @@ export default function StoreDiscountsScreen() {
   const handleApplyStoreWideDiscount = async () => {
     if (!store) return;
     
+    // Validation: Empty check
+    if (!storeWideDiscount.trim()) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Endirim faizini daxil edin' : 'Введите процент скидки'
+      );
+      return;
+    }
+    
+    // Validation: Range check
     const discount = parseFloat(storeWideDiscount);
     if (isNaN(discount) || discount <= 0 || discount >= 100) {
       Alert.alert(
