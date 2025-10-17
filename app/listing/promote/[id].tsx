@@ -203,7 +203,7 @@ export default function PromoteListingScreen() {
       let successMessage = language === 'az'
         ? `Kreativ effektlər elanınıza tətbiq edildi!`
         : `Креативные эффекты применены к вашему объявлению!`;
-      if (daysUntilExpiry < longestEffect.duration) {
+      if (daysUntilExpiry < longestEffect.duration && effectEndDates.length > 0) {
         const latestEndDate = effectEndDates.reduce((latest, item) => 
           item.endDate > latest ? item.endDate : latest
         , effectEndDates[0].endDate);

@@ -409,7 +409,7 @@ export default function CreateStoreScreen() {
       });
 
       storeLogger.debug('📸 Camera result:', result);
-      if (!result.canceled && result.assets && result.assets[0]) {
+      if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0]) {
         storeLogger.debug('✅ Profile image selected:', result.assets[0].uri);
         setStoreData(prev => ({ ...prev, logo: result.assets[0].uri }));
         Alert.alert(
@@ -447,7 +447,7 @@ export default function CreateStoreScreen() {
       });
 
       storeLogger.debug('🖼️ Gallery result:', result);
-      if (!result.canceled && result.assets && result.assets[0]) {
+      if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0]) {
         storeLogger.debug('✅ Profile image selected from gallery:', result.assets[0].uri);
         setStoreData(prev => ({ ...prev, logo: result.assets[0].uri }));
         Alert.alert(
@@ -485,7 +485,7 @@ export default function CreateStoreScreen() {
       });
 
       storeLogger.debug('📸 Camera result for cover:', result);
-      if (!result.canceled && result.assets && result.assets[0]) {
+      if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0]) {
         storeLogger.debug('✅ Cover image selected:', result.assets[0].uri);
         setStoreData(prev => ({ ...prev, coverImage: result.assets[0].uri }));
         Alert.alert(
@@ -523,7 +523,7 @@ export default function CreateStoreScreen() {
       });
 
       storeLogger.debug('🖼️ Gallery result for cover:', result);
-      if (!result.canceled && result.assets && result.assets[0]) {
+      if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0]) {
         storeLogger.debug('✅ Cover image selected from gallery:', result.assets[0].uri);
         setStoreData(prev => ({ ...prev, coverImage: result.assets[0].uri }));
         Alert.alert(

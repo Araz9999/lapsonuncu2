@@ -52,7 +52,7 @@ export const createOrderProcedure = publicProcedure
         signal: AbortSignal.timeout(30000), // 30 second timeout
       });
     } catch (error) {
-      console.error('Network error during order creation:', error);
+      logger.error('Network error during order creation:', error);
       throw new Error('Network error: Unable to connect to payment service');
     }
 

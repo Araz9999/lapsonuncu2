@@ -30,6 +30,17 @@ export default function PayriffPaymentScreen() {
   
   const paymentCheckTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Check for invalid amount on mount
+  useEffect(() => {
+    if (isNaN(amount) || amount <= 0) {
+      Alert.alert(
+        'Xəta',
+        'Etibarsız məbləğ. Zəhmət olmasa düzgün məbləğ daxil edin.',
+        [{ text: 'OK', onPress: () => router.back() }]
+      );
+    }
+  }, [amount, router]);
+
   const handleConfigError = useCallback(() => {
     if (!payriffService.isConfigured()) {
       Alert.alert(
