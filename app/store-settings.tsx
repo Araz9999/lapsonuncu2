@@ -48,6 +48,7 @@ import { useUserStore } from '@/store/userStore';
 import { useLanguageStore } from '@/store/languageStore';
 import { getColors } from '@/constants/colors';
 import { useThemeStore } from '@/store/themeStore';
+import { validateEmail, validateAzerbaijanPhone, validateWebsiteURL, validateStoreName } from '@/utils/inputValidation';
 
 interface SettingItem {
   id: string;
@@ -266,22 +267,82 @@ export default function StoreSettingsScreen() {
   };
 
   const handleSaveEdit = async () => {
+    // ✅ Validate store name
+    const nameValidation = validateStoreName(editForm.name);
+    if (!nameValidation.isValid) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        nameValidation.error || 'Mağaza adı düzgün deyil'
+      );
+      return;
+    }
+    
+    // ✅ Validate email (optional but must be valid if provided)
+    if (editForm.email.trim() && !validateEmail(editForm.email.trim())) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' 
+          ? 'Email formatı düzgün deyil (məsələn: info@magaza.az)' 
+          : 'Неверный формат email'
+      );
+      return;
+    }
+    
+    // ✅ Validate phone (optional but must be valid if provided)
+    if (editForm.phone.trim() && !validateAzerbaijanPhone(editForm.phone.trim(), false)) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az'
+          ? 'Telefon formatı düzgün deyil (məsələn: +994501234567 və ya 0501234567)'
+          : 'Неверный формат телефона'
+      );
+      return;
+    }
+    
+    // ✅ Validate WhatsApp (optional but must be valid if provided)
+    if (editForm.whatsapp.trim() && !validateAzerbaijanPhone(editForm.whatsapp.trim(), false)) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az'
+          ? 'WhatsApp nömrəsi formatı düzgün deyil'
+          : 'Неверный формат WhatsApp'
+      );
+      return;
+    }
+    
+    // ✅ Validate website URL (optional but must be valid if provided)
+    if (editForm.website.trim() && !validateWebsiteURL(editForm.website.trim(), false)) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az'
+          ? 'Website URL formatı düzgün deyil (məsələn: https://magaza.az)'
+          : 'Неверный формат URL'
+      );
+      return;
+    }
+    
     try {
       await editStore(store.id, {
-        name: editForm.name,
-        description: editForm.description,
+        name: editForm.name.trim(),
+        description: editForm.description.trim(),
         contactInfo: {
           ...store.contactInfo,
-          phone: editForm.phone,
-          email: editForm.email,
-          website: editForm.website,
-          whatsapp: editForm.whatsapp
+          phone: editForm.phone.trim(),
+          email: editForm.email.trim().toLowerCase(),
+          website: editForm.website.trim(),
+          whatsapp: editForm.whatsapp.trim()
         }
       });
       setShowEditModal(false);
-      Alert.alert('Uğurlu', 'Mağaza məlumatları yeniləndi');
+      Alert.alert(
+        language === 'az' ? 'Uğurlu' : 'Успешно',
+        language === 'az' ? 'Mağaza məlumatları yeniləndi' : 'Данные магазина обновлены'
+      );
     } catch (error) {
-      Alert.alert('Xəta', 'Məlumatlar yenilənə bilmədi');
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Məlumatlar yenilənə bilmədi' : 'Не удалось обновить данные'
+      );
     }
   };
 
