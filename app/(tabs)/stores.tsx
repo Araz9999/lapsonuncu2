@@ -44,13 +44,27 @@ export default function StoresTabScreen() {
   };
   
   const handleFollowToggle = async (storeId: string) => {
-    if (!currentUser) return;
+    if (!currentUser) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'İzləmək üçün daxil olun' : 'Войдите для подписки'
+      );
+      return;
+    }
     
-    const isFollowing = isFollowingStore(currentUser.id, storeId);
-    if (isFollowing) {
-      await unfollowStore(currentUser.id, storeId);
-    } else {
-      await followStore(currentUser.id, storeId);
+    try {
+      const isFollowing = isFollowingStore(currentUser.id, storeId);
+      if (isFollowing) {
+        await unfollowStore(currentUser.id, storeId);
+      } else {
+        await followStore(currentUser.id, storeId);
+      }
+    } catch (error) {
+      logger.error('Failed to toggle follow:', error);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Əməliyyat zamanı xəta baş verdi' : 'Ошибка при выполнении операции'
+      );
     }
   };
   
@@ -74,7 +88,7 @@ export default function StoresTabScreen() {
           <View style={styles.storesGrid}>
             {filteredStores.map((store) => {
               const isFollowing = currentUser ? isFollowingStore(currentUser.id, store.id) : false;
-              const averageRating = store.totalRatings > 0 ? store.rating / store.totalRatings : 0;
+              const averageRating = store.totalRatings > 0 ? store.rating / Math.max(store.totalRatings, 1) : 0;
               
               return (
                 <View key={store.id} style={styles.storeCard}>

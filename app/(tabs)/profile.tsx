@@ -141,10 +141,25 @@ export default function ProfileScreen() {
     );
   }
 
+  const handleAvatarPress = () => {
+    // TODO: İmplementasiya lazımdır - profil şəklini dəyişdirmək
+    Alert.alert(
+      language === 'az' ? 'Profil şəkli' : 'Фото профиля',
+      language === 'az' ? 'Profil şəklini dəyişdirmək istəyirsiniz?' : 'Хотите изменить фото профиля?',
+      [
+        { text: language === 'az' ? 'Ləğv et' : 'Отмена', style: 'cancel' },
+        { text: language === 'az' ? 'Kameradan çək' : 'Сделать фото', onPress: () => logger.debug('Camera photo selected') },
+        { text: language === 'az' ? 'Qalereyadan seç' : 'Выбрать из галереи', onPress: () => logger.debug('Gallery photo selected') }
+      ]
+    );
+  };
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <Image source={{ uri: currentUser.avatar }} style={styles.avatar} />
+        <TouchableOpacity onPress={handleAvatarPress} activeOpacity={0.7}>
+          <Image source={{ uri: currentUser.avatar }} style={styles.avatar} />
+        </TouchableOpacity>
         <View style={styles.userInfo}>
           <Text style={styles.userName}>{currentUser.name}</Text>
           <View style={styles.ratingContainer}>
