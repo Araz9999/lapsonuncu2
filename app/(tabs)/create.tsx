@@ -284,7 +284,9 @@ export default function CreateListingScreen() {
         return;
       }
       
-      if (!selectedSubcategory) {
+      // Validation: Subcategory (yalnız əgər seçilmiş kateqoriyanın alt kateqoriyası varsa)
+      const selectedCategoryData = categories.find(c => c.id === selectedCategory);
+      if (selectedCategoryData?.subcategories && selectedCategoryData.subcategories.length > 0 && !selectedSubcategory) {
         Alert.alert(
           language === 'az' ? 'Xəta' : 'Ошибка',
           language === 'az' ? 'Alt kateqoriya seçin' : 'Выберите подкатегорию'
@@ -441,6 +443,7 @@ export default function CreateListingScreen() {
         images,
         categoryId: selectedCategory!,
         subcategoryId: selectedSubcategory || 0,
+        subSubcategoryId: selectedSubSubcategory || undefined,
         location: {
           az: selectedLocationData?.name.az || '',
           ru: selectedLocationData?.name.ru || '',
@@ -573,39 +576,46 @@ export default function CreateListingScreen() {
   // Category navigation functions
   const handleCategoryPress = (category: Category) => {
     if (currentCategoryLevel === 'main') {
-      setSelectedCategory(category.id);
+      // \u018fsas kateqoriya se\u00e7imi\n      setSelectedCategory(category.id);
       setSelectedSubcategory(null);
       setSelectedSubSubcategory(null);
       if (category.subcategories && category.subcategories.length > 0) {
-        setCategoryNavigationStack([category]);
+        // Alt kateqoriyalar var, naviqasiyan\u0131 davam etdir\n        setCategoryNavigationStack([category]);
         setCurrentCategoryLevel('sub');
       } else {
-        setShowCategoryModal(false);
+        // Alt kateqoriya yoxdur, modal-\u0131 ba\u011fla\n        setShowCategoryModal(false);
       }
     } else if (currentCategoryLevel === 'sub') {
-      setSelectedSubcategory(category.id);
+      // Alt kateqoriya se\u00e7imi\n      setSelectedSubcategory(category.id);
       setSelectedSubSubcategory(null);
       if (category.subcategories && category.subcategories.length > 0) {
-        setCategoryNavigationStack([...categoryNavigationStack, category]);
+        // Daha alt kateqoriyalar var, naviqasiyan\u0131 davam etdir\n        setCategoryNavigationStack([...categoryNavigationStack, category]);
         setCurrentCategoryLevel('subsub');
       } else {
-        setShowCategoryModal(false);
+        // Daha alt kateqoriya yoxdur, modal-\u0131 ba\u011fla\n        setShowCategoryModal(false);
       }
     } else if (currentCategoryLevel === 'subsub') {
-      setSelectedSubSubcategory(category.id);
+      // Daha alt kateqoriya se\u00e7imi (3-c\u00fc s\u0259viyy\u0259)\n      setSelectedSubSubcategory(category.id);
       setShowCategoryModal(false);
     }
   };
 
   const handleCategoryBack = () => {
     if (currentCategoryLevel === 'subsub') {
+      // Geri dön alt kateqoriyaya
       setCurrentCategoryLevel('sub');
       setCategoryNavigationStack(categoryNavigationStack.slice(0, -1));
+      // SubSubcategory-ni reset et, amma subcategory qalsın
+      setSelectedSubSubcategory(null);
     } else if (currentCategoryLevel === 'sub') {
+      // Geri dön əsas kateqoriyaya
       setCurrentCategoryLevel('main');
       setCategoryNavigationStack([]);
-      setSelectedCategory(null);
+      // Subcategory reset et, amma main category qalsın
       setSelectedSubcategory(null);
+      setSelectedSubSubcategory(null);
+      // Main category-ni SAXLA (reset etmə!)  
+      // setSelectedCategory(null); // BU XƏTA IDI!
     }
   };
 
@@ -632,6 +642,8 @@ export default function CreateListingScreen() {
         animationType="slide"
         transparent={true}
         onRequestClose={() => {
+          // Modal bağlananda yalnız navigation state-i reset et
+          // Seçilmiş kateqoriyaları saxla
           setShowCategoryModal(false);
           setCurrentCategoryLevel('main');
           setCategoryNavigationStack([]);
@@ -656,6 +668,7 @@ export default function CreateListingScreen() {
               <TouchableOpacity 
                 style={styles.modalCloseButton}
                 onPress={() => {
+                  // Close button - yalnız modal-ı bağla, seçimləri saxla
                   setShowCategoryModal(false);
                   setCurrentCategoryLevel('main');
                   setCategoryNavigationStack([]);

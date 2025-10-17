@@ -10,6 +10,7 @@ export interface Listing {
   location: LocalizedText;
   categoryId: number;
   subcategoryId: number;
+  subSubcategoryId?: number; // Added sub-subcategory ID (3rd level)
   images: string[];
   userId: string;
   createdAt: string;

@@ -53,6 +53,7 @@ export default function AddStoreListingScreen() {
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [selectedSubcategory, setSelectedSubcategory] = useState<number | null>(null);
+  const [selectedSubSubcategory, setSelectedSubSubcategory] = useState<number | null>(null);
   const [images, setImages] = useState<string[]>([]);
   const [condition, setCondition] = useState<'new' | 'used' | null>(null);
   const [deliveryAvailable, setDeliveryAvailable] = useState<boolean | null>(null);
@@ -332,6 +333,7 @@ export default function AddStoreListingScreen() {
         images,
         categoryId: selectedCategory!,
         subcategoryId: selectedSubcategory ?? 0,
+        subSubcategoryId: selectedSubSubcategory || undefined,
         location: {
           az: selectedLocationData?.name.az || '',
           ru: selectedLocationData?.name.ru || ''
