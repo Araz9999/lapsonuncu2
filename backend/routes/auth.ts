@@ -5,8 +5,6 @@ import { oauthService } from '../services/oauth';
 import { userDB } from '../db/users';
 import { generateTokenPair, verifyToken } from '../utils/jwt';
 import { authRateLimit } from '../middleware/rateLimit';
-
-import { logger } from '@/utils/logger';
 const auth = new Hono();
 
 // SECURITY: Apply rate limiting to all auth routes

@@ -81,7 +81,19 @@ export const useUserStore = create<UserState>()(
       reportedUsers: [],
       subscribedUsers: [],
       userNotes: {},
-      login: (user) => set({ currentUser: user, isAuthenticated: true }),
+      login: (user) => {
+        // Ensure privacySettings has default values
+        const userWithDefaults = {
+          ...user,
+          privacySettings: {
+            hidePhoneNumber: false,
+            allowDirectContact: true,
+            onlyAppMessaging: false,
+            ...user.privacySettings,
+          },
+        };
+        set({ currentUser: userWithDefaults, isAuthenticated: true });
+      },
       logout: () => set({ 
         currentUser: null, 
         isAuthenticated: false,

@@ -1,7 +1,5 @@
 import { LiveChatMessage, LiveChatConversation, SupportAgent } from '@/types/liveChat';
 import { logger } from '../../utils/logger';
-
-import { logger } from '@/utils/logger';
 const conversations: Map<string, LiveChatConversation> = new Map();
 const messages: Map<string, LiveChatMessage[]> = new Map();
 const messageIndex: Map<string, LiveChatMessage> = new Map();
