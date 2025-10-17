@@ -4,11 +4,11 @@ import {
   Text, 
   TouchableOpacity, 
   StyleSheet, 
-  Image, 
   FlatList, 
   Platform,
   Alert
 } from 'react-native';
+import { Image } from 'expo-image'; // BUG FIX: Use expo-image for better performance
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { useThemeStore } from '@/store/themeStore';
@@ -48,62 +48,101 @@ export default function FileAttachmentPicker({
   const colors = getColors(themeMode, colorTheme);
 
   const pickImage = async () => {
-    if (attachments.length >= maxFiles) {
-      Alert.alert(
-        language === 'az' ? 'Limit aşıldı' : 'Превышен лимит',
-        language === 'az' 
-          ? `Maksimum ${maxFiles} fayl əlavə edə bilərsiniz`
-          : `Можно добавить максимум ${maxFiles} файлов`
-      );
-      return;
-    }
-
-    if (Platform.OS !== 'web') {
-      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permissionResult.granted) {
+    try {
+      // BUG FIX: Check file limit
+      if (attachments.length >= maxFiles) {
         Alert.alert(
-          language === 'az' ? 'İcazə tələb olunur' : 'Требуется разрешение',
+          language === 'az' ? 'Limit aşıldı' : 'Превышен лимит',
           language === 'az' 
-            ? 'Qalereya giriş icazəsi tələb olunur'
-            : 'Требуется разрешение на доступ к галерее'
+            ? `Maksimum ${maxFiles} fayl əlavə edə bilərsiniz`
+            : `Можно добавить максимум ${maxFiles} файлов`
         );
         return;
       }
-    }
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsMultipleSelection: true,
-      quality: 0.8,
-      allowsEditing: false,
-    });
+      // BUG FIX: Request permissions with error handling
+      if (Platform.OS !== 'web') {
+        const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!permissionResult.granted) {
+          Alert.alert(
+            language === 'az' ? 'İcazə tələb olunur' : 'Требуется разрешение',
+            language === 'az' 
+              ? 'Qalereya giriş icazəsi tələb olunur'
+              : 'Требуется разрешение на доступ к галерее'
+          );
+          return;
+        }
+      }
 
-    if (!result.canceled && result.assets) {
-      const newAttachments = result.assets.slice(0, maxFiles - attachments.length).map(asset => ({
-        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        uri: asset.uri,
-        name: asset.fileName || `image_${Date.now()}.jpg`,
-        type: 'image' as const,
-        size: asset.fileSize,
-        mimeType: asset.mimeType || 'image/jpeg'
-      }));
-      
-      onAttachmentsChange([...attachments, ...newAttachments]);
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsMultipleSelection: true,
+        quality: 0.8,
+        allowsEditing: false,
+      });
+
+      // BUG FIX: Validate result and check file sizes
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const maxFileSize = 10 * 1024 * 1024; // 10MB limit
+        const validAssets = result.assets.filter(asset => {
+          if (asset.fileSize && asset.fileSize > maxFileSize) {
+            Alert.alert(
+              language === 'az' ? 'Xəta' : 'Ошибка',
+              language === 'az' 
+                ? `${asset.fileName || 'Fayl'} çox böyükdür (max 10MB)`
+                : `${asset.fileName || 'Файл'} слишком большой (макс 10MB)`
+            );
+            return false;
+          }
+          return true;
+        });
+
+        const newAttachments = validAssets.slice(0, maxFiles - attachments.length).map((asset, index) => ({
+          id: `${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`,
+          uri: asset.uri,
+          name: asset.fileName || `image_${Date.now()}.jpg`,
+          type: 'image' as const,
+          size: asset.fileSize,
+          mimeType: asset.mimeType || 'image/jpeg'
+        }));
+        
+        onAttachmentsChange([...attachments, ...newAttachments]);
+      }
+    } catch (error) {
+      // BUG FIX: Comprehensive error handling
+      logger.error('Error picking image:', error);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Şəkil seçilə bilmədi' : 'Не удалось выбрать изображение'
+      );
     }
   };
 
   const takePhoto = async () => {
-    if (attachments.length >= maxFiles) {
-      Alert.alert(
-        language === 'az' ? 'Limit aşıldı' : 'Превышен лимит',
-        language === 'az' 
-          ? `Maksimum ${maxFiles} fayl əlavə edə bilərsiniz`
-          : `Можно добавить максимум ${maxFiles} файлов`
-      );
-      return;
-    }
+    try {
+      // BUG FIX: Check platform support for camera
+      if (Platform.OS === 'web') {
+        Alert.alert(
+          language === 'az' ? 'Dəstəklənmir' : 'Не поддерживается',
+          language === 'az' 
+            ? 'Kamera web versiyasında dəstəklənmir'
+            : 'Камера не поддерживается в веб-версии'
+        );
+        return;
+      }
 
-    if (Platform.OS !== 'web') {
+      // BUG FIX: Check file limit
+      if (attachments.length >= maxFiles) {
+        Alert.alert(
+          language === 'az' ? 'Limit aşıldı' : 'Превышен лимит',
+          language === 'az' 
+            ? `Maksimum ${maxFiles} fayl əlavə edə bilərsiniz`
+            : `Можно добавить максимум ${maxFiles} файлов`
+        );
+        return;
+      }
+
+      // BUG FIX: Request camera permissions with proper error handling
       const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
       if (!permissionResult.granted) {
         Alert.alert(
@@ -114,51 +153,92 @@ export default function FileAttachmentPicker({
         );
         return;
       }
-    }
 
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.8,
-      allowsEditing: true,
-      aspect: [4, 3],
-    });
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.8,
+        allowsEditing: true,
+        aspect: [4, 3],
+      });
 
-    if (!result.canceled && result.assets && result.assets[0]) {
-      const asset = result.assets[0];
-      const newAttachment: FileAttachment = {
-        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        uri: asset.uri,
-        name: asset.fileName || `photo_${Date.now()}.jpg`,
-        type: 'image',
-        size: asset.fileSize,
-        mimeType: asset.mimeType || 'image/jpeg'
-      };
-      
-      onAttachmentsChange([...attachments, newAttachment]);
+      // BUG FIX: Validate result and file size
+      if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0]) {
+        const asset = result.assets[0];
+        
+        // BUG FIX: Check file size
+        const maxFileSize = 10 * 1024 * 1024; // 10MB
+        if (asset.fileSize && asset.fileSize > maxFileSize) {
+          Alert.alert(
+            language === 'az' ? 'Xəta' : 'Ошибка',
+            language === 'az' 
+              ? 'Foto çox böyükdür (max 10MB)'
+              : 'Фото слишком большое (макс 10MB)'
+          );
+          return;
+        }
+
+        const newAttachment: FileAttachment = {
+          id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          uri: asset.uri,
+          name: asset.fileName || `photo_${Date.now()}.jpg`,
+          type: 'image',
+          size: asset.fileSize,
+          mimeType: asset.mimeType || 'image/jpeg'
+        };
+        
+        onAttachmentsChange([...attachments, newAttachment]);
+      }
+    } catch (error) {
+      // BUG FIX: Comprehensive error handling
+      logger.error('Error taking photo:', error);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Foto çəkilə bilmədi' : 'Не удалось сделать фото'
+      );
     }
   };
 
   const pickDocument = async () => {
-    if (attachments.length >= maxFiles) {
-      Alert.alert(
-        language === 'az' ? 'Limit aşıldı' : 'Превышен лимит',
-        language === 'az' 
-          ? `Maksimum ${maxFiles} fayl əlavə edə bilərsiniz`
-          : `Можно добавить максимум ${maxFiles} файлов`
-      );
-      return;
-    }
-
     try {
+      // BUG FIX: Check file limit
+      if (attachments.length >= maxFiles) {
+        Alert.alert(
+          language === 'az' ? 'Limit aşıldı' : 'Превышен лимит',
+          language === 'az' 
+            ? `Maksimum ${maxFiles} fayl əlavə edə bilərsiniz`
+            : `Можно добавить максимум ${maxFiles} файлов`
+        );
+        return;
+      }
+
       const result = await DocumentPicker.getDocumentAsync({
         type: ['application/pdf', 'text/*', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
         multiple: true,
         copyToCacheDirectory: true,
       });
 
-      if (!result.canceled && result.assets) {
-        const newAttachments = result.assets.slice(0, maxFiles - attachments.length).map(asset => ({
-          id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      // BUG FIX: Validate result and check file sizes
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const maxFileSize = 20 * 1024 * 1024; // 20MB limit for documents
+        const validAssets = result.assets.filter(asset => {
+          if (asset.size && asset.size > maxFileSize) {
+            Alert.alert(
+              language === 'az' ? 'Xəta' : 'Ошибка',
+              language === 'az' 
+                ? `${asset.name} çox böyükdür (max 20MB)`
+                : `${asset.name} слишком большой (макс 20MB)`
+            );
+            return false;
+          }
+          return true;
+        });
+
+        if (validAssets.length === 0) {
+          return;
+        }
+
+        const newAttachments = validAssets.slice(0, maxFiles - attachments.length).map((asset, index) => ({
+          id: `${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`,
           uri: asset.uri,
           name: asset.name,
           type: 'document' as const,
@@ -169,7 +249,12 @@ export default function FileAttachmentPicker({
         onAttachmentsChange([...attachments, ...newAttachments]);
       }
     } catch (error) {
-      logger.debug('Document picker error:', error);
+      // BUG FIX: Better error handling
+      logger.error('Document picker error:', error);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Sənəd seçilə bilmədi' : 'Не удалось выбрать документ'
+      );
     }
   };
 
@@ -188,7 +273,14 @@ export default function FileAttachmentPicker({
     <View style={[styles.attachmentItem, { backgroundColor: colors.card }]}>
       <View style={styles.attachmentContent}>
         {item.type === 'image' ? (
-          <Image source={{ uri: item.uri }} style={styles.attachmentImage} />
+          <Image 
+            source={{ uri: item.uri }} 
+            style={styles.attachmentImage}
+            // BUG FIX: Add caching and performance optimizations
+            cachePolicy="memory-disk"
+            transition={200}
+            contentFit="cover"
+          />
         ) : (
           <View style={[styles.documentIcon, { backgroundColor: `${colors.primary}15` }]}>
             <FileText size={24} color={colors.primary} />
