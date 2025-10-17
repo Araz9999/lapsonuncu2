@@ -218,7 +218,7 @@ export default function StoreReviewsScreen() {
   const renderRatingDistribution = () => {
     return (
       <View style={styles.ratingDistribution}>
-        {ratingDistribution.reverse().map((item) => (
+        {[...ratingDistribution].reverse().map((item) => (
           <View key={item.rating} style={styles.distributionRow}>
             <Text style={styles.distributionRating}>{item.rating}</Text>
             <Star size={14} color={COLORS.warning} fill={COLORS.warning} />
@@ -255,7 +255,12 @@ export default function StoreReviewsScreen() {
                 )}
               </View>
               <Text style={styles.reviewDate}>
-                {new Date(review.date).toLocaleDateString('az-AZ')}
+                {(() => {
+                  const date = new Date(review.date);
+                  return isNaN(date.getTime()) 
+                    ? 'Tarix məlum deyil' 
+                    : date.toLocaleDateString('az-AZ');
+                })()}
               </Text>
             </View>
           </View>

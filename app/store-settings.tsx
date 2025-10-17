@@ -211,11 +211,18 @@ export default function StoreSettingsScreen() {
 
   const handleStoreSwitch = async (selectedStoreId: string) => {
     if (currentUser?.id) {
-      await switchActiveStore(currentUser.id, selectedStoreId);
-      setShowStoreSelector(false);
-      // Reload settings for new store
-      const newSettings = getUserStoreSettings(currentUser.id, selectedStoreId);
-      setSettings(newSettings as typeof settings);
+      try {
+        await switchActiveStore(currentUser.id, selectedStoreId);
+        setShowStoreSelector(false);
+        // Reload settings for new store
+        const newSettings = getUserStoreSettings(currentUser.id, selectedStoreId);
+        setSettings(newSettings as typeof settings);
+      } catch (error) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Mağaza dəyişdirilə bilmədi' : 'Не удалось переключить магазин'
+        );
+      }
     }
   };
 
