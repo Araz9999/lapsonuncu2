@@ -1,7 +1,5 @@
 import crypto from 'crypto';
 import { logger } from '../../utils/logger';
-
-import { apiLogger } from '@/utils/logger';
 export interface PayriffPaymentData {
   amount: number;
   orderId: string;

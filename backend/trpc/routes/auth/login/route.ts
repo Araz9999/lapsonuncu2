@@ -3,8 +3,6 @@ import { z } from 'zod';
 import { logger } from '../../../../../utils/logger';
 import { userDB } from '../../../../db/users';
 import { generateTokenPair } from '../../../../utils/jwt';
-
-import { logger } from '@/utils/logger';
 export const loginProcedure = publicProcedure
   .input(
     z.object({
@@ -13,11 +11,7 @@ export const loginProcedure = publicProcedure
     })
   )
   .mutation(async ({ input }) => {
-< cursor/fix-many-bugs-and-errors-4e56
-    logger.debug('[Auth] Login attempt:', input.email);
-=======
     logger.info('[Auth] Login attempt:', input.email);
-> Araz
 
     const user = await userDB.findByEmail(input.email);
     if (!user || !user.passwordHash) {
@@ -35,11 +29,7 @@ export const loginProcedure = publicProcedure
       role: user.role,
     });
 
-< cursor/fix-many-bugs-and-errors-4e56
-    logger.debug('[Auth] User logged in successfully:', user.id);
-=======
     logger.info('[Auth] User logged in successfully:', user.id);
-> Araz
 
     return {
       user: {

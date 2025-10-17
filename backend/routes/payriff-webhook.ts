@@ -2,8 +2,6 @@ import { Hono } from 'hono';
 import { logger } from '../../utils/logger';
 import { secureHeaders } from 'hono/secure-headers';
 import { payriffService } from '../services/payriff';
-
-import { logger } from '@/utils/logger';
 const payriffWebhook = new Hono();
 payriffWebhook.use('*', secureHeaders());
 
