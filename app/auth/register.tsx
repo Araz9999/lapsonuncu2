@@ -9,10 +9,7 @@ import { X, Eye, EyeOff, Check, Phone, Camera, User as UserIcon, Facebook, Chrom
 import * as ImagePicker from 'expo-image-picker';
 import { trpc } from '@/lib/trpc';
 import { initiateSocialLogin, showSocialLoginError } from '@/utils/socialAuth';
-< cursor/fix-many-bugs-and-errors-4e56
-import { authLogger } from '@/utils/logger';
 import { logger } from '@/utils/logger';
-> Araz
 
 export default function RegisterScreen() {
   const router = useRouter();
