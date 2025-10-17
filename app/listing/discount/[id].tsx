@@ -126,7 +126,7 @@ export default function ListingDiscountScreen() {
       console.log('[handleCreateDiscount] Validation failed: Missing timer title');
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' ? 'Sayğac başlığını daxil edin' : 'Введите заголовок таймera'
+        language === 'az' ? 'Sayğac başlığını daxil edin' : 'Введите заголовок таймера'
       );
       return;
     }
