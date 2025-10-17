@@ -382,7 +382,7 @@ export default function StoreManagementScreen() {
                       <View style={styles.statItem}>
                         <Star size={14} color={Colors.secondary} />
                         <Text style={styles.statValue}>
-                          {store.totalRatings > 0 ? (store.rating / store.totalRatings).toFixed(1) : '0.0'}
+                          {store.totalRatings > 0 ? (store.rating / Math.max(store.totalRatings, 1)).toFixed(1) : '0.0'}
                         </Text>
                         <Text style={styles.statLabel}>
                           {language === 'az' ? 'Reytinq' : 'Рейтинг'}

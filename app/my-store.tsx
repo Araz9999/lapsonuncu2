@@ -144,6 +144,16 @@ export default function MyStoreScreen() {
   const handlePromoteListing = async () => {
     if (!selectedListingId || !userStore) return;
     
+    // Validation: Check if listing exists
+    const listing = storeListings.find(l => l.id === selectedListingId);
+    if (!listing) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Elan tapılmadı' : 'Объявление не найдено'
+      );
+      return;
+    }
+    
     const prices = {
       vip: 20,
       premium: 15,
@@ -189,7 +199,13 @@ export default function MyStoreScreen() {
     if (!userStore) return;
     
     const selectedPlan = storePlans.find(p => p.id === selectedPlanId);
-    if (!selectedPlan) return;
+    if (!selectedPlan) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Paket seçilməyib' : 'Пакет не выбран'
+      );
+      return;
+    }
     
     Alert.alert(
       language === 'az' ? 'Mağazanı yenilə' : 'Обновить магазин',
@@ -431,7 +447,7 @@ export default function MyStoreScreen() {
             <View style={styles.statItem}>
               <Star size={16} color={Colors.secondary} />
               <Text style={styles.statValue}>
-                {userStore.totalRatings > 0 ? (userStore.rating / userStore.totalRatings).toFixed(1) : '0.0'}
+                {userStore.totalRatings > 0 ? (userStore.rating / Math.max(userStore.totalRatings, 1)).toFixed(1) : '0.0'}
               </Text>
               <Text style={styles.statLabel}>
                 {language === 'az' ? 'Reytinq' : 'Рейтинг'}
