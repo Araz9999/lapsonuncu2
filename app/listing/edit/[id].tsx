@@ -43,6 +43,7 @@ type FormData = {
   currency: string;
   categoryId: number;
   subcategoryId: number;
+  subSubcategoryId?: number;
   location: LocalizedText;
   locationId: string;
   images: string[];
@@ -65,6 +66,7 @@ export default function EditListingScreen() {
     currency: 'AZN',
     categoryId: 0,
     subcategoryId: 0,
+    subSubcategoryId: 0,
     location: { az: '', ru: '', en: '' },
     locationId: '',
     images: [] as string[],
@@ -94,6 +96,7 @@ export default function EditListingScreen() {
         currency: 'AZN',
         categoryId: listing.categoryId,
         subcategoryId: listing.subcategoryId,
+        subSubcategoryId: listing.subSubcategoryId || 0,
         location: listing.location,
         locationId: selectedLocation?.id || '',
         images: listing.images,
@@ -255,8 +258,8 @@ export default function EditListingScreen() {
         setCategoryPath([]);
       }
     } else {
-      // Sub-subcategory selected
-      setFormData(prev => ({ ...prev, subcategoryId: category.id }));
+      // Sub-subcategory selected (3-cü səviyyə)
+      setFormData(prev => ({ ...prev, subSubcategoryId: category.id }));
       setShowCategoryModal(false);
       setSelectedCategoryLevel(0);
       setCategoryPath([]);
@@ -306,6 +309,7 @@ export default function EditListingScreen() {
         currency: formData.currency,
         categoryId: formData.categoryId,
         subcategoryId: formData.subcategoryId,
+        subSubcategoryId: formData.subSubcategoryId,
         location: formData.location,
         images: formData.images,
         condition: formData.condition,
