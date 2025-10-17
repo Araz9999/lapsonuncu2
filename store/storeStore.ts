@@ -109,7 +109,7 @@ export const useStoreStore = create<StoreState>((set, get) => ({
       // BUG FIX: Generate unique ID with random component
       const newStore: Store = {
         ...storeData,
-        id: `store-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        id: `store-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
         createdAt: new Date().toISOString(),
         expiresAt: new Date(Date.now() + storeData.plan.duration * 24 * 60 * 60 * 1000).toISOString(),
         adsUsed: 0,
@@ -261,7 +261,7 @@ export const useStoreStore = create<StoreState>((set, get) => ({
       
       // BUG FIX: Generate unique ID
       const newFollower: StoreFollower = {
-        id: `follower-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        id: `follower-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
         userId,
         storeId,
         followedAt: new Date().toISOString(),
@@ -339,7 +339,7 @@ export const useStoreStore = create<StoreState>((set, get) => ({
     }
     
     const newNotifications: StoreNotification[] = storeFollowers.map((follower, index) => ({
-      id: `notif-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`, // BUG FIX: Unique IDs
+      id: `notif-${Date.now()}-${index}-${Math.random().toString(36).substring(2, 11)}`, // BUG FIX: Unique IDs
       storeId,
       userId: follower.userId,
       listingId,

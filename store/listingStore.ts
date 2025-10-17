@@ -586,7 +586,7 @@ export const useListingStore = create<ListingState>((set, get) => ({
     );
   },
 
-  applyCreativeEffects: async (id: string, effects: any[], effectEndDates: any[]) => {
+  applyCreativeEffects: async (id: string, effects: Array<{ id: string; name: { az: string; ru: string }; type: string; color: string; endDate: string; isActive: boolean }>, effectEndDates: Array<{ effect: any; endDate: Date }>) => {
     // Simulate payment processing
     await new Promise(resolve => setTimeout(resolve, 1000));
     

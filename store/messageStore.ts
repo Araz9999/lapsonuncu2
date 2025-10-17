@@ -235,7 +235,7 @@ export const useMessageStore = create<MessageStore>((set, get) => ({
     }
     
     // BUG FIX: Generate unique ID with random component to prevent conflicts
-    const conversationId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const conversationId = `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
     
     const newConversation: Conversation = {
       id: conversationId,

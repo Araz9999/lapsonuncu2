@@ -22,7 +22,7 @@ export default publicProcedure
     const agent = availableAgents[0];
     
     const conversation: LiveChatConversation = {
-      id: `conv-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: `conv-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
       userId: input.userId,
       userName: input.userName,
       userAvatar: input.userAvatar,
