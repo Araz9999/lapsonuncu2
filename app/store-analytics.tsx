@@ -247,7 +247,7 @@ export default function StoreAnalyticsScreen() {
               </View>
               <View style={styles.statItem}>
                 <Heart size={14} color={colors.textSecondary} />
-                <Text style={styles.statText}>{(listing as any).favorites || 0}</Text>
+                <Text style={styles.statText}>{'favorites' in listing ? (listing as any).favorites : 0}</Text>
               </View>
             </View>
           </TouchableOpacity>
