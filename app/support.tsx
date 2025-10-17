@@ -136,7 +136,7 @@ export default function SupportScreen() {
       userId: currentUser.id,
       subject: subject.trim(),
       message: message.trim(),
-      category: selectedCategory as any,
+      category: selectedCategory,
       priority,
       status: 'open',
       attachments: attachmentUris
