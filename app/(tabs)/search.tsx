@@ -49,10 +49,39 @@ export default function SearchScreen() {
   };
 
   const handlePriceRangeApply = () => {
-    setPriceRange(
-      minPrice ? Number(minPrice) : null,
-      maxPrice ? Number(maxPrice) : null
-    );
+    // BUG FIX: Validate price range
+    const minVal = minPrice ? Number(minPrice) : null;
+    const maxVal = maxPrice ? Number(maxPrice) : null;
+    
+    // BUG FIX: Check for invalid values
+    if (minVal !== null && (isNaN(minVal) || minVal < 0)) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Minimum qiymət düzgün deyil' : 'Минимальная цена некорректна'
+      );
+      return;
+    }
+    
+    if (maxVal !== null && (isNaN(maxVal) || maxVal < 0)) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Maksimum qiymət düzgün deyil' : 'Максимальная цена некорректна'
+      );
+      return;
+    }
+    
+    // BUG FIX: Validate min is not greater than max
+    if (minVal !== null && maxVal !== null && minVal > maxVal) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' 
+          ? 'Minimum qiymət maksimumdan böyük ola bilməz' 
+          : 'Минимальная цена не может быть больше максимальной'
+      );
+      return;
+    }
+    
+    setPriceRange(minVal, maxVal);
   };
 
   const handleSortSelect = (sort: 'date' | 'price-asc' | 'price-desc') => {
@@ -99,10 +128,11 @@ export default function SearchScreen() {
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [4, 3],
-        quality: 1,
+        quality: 0.8, // BUG FIX: Reduced quality for better performance
       });
 
-      if (!result.canceled) {
+      // BUG FIX: Validate assets array exists and has items
+      if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0]) {
         setSearchImage(result.assets[0].uri);
         // In a real app, we would send this image to a backend for processing
         // Since we don't have a backend, we'll just show an alert

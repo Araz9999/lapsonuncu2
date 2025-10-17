@@ -14,11 +14,7 @@ if (Platform.OS !== 'web') {
     
     if (isExpoGo) {
       // In Expo Go, we can only use local notifications
-< Araz
       logger.debug('Running in Expo Go - remote push notifications not available');
-=======
-      // Running in Expo Go - using local notifications only
-> main
     }
     
     Notifications = require('expo-notifications');
@@ -36,11 +32,7 @@ if (Platform.OS !== 'web') {
       });
     }
   } catch (error) {
-< Araz
     logger.debug('Expo notifications module not available');
-=======
-    // Notifications module not available on this platform
-> main
     isNotificationsAvailable = false;
   }
 }
@@ -72,11 +64,7 @@ class NotificationService {
         return false;
       } else {
         if (!isNotificationsAvailable || !Notifications) {
-< Araz
           logger.debug('Notifications not available on this platform');
-=======
-          // Notifications not available
-> main
           return false;
         }
         
@@ -91,41 +79,25 @@ class NotificationService {
           
           return finalStatus === 'granted';
         } catch (permError) {
-< Araz
           // Permission API might not be available in Expo Go
           logger.debug('Permission API not available, assuming granted for local notifications');
-=======
-          // Permission API might not be available - assume granted for local notifications
-> main
           return true;
         }
       }
     } catch (error) {
-< Araz
       logger.error('Failed to request notification permissions:', error);
-=======
-      // Permission request failed
-> main
       return false;
     }
   }
 
   async getExpoPushToken(): Promise<string | null> {
     if (Platform.OS === 'web') {
-< Araz
       logger.debug('Push tokens not available on web platform');
-=======
-      // Push tokens not available on web
-> main
       return null;
     }
 
     if (!isNotificationsAvailable || !Notifications) {
-< Araz
       logger.debug('Push notifications not available in Expo Go SDK 53+');
-=======
-      // Push notifications not available
-> main
       return null;
     }
 

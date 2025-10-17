@@ -34,60 +34,7 @@ class SavedCardsDatabase {
     }
     this.userCardsIndex.get(cardData.userId)!.add(id);
 
-< cursor/fix-many-bugs-and-errors-4e56
-    apiLogger.debug(`[DB] Saved card: ${id} for user: ${cardData.userId}`);
-logger.info(`[DB] Saved card: ${id} for user: ${cardData.userId}`);
-> Araz
-    return card;
-  }
-
-  async findByUserId(userId: string): Promise<SavedCard[]> {
-    const cardIds = this.userCardsIndex.get(userId);
-    if (!cardIds) return [];
-
-    const cards: SavedCard[] = [];
-    for (const cardId of cardIds) {
-      const card = this.cards.get(cardId);
-      if (card) {
-        cards.push(card);
-      }
-    }
-
-    return cards.sort((a, b) => 
-      new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime()
-    );
-  }
-
-  async findByCardUuid(cardUuid: string): Promise<SavedCard | null> {
-    const cardId = this.cardUuidIndex.get(cardUuid);
-    if (!cardId) return null;
-    return this.cards.get(cardId) || null;
-  }
-
-  async findById(id: string): Promise<SavedCard | null> {
-    return this.cards.get(id) || null;
-  }
-
-  async deleteCard(id: string): Promise<boolean> {
-    const card = this.cards.get(id);
-    if (!card) return false;
-
-    this.cards.delete(id);
-    this.cardUuidIndex.delete(card.cardUuid);
-
-    const userCards = this.userCardsIndex.get(card.userId);
-    if (userCards) {
-      userCards.delete(id);
-      if (userCards.size === 0) {
-        this.userCardsIndex.delete(card.userId);
-      }
-    }
-
-< cursor/fix-many-bugs-and-errors-4e56
-    apiLogger.debug(`[DB] Deleted card: ${id}`);
-=======
     logger.info(`[DB] Deleted card: ${id}`);
-> Araz
     return true;
   }
 
@@ -98,11 +45,7 @@ logger.info(`[DB] Saved card: ${id} for user: ${cardData.userId}`);
     card.lastUsed = new Date().toISOString();
     this.cards.set(id, card);
 
-< cursor/fix-many-bugs-and-errors-4e56
-    apiLogger.debug(`[DB] Updated last used for card: ${id}`);
-=======
     logger.info(`[DB] Updated last used for card: ${id}`);
-> Araz
     return true;
   }
 
