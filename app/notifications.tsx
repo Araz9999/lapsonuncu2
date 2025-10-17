@@ -71,7 +71,18 @@ export default function NotificationsScreen() {
   const formatTime = (dateString: string) => {
     const now = new Date();
     const date = new Date(dateString);
+    
+    // ✅ BUG FIX: Validate date to prevent NaN
+    if (isNaN(date.getTime())) {
+      return t.now; // Fallback for invalid dates
+    }
+    
     const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
+    
+    // ✅ BUG FIX: Handle future dates (negative difference)
+    if (diffInMinutes < 0) {
+      return t.now;
+    }
 
     if (diffInMinutes < 1) return t.now;
     if (diffInMinutes < 60) return `${diffInMinutes} ${t.minutesAgo}`;
@@ -99,7 +110,7 @@ export default function NotificationsScreen() {
       style={[
         styles.notificationCard, 
         { backgroundColor: colors.card },
-        !item.isRead && { backgroundColor: colors.primary + '10', borderLeftColor: colors.primary }
+        !item.isRead && { backgroundColor: `${colors.primary}10`, borderLeftColor: colors.primary }
       ]}
       onPress={() => {
         if (!item.isRead) {
