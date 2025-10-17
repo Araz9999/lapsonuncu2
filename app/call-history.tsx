@@ -28,6 +28,7 @@ import {
 } from 'lucide-react-native';
 import { Call } from '@/types/call';
 
+import { logger } from '@/utils/logger';
 export default function CallHistoryScreen() {
   const { calls, markCallAsRead, initiateCall, deleteCall, clearAllCallHistory } = useCallStore();
   const { language } = useLanguageStore();
@@ -124,7 +125,7 @@ export default function CallHistoryScreen() {
         const callId = await initiateCall(otherUserId, call.listingId, call.type);
         router.push(`/call/${callId}`);
       } catch (error) {
-        console.error('Failed to initiate call:', error);
+        logger.error('Failed to initiate call:', error);
       }
     }
   };
@@ -256,7 +257,7 @@ export default function CallHistoryScreen() {
                   const callId = await initiateCall(otherUserId, item.listingId, 'video');
                   router.push(`/call/${callId}`);
                 } catch (error) {
-                  console.error('Failed to initiate video call:', error);
+                  logger.error('Failed to initiate video call:', error);
                 }
               }}
             >

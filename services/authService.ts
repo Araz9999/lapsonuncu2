@@ -2,6 +2,7 @@ import config from '@/constants/config';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { logger } from '@/utils/logger';
 export interface AuthUser {
   id: string;
   email: string;
@@ -60,7 +61,7 @@ class AuthService {
         }
       }
     } catch (error) {
-      console.error('Failed to initialize auth service:', error);
+      logger.error('Failed to initialize auth service:', error);
     }
   }
 
@@ -84,7 +85,7 @@ class AuthService {
       
       return data.user;
     } catch (error) {
-      console.error('Login failed:', error);
+      logger.error('Login failed:', error);
       throw error;
     }
   }
@@ -109,14 +110,14 @@ class AuthService {
       
       return data.user;
     } catch (error) {
-      console.error('Registration failed:', error);
+      logger.error('Registration failed:', error);
       throw error;
     }
   }
 
   async loginWithSocial(provider: 'google' | 'facebook' | 'vk'): Promise<AuthUser> {
     try {
-      console.log(`[AuthService] Initiating ${provider} login`);
+      logger.debug(`[AuthService] Initiating ${provider} login`);
       
       const baseUrl = config.BASE_URL?.replace('/api', '') || 'http://localhost:8081';
       const authUrl = `${baseUrl}/api/auth/${provider}/login`;
@@ -158,7 +159,7 @@ class AuthService {
         throw new Error('OAuth flow was cancelled or failed');
       }
     } catch (error) {
-      console.error(`[AuthService] ${provider} login failed:`, error);
+      logger.error(`[AuthService] ${provider} login failed:`, error);
       throw error;
     }
   }
@@ -187,7 +188,7 @@ class AuthService {
         });
       }
     } catch (error) {
-      console.error('Logout request failed:', error);
+      logger.error('Logout request failed:', error);
     } finally {
       await this.clearAuthData();
     }
@@ -212,7 +213,7 @@ class AuthService {
         throw new Error(error.message || 'Failed to delete account');
       }
     } catch (error) {
-      console.error('Delete account request failed:', error);
+      logger.error('Delete account request failed:', error);
       throw error;
     } finally {
       await this.clearAuthData();
@@ -243,7 +244,7 @@ class AuthService {
       this.tokens = data.tokens;
       await AsyncStorage.setItem('auth_tokens', JSON.stringify(this.tokens));
     } catch (error) {
-      console.error('Token refresh failed:', error);
+      logger.error('Token refresh failed:', error);
       await this.clearAuthData();
       throw error;
     }
@@ -264,7 +265,7 @@ class AuthService {
         throw new Error(error.message || 'Failed to send reset email');
       }
     } catch (error) {
-      console.error('Forgot password failed:', error);
+      logger.error('Forgot password failed:', error);
       throw error;
     }
   }
@@ -287,7 +288,7 @@ class AuthService {
         throw new Error(error.message || 'Password reset failed');
       }
     } catch (error) {
-      console.error('Password reset failed:', error);
+      logger.error('Password reset failed:', error);
       throw error;
     }
   }

@@ -1,3 +1,5 @@
+import { logger } from '../../utils/logger';
+
 interface EmailOptions {
   to: string;
   subject: string;
@@ -34,7 +36,11 @@ class EmailService {
 
   async sendEmail(options: EmailOptions): Promise<boolean> {
     if (!this.isConfigured()) {
-      console.warn('[Email] Resend not configured, skipping email send');
+< cursor/fix-many-bugs-and-errors-4e56
+      apiLogger.warn('[Email] Resend not configured, skipping email send');
+=======
+      logger.warn('[Email] Resend not configured, skipping email send');
+> Araz
       return false;
     }
 
@@ -57,6 +63,20 @@ class EmailService {
       });
 
       if (!response.ok) {
+< cursor/fix-many-bugs-and-errors-2981
+        const errorText = await response.text();
+< cursor/fix-many-bugs-and-errors-4e56
+        apiLogger.error('[Email] Resend API error:', errorText);
+        return false;
+      }
+
+      apiLogger.debug(`[Email] Successfully sent email to ${options.to}`);
+      return true;
+    } catch (error) {
+      apiLogger.error('[Email] Failed to send email:', error);
+=======
+        logger.error('[Email] Resend API error:', errorText);
+
         // BUG FIX: Handle response parsing errors
         let errorText = 'Unknown error';
         try {
@@ -65,18 +85,24 @@ class EmailService {
           console.error('[Email] Failed to parse error response:', parseError);
         }
         console.error('[Email] Resend API error:', errorText);
+> Araz
         return false;
       }
 
-      console.log(`[Email] Successfully sent email to ${options.to}`);
+      logger.info(`[Email] Successfully sent email to ${options.to}`);
       return true;
     } catch (error) {
+< cursor/fix-many-bugs-and-errors-2981
+      logger.error('[Email] Failed to send email:', error);
+
       // BUG FIX: More detailed error logging
       if (error instanceof Error) {
         console.error('[Email] Failed to send email:', error.message);
       } else {
         console.error('[Email] Failed to send email:', error);
       }
+> Araz
+> Araz
       return false;
     }
   }

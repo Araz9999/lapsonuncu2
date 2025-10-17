@@ -1,5 +1,6 @@
 import { Alert, Platform } from 'react-native';
 
+import { logger } from '@/utils/logger';
 export async function confirm(message: string, title?: string): Promise<boolean> {
   if (Platform.OS === 'web') {
     try {
@@ -8,7 +9,7 @@ export async function confirm(message: string, title?: string): Promise<boolean>
       const ok = window.confirm(composed);
       return ok;
     } catch (e) {
-      console.log('confirm fallback error', e);
+      logger.debug('confirm fallback error', e);
       return true;
     }
   }
@@ -34,7 +35,7 @@ export async function prompt(message: string, title?: string, defaultValue?: str
       const result = window.prompt(composed, defaultValue || '');
       return result;
     } catch (e) {
-      console.log('prompt fallback error', e);
+      logger.debug('prompt fallback error', e);
       return null;
     }
   }

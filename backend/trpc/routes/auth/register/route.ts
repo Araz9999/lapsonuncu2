@@ -1,4 +1,9 @@
 import { publicProcedure } from '../../../create-context';
+< Araz
+import { z } from 'zod';
+import { logger } from '../../../../../utils/logger';
+=======
+> main
 import { userDB } from '../../../../db/users';
 import { generateTokenPair } from '../../../../utils/jwt';
 import { emailService } from '../../../../services/email';
@@ -8,13 +13,20 @@ import { AuthenticationError, DatabaseError } from '../../../../utils/errors';
 import { logger } from '../../../../utils/logger';
 =======
 import { hashPassword, generateRandomToken } from '../../../../utils/password';
+< Araz
+=======
 > main
 
+> main
 export const registerProcedure = publicProcedure
   .input(userRegistrationSchema)
   .mutation(async ({ input }) => {
+< Araz
+    logger.info('[Auth] Registration attempt:', input.email);
+=======
     try {
       logger.auth('Registration attempt', { email: input.email });
+> main
 
 < lapsonuncu-degisiklikleri
       const existingUser = await userDB.findByEmail(input.email);
@@ -71,6 +83,19 @@ export const registerProcedure = publicProcedure
         logger.warn('Failed to set verification token', { userId: user.id });
       }
 
+< Araz
+    if (!emailSent) {
+      logger.warn('[Auth] Failed to send verification email, but user was created');
+    }
+
+    const tokens = await generateTokenPair({
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+    });
+
+    logger.info('[Auth] User registered successfully:', user.id);
+=======
       const frontendUrl = process.env.FRONTEND_URL || 
         process.env.EXPO_PUBLIC_FRONTEND_URL || 
         'https://1r36dhx42va8pxqbqz5ja.rork.app';
@@ -88,6 +113,7 @@ export const registerProcedure = publicProcedure
           error: emailError 
         });
       }
+> main
 
       const tokens = await generateTokenPair({
         userId: user.id,

@@ -13,9 +13,10 @@ import { Timer, Edit3 } from 'lucide-react-native';
 
 import { useLanguageStore } from '@/store/languageStore';
 
+import { logger } from '@/utils/logger';
 interface CountdownTimerProps {
   endDate?: Date | string | number | { toISOString: () => string };
-  style?: any;
+  style?: Record<string, unknown>;
   compact?: boolean;
   title?: string;
   onTimeChange?: (endDate: Date) => void;
@@ -102,7 +103,11 @@ export default function CountdownTimer({
       }
       return new Date(Date.now() + 24 * 60 * 60 * 1000);
     } catch (e) {
+< Araz
+      logger.error('[CountdownTimer] Error normalizing date:', e);
+=======
       // Error normalizing date
+> main
       return new Date(Date.now() + 24 * 60 * 60 * 1000);
     }
   };
@@ -117,7 +122,11 @@ export default function CountdownTimer({
   useEffect(() => {
     const ms = currentEndDate.getTime() - Date.now();
     initialDurationMs.current = ms > 0 ? ms : 1000;
+< Araz
+    logger.debug('[CountdownTimer] initialDurationMs set to', initialDurationMs.current, 'ms remaining:', ms);
+=======
     // Initial duration set
+> main
   }, [currentEndDate]);
 
   useEffect(() => {
@@ -125,7 +134,11 @@ export default function CountdownTimer({
       const now = Date.now();
       const endTs = currentEndDate?.getTime?.();
       if (!endTs || isNaN(endTs)) {
+< Araz
+        logger.debug('[CountdownTimer] Invalid endTs, marking expired');
+=======
         // Invalid endTs, marking expired
+> main
         setIsExpired(true);
         setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
         return;
@@ -211,6 +224,16 @@ export default function CountdownTimer({
     const totalMilliseconds = (days * 24 * 60 * 60 * 1000) + (hours * 60 * 60 * 1000) + (minutes * 60 * 1000);
     const newEndDate = new Date(Date.now() + totalMilliseconds);
     
+< Araz
+    logger.debug('[CountdownTimer] Manual time set:', {
+      days, hours, minutes,
+      totalMs: totalMilliseconds,
+      newEndDate: newEndDate.toISOString(),
+      currentTime: new Date().toISOString()
+    });
+    
+=======
+> main
     initialDurationMs.current = totalMilliseconds > 0 ? totalMilliseconds : 1000;
     setShowManualInput(false);
     setIsExpired(false);

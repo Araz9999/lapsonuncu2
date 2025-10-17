@@ -5,6 +5,7 @@ import { useUserStore } from '@/store/userStore';
 import Colors from '@/constants/colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { logger } from '@/utils/logger';
 export default function AuthSuccessScreen() {
   const router = useRouter();
   const { token, user } = useLocalSearchParams();
@@ -17,7 +18,7 @@ export default function AuthSuccessScreen() {
   const handleAuthSuccess = async () => {
     try {
       if (!token || !user) {
-        console.error('[AuthSuccess] Missing token or user data');
+        logger.error('[AuthSuccess] Missing token or user data');
         router.replace('/auth/login');
         return;
       }
@@ -39,7 +40,7 @@ export default function AuthSuccessScreen() {
       }));
       await AsyncStorage.setItem('auth_user', JSON.stringify(userData));
 
-      console.log('[AuthSuccess] Login successful, user:', userData.email);
+      logger.debug('[AuthSuccess] Login successful, user:', userData.email);
 
       login({
         id: userData.id,
@@ -72,7 +73,7 @@ export default function AuthSuccessScreen() {
         router.replace('/(tabs)');
       }, 500);
     } catch (error) {
-      console.error('[AuthSuccess] Error processing auth success:', error);
+      logger.error('[AuthSuccess] Error processing auth success:', error);
       router.replace('/auth/login');
     }
   };

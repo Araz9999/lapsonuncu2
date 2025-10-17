@@ -1,3 +1,5 @@
+import { logger } from '../../utils/logger';
+
 export interface SavedCard {
   id: string;
   userId: string;
@@ -32,7 +34,10 @@ class SavedCardsDatabase {
     }
     this.userCardsIndex.get(cardData.userId)!.add(id);
 
-    console.log(`[DB] Saved card: ${id} for user: ${cardData.userId}`);
+< cursor/fix-many-bugs-and-errors-4e56
+    apiLogger.debug(`[DB] Saved card: ${id} for user: ${cardData.userId}`);
+logger.info(`[DB] Saved card: ${id} for user: ${cardData.userId}`);
+> Araz
     return card;
   }
 
@@ -78,7 +83,11 @@ class SavedCardsDatabase {
       }
     }
 
-    console.log(`[DB] Deleted card: ${id}`);
+< cursor/fix-many-bugs-and-errors-4e56
+    apiLogger.debug(`[DB] Deleted card: ${id}`);
+=======
+    logger.info(`[DB] Deleted card: ${id}`);
+> Araz
     return true;
   }
 
@@ -89,7 +98,11 @@ class SavedCardsDatabase {
     card.lastUsed = new Date().toISOString();
     this.cards.set(id, card);
 
-    console.log(`[DB] Updated last used for card: ${id}`);
+< cursor/fix-many-bugs-and-errors-4e56
+    apiLogger.debug(`[DB] Updated last used for card: ${id}`);
+=======
+    logger.info(`[DB] Updated last used for card: ${id}`);
+> Araz
     return true;
   }
 

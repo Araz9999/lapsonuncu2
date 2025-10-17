@@ -1,10 +1,11 @@
 import { Platform, Alert, Linking } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 
+import { logger } from '@/utils/logger';
 export interface SocialAuthResult {
   success: boolean;
   token?: string;
-  user?: any;
+  user?: Record<string, unknown>;
   error?: string;
 }
 
@@ -20,18 +21,18 @@ export async function checkSocialAuthStatus(): Promise<SocialAuthConfig> {
       web: typeof window !== 'undefined' && window.location ? window.location.origin : 'https://1r36dhx42va8pxqbqz5ja.rork.app',
       default: 'https://1r36dhx42va8pxqbqz5ja.rork.app'
     });
-    console.log('[SocialAuth] Checking status at:', `${baseUrl}/api/auth/status`);
+    logger.debug('[SocialAuth] Checking status at:', `${baseUrl}/api/auth/status`);
     const response = await fetch(`${baseUrl}/api/auth/status`);
     
     if (!response.ok) {
-      console.warn('[SocialAuth] Failed to check auth status');
+      logger.warn('[SocialAuth] Failed to check auth status');
       return { google: false, facebook: false, vk: false };
     }
     
     const data = await response.json();
     return data.configured || { google: false, facebook: false, vk: false };
   } catch (error) {
-    console.error('[SocialAuth] Error checking auth status:', error);
+    logger.error('[SocialAuth] Error checking auth status:', error);
     return { google: false, facebook: false, vk: false };
   }
 }
@@ -42,7 +43,7 @@ export async function initiateSocialLogin(
   onError: (error: string) => void
 ): Promise<void> {
   try {
-    console.log(`[SocialAuth] Initiating ${provider} login`);
+    logger.debug(`[SocialAuth] Initiating ${provider} login`);
     
     const baseUrl = Platform.select({
       web: typeof window !== 'undefined' && window.location ? window.location.origin : 'https://1r36dhx42va8pxqbqz5ja.rork.app',
@@ -50,7 +51,7 @@ export async function initiateSocialLogin(
     });
     const authUrl = `${baseUrl}/api/auth/${provider}/login`;
     
-    console.log(`[SocialAuth] Opening auth URL: ${authUrl}`);
+    logger.debug(`[SocialAuth] Opening auth URL: ${authUrl}`);
 
     if (Platform.OS === 'web') {
       window.location.href = authUrl;
@@ -82,14 +83,14 @@ export async function initiateSocialLogin(
           onError('Failed to retrieve authentication data');
         }
       } else if (result.type === 'cancel') {
-        console.log('[SocialAuth] User cancelled OAuth flow');
+        logger.debug('[SocialAuth] User cancelled OAuth flow');
         onError('Login cancelled');
       } else {
         onError('Login failed');
       }
     }
   } catch (error) {
-    console.error(`[SocialAuth] ${provider} login error:`, error);
+    logger.error(`[SocialAuth] ${provider} login error:`, error);
     onError(`Failed to login with ${provider}. Please try again.`);
   }
 }
@@ -141,6 +142,6 @@ export async function openSocialAuthSetupGuide(): Promise<void> {
       );
     }
   } catch (error) {
-    console.error('[SocialAuth] Error opening setup guide:', error);
+    logger.error('[SocialAuth] Error opening setup guide:', error);
   }
 }

@@ -19,6 +19,7 @@ import Colors from '@/constants/colors';
 import { trpc } from '@/lib/trpc';
 import { SavedCard } from '@/types/payment';
 
+import { logger } from '@/utils/logger';
 export default function SavedCardsScreen() {
   const router = useRouter();
   
@@ -58,7 +59,11 @@ export default function SavedCardsScreen() {
               await refetch();
               Alert.alert('Uğurlu', 'Kart silindi');
             } catch (error) {
+< Araz
+              logger.error('Delete card error:', error);
+=======
               // Error handled by mutation
+> main
               Alert.alert('Xəta', 'Kartı silmək mümkün olmadı');
             }
           },
@@ -101,7 +106,11 @@ export default function SavedCardsScreen() {
         currencyType: 'AZN',
       });
 
+< Araz
+      logger.debug('Auto payment response:', response);
+=======
       // Auto payment processed successfully
+> main
 
       if (response.payload?.orderStatus === 'APPROVED') {
         setShowPaymentModal(false);
@@ -114,7 +123,11 @@ export default function SavedCardsScreen() {
         throw new Error(response.payload?.responseDescription || 'Ödəniş uğursuz oldu');
       }
     } catch (error) {
+< Araz
+      logger.error('Auto payment error:', error);
+=======
       // Error will be shown to user
+> main
       const message = error instanceof Error ? error.message : 'Bilinməyən xəta baş verdi';
       Alert.alert('Xəta', message);
     } finally {

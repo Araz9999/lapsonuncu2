@@ -1,9 +1,11 @@
 import { Hono } from 'hono';
+import { logger } from '../../utils/logger';
 import { payriffService } from '../services/payriff';
 import { z } from 'zod';
 import crypto from 'crypto';
 import { secureHeaders } from 'hono/secure-headers';
 
+import { logger } from '@/utils/logger';
 const payments = new Hono();
 payments.use('*', secureHeaders());
 
@@ -47,7 +49,7 @@ payments.post('/payriff/create-order', async (c) => {
       paymentUrl: result.paymentUrl,
     });
   } catch (error) {
-    console.error('Create Payriff order error');
+    logger.error('Create Payriff order error');
     return c.json({ error: 'Internal server error' }, 500);
   }
 });
@@ -60,7 +62,7 @@ payments.post('/payriff/callback', async (c) => {
     const isValid = payriffService.verifyCallback(body, signature);
 
     if (!isValid) {
-      console.error('Invalid Payriff callback signature');
+      logger.error('Invalid Payriff callback signature');
       return c.json({ error: 'Invalid signature' }, 400);
     }
 
@@ -75,7 +77,7 @@ payments.post('/payriff/callback', async (c) => {
       return c.redirect(`${frontendUrl}/wallet?payment=failed&orderId=${orderId}`);
     }
   } catch (error) {
-    console.error('Payriff callback error');
+    logger.error('Payriff callback error');
     return c.json({ error: 'Internal server error' }, 500);
   }
 });
@@ -95,7 +97,7 @@ payments.get('/payriff/status/:orderId', async (c) => {
       status,
     });
   } catch (error) {
-    console.error('Get payment status error');
+    logger.error('Get payment status error');
     return c.json({ error: 'Failed to get payment status' }, 500);
   }
 });
@@ -124,7 +126,7 @@ payments.post('/payriff/refund', async (c) => {
       message: 'Refund processed successfully',
     });
   } catch (error) {
-    console.error('Refund error');
+    logger.error('Refund error');
     return c.json({ error: 'Failed to process refund' }, 500);
   }
 });

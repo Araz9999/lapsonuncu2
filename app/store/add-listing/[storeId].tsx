@@ -34,6 +34,7 @@ import {
 } from 'lucide-react-native';
 import { Listing } from '@/types/listing';
 
+import { storeLogger } from '@/utils/logger';
 export default function AddStoreListingScreen() {
   const router = useRouter();
   const { storeId } = useLocalSearchParams<{ storeId: string }>();
@@ -152,7 +153,7 @@ export default function AddStoreListingScreen() {
         setImages([...images, result.assets[0].uri]);
       }
     } catch (error) {
-      console.error('Gallery error:', error);
+      storeLogger.error('Gallery error:', error);
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Şəkil seçilə bilmədi' : 'Не удалось выбрать изображение'
@@ -202,7 +203,7 @@ export default function AddStoreListingScreen() {
         setImages([...images, result.assets[0].uri]);
       }
     } catch (error) {
-      console.error('Camera error:', error);
+      storeLogger.error('Camera error:', error);
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Şəkil çəkilə bilmədi' : 'Не удалось сделать фото'

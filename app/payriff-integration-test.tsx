@@ -13,6 +13,7 @@ import { ArrowLeft, CheckCircle, XCircle, AlertCircle } from 'lucide-react-nativ
 import { trpcClient } from '@/lib/trpc';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { logger } from '@/utils/logger';
 type TestStatus = 'idle' | 'running' | 'success' | 'error';
 
 interface TestResult {
@@ -50,13 +51,13 @@ export default function PayriffIntegrationTestScreen() {
       await testFn();
       const duration = Date.now() - startTime;
       updateTestResult(name, 'success', 'Test passed', duration);
-      console.log(`✅ ${name} - PASSED (${duration}ms)`);
+      logger.debug(`✅ ${name} - PASSED (${duration}ms)`);
       return true;
     } catch (error) {
       const duration = Date.now() - startTime;
       const message = error instanceof Error ? error.message : 'Unknown error';
       updateTestResult(name, 'error', message, duration);
-      console.error(`❌ ${name} - FAILED: ${message}`);
+      logger.error(`❌ ${name} - FAILED: ${message}`);
       return false;
     }
   };
@@ -76,7 +77,7 @@ export default function PayriffIntegrationTestScreen() {
       throw new Error('Invalid totalBalance in response');
     }
     
-    console.log('Wallet data:', JSON.stringify(result, null, 2));
+    logger.debug('Wallet data:', JSON.stringify(result, null, 2));
   };
 
   const testCreateOrder = async () => {
@@ -104,7 +105,7 @@ export default function PayriffIntegrationTestScreen() {
       throw new Error('No paymentUrl in response');
     }
     
-    console.log('Order created:', JSON.stringify(result, null, 2));
+    logger.debug('Order created:', JSON.stringify(result, null, 2));
   };
 
   const testGetOrder = async () => {
@@ -136,7 +137,7 @@ export default function PayriffIntegrationTestScreen() {
       throw new Error('OrderId mismatch');
     }
     
-    console.log('Order info:', JSON.stringify(result, null, 2));
+    logger.debug('Order info:', JSON.stringify(result, null, 2));
   };
 
   const testCreateInvoice = async () => {
@@ -162,7 +163,7 @@ export default function PayriffIntegrationTestScreen() {
       throw new Error('No paymentUrl in response');
     }
     
-    console.log('Invoice created:', JSON.stringify(result, null, 2));
+    logger.debug('Invoice created:', JSON.stringify(result, null, 2));
   };
 
   const testGetInvoice = async () => {
@@ -196,14 +197,14 @@ export default function PayriffIntegrationTestScreen() {
       throw new Error('InvoiceUuid mismatch');
     }
     
-    console.log('Invoice info:', JSON.stringify(result, null, 2));
+    logger.debug('Invoice info:', JSON.stringify(result, null, 2));
   };
 
   const runAllTests = async () => {
     setIsRunning(true);
     setTestResults([]);
     
-    console.log('🚀 Starting Payriff Integration Tests...\n');
+    logger.debug('🚀 Starting Payriff Integration Tests...\n');
     
     const tests = [
       { name: 'Get Wallet', fn: testGetWallet },
@@ -228,10 +229,10 @@ export default function PayriffIntegrationTestScreen() {
     
     setIsRunning(false);
     
-    console.log('\n📊 Test Results:');
-    console.log(`✅ Passed: ${passed}`);
-    console.log(`❌ Failed: ${failed}`);
-    console.log(`📈 Total: ${tests.length}`);
+    logger.debug('\n📊 Test Results:');
+    logger.debug(`✅ Passed: ${passed}`);
+    logger.debug(`❌ Failed: ${failed}`);
+    logger.debug(`📈 Total: ${tests.length}`);
     
     Alert.alert(
       'Test Results',

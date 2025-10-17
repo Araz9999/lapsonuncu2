@@ -5,6 +5,7 @@
 
 import { Image } from 'expo-image';
 
+import { logger } from '@/utils/logger';
 /**
  * Preload images to improve performance
  */
@@ -19,7 +20,7 @@ export async function preloadImages(imageUris: string[]): Promise<void> {
     );
   } catch (error) {
     if (__DEV__) {
-      console.warn('Failed to preload some images:', error);
+      logger.warn('Failed to preload some images:', error);
     }
   }
 }
@@ -108,7 +109,7 @@ export async function clearImageCache(): Promise<void> {
     await Image.clearDiskCache();
   } catch (error) {
     if (__DEV__) {
-      console.error('Failed to clear image cache:', error);
+      logger.error('Failed to clear image cache:', error);
     }
   }
 }
@@ -122,7 +123,7 @@ export async function getCacheSize(): Promise<{ memory: number; disk: number }> 
     return { memory: 0, disk: 0 };
   } catch (error) {
     if (__DEV__) {
-      console.error('Failed to get cache size:', error);
+      logger.error('Failed to get cache size:', error);
     }
     return { memory: 0, disk: 0 };
   }

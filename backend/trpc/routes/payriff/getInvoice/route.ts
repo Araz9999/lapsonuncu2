@@ -3,6 +3,7 @@ import { publicProcedure } from '../../../create-context';
 import config from '@/constants/config';
 import { PayriffResponse, isPayriffSuccess, getPayriffErrorMessage } from '@/constants/payriffCodes';
 
+import { logger } from '@/utils/logger';
 export const getInvoiceProcedure = publicProcedure
   .input(
     z.object({
@@ -25,7 +26,7 @@ export const getInvoiceProcedure = publicProcedure
       },
     };
 
-    console.log('Get invoice request:', JSON.stringify(requestBody, null, 2));
+    logger.debug('Get invoice request:', JSON.stringify(requestBody, null, 2));
 
     const response = await fetch(`${baseUrl}/api/v2/get-invoice`, {
       method: 'POST',
@@ -37,11 +38,11 @@ export const getInvoiceProcedure = publicProcedure
     });
 
     const data: PayriffResponse = await response.json();
-    console.log('Get invoice response:', JSON.stringify(data, null, 2));
+    logger.debug('Get invoice response:', JSON.stringify(data, null, 2));
 
     if (!response.ok || !isPayriffSuccess(data)) {
       const errorMessage = getPayriffErrorMessage(data);
-      console.error('Get invoice error:', errorMessage);
+      logger.error('Get invoice error:', errorMessage);
       throw new Error(errorMessage);
     }
 
