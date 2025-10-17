@@ -27,6 +27,10 @@ import { getOrderProcedure } from "./routes/payriff/getOrder/route";
 import { refundProcedure } from "./routes/payriff/refund/route";
 import { completeProcedure } from "./routes/payriff/complete/route";
 import { autoPayV3Procedure } from "./routes/payriff/autoPayV3/route";
+import { getReportsProcedure } from "./routes/moderation/getReports/route";
+import { createReportProcedure } from "./routes/moderation/createReport/route";
+import { updateReportStatusProcedure } from "./routes/moderation/updateReportStatus/route";
+import { getStatsProcedure } from "./routes/moderation/getStats/route";
 
 export const appRouter = createTRPCRouter({
   example: createTRPCRouter({
@@ -64,6 +68,12 @@ export const appRouter = createTRPCRouter({
     refund: refundProcedure,
     complete: completeProcedure,
     autoPayV3: autoPayV3Procedure,
+  }),
+  moderation: createTRPCRouter({
+    getReports: getReportsProcedure,
+    createReport: createReportProcedure,
+    updateReportStatus: updateReportStatusProcedure,
+    getStats: getStatsProcedure,
   }),
 });
 
