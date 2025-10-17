@@ -109,7 +109,11 @@ auth.get('/:provider/callback', async (c) => {
           throw new Error('Invalid OAuth provider');
         }
         await userDB.addSocialProvider(user.id, {
+< lapsonuncu-degisiklikleri
+          provider: provider as 'google' | 'facebook' | 'vk',
+=======
           provider: provider,
+> main
           socialId: userInfo.id,
           email: userInfo.email,
           name: userInfo.name,
@@ -127,7 +131,11 @@ auth.get('/:provider/callback', async (c) => {
           avatar: userInfo.avatar,
           verified: true,
           socialProviders: [{
+< lapsonuncu-degisiklikleri
+            provider: provider as 'google' | 'facebook' | 'vk',
+=======
             provider: provider,
+> main
             socialId: userInfo.id,
             email: userInfo.email,
             name: userInfo.name,

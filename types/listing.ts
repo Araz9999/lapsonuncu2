@@ -37,6 +37,11 @@ export interface Listing {
   discountPercentage?: number; // Discount percentage applied
   hasDiscount?: boolean; // Whether the listing has a discount
   discountEndDate?: string; // When the discount expires
+  // Timer bar fields for discounts
+  timerBarEnabled?: boolean; // Whether timer bar is enabled
+  timerBarTitle?: string; // Title for the timer bar
+  timerBarColor?: string; // Color for the timer bar
+  timerBarEndDate?: string; // End date for the timer bar
   // Promotion fields
   promotionEndDate?: string; // When the promotion expires
   gracePeriodEndDate?: string; // Grace period end date for non-store paid listings
