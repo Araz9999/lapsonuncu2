@@ -1,7 +1,7 @@
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { useEffect, Component, ReactNode, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { StatusBar } from 'expo-status-bar';
 import { View, Text } from 'react-native';
 import { useThemeStore } from '@/store/themeStore';
@@ -10,6 +10,7 @@ import { useCallStore } from '@/store/callStore';
 import { getColors } from '@/constants/colors';
 import IncomingCallModal from '@/components/IncomingCallModal';
 import { LanguageProvider } from '@/store/languageStore';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 import { initializeServices } from '@/services';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -41,6 +42,7 @@ const queryClient = new QueryClient({
   },
 });
 
+< Araz
 class ErrorBoundary extends Component<
   { children: ReactNode },
   { hasError: boolean; error?: Error }
@@ -74,6 +76,8 @@ class ErrorBoundary extends Component<
   }
 }
 
+=======
+> main
 export default function RootLayout() {
   // Skip font loading - use system fonts for better performance
   const [loaded] = useFonts({});

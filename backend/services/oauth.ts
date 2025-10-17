@@ -233,7 +233,17 @@ class OAuthService {
 
       case 'vk':
         const user = data.response?.[0];
-        const vkEmail = (tokenResponse as any)?.email || (data as any)?.email || `vk_${user?.id}@vk.placeholder`;
+        // VK email handling with proper typing
+        interface VKTokenResponse {
+          email?: string;
+        }
+        interface VKUserData {
+          email?: string;
+        }
+        const vkEmail = 
+          (tokenResponse as VKTokenResponse)?.email || 
+          (data as VKUserData)?.email || 
+          `vk_${user?.id}@vk.placeholder`;
         return {
           id: user?.id?.toString() || '',
           email: vkEmail,

@@ -131,7 +131,11 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
 
   const handleStartChat = () => {
     if (!currentUser) {
+< Araz
       logger.debug('[LiveChatWidget] Cannot start chat: user not logged in');
+=======
+      // Cannot start chat: user not logged in
+> main
       return;
     }
     if (!selectedCategory || !subject.trim()) return;
@@ -156,8 +160,11 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
     const attachmentUrls = attachments.map(att => att.uri);
     const messageText = message.trim() || (attachments.length > 0 ? `📎 ${attachments.length} fayl göndərildi` : '');
     
+< Araz
     logger.debug('Sending message with attachments:', { messageText, attachmentUrls });
     
+=======
+> main
     sendMessage(
       currentChatId, 
       currentUser.id, 
@@ -570,7 +577,10 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
                           <FileAttachmentPicker
                             attachments={attachments}
                             onAttachmentsChange={(newAttachments) => {
+< Araz
                               logger.debug('Attachments changed:', newAttachments);
+=======
+> main
                               setAttachments(newAttachments);
                             }}
                             maxFiles={3}
@@ -631,10 +641,14 @@ export default function LiveChatWidget({ visible, onClose, chatId }: LiveChatWid
                               backgroundColor: (message.trim() || attachments.length > 0) ? colors.primary : colors.border
                             }
                           ]}
+< Araz
                           onPress={() => {
                             logger.debug('Send button pressed. Message:', message, 'Attachments:', attachments.length);
                             handleSendMessage();
                           }}
+=======
+                          onPress={handleSendMessage}
+> main
                           disabled={!message.trim() && attachments.length === 0}
                         >
                           <Send size={18} color={(message.trim() || attachments.length > 0) ? '#fff' : colors.textSecondary} />

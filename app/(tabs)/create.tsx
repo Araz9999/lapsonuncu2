@@ -355,7 +355,7 @@ export default function CreateListingScreen() {
           ru: description,
           en: description
         },
-        price: priceByAgreement ? 0 : parseFloat(price),
+        price: priceByAgreement ? 0 : (parseFloat(price) || 0),
         currency: currency as 'AZN' | 'USD',
         priceByAgreement,
         images,

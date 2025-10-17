@@ -23,7 +23,14 @@ export default function AuthSuccessScreen() {
         return;
       }
 
-      const userData = JSON.parse(user as string);
+      let userData;
+      try {
+        userData = JSON.parse(user as string);
+      } catch (error) {
+        console.error('[AuthSuccess] Failed to parse user data');
+        router.replace('/auth/login');
+        return;
+      }
       
       // Store only via unified auth_tokens object
       await AsyncStorage.setItem('auth_tokens', JSON.stringify({

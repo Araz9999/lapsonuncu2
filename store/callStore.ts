@@ -9,8 +9,13 @@ interface CallStore {
   calls: Call[];
   activeCall: ActiveCall | null;
   incomingCall: Call | null;
+< Araz
   ringtoneSound: Audio.Sound | null;
   dialToneSound: Audio.Sound | null;
+=======
+  ringtoneSound: unknown | null;
+  dialToneSound: unknown | null;
+> main
   ringtoneInterval: NodeJS.Timeout | null;
   dialToneInterval: NodeJS.Timeout | null;
   
@@ -92,7 +97,11 @@ export const useCallStore = create<CallStore>((set, get) => ({
   dialToneInterval: null,
   
   initiateCall: async (receiverId: string, listingId: string, type: CallType) => {
+< Araz
     logger.info('CallStore - initiating call to:', receiverId);
+=======
+    // Initiating call
+> main
     
     const callId = Date.now().toString();
     const newCall: Call = {
@@ -148,7 +157,11 @@ export const useCallStore = create<CallStore>((set, get) => ({
   },
   
   answerCall: (callId: string) => {
+< Araz
     logger.info('CallStore - answering call:', callId);
+=======
+    // Answering call
+> main
     
     const call = get().calls.find(c => c.id === callId);
     if (!call) return;
@@ -183,7 +196,11 @@ export const useCallStore = create<CallStore>((set, get) => ({
   },
   
   declineCall: (callId: string) => {
+< Araz
     logger.info('CallStore - declining call:', callId);
+=======
+    // Declining call
+> main
     
     // Stop ringtone
     get().stopAllSounds();
@@ -199,7 +216,11 @@ export const useCallStore = create<CallStore>((set, get) => ({
   },
   
   endCall: (callId: string) => {
+< Araz
     logger.info('CallStore - ending call:', callId);
+=======
+    // Ending call
+> main
     
     const activeCall = get().activeCall;
     if (!activeCall) return;
@@ -275,14 +296,22 @@ export const useCallStore = create<CallStore>((set, get) => ({
   },
   
   deleteCall: (callId: string) => {
+< Araz
     logger.info('CallStore - deleting call:', callId);
+=======
+    // Deleting call
+> main
     set((state) => ({
       calls: state.calls.filter(call => call.id !== callId),
     }));
   },
   
   clearAllCallHistory: () => {
+< Araz
     logger.info('CallStore - clearing all call history');
+=======
+    // Clearing all call history
+> main
     set({ calls: [] });
   },
   
@@ -293,27 +322,46 @@ export const useCallStore = create<CallStore>((set, get) => ({
     }
 
     try {
+< Araz
       logger.info('Initializing sounds (no audio engine required in Expo Go v53)...');
       set({ ringtoneSound: null, dialToneSound: null });
     } catch (error) {
       logger.warn('Sound init fallback used:', error);
+=======
+      // Initializing sounds (no audio engine required in Expo Go v53)
+      set({ ringtoneSound: null, dialToneSound: null });
+    } catch (error) {
+      // Sound init fallback used
+> main
       set({ ringtoneSound: null, dialToneSound: null });
     }
   },
   
   playRingtone: async () => {
     if (Platform.OS === 'web') {
+< Araz
       logger.info('Ringtone playback skipped for web platform');
+=======
+      // Ringtone skipped for web
+> main
       return;
     }
     
     try {
+< Araz
       logger.info('Playing ringtone with haptic feedback...');
+=======
+      // Playing ringtone with haptic feedback
+> main
       const Haptics = await import('expo-haptics');
       
       if (Haptics && Haptics.notificationAsync) {
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+< Araz
         logger.info('Initial ringtone haptic feedback played');
+=======
+        // Initial ringtone haptic feedback played
+> main
         
         // Create a repeating pattern for incoming call
         const ringtoneInterval = setInterval(async () => {
@@ -386,11 +434,16 @@ export const useCallStore = create<CallStore>((set, get) => ({
       if (state.ringtoneInterval) {
         clearInterval(state.ringtoneInterval);
         set({ ringtoneInterval: null });
+< Araz
         logger.info('Ringtone interval cleared');
+=======
+        // Ringtone interval cleared
+> main
       }
       if (state.dialToneInterval) {
         clearInterval(state.dialToneInterval);
         set({ dialToneInterval: null });
+< Araz
         logger.info('Dial tone interval cleared');
       }
       
@@ -407,6 +460,24 @@ export const useCallStore = create<CallStore>((set, get) => ({
       logger.info('All sounds and haptic patterns stopped successfully');
     } catch (error) {
       logger.error('Failed to stop sounds, continuing anyway:', error);
+=======
+        // Dial tone interval cleared
+      }
+      
+      // Stop any actual sounds if they exist
+      if (state.ringtoneSound && typeof state.ringtoneSound === 'object' && 'stopAsync' in state.ringtoneSound) {
+        await (state.ringtoneSound as { stopAsync: () => Promise<void> }).stopAsync();
+        // Ringtone sound stopped
+      }
+      if (state.dialToneSound && typeof state.dialToneSound === 'object' && 'stopAsync' in state.dialToneSound) {
+        await (state.dialToneSound as { stopAsync: () => Promise<void> }).stopAsync();
+        // Dial tone sound stopped
+      }
+      
+      // All sounds and haptic patterns stopped successfully
+    } catch (error) {
+      // Failed to stop sounds, continuing anyway
+> main
     }
   },
   
@@ -464,7 +535,11 @@ export const useCallStore = create<CallStore>((set, get) => ({
             }
           });
         } catch (error) {
+< Araz
           logger.warn('Notifications not available:', error);
+=======
+          // Notifications not available
+> main
         }
       })();
     }

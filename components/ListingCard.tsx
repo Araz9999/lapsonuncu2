@@ -932,6 +932,33 @@ const ListingCard = React.memo(function ListingCard({
           </View>
         )}
         
+        {/* Custom Timer Bar for Discounts */}
+        {listing.timerBarEnabled && listing.timerBarEndDate && listing.timerBarTitle && (
+          <View style={[
+            styles.customTimerBarContainer,
+            { borderColor: listing.timerBarColor || '#FF6B6B' }
+          ]}>
+            <View style={styles.customTimerBarHeader}>
+              <Clock size={14} color={listing.timerBarColor || '#FF6B6B'} />
+              <Text style={[
+                styles.customTimerBarTitle,
+                { color: listing.timerBarColor || '#FF6B6B' }
+              ]}>
+                {listing.timerBarTitle}
+              </Text>
+            </View>
+            <CountdownTimer 
+              endDate={listing.timerBarEndDate}
+              compact={false}
+              style={[
+                styles.customTimerBarContent,
+                { backgroundColor: `${listing.timerBarColor || '#FF6B6B'}15` }
+              ]}
+              key={`discount-timer-${listing.id}-${listing.timerBarEndDate}`}
+            />
+          </View>
+        )}
+        
         {/* Creative Effects Badges */}
         {hasCreativeEffects && (
           <View style={styles.creativeEffectsContainer}>
@@ -1495,5 +1522,26 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 5,
+  },
+  customTimerBarContainer: {
+    marginTop: 8,
+    borderRadius: 8,
+    borderWidth: 2,
+    padding: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+  },
+  customTimerBarHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
+  },
+  customTimerBarTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  customTimerBarContent: {
+    borderRadius: 6,
+    padding: 6,
   },
 });

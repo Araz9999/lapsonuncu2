@@ -255,7 +255,7 @@ export default function AddStoreListingScreen() {
           az: description,
           ru: description
         },
-        price: priceByAgreement ? 0 : parseFloat(price),
+        price: priceByAgreement ? 0 : (parseFloat(price) || 0),
         currency: currency as 'AZN' | 'USD',
         images,
         categoryId: selectedCategory!,

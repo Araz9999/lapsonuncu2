@@ -69,8 +69,22 @@ export default function TopupScreen() {
     }
 
     const parsedAmount = parseFloat(amount);
+< lapsonuncu-degisiklikleri
+    if (isNaN(parsedAmount)) {
+      Alert.alert('Xəta', 'Düzgün məbləğ daxil edin');
+      return;
+    }
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      Alert.alert('Error', 'Please enter a valid amount greater than 0');
+      return;
+    }
+
+    if (parsedAmount < 1) {
+      Alert.alert('Error', 'Minimum topup amount is 1 AZN');
+=======
     if (isNaN(parsedAmount) || parsedAmount < 1) {
       Alert.alert('Error', 'Please enter a valid amount (minimum 1 AZN)');
+> main
       return;
     }
 
