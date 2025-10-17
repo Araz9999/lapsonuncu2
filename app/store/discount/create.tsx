@@ -59,18 +59,25 @@ export default function CreateDiscountScreen() {
   const storeListings = listings.filter(l => l.storeId === currentStore.id && !l.deletedAt);
   
   const handleSubmit = () => {
+    // Validation: Title
     if (!formData.title.trim()) {
       Alert.alert('Xəta', 'Endirim başlığı daxil edin');
       return;
     }
     
-    if (!formData.value.trim()) {
-      Alert.alert('Xəta', 'Endirim dəyəri daxil edin');
+    if (formData.title.trim().length < 3) {
+      Alert.alert('Xəta', 'Endirim başlığı ən azı 3 simvol olmalıdır');
       return;
     }
     
-    if (selectedListings.length === 0) {
-      Alert.alert('Xəta', 'Ən azı bir məhsul seçin');
+    if (formData.title.trim().length > 100) {
+      Alert.alert('Xəta', 'Endirim başlığı maksimum 100 simvol ola bilər');
+      return;
+    }
+    
+    // Validation: Value
+    if (!formData.value.trim()) {
+      Alert.alert('Xəta', 'Endirim dəyəri daxil edin');
       return;
     }
     
@@ -80,8 +87,55 @@ export default function CreateDiscountScreen() {
       return;
     }
     
-    if (formData.type === 'percentage' && value > 100) {
-      Alert.alert('Xəta', 'Faiz endirimi 100%-dən çox ola bilməz');
+    if (formData.type === 'percentage' && (value <= 0 || value > 100)) {
+      Alert.alert('Xəta', 'Faiz endirimi 1-100 arasında olmalıdır');
+      return;
+    }
+    
+    if (formData.type === 'fixed_amount' && value > 10000) {
+      Alert.alert('Xəta', 'Sabit məbləğ endirimi maksimum 10,000 AZN ola bilər');
+      return;
+    }
+    
+    // Validation: Listings
+    if (selectedListings.length === 0) {
+      Alert.alert('Xəta', 'Ən azı bir məhsul seçin');
+      return;
+    }
+    
+    // Validation: Optional fields
+    if (formData.minPurchaseAmount.trim()) {
+      const minAmount = parseFloat(formData.minPurchaseAmount);
+      if (isNaN(minAmount) || minAmount < 0) {
+        Alert.alert('Xəta', 'Düzgün minimum alış məbləği daxil edin');
+        return;
+      }
+    }
+    
+    if (formData.maxDiscountAmount.trim()) {
+      const maxAmount = parseFloat(formData.maxDiscountAmount);
+      if (isNaN(maxAmount) || maxAmount <= 0) {
+        Alert.alert('Xəta', 'Düzgün maksimum endirim məbləği daxil edin');
+        return;
+      }
+    }
+    
+    if (formData.usageLimit.trim()) {
+      const limit = parseInt(formData.usageLimit, 10);
+      if (isNaN(limit) || limit <= 0) {
+        Alert.alert('Xəta', 'Düzgün istifadə limiti daxil edin');
+        return;
+      }
+    }
+    
+    // Validation: Countdown timer
+    if (formData.hasCountdown && !formData.countdownTitle.trim()) {
+      Alert.alert('Xəta', 'Geri sayım başlığını daxil edin');
+      return;
+    }
+    
+    if (formData.hasCountdown && formData.countdownTitle.trim().length > 50) {
+      Alert.alert('Xəta', 'Geri sayım başlığı maksimum 50 simvol ola bilər');
       return;
     }
     
