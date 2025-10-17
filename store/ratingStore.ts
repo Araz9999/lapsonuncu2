@@ -83,13 +83,13 @@ export const useRatingStore = create<RatingStore>((set, get) => ({
           ratingCount: updatedHistory[existingHistoryIndex].ratingCount + 1
         };
       } else {
-        updatedHistory.push({
+        updatedHistory = [...updatedHistory, {
           userId: ratingData.userId,
           targetId: ratingData.targetId,
           targetType: ratingData.targetType,
           lastRatingAt: new Date().toISOString(),
           ratingCount: 1
-        });
+        }];
       }
       
       set({ ratings: updatedRatings, ratingHistory: updatedHistory });

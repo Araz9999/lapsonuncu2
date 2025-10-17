@@ -336,7 +336,7 @@ export default function ProfileScreen() {
       <LiveChatWidget
         visible={showLiveChat}
         onClose={() => setShowLiveChat(false)}
-        chatId={hasActiveChat ? userChats[0].id : undefined}
+        chatId={hasActiveChat && userChats.length > 0 ? userChats[0].id : undefined}
       />
     </ScrollView>
   );

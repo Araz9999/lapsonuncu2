@@ -182,7 +182,7 @@ export default function EditListingScreen() {
         quality: 0.8,
       });
 
-      if (!result.canceled && result.assets[0]) {
+      if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0]) {
         setFormData(prev => ({
           ...prev,
           images: [...prev.images, result.assets[0].uri]
@@ -215,7 +215,7 @@ export default function EditListingScreen() {
         quality: 0.8,
       });
 
-      if (!result.canceled && result.assets[0]) {
+      if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0]) {
         setFormData(prev => ({
           ...prev,
           images: [...prev.images, result.assets[0].uri]

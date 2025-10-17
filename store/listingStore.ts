@@ -155,8 +155,8 @@ export const useListingStore = create<ListingState>((set, get) => ({
       filtered = filtered.filter(listing => listing.price <= (priceRange.max || Infinity));
     }
     
-    // Apply sorting with featured listings priority
-    filtered.sort((a, b) => {
+    // Apply sorting with featured listings priority (create a copy to avoid mutation)
+    filtered = [...filtered].sort((a, b) => {
       // First priority: Featured listings (with purchased views) go to top
       if (a.isFeatured && a.purchasedViews && !b.isFeatured) return -1;
       if (b.isFeatured && b.purchasedViews && !a.isFeatured) return 1;

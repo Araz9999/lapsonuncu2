@@ -252,7 +252,7 @@ export const useSupportStore = create<SupportStore>((set, get) => ({
       isRead: false
     };
 
-    newChat.messages.push(welcomeMessage);
+    newChat.messages = [...newChat.messages, welcomeMessage];
     newChat.lastMessageAt = new Date();
 
     set((state) => ({

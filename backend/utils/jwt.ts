@@ -60,7 +60,7 @@ export async function verifyToken(token: string): Promise<JWTPayload | null> {
       typeof payload.email !== 'string' ||
       typeof payload.role !== 'string'
     ) {
-      console.error('[JWT] Invalid payload structure');
+      logger.error('[JWT] Invalid payload structure');
       return null;
     }
 

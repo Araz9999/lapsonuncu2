@@ -76,7 +76,7 @@ class UserDatabase {
     }
 
     if (cleanedCount > 0) {
-      console.log(`[DB] Cleaned up ${cleanedCount} expired tokens`);
+      logger.info(`[DB] Cleaned up ${cleanedCount} expired tokens`);
     }
   }
 
