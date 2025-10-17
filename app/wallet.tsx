@@ -9,6 +9,8 @@ import { trpc } from '@/lib/trpc';
 import type { PayriffWalletHistory } from '@/services/payriffService';
 
 import { logger } from '@/utils/logger';
+import { sanitizeNumericInput } from '@/utils/inputValidation';
+
 export default function WalletScreen() {
   const { language } = useLanguageStore();
   const { walletBalance, bonusBalance, addToWallet, addBonus } = useUserStore();
@@ -69,7 +71,7 @@ export default function WalletScreen() {
         operation: 'PURCHASE',
         metadata: {
           type: 'wallet_topup',
-          userId: 'user_id_here',
+          userId: currentUser?.id || '',
           amount: amount.toString(),
         },
       });
@@ -252,9 +254,10 @@ export default function WalletScreen() {
               <TextInput
                 style={styles.input}
                 value={topUpAmount}
-                onChangeText={setTopUpAmount}
+                onChangeText={(text) => setTopUpAmount(sanitizeNumericInput(text))}
                 placeholder="0.00"
-                keyboardType="numeric"
+                keyboardType="decimal-pad"
+                maxLength={10}
                 placeholderTextColor={Colors.placeholder}
               />
             </View>

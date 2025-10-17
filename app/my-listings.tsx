@@ -11,6 +11,12 @@ import { Clock, AlertCircle, Edit, Trash2, TrendingUp, Eye, RefreshCw, Archive, 
 import { Listing } from '@/types/listing';
 
 import { logger } from '@/utils/logger';
+
+// ✅ Helper function for price calculation with proper precision
+const calculatePrice = (basePrice: number, discount: number): number => {
+  return Math.round(basePrice * discount * 100) / 100;
+};
+
 export default function MyListingsScreen() {
   const router = useRouter();
   const { language } = useLanguageStore();
@@ -40,15 +46,18 @@ export default function MyListingsScreen() {
   });
   
   // Check for expiring listings (3 days or less)
-  const checkExpiringListings = useCallback(() => {
+  // ✅ Memoized for performance
+  const expiringListings = React.useMemo(() => {
     const now = new Date();
     const threeDaysFromNow = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
     
-    const expiringListings = userListings.filter(listing => {
+    return userListings.filter(listing => {
       const expirationDate = new Date(listing.expiresAt);
       return expirationDate <= threeDaysFromNow && expirationDate > now;
     });
-    
+  }, [userListings]);
+
+  const checkExpiringListings = useCallback(() => {
     const notificationMessages = expiringListings.map(listing => {
       const expirationDate = new Date(listing.expiresAt);
       const daysLeft = Math.ceil((expirationDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
@@ -113,7 +122,8 @@ export default function MyListingsScreen() {
             try {
               if (!isActive) {
                 // Activating auto-renewal - charge the user
-                if (spendFromBalance(autoRenewalCost)) {
+                const success = spendFromBalance(autoRenewalCost);
+                if (success) {
                   setAutoRenewalSettings(prev => ({ ...prev, [listingId]: true }));
                   Alert.alert(
                     language === 'az' ? 'Uğurlu!' : 'Успешно!',
@@ -158,8 +168,9 @@ export default function MyListingsScreen() {
     const isExpiringSoon = daysLeft <= 3;
     const discountMultiplier = isExpiringSoon ? 0.8 : 1; // 20% discount
     
-    const sevenDayPrice = Math.round(2 * discountMultiplier * 10) / 10; // Round to 1 decimal
-    const thirtyDayPrice = Math.round(5 * discountMultiplier * 10) / 10; // Round to 1 decimal
+    // ✅ Use helper function for precise calculation
+    const sevenDayPrice = calculatePrice(2, discountMultiplier);
+    const thirtyDayPrice = calculatePrice(5, discountMultiplier);
     
     const discountText = isExpiringSoon ? ' (20% endirim)' : '';
     
@@ -1090,6 +1101,19 @@ const styles = StyleSheet.create({
   },
   discountButton: {
     backgroundColor: 'rgba(34, 197, 94, 0.1)',
+  },
+  discountButtonText: {
+    color: Colors.success,
+    fontSize: 10,
+    fontWeight: '500',
+    marginLeft: 4,
+  },
+});olor: Colors.success,
+    fontSize: 10,
+    fontWeight: '500',
+    marginLeft: 4,
+  },
+});7, 94, 0.1)',
   },
   discountButtonText: {
     color: Colors.success,
