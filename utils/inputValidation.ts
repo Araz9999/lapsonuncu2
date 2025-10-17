@@ -275,6 +275,51 @@ export function validateForm(fields: Record<string, {
   };
 }
 
+/**
+ * Validates website URL format
+ * @param url - URL string to validate
+ * @param required - If false, empty URL is valid
+ * @returns true if valid URL format
+ */
+export const validateWebsiteURL = (url: string, required: boolean = false): boolean => {
+  const trimmed = url.trim();
+  if (!required && !trimmed) return true;
+  if (required && !trimmed) return false;
+  
+  try {
+    const urlObj = new URL(trimmed);
+    // Must start with http:// or https://
+    return urlObj.protocol === 'http:' || urlObj.protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Validates store name
+ * @param name - Store name to validate
+ * @param minLength - Minimum length (default: 3)
+ * @param maxLength - Maximum length (default: 50)
+ * @returns object with isValid flag and error message
+ */
+export const validateStoreName = (name: string, minLength: number = 3, maxLength: number = 50): { isValid: boolean; error?: string } => {
+  const trimmed = name.trim();
+  
+  if (!trimmed) {
+    return { isValid: false, error: 'Mağaza adı boş ola bilməz' };
+  }
+  
+  if (trimmed.length < minLength) {
+    return { isValid: false, error: `Mağaza adı ən azı ${minLength} simvol olmalıdır` };
+  }
+  
+  if (trimmed.length > maxLength) {
+    return { isValid: false, error: `Mağaza adı maksimum ${maxLength} simvol ola bilər` };
+  }
+  
+  return { isValid: true };
+};
+
 export default {
   sanitizeNumericInput,
   sanitizeIntegerInput,
@@ -288,4 +333,6 @@ export default {
   sanitizeTextInput,
   validateRequired,
   validateForm,
+  validateWebsiteURL,
+  validateStoreName,
 };

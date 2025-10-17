@@ -25,6 +25,7 @@ import {
 import { useUserStore } from '@/store/userStore';
 import { getColors } from '@/constants/colors';
 import { useThemeStore } from '@/store/themeStore';
+import { Alert } from 'react-native';
 
 interface PaymentRecord {
   id: string;
@@ -291,8 +292,10 @@ export default function PaymentHistoryScreen() {
     );
   };
 
+  const styles = createStyles(colors);
+  
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Stack.Screen 
         options={{ 
           title: 'Ödəniş Tarixçəsi',
@@ -421,13 +424,13 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   summaryCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
     margin: 16,
     padding: 20,
     borderRadius: 12,
     ...Platform.select({
       ios: {
-        shadowColor: '#000000',
+        shadowColor: colors.shadow || '#000000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 4,
@@ -446,20 +449,20 @@ const styles = StyleSheet.create({
   summaryTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#6B7280',
+    color: colors.textSecondary,
   },
   summaryAmount: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#1F2937',
+    color: colors.text,
     marginBottom: 4,
   },
   summarySubtitle: {
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.textSecondary,
   },
   filterContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
     paddingVertical: 16,
     marginBottom: 8,
   },
@@ -471,21 +474,21 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     marginRight: 12,
     borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.background,
   },
   activeFilterTab: {
-    backgroundColor: '#0E7490',
+    backgroundColor: colors.primary,
   },
   filterTabText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#6B7280',
+    color: colors.textSecondary,
   },
   activeFilterTabText: {
     color: '#FFFFFF',
   },
   paymentList: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
     marginBottom: 8,
   },
   paymentItem: {
@@ -493,7 +496,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: colors.border,
   },
   paymentLeft: {
     flexDirection: 'row',
@@ -509,12 +512,12 @@ const styles = StyleSheet.create({
   paymentDescription: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#1F2937',
+    color: colors.text,
     marginBottom: 4,
   },
   paymentType: {
     fontSize: 12,
-    color: '#0E7490',
+    color: colors.primary,
     fontWeight: '600',
     marginBottom: 8,
   },
@@ -525,7 +528,7 @@ const styles = StyleSheet.create({
   },
   paymentDate: {
     fontSize: 12,
-    color: '#6B7280',
+    color: colors.textSecondary,
     marginRight: 16,
   },
   paymentMethod: {
@@ -534,12 +537,12 @@ const styles = StyleSheet.create({
   },
   methodText: {
     fontSize: 12,
-    color: '#6B7280',
+    color: colors.textSecondary,
     marginLeft: 4,
   },
   storeName: {
     fontSize: 12,
-    color: '#6B7280',
+    color: colors.textSecondary,
     fontStyle: 'italic',
   },
   paymentRight: {
@@ -563,7 +566,7 @@ const styles = StyleSheet.create({
   },
   transactionId: {
     fontSize: 10,
-    color: '#6B7280',
+    color: colors.textSecondary,
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   emptyState: {
@@ -573,25 +576,25 @@ const styles = StyleSheet.create({
   emptyStateTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1F2937',
+    color: colors.text,
     marginTop: 16,
     marginBottom: 8,
   },
   emptyStateText: {
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
   },
   monthlySection: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
     padding: 16,
     marginBottom: 8,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1F2937',
+    color: colors.text,
     marginBottom: 16,
   },
   monthlyGrid: {
@@ -606,15 +609,15 @@ const styles = StyleSheet.create({
   monthlyValue: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#0E7490',
+    color: colors.primary,
   },
   monthlyLabel: {
     fontSize: 12,
-    color: '#6B7280',
+    color: colors.textSecondary,
     marginTop: 4,
   },
   helpSection: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
     padding: 16,
     marginBottom: 16,
   },
@@ -623,11 +626,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: colors.border,
   },
   helpText: {
     fontSize: 16,
-    color: '#1F2937',
+    color: colors.text,
     marginLeft: 12,
   },
 });
