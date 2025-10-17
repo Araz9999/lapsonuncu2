@@ -17,7 +17,7 @@ interface StoreState {
   createStore: (storeData: Omit<Store, 'id' | 'createdAt' | 'expiresAt' | 'adsUsed' | 'deletedListings' | 'isActive' | 'status' | 'gracePeriodEndsAt' | 'deactivatedAt' | 'archivedAt' | 'lastPaymentReminder' | 'followers' | 'rating' | 'totalRatings'>) => Promise<void>;
   checkStoreStatus: (storeId: string) => StoreStatus;
   updateStoreStatus: (storeId: string) => Promise<void>;
-  renewStore: (storeId: string, planId: string) => Promise<void>;
+  renewStore: (storeId: string, planId: string, applyDiscount?: boolean) => Promise<void>;
   sendPaymentReminder: (storeId: string) => Promise<void>;
   getStoresByStatus: (status: StoreStatus) => Store[];
   canStoreBeReactivated: (storeId: string) => boolean;
@@ -638,9 +638,25 @@ export const useStoreStore = create<StoreState>((set, get) => ({
     const gracePeriodEndsAt = store.gracePeriodEndsAt ? new Date(store.gracePeriodEndsAt) : null;
     const deactivatedAt = store.deactivatedAt ? new Date(store.deactivatedAt) : null;
     
-    // Check if store should be archived (90 days after deactivation)
-    if (deactivatedAt && now.getTime() - deactivatedAt.getTime() > 90 * 24 * 60 * 60 * 1000) {
-      return 'archived';
+    // AUTO-ARCHIVE: Check if store should be archived (90 days after deactivation)
+    if (deactivatedAt) {
+      const daysSinceDeactivation = (now.getTime() - deactivatedAt.getTime()) / (1000 * 60 * 60 * 24);
+      
+      if (daysSinceDeactivation >= 90) {
+        // Auto-archive the store
+        logger.info('[StoreStore] Auto-archiving store after 90 days:', { storeId, daysSinceDeactivation });
+        
+        // Update store status to archived
+        set(state => ({
+          stores: state.stores.map(s => 
+            s.id === storeId 
+              ? { ...s, status: 'archived' as StoreStatus, archivedAt: now.toISOString() }
+              : s
+          )
+        }));
+        
+        return 'archived';
+      }
     }
     
     // Check if store is in grace period
@@ -757,7 +773,7 @@ export const useStoreStore = create<StoreState>((set, get) => ({
   },
 
   getExpirationInfo: (storeId) => {
-    const { stores } = get();
+    const { stores, sendExpirationNotification } = get();
     const store = stores.find(s => s.id === storeId);
     if (!store) return null;
     
@@ -769,6 +785,45 @@ export const useStoreStore = create<StoreState>((set, get) => ({
     const daysUntilExpiration = Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
     const daysInGracePeriod = gracePeriodEndsAt ? Math.ceil((gracePeriodEndsAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : 0;
     const daysSinceDeactivation = deactivatedAt ? Math.ceil((now.getTime() - deactivatedAt.getTime()) / (1000 * 60 * 60 * 24)) : 0;
+    
+    // AUTO-SEND NOTIFICATIONS at 7, 3, 1 days before expiration
+    if (store.status === 'active') {
+      // Send notification 7 days before
+      if (daysUntilExpiration === 7) {
+        sendExpirationNotification(storeId, 'warning').catch(err => 
+          logger.error('[getExpirationInfo] Failed to send 7-day notification:', err)
+        );
+      }
+      // Send notification 3 days before
+      else if (daysUntilExpiration === 3) {
+        sendExpirationNotification(storeId, 'warning').catch(err => 
+          logger.error('[getExpirationInfo] Failed to send 3-day notification:', err)
+        );
+      }
+      // Send notification 1 day before
+      else if (daysUntilExpiration === 1) {
+        sendExpirationNotification(storeId, 'warning').catch(err => 
+          logger.error('[getExpirationInfo] Failed to send 1-day notification:', err)
+        );
+      }
+    }
+    
+    // Send grace period notification
+    if (store.status === 'grace_period' && daysInGracePeriod > 0 && daysInGracePeriod <= 7) {
+      // Send on first day of grace period
+      if (daysInGracePeriod === 7) {
+        sendExpirationNotification(storeId, 'grace_period').catch(err => 
+          logger.error('[getExpirationInfo] Failed to send grace period notification:', err)
+        );
+      }
+    }
+    
+    // Send deactivation notification
+    if (store.status === 'deactivated' && daysSinceDeactivation === 0) {
+      sendExpirationNotification(storeId, 'deactivated').catch(err => 
+        logger.error('[getExpirationInfo] Failed to send deactivation notification:', err)
+      );
+    }
     
     let nextAction = '';
     let nextActionDate = '';
@@ -817,18 +872,82 @@ export const useStoreStore = create<StoreState>((set, get) => ({
   sendExpirationNotification: async (storeId, type) => {
     const { stores } = get();
     const store = stores.find(s => s.id === storeId);
-    if (!store) return;
+    if (!store) {
+      logger.error('[StoreStore] Store not found for notification:', storeId);
+      return;
+    }
     
-    // In a real app, this would send push notifications or emails
-    logger.debug(`📧 Expiration notification sent for store ${store.name}:`, type);
+    // Validation: Check notification type
+    if (!['warning', 'grace_period', 'deactivated'].includes(type)) {
+      logger.error('[StoreStore] Invalid notification type:', type);
+      return;
+    }
     
-    // Update last notification time
-    const now = new Date().toISOString();
+    // Check if notification was already sent recently (prevent spam)
+    if (store.lastPaymentReminder) {
+      const lastNotification = new Date(store.lastPaymentReminder);
+      const now = new Date();
+      const hoursSinceLastNotification = (now.getTime() - lastNotification.getTime()) / (1000 * 60 * 60);
+      
+      // Don't send same notification within 12 hours
+      if (hoursSinceLastNotification < 12) {
+        logger.debug('[StoreStore] Notification already sent recently:', { storeId, type, hoursSinceLastNotification });
+        return;
+      }
+    }
+    
+    // Create notification message
+    let messageAz = '';
+    let messageRu = '';
+    let messageEn = '';
+    
+    switch (type) {
+      case 'warning':
+        messageAz = `${store.name} mağazanızın müddəti tezliklə bitir. Xidməti davam etdirmək üçün yeniləyin.`;
+        messageRu = `Срок действия вашего магазина ${store.name} скоро истекает. Обновите для продолжения работы.`;
+        messageEn = `Your store ${store.name} is expiring soon. Renew to continue service.`;
+        break;
+      case 'grace_period':
+        messageAz = `${store.name} mağazanızın müddəti bitdi. 7 günlük güzəşt müddətiniz var. Yeniləyin və ya mağaza deaktiv ediləcək.`;
+        messageRu = `Срок действия вашего магазина ${store.name} истек. У вас есть 7-дневный льготный период. Обновите или магазин будет деактивирован.`;
+        messageEn = `Your store ${store.name} has expired. You have a 7-day grace period. Renew or the store will be deactivated.`;
+        break;
+      case 'deactivated':
+        messageAz = `${store.name} mağazanız deaktiv edildi. Reaktiv etmək üçün ödəniş edin.`;
+        messageRu = `Ваш магазин ${store.name} деактивирован. Оплатите для реактивации.`;
+        messageEn = `Your store ${store.name} has been deactivated. Pay to reactivate.`;
+        break;
+    }
+    
+    // Create notification object
+    const notification: StoreNotification = {
+      id: `notif-exp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      storeId,
+      userId: store.userId,
+      listingId: undefined, // No specific listing
+      message: {
+        az: messageAz,
+        ru: messageRu,
+        en: messageEn
+      },
+      createdAt: new Date().toISOString(),
+      read: false,
+      type: 'expiration' // Add notification type
+    };
+    
+    // Add notification to store
     set(state => ({
+      notifications: [...state.notifications, notification],
       stores: state.stores.map(s => 
-        s.id === storeId ? { ...s, lastPaymentReminder: now } : s
+        s.id === storeId ? { ...s, lastPaymentReminder: new Date().toISOString() } : s
       )
     }));
+    
+    logger.info('[StoreStore] Expiration notification sent:', { storeId, type, userId: store.userId });
+    
+    // TODO: In production, send push notification and email
+    // await pushNotificationService.send(store.userId, notification);
+    // await emailService.send(store.contactInfo.email, notification);
   },
 
   getExpiredStoreActions: (storeId) => {

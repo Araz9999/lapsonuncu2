@@ -69,6 +69,24 @@ export default function AutoRenewalManager({ listing, onUpdate }: AutoRenewalMan
   const renewalPrice = renewalPackage?.price || 0;
 
   const handleToggleAutoRenewal = async () => {
+    // Validation: Check renewal price
+    if (!renewalPrice || renewalPrice <= 0) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Yeniləmə qiyməti düzgün deyil' : 'Некорректная цена продления'
+      );
+      return;
+    }
+    
+    // Validation: Check renewal package
+    if (!renewalPackage || !renewalPackage.id) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Yeniləmə paketi tapılmadı' : 'Пакет продления не найден'
+      );
+      return;
+    }
+    
     if (!autoRenewalEnabled) {
       // Check if user can afford the auto-renewal
       if (!canAfford(renewalPrice)) {
@@ -126,6 +144,26 @@ export default function AutoRenewalManager({ listing, onUpdate }: AutoRenewalMan
   const enableAutoRenewal = async () => {
     setIsLoading(true);
     try {
+      // Validation: Check listing expiration date
+      if (!listing.expiresAt || new Date(listing.expiresAt).getTime() < Date.now()) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Elanın müddəti artıq bitib' : 'Срок объявления уже истек'
+        );
+        setIsLoading(false);
+        return;
+      }
+      
+      // Validation: Check renewal package duration
+      if (!renewalPackage?.duration || renewalPackage.duration <= 0) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Paket müddəti düzgün deyil' : 'Некорректная длительность пакета'
+        );
+        setIsLoading(false);
+        return;
+      }
+      
       // Deduct payment from balance
       const paymentSuccess = spendFromBalance(renewalPrice);
       if (!paymentSuccess) {
@@ -135,13 +173,14 @@ export default function AutoRenewalManager({ listing, onUpdate }: AutoRenewalMan
             ? 'Balansınızda kifayət qədər məbləğ yoxdur.'
             : 'На вашем балансе недостаточно средств.'
         );
+        setIsLoading(false);
         return;
       }
 
       // Calculate next renewal date with 3-day grace period
       const expirationDate = new Date(listing.expiresAt);
       const gracePeriodEnd = new Date(expirationDate.getTime() + 3 * 24 * 60 * 60 * 1000); // 3 days grace period
-      const nextRenewalDate = new Date(gracePeriodEnd.getTime() + (renewalPackage?.duration || 0) * 24 * 60 * 60 * 1000);
+      const nextRenewalDate = new Date(gracePeriodEnd.getTime() + Math.max(renewalPackage.duration, 1) * 24 * 60 * 60 * 1000);
 
       const updatedListing: Listing = {
         ...listing,
@@ -179,13 +218,45 @@ export default function AutoRenewalManager({ listing, onUpdate }: AutoRenewalMan
   const disableAutoRenewal = async () => {
     setIsLoading(true);
     try {
-      // Check if we should refund the payment based on grace period
+      // Validation: Check current time
       const now = new Date();
+      if (isNaN(now.getTime())) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Sistem tarixində xəta baş verdi' : 'Ошибка системной даты'
+        );
+        setIsLoading(false);
+        return;
+      }
+      
+      // Check if we should refund the payment based on grace period
       const gracePeriodEnd = listing.gracePeriodEnd ? new Date(listing.gracePeriodEnd) : null;
-      const shouldRefund = listing.autoRenewalPaid && !listing.autoRenewalUsed && gracePeriodEnd && now <= gracePeriodEnd;
+      
+      // Validation: Grace period date
+      if (gracePeriodEnd && isNaN(gracePeriodEnd.getTime())) {
+        logger.error('[AutoRenewal] Invalid grace period date:', listing.gracePeriodEnd);
+        // Continue anyway, just don't refund
+      }
+      
+      const shouldRefund = listing.autoRenewalPaid && 
+                          !listing.autoRenewalUsed && 
+                          gracePeriodEnd && 
+                          !isNaN(gracePeriodEnd.getTime()) && 
+                          now <= gracePeriodEnd;
       let refundMessage = '';
       
-      if (shouldRefund && listing.autoRenewalPrice) {
+      if (shouldRefund && listing.autoRenewalPrice && listing.autoRenewalPrice > 0) {
+        // Validation: Refund amount
+        if (listing.autoRenewalPrice > 10000) {
+          logger.error('[AutoRenewal] Suspicious refund amount:', listing.autoRenewalPrice);
+          Alert.alert(
+            language === 'az' ? 'Xəta' : 'Ошибка',
+            language === 'az' ? 'Geri qaytarma məbləği çox böyükdür' : 'Сумма возврата слишком велика'
+          );
+          setIsLoading(false);
+          return;
+        }
+        
         // Refund the payment
         addToWallet(listing.autoRenewalPrice);
         refundMessage = language === 'az'
