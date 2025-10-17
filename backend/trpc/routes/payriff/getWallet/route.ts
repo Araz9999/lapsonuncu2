@@ -41,11 +41,7 @@ export const getWalletProcedure = publicProcedure.query(async () => {
 
     return data;
   } catch (error) {
-< cursor/fix-many-bugs-and-errors-4e56
-    logger.error('Payriff get wallet failed');
-=======
     console.error('Payriff get wallet failed:', error);
-> Araz
     throw error;
   }
 });
