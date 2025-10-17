@@ -7,6 +7,8 @@ import { useUserStore } from '@/store/userStore';
 import { useCallStore } from '@/store/callStore';
 import { getColors } from '@/constants/colors';
 import { logger } from '@/utils/logger';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as FileSystem from 'expo-file-system';
 import { 
   Moon, 
   Sun, 
@@ -184,10 +186,24 @@ export default function SettingsScreen() {
   };
 
   const testNotification = async () => {
-    await sendNotification(
-      language === 'az' ? 'Test bildirişi' : 'Тестовое уведомление',
-      language === 'az' ? 'Bu bir test bildirişidir' : 'Это тестовое уведомление'
-    );
+    try {
+      await sendNotification(
+        language === 'az' ? 'Test bildirişi' : 'Тестовое уведомление',
+        language === 'az' ? 'Bu bir test bildirişidir' : 'Это тестовое уведомление'
+      );
+      
+      // Show confirmation alert
+      Alert.alert(
+        language === 'az' ? 'Uğurlu' : 'Успешно',
+        language === 'az' ? 'Test bildirişi göndərildi' : 'Тестовое уведомление отправлено'
+      );
+    } catch (error) {
+      logger.error('Test notification failed:', error);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Bildiriş göndərilə bilmədi' : 'Не удалось отправить уведомление'
+      );
+    }
   };
 
   const testSound = async () => {
@@ -229,11 +245,54 @@ export default function SettingsScreen() {
       [
         {
           text: language === 'az' ? 'Təmizlə' : 'Очистить',
-          onPress: () => {
-            Alert.alert(
-              language === 'az' ? 'Uğurlu' : 'Успешно',
-              language === 'az' ? 'Keş təmizləndi' : 'Кэш очищен'
-            );
+          onPress: async () => {
+            try {
+              // Clear AsyncStorage cache (except user settings)
+              const keys = await AsyncStorage.getAllKeys();
+              const cacheKeys = keys.filter(key => 
+                key.includes('cache') || 
+                key.includes('temp') ||
+                key.includes('listing') ||
+                key.includes('image')
+              );
+              
+              if (cacheKeys.length > 0) {
+                await AsyncStorage.multiRemove(cacheKeys);
+                logger.info(`Cleared ${cacheKeys.length} cache items from AsyncStorage`);
+              }
+              
+              // Clear file system cache if available
+              if (Platform.OS !== 'web' && FileSystem.cacheDirectory) {
+                try {
+                  const cacheDir = FileSystem.cacheDirectory;
+                  const files = await FileSystem.readDirectoryAsync(cacheDir);
+                  
+                  // Delete cache files
+                  for (const file of files) {
+                    try {
+                      await FileSystem.deleteAsync(`${cacheDir}${file}`, { idempotent: true });
+                    } catch (deleteError) {
+                      logger.debug(`Could not delete cache file: ${file}`);
+                    }
+                  }
+                  
+                  logger.info(`Cleared ${files.length} files from cache directory`);
+                } catch (fsError) {
+                  logger.debug('File system cache clearing not available:', fsError);
+                }
+              }
+              
+              Alert.alert(
+                language === 'az' ? 'Uğurlu' : 'Успешно',
+                language === 'az' ? 'Keş təmizləndi' : 'Кэш очищен'
+              );
+            } catch (error) {
+              logger.error('Failed to clear cache:', error);
+              Alert.alert(
+                language === 'az' ? 'Xəta' : 'Ошибка',
+                language === 'az' ? 'Keş təmizlənərkən xəta baş verdi' : 'Ошибка при очистке кэша'
+              );
+            }
           },
         },
         {
@@ -728,8 +787,12 @@ export default function SettingsScreen() {
             }
             rightComponent={
               <Switch
-                value={currentUser?.privacySettings?.hidePhoneNumber || false}
-                onValueChange={(value) => updatePrivacySettings({ hidePhoneNumber: value })}
+                value={currentUser?.privacySettings?.hidePhoneNumber ?? false}
+                onValueChange={(value) => {
+                  if (currentUser) {
+                    updatePrivacySettings({ hidePhoneNumber: value });
+                  }
+                }}
                 trackColor={{ false: colors.border, true: colors.primary }}
                 thumbColor={currentUser?.privacySettings?.hidePhoneNumber ? '#fff' : colors.textSecondary}
               />
@@ -745,11 +808,15 @@ export default function SettingsScreen() {
             }
             rightComponent={
               <Switch
-                value={currentUser?.privacySettings?.onlyAppMessaging || false}
-                onValueChange={(value) => updatePrivacySettings({ 
-                  onlyAppMessaging: value,
-                  allowDirectContact: !value
-                })}
+                value={currentUser?.privacySettings?.onlyAppMessaging ?? false}
+                onValueChange={(value) => {
+                  if (currentUser) {
+                    updatePrivacySettings({ 
+                      onlyAppMessaging: value,
+                      allowDirectContact: !value
+                    });
+                  }
+                }}
                 trackColor={{ false: colors.border, true: colors.primary }}
                 thumbColor={currentUser?.privacySettings?.onlyAppMessaging ? '#fff' : colors.textSecondary}
               />
@@ -765,11 +832,15 @@ export default function SettingsScreen() {
             }
             rightComponent={
               <Switch
-                value={currentUser?.privacySettings?.allowDirectContact || false}
-                onValueChange={(value) => updatePrivacySettings({ 
-                  allowDirectContact: value,
-                  onlyAppMessaging: !value
-                })}
+                value={currentUser?.privacySettings?.allowDirectContact ?? false}
+                onValueChange={(value) => {
+                  if (currentUser) {
+                    updatePrivacySettings({ 
+                      allowDirectContact: value,
+                      onlyAppMessaging: !value
+                    });
+                  }
+                }}
                 trackColor={{ false: colors.border, true: colors.primary }}
                 thumbColor={currentUser?.privacySettings?.allowDirectContact ? '#fff' : colors.textSecondary}
               />
