@@ -142,6 +142,19 @@ export default function AddStoreListingScreen() {
 
       // BUG FIX: Validate assets array exists and has items
       if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0]) {
+        const asset = result.assets[0];
+        
+        // ✅ Check file size (max 5MB) - same as camera
+        if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024) {
+          Alert.alert(
+            language === 'az' ? 'Şəkil çox böyükdür' : 'Изображение слишком большое',
+            language === 'az' 
+              ? 'Maksimum 5MB ölçüsündə şəkil əlavə edin' 
+              : 'Добавьте изображение размером до 5MB'
+          );
+          return;
+        }
+        
         if (images.length >= 5) {
           Alert.alert(
             language === 'az' ? 'Limit aşıldı' : 'Лимит превышен',
@@ -151,7 +164,7 @@ export default function AddStoreListingScreen() {
           );
           return;
         }
-        setImages([...images, result.assets[0].uri]);
+        setImages([...images, asset.uri]);
       }
     } catch (error) {
       storeLogger.error('Gallery error:', error);
@@ -260,11 +273,14 @@ export default function AddStoreListingScreen() {
     setIsSubmitting(true);
     
     try {
+      // ✅ Generate unique ID with random component
+      const listingId = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+      
       const newListing: Listing = {
-        id: Date.now().toString(),
+        id: listingId,
         title: {
-          az: title,
-          ru: title
+          az: title.trim(),
+          ru: title.trim()
         },
         description: {
           az: description,
@@ -312,11 +328,21 @@ export default function AddStoreListingScreen() {
         ]
       );
     } catch (error) {
+      storeLogger.error('Failed to add listing to store:', error);
+      
+      // ✅ Provide specific error feedback
+      const errorMessage = error instanceof Error ? error.message : '';
+      const isLimitError = errorMessage.toLowerCase().includes('limit') || errorMessage.toLowerCase().includes('maximum');
+      
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' 
-          ? 'Elan əlavə edilərkən xəta baş verdi' 
-          : 'Произошла ошибка при добавлении объявления'
+        isLimitError
+          ? (language === 'az' 
+              ? 'Mağaza limiti dolub. Paketi yüksəldin.' 
+              : 'Лимит магазина исчерпан. Улучшите пакет.')
+          : (language === 'az' 
+              ? 'Elan əlavə edilərkən xəta baş verdi' 
+              : 'Произошла ошибка при добавлении объявления')
       );
     } finally {
       setIsSubmitting(false);
