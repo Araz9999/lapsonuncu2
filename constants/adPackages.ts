@@ -21,6 +21,7 @@ export const adPackages: AdPackage[] = [
     name: {
       az: 'Pulsuz',
       ru: 'Бесплатно',
+      en: 'Free',
     },
     price: 0,
     currency: 'AZN',
@@ -39,6 +40,7 @@ export const adPackages: AdPackage[] = [
     name: {
       az: 'Standart',
       ru: 'Стандарт',
+      en: 'Standard',
     },
     price: 3,
     currency: 'AZN',
@@ -57,6 +59,7 @@ export const adPackages: AdPackage[] = [
     name: {
       az: 'Standart (30 gün)',
       ru: 'Стандарт (30 дней)',
+      en: 'Standard (30 days)',
     },
     price: 5,
     currency: 'AZN',
@@ -75,6 +78,7 @@ export const adPackages: AdPackage[] = [
     name: {
       az: 'Premium',
       ru: 'Премиум',
+      en: 'Premium',
     },
     price: 8,
     currency: 'AZN',
@@ -93,6 +97,7 @@ export const adPackages: AdPackage[] = [
     name: {
       az: 'Premium (30 gün)',
       ru: 'Премиум (30 дней)',
+      en: 'Premium (30 days)',
     },
     price: 14,
     currency: 'AZN',
@@ -111,6 +116,7 @@ export const adPackages: AdPackage[] = [
     name: {
       az: 'VIP',
       ru: 'VIP',
+      en: 'VIP',
     },
     price: 12,
     currency: 'AZN',
@@ -149,6 +155,7 @@ export interface PromotionPackage {
   name: {
     az: string;
     ru: string;
+    en?: string;
   };
   price: number;
   currency: string;
@@ -157,6 +164,7 @@ export interface PromotionPackage {
   description: {
     az: string;
     ru: string;
+    en?: string;
   };
 }
 
@@ -274,6 +282,7 @@ export interface ViewPackage {
   name: {
     az: string;
     ru: string;
+    en?: string;
   };
   views: number;
   price: number;
@@ -282,6 +291,7 @@ export interface ViewPackage {
   description: {
     az: string;
     ru: string;
+    en?: string;
   };
 }
 
@@ -369,6 +379,7 @@ export interface StoreRenewalPackage {
   name: {
     az: string;
     ru: string;
+    en?: string;
   };
   originalPrice: number;
   renewalPrice: number;
@@ -381,10 +392,12 @@ export interface StoreRenewalPackage {
   description: {
     az: string;
     ru: string;
+    en?: string;
   };
   features: {
     az: string;
     ru: string;
+    en?: string;
   }[];
 }
 
@@ -502,6 +515,7 @@ export interface RenewalPackage {
   name: {
     az: string;
     ru: string;
+    en?: string;
   };
   originalPrice: number;
   renewalPrice: number;
@@ -518,6 +532,7 @@ export interface RenewalPackage {
   description: {
     az: string;
     ru: string;
+    en?: string;
   };
 }
 
