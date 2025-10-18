@@ -456,11 +456,18 @@ export default function SupportScreen() {
                   <Text style={[styles.quickActionSubtitle, { color: colors.textSecondary }]}>
                     {language === 'az' ? 'Operatorla birbaşa söhbət' : 'Прямой чат с оператором'}
                   </Text>
-                  {availableOperators.length > 0 && (
+                  {availableOperators.length > 0 ? (
                     <View style={styles.operatorStatus}>
                       <View style={styles.onlineDot} />
                       <Text style={[styles.operatorStatusText, { color: colors.primary }]}>
                         {availableOperators.length} {language === 'az' ? 'operator onlayn' : 'операторов онлайн'}
+                      </Text>
+                    </View>
+                  ) : (
+                    <View style={styles.operatorStatus}>
+                      <View style={[styles.onlineDot, { backgroundColor: '#FF9500' }]} />
+                      <Text style={[styles.operatorStatusText, { color: colors.textSecondary }]}>
+                        {language === 'az' ? 'Operatorlar oflayn - mesaj buraxın' : 'Операторы оффлайн - оставьте сообщение'}
                       </Text>
                     </View>
                   )}
@@ -607,8 +614,20 @@ export default function SupportScreen() {
                   Alert.alert(
                     language === 'az' ? 'Elan necə yerləşdirilir?' : 'Как разместить объявление?',
                     language === 'az' 
-                      ? 'Ana səhifədə "+" düyməsinə basın və formu doldurun.'
-                      : 'Нажмите кнопку "+" на главной странице и заполните форму.'
+                      ? 'Ana səhifədə "+" düyməsinə basın və formu doldurun. Elanın kateqoriyasını, qiymətini, təsvirini və şəkillərini əlavə edin. Bütün sahələri doldurun və "Dərc et" düyməsinə basın.'
+                      : 'Нажмите кнопку "+" на главной странице и заполните форму. Добавьте категорию объявления, цену, описание и фотографии. Заполните все поля и нажмите "Опубликовать".',
+                    [
+                      {
+                        text: language === 'az' ? 'Başa düşdüm' : 'Понятно'
+                      },
+                      {
+                        text: language === 'az' ? 'Elan yarat' : 'Создать объявление',
+                        onPress: () => {
+                          logger.info('[Support] FAQ action: navigate to create listing');
+                          router.push('/(tabs)/create');
+                        }
+                      }
+                    ]
                   );
                 }}
               >
@@ -625,8 +644,20 @@ export default function SupportScreen() {
                   Alert.alert(
                     language === 'az' ? 'Ödəniş necə edilir?' : 'Как произвести оплату?',
                     language === 'az' 
-                      ? 'Kart, bank köçürməsi və ya mobil ödəniş üsulları ilə.'
-                      : 'Картой, банковским переводом или мобильными платежами.'
+                      ? 'Ödəniş üçün 3 üsul mövcuddur:\n\n1. Bank kartı (Visa, Mastercard)\n2. Bank köçürməsi\n3. Mobil ödəniş (Payriff, Hesab.az)\n\nOdəniş səhifəsində istədiyiniz üsulu seçin və təlimatları izləyin.'
+                      : 'Доступны 3 способа оплаты:\n\n1. Банковская карта (Visa, Mastercard)\n2. Банковский перевод\n3. Мобильный платеж (Payriff, Hesab.az)\n\nВыберите способ на странице оплаты и следуйте инструкциям.',
+                    [
+                      {
+                        text: language === 'az' ? 'Başa düşdüm' : 'Понятно'
+                      },
+                      {
+                        text: language === 'az' ? 'Ödəniş et' : 'Оплатить',
+                        onPress: () => {
+                          logger.info('[Support] FAQ action: navigate to wallet');
+                          router.push('/wallet');
+                        }
+                      }
+                    ]
                   );
                 }}
               >
@@ -634,6 +665,68 @@ export default function SupportScreen() {
                   {language === 'az' ? 'Ödəniş necə edilir?' : 'Как произвести оплату?'}
                 </Text>
                 <ChevronRight size={16} color={colors.textSecondary} />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.faqItem, { backgroundColor: colors.card }]}
+                onPress={() => {
+                  logger.info('[Support] FAQ item clicked:', { question: 'how_to_contact_seller' });
+                  Alert.alert(
+                    language === 'az' ? 'Satıcı ilə necə əlaqə saxlamaq olar?' : 'Как связаться с продавцом?',
+                    language === 'az' 
+                      ? 'Elanı açın və aşağıdakı düymələrdən birini istifadə edin:\n\n- "Mesaj göndər" - Tətbiqdaxili mesajlaşma\n- "Zəng et" - Telefon nömrəsini göstərir\n- "WhatsApp" - WhatsApp-da yazın\n\nMəxfilik tənzimləmələrinə görə bəzi seçimlər görünməyə bilər.'
+                      : 'Откройте объявление и используйте одну из кнопок:\n\n- "Отправить сообщение" - Сообщения в приложении\n- "Позвонить" - Показывает номер телефона\n- "WhatsApp" - Написать в WhatsApp\n\nНекоторые опции могут быть недоступны из-за настроек конфиденциальности.',
+                    [{ text: language === 'az' ? 'Başa düşdüm' : 'Понятно' }]
+                  );
+                }}
+              >
+                <Text style={[styles.faqQuestion, { color: colors.text }]}>
+                  {language === 'az' ? 'Satıcı ilə necə əlaqə saxlamaq olar?' : 'Как связаться с продавцом?'}
+                </Text>
+                <ChevronRight size={16} color={colors.textSecondary} />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.faqItem, { backgroundColor: colors.card }]}
+                onPress={() => {
+                  logger.info('[Support] FAQ item clicked:', { question: 'how_to_promote' });
+                  Alert.alert(
+                    language === 'az' ? 'Elanımı necə irəli çəkə bilərəm?' : 'Как продвинуть мое объявление?',
+                    language === 'az' 
+                      ? 'Elanınızı irəli çəkmək üçün:\n\n1. "Mənim Elanlarım" səhifəsinə keçin\n2. Elanı seçin\n3. "Təşviq et" düyməsinə basın\n4. Paket seçin:\n   - VIP (üstdə göstərilir)\n   - Premium (rəngləndirmə)\n   - Vurğulama\n\nTəşviq müddəti pakete görə 1-30 gün arası dəyişir.'
+                      : 'Чтобы продвинуть объявление:\n\n1. Перейдите на "Мои объявления"\n2. Выберите объявление\n3. Нажмите "Продвинуть"\n4. Выберите пакет:\n   - VIP (показ вверху)\n   - Premium (выделение цветом)\n   - Выделение\n\nСрок продвижения от 1 до 30 дней в зависимости от пакета.',
+                    [
+                      {
+                        text: language === 'az' ? 'Başa düşdüm' : 'Понятно'
+                      },
+                      {
+                        text: language === 'az' ? 'Elanlarım' : 'Мои объявления',
+                        onPress: () => {
+                          logger.info('[Support] FAQ action: navigate to my listings');
+                          router.push('/my-listings');
+                        }
+                      }
+                    ]
+                  );
+                }}
+              >
+                <Text style={[styles.faqQuestion, { color: colors.text }]}>
+                  {language === 'az' ? 'Elanımı necə irəli çəkə bilərəm?' : 'Как продвинуть мое объявление?'}
+                </Text>
+                <ChevronRight size={16} color={colors.textSecondary} />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.faqItem, { backgroundColor: colors.card }]}
+                onPress={() => {
+                  logger.info('[Support] FAQ item clicked:', { question: 'view_all' });
+                  router.push('/faq');
+                }}
+              >
+                <Text style={[styles.faqQuestion, { color: colors.primary, fontWeight: '600' }]}>
+                  {language === 'az' ? 'Bütün sualları gör' : 'Посмотреть все вопросы'}
+                </Text>
+                <ChevronRight size={16} color={colors.primary} />
               </TouchableOpacity>
             </View>
           </ScrollView>
