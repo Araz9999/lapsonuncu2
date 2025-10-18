@@ -1403,9 +1403,12 @@ export default function CreateListingScreen() {
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
-      <ScrollView style={styles.scrollContainer}>
+      <ScrollView 
+        style={styles.scrollContainer}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.stepIndicator}>
           <View style={[styles.step, currentStep >= 1 && styles.activeStep]}>
             <Text style={[styles.stepText, currentStep >= 1 && styles.activeStepText]}>1</Text>
