@@ -142,12 +142,35 @@ export const useUserStore = create<UserState>()(
         });
       },
       addToWallet: (amount) => {
+        // ✅ Validate amount
+        if (typeof amount !== 'number' || isNaN(amount)) {
+          logger.error('[UserStore] Invalid amount for addToWallet:', amount);
+          return;
+        }
+        
         const { walletBalance } = get();
-        set({ walletBalance: walletBalance + amount });
+        const newBalance = Math.max(0, walletBalance + amount);
+        set({ walletBalance: newBalance });
+        
+        logger.info('[UserStore] Wallet balance updated:', { old: walletBalance, new: newBalance, delta: amount });
       },
       addBonus: (amount) => {
+        // ✅ Validate amount
+        if (typeof amount !== 'number' || isNaN(amount)) {
+          logger.error('[UserStore] Invalid amount for addBonus:', amount);
+          return;
+        }
+        
+        if (amount < 0) {
+          logger.error('[UserStore] Cannot add negative bonus:', amount);
+          return;
+        }
+        
         const { bonusBalance } = get();
-        set({ bonusBalance: bonusBalance + amount });
+        const newBalance = bonusBalance + amount;
+        set({ bonusBalance: newBalance });
+        
+        logger.info('[UserStore] Bonus balance updated:', { old: bonusBalance, new: newBalance, delta: amount });
       },
       spendFromWallet: (amount) => {
         const { walletBalance } = get();
@@ -166,43 +189,70 @@ export const useUserStore = create<UserState>()(
         return false;
       },
       spendFromBalance: (amount) => {
+        // ✅ Validate amount
+        if (typeof amount !== 'number' || isNaN(amount) || amount <= 0) {
+          logger.error('[UserStore] Invalid amount for spendFromBalance:', amount);
+          return false;
+        }
+        
         const { walletBalance, bonusBalance } = get();
         const totalBalance = walletBalance + bonusBalance;
         
-        if (totalBalance >= amount) {
-          let remainingAmount = amount;
-          let newBonusBalance = bonusBalance;
-          let newWalletBalance = walletBalance;
-          
-          // First spend from bonus balance
-          if (bonusBalance > 0) {
-            const bonusToSpend = Math.min(bonusBalance, remainingAmount);
-            newBonusBalance = bonusBalance - bonusToSpend;
-            remainingAmount -= bonusToSpend;
-          }
-          
-          // Then spend from wallet balance if needed
-          if (remainingAmount > 0) {
-            newWalletBalance = walletBalance - remainingAmount;
-          }
-          
-          // Atomically update both balances in a single set() call to avoid race conditions
-          set({ 
-            bonusBalance: newBonusBalance,
-            walletBalance: newWalletBalance 
-          });
-          
-          return true;
+        logger.info('[UserStore] Attempting to spend:', { amount, totalBalance, walletBalance, bonusBalance });
+        
+        if (totalBalance < amount) {
+          logger.warn('[UserStore] Insufficient balance:', { required: amount, available: totalBalance });
+          return false;
         }
-        return false;
+        
+        let remainingAmount = amount;
+        let newBonusBalance = bonusBalance;
+        let newWalletBalance = walletBalance;
+        
+        // First spend from bonus balance
+        if (bonusBalance > 0) {
+          const bonusToSpend = Math.min(bonusBalance, remainingAmount);
+          newBonusBalance = bonusBalance - bonusToSpend;
+          remainingAmount -= bonusToSpend;
+          
+          logger.info('[UserStore] Spent from bonus:', { amount: bonusToSpend, remaining: newBonusBalance });
+        }
+        
+        // Then spend from wallet balance if needed
+        if (remainingAmount > 0) {
+          newWalletBalance = walletBalance - remainingAmount;
+          logger.info('[UserStore] Spent from wallet:', { amount: remainingAmount, remaining: newWalletBalance });
+        }
+        
+        // ✅ Ensure non-negative balances
+        newBonusBalance = Math.max(0, newBonusBalance);
+        newWalletBalance = Math.max(0, newWalletBalance);
+        
+        // Atomically update both balances in a single set() call to avoid race conditions
+        set({ 
+          bonusBalance: newBonusBalance,
+          walletBalance: newWalletBalance 
+        });
+        
+        logger.info('[UserStore] Balance updated after spending:', { newBonusBalance, newWalletBalance });
+        
+        return true;
       },
       getTotalBalance: () => {
         const { walletBalance, bonusBalance } = get();
-        return walletBalance + bonusBalance;
+        const total = walletBalance + bonusBalance;
+        return Math.max(0, total);
       },
       canAfford: (amount) => {
+        // ✅ Validate amount
+        if (typeof amount !== 'number' || isNaN(amount) || amount < 0) {
+          logger.error('[UserStore] Invalid amount for canAfford:', amount);
+          return false;
+        }
+        
         const { walletBalance, bonusBalance } = get();
-        return (walletBalance + bonusBalance) >= amount;
+        const totalBalance = walletBalance + bonusBalance;
+        return totalBalance >= amount;
       },
       updateUserBalance: async (userId, amount) => {
         const { currentUser } = get();
