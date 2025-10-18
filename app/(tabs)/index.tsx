@@ -55,6 +55,12 @@ export default function HomeScreen() {
     if (autoRefresh) {
       const interval = setInterval(() => {
         logger.debug('Auto refreshing data...');
+        // ✅ TODO: Implement actual data refresh when backend is ready
+        // Future implementation:
+        // - Refetch listings from API
+        // - Update stores data
+        // - Show refresh indicator
+        // - Handle errors gracefully
       }, 30000);
       
       return () => clearInterval(interval);
@@ -62,8 +68,14 @@ export default function HomeScreen() {
   }, [autoRefresh]);
   
   useEffect(() => {
+    // ✅ Track component mount status to prevent memory leaks
+    let isMounted = true;
+    
     // Start the logo animation
     const animateLoop = () => {
+      // ✅ Check if component is still mounted before starting animation
+      if (!isMounted) return;
+      
       // Naxtap animation
       Animated.sequence([
         Animated.parallel([
@@ -146,6 +158,9 @@ export default function HomeScreen() {
         ]),
         Animated.delay(1000),
       ]).start(() => {
+        // ✅ Check mount status before looping
+        if (!isMounted) return;
+        
         slideAnim.setValue(-200);
         naxcivanSlideAnim.setValue(-200);
         animateLoop();
@@ -156,6 +171,7 @@ export default function HomeScreen() {
     
     // Cleanup function to stop animation when component unmounts
     return () => {
+      isMounted = false; // ✅ Mark as unmounted to stop future iterations
       slideAnim.stopAnimation();
       fadeAnim.stopAnimation();
       scaleAnim.stopAnimation();
@@ -163,7 +179,7 @@ export default function HomeScreen() {
       naxcivanFadeAnim.stopAnimation();
       naxcivanScaleAnim.stopAnimation();
     };
-  }, [fadeAnim, naxcivanFadeAnim, naxcivanScaleAnim, naxcivanSlideAnim, scaleAnim, slideAnim]); // Include all animation values
+  }, []); // ✅ Empty deps - animation refs are stable, only run once on mount
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
