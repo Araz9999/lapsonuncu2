@@ -1222,18 +1222,102 @@ export const useStoreStore = create<StoreState>((set, get) => ({
   },
 
   updateUserStoreSettings: async (userId, storeId, settings) => {
-    set(state => ({
-      userStoreSettings: {
-        ...state.userStoreSettings,
-        [userId]: {
-          ...state.userStoreSettings[userId],
-          [storeId]: {
-            ...state.userStoreSettings[userId]?.[storeId],
-            ...settings
-          }
+    try {
+      // ✅ VALIDATION START
+      
+      // 1. Validate userId
+      if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
+        logger.error('[updateUserStoreSettings] Invalid userId:', userId);
+        throw new Error('Invalid user ID');
+      }
+      
+      // 2. Validate storeId
+      if (!storeId || typeof storeId !== 'string' || storeId.trim().length === 0) {
+        logger.error('[updateUserStoreSettings] Invalid storeId:', storeId);
+        throw new Error('Invalid store ID');
+      }
+      
+      // 3. Validate settings object
+      if (!settings || typeof settings !== 'object' || Array.isArray(settings)) {
+        logger.error('[updateUserStoreSettings] Invalid settings:', settings);
+        throw new Error('Invalid settings object');
+      }
+      
+      if (Object.keys(settings).length === 0) {
+        logger.error('[updateUserStoreSettings] Empty settings object');
+        throw new Error('No settings provided');
+      }
+      
+      // 4. Check if store exists
+      const { stores } = get();
+      const store = stores.find(s => s.id === storeId);
+      
+      if (!store) {
+        logger.error('[updateUserStoreSettings] Store not found:', storeId);
+        throw new Error('Store not found');
+      }
+      
+      // 5. Check ownership
+      if (store.userId !== userId) {
+        logger.error('[updateUserStoreSettings] User does not own store:', { userId, storeId, ownerId: store.userId });
+        throw new Error('You do not have permission to update settings for this store');
+      }
+      
+      // 6. Validate individual settings
+      const validSettingKeys = [
+        'notifications',
+        'autoRenewal',
+        'publicProfile',
+        'showContact',
+        'allowMessages',
+        'showRating',
+        'analyticsSharing',
+        'promotionalEmails',
+        'smsNotifications',
+        'weeklyReports',
+        'listingExpirationNotifications',
+        'autoArchiveExpired'
+      ];
+      
+      for (const [key, value] of Object.entries(settings)) {
+        if (!validSettingKeys.includes(key)) {
+          logger.warn('[updateUserStoreSettings] Unknown setting key:', key);
+          // Don't throw - just warn and ignore unknown keys
+          continue;
+        }
+        
+        if (typeof value !== 'boolean') {
+          logger.error('[updateUserStoreSettings] Invalid value type for key:', { key, value, type: typeof value });
+          throw new Error(`Setting '${key}' must be a boolean value`);
         }
       }
-    }));
+      
+      // ✅ VALIDATION END
+      
+      logger.info('[updateUserStoreSettings] Updating settings:', {
+        userId,
+        storeId,
+        settingsKeys: Object.keys(settings)
+      });
+      
+      set(state => ({
+        userStoreSettings: {
+          ...state.userStoreSettings,
+          [userId]: {
+            ...state.userStoreSettings[userId],
+            [storeId]: {
+              ...state.userStoreSettings[userId]?.[storeId],
+              ...settings
+            }
+          }
+        }
+      }));
+      
+      logger.info('[updateUserStoreSettings] Settings updated successfully');
+    } catch (error) {
+      logger.error('[updateUserStoreSettings] Failed to update settings:', error);
+      throw error; // ✅ Re-throw for UI handling
+    }
   },
 
   canUserCreateNewStore: (userId) => {
