@@ -1,7 +1,6 @@
 import { SignJWT, jwtVerify } from 'jose';
-import { logger } from '../../utils/logger';
+import { logger } from './logger';
 
-import { logger } from '@/utils/logger';
 // SECURITY: JWT_SECRET must be set in production
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_ISSUER = 'marketplace-app';
