@@ -845,10 +845,19 @@ export const useStoreStore = create<StoreState>((set, get) => ({
   },
 
   updateStoreStatus: async (storeId) => {
+    if (!storeId) {
+      logger.error('[StoreStore] No storeId for status update');
+      return;
+    }
+    
     const { stores, checkStoreStatus } = get();
     const store = stores.find(s => s.id === storeId);
-    if (!store) return;
+    if (!store) {
+      logger.error('[StoreStore] Store not found for status update:', storeId);
+      return;
+    }
     
+    const oldStatus = store.status;
     const newStatus = checkStoreStatus(storeId);
     const now = new Date().toISOString();
     
@@ -860,14 +869,21 @@ export const useStoreStore = create<StoreState>((set, get) => ({
       gracePeriodEnd.setDate(gracePeriodEnd.getDate() + 7);
       updates.gracePeriodEndsAt = gracePeriodEnd.toISOString();
       updates.isActive = true; // Keep active during grace period
+      logger.info('[StoreStore] Grace period started:', { storeId, storeName: store.name, gracePeriodEnd: updates.gracePeriodEndsAt });
     } else if (newStatus === 'deactivated' && !store.deactivatedAt) {
       // Deactivate store
       updates.deactivatedAt = now;
       updates.isActive = false;
+      logger.warn('[StoreStore] Store deactivated:', { storeId, storeName: store.name });
     } else if (newStatus === 'archived' && !store.archivedAt) {
       // Archive store
       updates.archivedAt = now;
       updates.isActive = false;
+      logger.info('[StoreStore] Store archived:', { storeId, storeName: store.name });
+    }
+    
+    if (oldStatus !== newStatus) {
+      logger.info('[StoreStore] Store status changed:', { storeId, oldStatus, newStatus });
     }
     
     set(state => ({
@@ -878,11 +894,32 @@ export const useStoreStore = create<StoreState>((set, get) => ({
   },
 
   renewStore: async (storeId, planId) => {
+    // ✅ Input validation
+    if (!storeId || typeof storeId !== 'string') {
+      logger.error('[StoreStore] Invalid storeId for renewal:', storeId);
+      throw new Error('Invalid store ID');
+    }
+    
+    if (!planId || typeof planId !== 'string') {
+      logger.error('[StoreStore] Invalid planId for renewal:', planId);
+      throw new Error('Invalid plan ID');
+    }
+    
     const { stores } = get();
     const store = stores.find(s => s.id === storeId);
     const plan = storePlans.find(p => p.id === planId);
     
-    if (!store || !plan) throw new Error('Store or plan not found');
+    if (!store) {
+      logger.error('[StoreStore] Store not found for renewal:', storeId);
+      throw new Error('Store not found');
+    }
+    
+    if (!plan) {
+      logger.error('[StoreStore] Plan not found for renewal:', planId);
+      throw new Error('Plan not found');
+    }
+    
+    logger.info('[StoreStore] Renewing store:', { storeId, storeName: store.name, planId, planDuration: plan.duration });
     
     const now = new Date();
     const newExpiresAt = new Date(now.getTime() + plan.duration * 24 * 60 * 60 * 1000);
@@ -903,6 +940,8 @@ export const useStoreStore = create<StoreState>((set, get) => ({
         s.id === storeId ? { ...s, ...updates } : s
       )
     }));
+    
+    logger.info('[StoreStore] Store renewed successfully:', { storeId, newExpiresAt: newExpiresAt.toISOString() });
   },
 
   sendPaymentReminder: async (storeId) => {
@@ -930,28 +969,59 @@ export const useStoreStore = create<StoreState>((set, get) => ({
   },
 
   reactivateStore: async (storeId, planId) => {
+    if (!storeId || typeof storeId !== 'string') {
+      logger.error('[StoreStore] Invalid storeId for reactivation:', storeId);
+      throw new Error('Invalid store ID');
+    }
+    
     const { canStoreBeReactivated, renewStore } = get();
     
     if (!canStoreBeReactivated(storeId)) {
+      logger.error('[StoreStore] Store cannot be reactivated:', storeId);
       throw new Error('Store cannot be reactivated');
     }
     
+    logger.info('[StoreStore] Reactivating store:', storeId);
     await renewStore(storeId, planId);
   },
 
   getExpirationInfo: (storeId) => {
+    if (!storeId) {
+      logger.error('[StoreStore] No storeId provided to getExpirationInfo');
+      return null;
+    }
+    
     const { stores } = get();
     const store = stores.find(s => s.id === storeId);
-    if (!store) return null;
+    if (!store) {
+      logger.warn('[StoreStore] Store not found for expiration info:', storeId);
+      return null;
+    }
     
     const now = new Date();
     const expiresAt = new Date(store.expiresAt);
     const gracePeriodEndsAt = store.gracePeriodEndsAt ? new Date(store.gracePeriodEndsAt) : null;
     const deactivatedAt = store.deactivatedAt ? new Date(store.deactivatedAt) : null;
     
+    // ✅ Validate dates
+    if (isNaN(expiresAt.getTime())) {
+      logger.error('[StoreStore] Invalid expiresAt date for store:', { storeId, expiresAt: store.expiresAt });
+      return null;
+    }
+    
+    if (gracePeriodEndsAt && isNaN(gracePeriodEndsAt.getTime())) {
+      logger.error('[StoreStore] Invalid gracePeriodEndsAt date:', { storeId, gracePeriodEndsAt: store.gracePeriodEndsAt });
+      return null;
+    }
+    
+    if (deactivatedAt && isNaN(deactivatedAt.getTime())) {
+      logger.error('[StoreStore] Invalid deactivatedAt date:', { storeId, deactivatedAt: store.deactivatedAt });
+      return null;
+    }
+    
     const daysUntilExpiration = Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-    const daysInGracePeriod = gracePeriodEndsAt ? Math.ceil((gracePeriodEndsAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : 0;
-    const daysSinceDeactivation = deactivatedAt ? Math.ceil((now.getTime() - deactivatedAt.getTime()) / (1000 * 60 * 60 * 24)) : 0;
+    const daysInGracePeriod = gracePeriodEndsAt ? Math.max(0, Math.ceil((gracePeriodEndsAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))) : 0;
+    const daysSinceDeactivation = deactivatedAt ? Math.max(0, Math.ceil((now.getTime() - deactivatedAt.getTime()) / (1000 * 60 * 60 * 24))) : 0;
     
     let nextAction = '';
     let nextActionDate = '';
@@ -998,12 +1068,20 @@ export const useStoreStore = create<StoreState>((set, get) => ({
   },
 
   sendExpirationNotification: async (storeId, type) => {
+    if (!storeId) {
+      logger.error('[StoreStore] No storeId for notification');
+      return;
+    }
+    
     const { stores } = get();
     const store = stores.find(s => s.id === storeId);
-    if (!store) return;
+    if (!store) {
+      logger.error('[StoreStore] Store not found for notification:', storeId);
+      return;
+    }
     
     // In a real app, this would send push notifications or emails
-    logger.debug(`📧 Expiration notification sent for store ${store.name}:`, type);
+    logger.info(`[StoreStore] 📧 Expiration notification sent for store ${store.name}:`, type);
     
     // Update last notification time
     const now = new Date().toISOString();
