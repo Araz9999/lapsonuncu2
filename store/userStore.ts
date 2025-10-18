@@ -283,66 +283,175 @@ export const useUserStore = create<UserState>()(
         });
       },
       muteUser: (userId) => {
-        const { mutedUsers } = get();
+        // ✅ Validate userId
+        if (!userId || typeof userId !== 'string' || userId.trim() === '') {
+          logger.error('[UserStore] Invalid userId for mute:', userId);
+          return;
+        }
+        
+        // ✅ Prevent self-mute
+        const { currentUser, mutedUsers } = get();
+        if (currentUser?.id === userId) {
+          logger.warn('[UserStore] Cannot mute yourself');
+          return;
+        }
+        
         if (!mutedUsers.includes(userId)) {
           set({ mutedUsers: [...mutedUsers, userId] });
+          logger.info('[UserStore] User muted:', userId);
+        } else {
+          logger.debug('[UserStore] User already muted:', userId);
         }
       },
       unmuteUser: (userId) => {
+        // ✅ Validate userId
+        if (!userId || typeof userId !== 'string') {
+          logger.error('[UserStore] Invalid userId for unmute:', userId);
+          return;
+        }
+        
         const { mutedUsers } = get();
+        const wasMuted = mutedUsers.includes(userId);
+        
         set({ mutedUsers: mutedUsers.filter(id => id !== userId) });
+        
+        if (wasMuted) {
+          logger.info('[UserStore] User unmuted:', userId);
+        }
       },
       isUserMuted: (userId) => {
         const { mutedUsers } = get();
         return mutedUsers.includes(userId);
       },
       followUser: (userId) => {
-        const { followedUsers } = get();
+        // ✅ Validate userId
+        if (!userId || typeof userId !== 'string' || userId.trim() === '') {
+          logger.error('[UserStore] Invalid userId for follow:', userId);
+          return;
+        }
+        
+        // ✅ Prevent self-follow
+        const { currentUser, followedUsers } = get();
+        if (currentUser?.id === userId) {
+          logger.warn('[UserStore] Cannot follow yourself');
+          return;
+        }
+        
         if (!followedUsers.includes(userId)) {
           set({ followedUsers: [...followedUsers, userId] });
+          logger.info('[UserStore] User followed:', userId);
+        } else {
+          logger.debug('[UserStore] Already following user:', userId);
         }
       },
       unfollowUser: (userId) => {
+        // ✅ Validate userId
+        if (!userId || typeof userId !== 'string') {
+          logger.error('[UserStore] Invalid userId for unfollow:', userId);
+          return;
+        }
+        
         const { followedUsers } = get();
+        const wasFollowing = followedUsers.includes(userId);
+        
         set({ followedUsers: followedUsers.filter(id => id !== userId) });
+        
+        if (wasFollowing) {
+          logger.info('[UserStore] User unfollowed:', userId);
+        }
       },
       isUserFollowed: (userId) => {
         const { followedUsers } = get();
         return followedUsers.includes(userId);
       },
       addToFavoriteUsers: (userId) => {
+        // ✅ Validate userId
+        if (!userId || typeof userId !== 'string' || userId.trim() === '') {
+          logger.error('[UserStore] Invalid userId for favorite:', userId);
+          return;
+        }
+        
         const { favoriteUsers } = get();
         if (!favoriteUsers.includes(userId)) {
           set({ favoriteUsers: [...favoriteUsers, userId] });
+          logger.info('[UserStore] User added to favorites:', userId);
+        } else {
+          logger.debug('[UserStore] User already in favorites:', userId);
         }
       },
       removeFromFavoriteUsers: (userId) => {
+        // ✅ Validate userId
+        if (!userId || typeof userId !== 'string') {
+          logger.error('[UserStore] Invalid userId for unfavorite:', userId);
+          return;
+        }
+        
         const { favoriteUsers } = get();
+        const wasFavorite = favoriteUsers.includes(userId);
+        
         set({ favoriteUsers: favoriteUsers.filter(id => id !== userId) });
+        
+        if (wasFavorite) {
+          logger.info('[UserStore] User removed from favorites:', userId);
+        }
       },
       isUserFavorite: (userId) => {
         const { favoriteUsers } = get();
         return favoriteUsers.includes(userId);
       },
       trustUser: (userId) => {
+        // ✅ Validate userId
+        if (!userId || typeof userId !== 'string' || userId.trim() === '') {
+          logger.error('[UserStore] Invalid userId for trust:', userId);
+          return;
+        }
+        
         const { trustedUsers } = get();
         if (!trustedUsers.includes(userId)) {
           set({ trustedUsers: [...trustedUsers, userId] });
+          logger.info('[UserStore] User trusted:', userId);
+        } else {
+          logger.debug('[UserStore] User already trusted:', userId);
         }
       },
       untrustUser: (userId) => {
+        // ✅ Validate userId
+        if (!userId || typeof userId !== 'string') {
+          logger.error('[UserStore] Invalid userId for untrust:', userId);
+          return;
+        }
+        
         const { trustedUsers } = get();
+        const wasTrusted = trustedUsers.includes(userId);
+        
         set({ trustedUsers: trustedUsers.filter(id => id !== userId) });
+        
+        if (wasTrusted) {
+          logger.info('[UserStore] User untrusted:', userId);
+        }
       },
       isUserTrusted: (userId) => {
         const { trustedUsers } = get();
         return trustedUsers.includes(userId);
       },
       reportUser: (userId, reason) => {
+        // ✅ Validate inputs
+        if (!userId || typeof userId !== 'string' || userId.trim() === '') {
+          logger.error('[UserStore] Invalid userId for report:', userId);
+          return;
+        }
+        
+        if (!reason || typeof reason !== 'string' || reason.trim() === '') {
+          logger.error('[UserStore] Invalid reason for report');
+          return;
+        }
+        
         const { reportedUsers } = get();
         if (!reportedUsers.includes(userId)) {
           set({ reportedUsers: [...reportedUsers, userId] });
-          logger.debug(`User ${userId} reported for: ${reason}`);
+          logger.info(`[UserStore] User ${userId} reported for: ${reason}`);
+        } else {
+          logger.debug('[UserStore] User already reported:', userId);
         }
       },
       isUserReported: (userId) => {
@@ -411,21 +520,47 @@ export const useUserStore = create<UserState>()(
         return subscribedUsers.includes(userId);
       },
       addUserNote: (userId, note) => {
+        // ✅ Validate inputs
+        if (!userId || typeof userId !== 'string' || userId.trim() === '') {
+          logger.error('[UserStore] Invalid userId for note:', userId);
+          return;
+        }
+        
+        if (!note || typeof note !== 'string' || note.trim() === '') {
+          logger.error('[UserStore] Invalid note content');
+          return;
+        }
+        
         const { userNotes } = get();
         set({ 
           userNotes: {
             ...userNotes,
-            [userId]: note
+            [userId]: note.trim()
           }
         });
+        logger.info('[UserStore] Note added for user:', userId);
       },
       removeUserNote: (userId) => {
+        // ✅ Validate userId
+        if (!userId || typeof userId !== 'string') {
+          logger.error('[UserStore] Invalid userId for note removal:', userId);
+          return;
+        }
+        
         const { userNotes } = get();
-        const newNotes = { ...userNotes };
-        delete newNotes[userId];
-        set({ userNotes: newNotes });
+        if (userNotes[userId]) {
+          const newNotes = { ...userNotes };
+          delete newNotes[userId];
+          set({ userNotes: newNotes });
+          logger.info('[UserStore] Note removed for user:', userId);
+        }
       },
       getUserNote: (userId) => {
+        // ✅ Validate userId
+        if (!userId || typeof userId !== 'string') {
+          return null;
+        }
+        
         const { userNotes } = get();
         return userNotes[userId] || null;
       },
