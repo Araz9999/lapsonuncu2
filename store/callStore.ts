@@ -92,14 +92,44 @@ export const useCallStore = create<CallStore>((set, get) => ({
   dialToneInterval: null,
   
   initiateCall: async (receiverId: string, listingId: string, type: CallType) => {
+    // ===== VALIDATION START =====
+    
+    // 1. Validate receiverId
+    if (!receiverId || typeof receiverId !== 'string' || receiverId.trim().length === 0) {
+      logger.error('CallStore - Invalid receiverId');
+      throw new Error('Ən azı bir istifadəçi seçin');
+    }
+    
+    // 2. Validate listingId
+    if (!listingId || typeof listingId !== 'string' || listingId.trim().length === 0) {
+      logger.error('CallStore - Invalid listingId');
+      throw new Error('Elan məlumatı etibarsızdır');
+    }
+    
+    // 3. Validate call type
+    const validTypes: CallType[] = ['voice', 'video'];
+    if (!type || !validTypes.includes(type)) {
+      logger.error('CallStore - Invalid call type:', type);
+      throw new Error('Zəng növü etibarsızdır');
+    }
+    
+    // 4. Check if receiver exists
+    const receiver = users.find(u => u.id === receiverId);
+    if (!receiver) {
+      logger.error('CallStore - Receiver not found:', receiverId);
+      throw new Error('İstifadəçi tapılmadı');
+    }
+    
+    // ===== VALIDATION END =====
+    
     logger.info('CallStore - initiating call to:', receiverId);
     
-    const callId = Date.now().toString();
+    const callId = Date.now().toString() + Math.random().toString(36).substring(2, 9);
     const newCall: Call = {
       id: callId,
-      callerId: 'user1', // Current user
-      receiverId,
-      listingId,
+      callerId: 'user1', // ⚠️ TODO: Get from currentUser in real app
+      receiverId: receiverId.trim(),
+      listingId: listingId.trim(),
       type,
       status: 'outgoing',
       startTime: new Date().toISOString(),
@@ -209,7 +239,15 @@ export const useCallStore = create<CallStore>((set, get) => ({
     
     const endTime = new Date().toISOString();
     const startTime = new Date(activeCall.startTime).getTime();
-    const duration = Math.floor((new Date(endTime).getTime() - startTime) / 1000);
+    
+    // ✅ Prevent negative duration
+    const durationMs = new Date(endTime).getTime() - startTime;
+    const duration = Math.max(0, Math.floor(durationMs / 1000));
+    
+    // ✅ Log warning if duration seems invalid
+    if (durationMs < 0) {
+      logger.warn('CallStore - Negative duration detected, setting to 0');
+    }
     
     set((state) => ({
       calls: state.calls.map(call => 
@@ -322,7 +360,7 @@ export const useCallStore = create<CallStore>((set, get) => ({
               await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
             }
           } catch (error) {
-            console.log('Haptic feedback interval error:', error);
+            logger.debug('Haptic feedback interval error:', error);
           }
         }, 1000);
         
@@ -357,7 +395,7 @@ export const useCallStore = create<CallStore>((set, get) => ({
               await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             }
           } catch (error) {
-            console.log('Haptic feedback interval error:', error);
+            logger.debug('Haptic feedback interval error:', error);
           }
         }, 2000);
         
