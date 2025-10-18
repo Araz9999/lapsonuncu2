@@ -87,8 +87,8 @@ export default function CreateDiscountScreen() {
       return;
     }
     
-    if (formData.type === 'percentage' && (value <= 0 || value > 100)) {
-      Alert.alert('Xəta', 'Faiz endirimi 1-100 arasında olmalıdır');
+    if (formData.type === 'percentage' && (value < 1 || value > 99)) {
+      Alert.alert('Xəta', 'Faiz endirimi 1-99 arasında olmalıdır');
       return;
     }
     
@@ -128,6 +128,24 @@ export default function CreateDiscountScreen() {
       }
     }
     
+    // Validation: Description
+    if (formData.description.trim().length > 500) {
+      Alert.alert('Xəta', 'Təsvir maksimum 500 simvol ola bilər');
+      return;
+    }
+    
+    // Validation: Date range
+    if (formData.startDate >= formData.endDate) {
+      Alert.alert('Xəta', 'Başlama tarixi bitmə tarixindən əvvəl olmalıdır');
+      return;
+    }
+    
+    const maxDuration = 365 * 24 * 60 * 60 * 1000; // 1 year
+    if (formData.endDate.getTime() - formData.startDate.getTime() > maxDuration) {
+      Alert.alert('Xəta', 'Endirim müddəti maksimum 1 il ola bilər');
+      return;
+    }
+    
     // Validation: Countdown timer
     if (formData.hasCountdown && !formData.countdownTitle.trim()) {
       Alert.alert('Xəta', 'Geri sayım başlığını daxil edin');
@@ -136,6 +154,11 @@ export default function CreateDiscountScreen() {
     
     if (formData.hasCountdown && formData.countdownTitle.trim().length > 50) {
       Alert.alert('Xəta', 'Geri sayım başlığı maksimum 50 simvol ola bilər');
+      return;
+    }
+    
+    if (formData.hasCountdown && formData.countdownEndDate <= new Date()) {
+      Alert.alert('Xəta', 'Geri sayım tarixi gələcəkdə olmalıdır');
       return;
     }
     
