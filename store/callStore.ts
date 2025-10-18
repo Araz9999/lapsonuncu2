@@ -134,7 +134,7 @@ export const useCallStore = create<CallStore>((set, get) => ({
     await get().playDialTone();
     
     // Simulate call being answered after 3 seconds
-    setTimeout(() => {
+    const answerTimeout = setTimeout(() => {
       const currentState = get();
       if (currentState.activeCall?.id === callId) {
         get().stopAllSounds();
@@ -146,7 +146,17 @@ export const useCallStore = create<CallStore>((set, get) => ({
           ),
         }));
       }
+      
+      // ✅ Remove from timeout map after execution
+      const newTimeouts = new Map(get().outgoingCallTimeouts);
+      newTimeouts.delete(callId);
+      set({ outgoingCallTimeouts: newTimeouts });
     }, 3000);
+    
+    // ✅ Store timeout for potential cleanup
+    set((state) => ({
+      outgoingCallTimeouts: new Map(state.outgoingCallTimeouts).set(callId, answerTimeout)
+    }));
     
     return callId;
   },
@@ -403,40 +413,63 @@ export const useCallStore = create<CallStore>((set, get) => ({
   
   stopAllSounds: async () => {
     if (Platform.OS === 'web') {
-      logger.info('Sound stopping skipped for web platform');
+      logger.info('[CallStore] Sound stopping skipped for web platform');
       return;
     }
     
     const state = get();
     
     try {
-      logger.info('Stopping all sounds and haptic patterns...');
+      logger.info('[CallStore] Stopping all sounds and haptic patterns...');
       
       // Clear haptic intervals
       if (state.ringtoneInterval) {
         clearInterval(state.ringtoneInterval);
         set({ ringtoneInterval: null });
-        logger.info('Ringtone interval cleared');
+        logger.info('[CallStore] Ringtone interval cleared');
       }
       if (state.dialToneInterval) {
         clearInterval(state.dialToneInterval);
         set({ dialToneInterval: null });
-        logger.info('Dial tone interval cleared');
+        logger.info('[CallStore] Dial tone interval cleared');
       }
       
-      // Stop any actual sounds if they exist
-      if (state.ringtoneSound && state.ringtoneSound.stopAsync) {
-        await state.ringtoneSound.stopAsync();
-        logger.info('Ringtone sound stopped');
-      }
-      if (state.dialToneSound && state.dialToneSound.stopAsync) {
-        await state.dialToneSound.stopAsync();
-        logger.info('Dial tone sound stopped');
+      // Stop and unload any actual sounds if they exist
+      if (state.ringtoneSound) {
+        try {
+          if (state.ringtoneSound.stopAsync) {
+            await state.ringtoneSound.stopAsync();
+            logger.debug('[CallStore] Ringtone sound stopped');
+          }
+          // ✅ Unload sound to free memory
+          if (state.ringtoneSound.unloadAsync) {
+            await state.ringtoneSound.unloadAsync();
+            logger.debug('[CallStore] Ringtone sound unloaded');
+          }
+        } catch (soundError) {
+          logger.warn('[CallStore] Error stopping ringtone sound:', soundError);
+        }
       }
       
-      logger.info('All sounds and haptic patterns stopped successfully');
+      if (state.dialToneSound) {
+        try {
+          if (state.dialToneSound.stopAsync) {
+            await state.dialToneSound.stopAsync();
+            logger.debug('[CallStore] Dial tone sound stopped');
+          }
+          // ✅ Unload sound to free memory
+          if (state.dialToneSound.unloadAsync) {
+            await state.dialToneSound.unloadAsync();
+            logger.debug('[CallStore] Dial tone sound unloaded');
+          }
+        } catch (soundError) {
+          logger.warn('[CallStore] Error stopping dial tone sound:', soundError);
+        }
+      }
+      
+      logger.info('[CallStore] All sounds and haptic patterns stopped successfully');
     } catch (error) {
-      logger.error('Failed to stop sounds, continuing anyway:', error);
+      logger.error('[CallStore] Failed to stop sounds, continuing anyway:', error);
     }
   },
   
@@ -534,6 +567,16 @@ export const useCallStore = create<CallStore>((set, get) => ({
       
       // ✅ Remove from timeout map
       const newTimeouts = new Map(get().incomingCallTimeouts);
+      newTimeouts.delete(callId);
+      set({ incomingCallTimeouts: newTimeouts });
+    }, 30000);
+    
+    // ✅ Store timeout for potential cleanup
+    set((state) => ({
+      incomingCallTimeouts: new Map(state.incomingCallTimeouts).set(callId, timeout)
+    }));
+  },
+}));
       newTimeouts.delete(callId);
       set({ incomingCallTimeouts: newTimeouts });
     }, 30000);

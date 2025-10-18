@@ -165,7 +165,16 @@ class NotificationService {
     try {
       // ✅ Validate notification data
       if (!notification.title || !notification.body) {
-        logger.error('Invalid notification: title and body are required');
+        logger.error('[NotificationService] Invalid notification: title and body are required');
+        return;
+      }
+      
+      // ✅ Sanitize title and body
+      const sanitizedTitle = notification.title.trim().substring(0, 100);
+      const sanitizedBody = notification.body.trim().substring(0, 500);
+      
+      if (!sanitizedTitle || !sanitizedBody) {
+        logger.error('[NotificationService] Empty notification after sanitization');
         return;
       }
 
@@ -176,40 +185,40 @@ class NotificationService {
             ? `${window.location.origin}/icon.png`
             : undefined;
           
-          new Notification(notification.title, {
-            body: notification.body,
+          new Notification(sanitizedTitle, {
+            body: sanitizedBody,
             icon: iconPath,
             // ✅ Add timestamp for better UX
             timestamp: Date.now(),
           });
-          logger.debug('Web notification sent');
+          logger.info('[NotificationService] Web notification sent:', sanitizedTitle);
         } else {
-          logger.debug('Web notifications not available or permission not granted');
+          logger.debug('[NotificationService] Web notifications not available or permission not granted');
         }
       } else {
         if (!isNotificationsAvailable || !Notifications) {
-          logger.debug('Local notifications not available');
+          logger.debug('[NotificationService] Local notifications not available');
           return;
         }
         
         try {
           await Notifications.scheduleNotificationAsync({
             content: {
-              title: notification.title,
-              body: notification.body,
+              title: sanitizedTitle,
+              body: sanitizedBody,
               data: notification.data,
-              sound: notification.sound ? 'default' : false,
+              sound: notification.sound !== false ? 'default' : false,
               badge: notification.badge,
             },
             trigger: null,
           });
-          logger.debug('Local notification scheduled');
+          logger.info('[NotificationService] Local notification scheduled:', sanitizedTitle);
         } catch (scheduleError) {
-          logger.debug('Could not schedule notification:', scheduleError);
+          logger.error('[NotificationService] Could not schedule notification:', scheduleError);
         }
       }
     } catch (error) {
-      logger.error('Failed to send local notification:', error);
+      logger.error('[NotificationService] Failed to send local notification:', error);
     }
   }
 
