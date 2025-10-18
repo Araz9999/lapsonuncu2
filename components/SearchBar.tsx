@@ -14,15 +14,18 @@ function SearchBar() {
   const [localQuery, setLocalQuery] = useState(searchQuery);
 
   const handleSearch = () => {
-    // BUG FIX: Trim and validate search query
+    // ✅ Trim and validate search query
     const trimmedQuery = localQuery.trim();
     
-    // BUG FIX: Prevent searching with only whitespace
-    if (trimmedQuery.length === 0 && searchQuery.length > 0) {
-      handleClear();
-      return;
+    // ✅ If empty, clear existing search
+    if (trimmedQuery.length === 0) {
+      if (searchQuery.length > 0) {
+        handleClear();
+      }
+      return; // ✅ Don't set empty query
     }
     
+    // ✅ Only set query if not empty
     setSearchQuery(trimmedQuery);
     applyFilters();
   };

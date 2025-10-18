@@ -119,6 +119,20 @@ export const useListingStore = create<ListingState>((set, get) => ({
     // Filter out deleted listings
     let filtered = listings.filter(listing => !listing.deletedAt);
     
+    // ✅ Early return if no filters applied (optimization)
+    const hasFilters = 
+      (searchQuery && searchQuery.trim()) ||
+      selectedCategory ||
+      selectedSubcategory ||
+      priceRange.min !== null ||
+      priceRange.max !== null ||
+      sortBy;
+    
+    if (!hasFilters) {
+      set({ filteredListings: filtered });
+      return;
+    }
+    
     // Apply search filter
     if (searchQuery && searchQuery.trim()) {
       const normalizedQuery = searchQuery.toLowerCase().trim();
