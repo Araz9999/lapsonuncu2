@@ -156,15 +156,44 @@ export default function StoreReviewsScreen() {
     return review.rating.toString() === selectedFilter;
   });
 
-  const averageRating = reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length;
-  const ratingDistribution = [1, 2, 3, 4, 5].map(rating => ({
-    rating,
-    count: reviews.filter(r => r.rating === rating).length,
-    percentage: (reviews.filter(r => r.rating === rating).length / reviews.length) * 100
-  }));
+  // ✅ Prevent division by zero
+  const averageRating = reviews.length > 0 
+    ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length 
+    : 0;
+  // ✅ Prevent division by zero in distribution
+  const ratingDistribution = [1, 2, 3, 4, 5].map(rating => {
+    const count = reviews.filter(r => r.rating === rating).length;
+    const percentage = reviews.length > 0 ? (count / reviews.length) * 100 : 0;
+    return { rating, count, percentage };
+  });
 
   const handleSendResponse = async () => {
-    if (!selectedReview || !responseText.trim()) return;
+    if (!selectedReview) {
+      logger.error('[StoreReviews] No review selected for response');
+      return;
+    }
+    
+    if (!responseText.trim()) {
+      logger.warn('[StoreReviews] Empty response text');
+      Alert.alert('Xəta', 'Cavab mətnini daxil edin');
+      return;
+    }
+    
+    // ✅ Validate response length
+    const trimmedResponse = responseText.trim();
+    if (trimmedResponse.length < 10) {
+      logger.warn('[StoreReviews] Response too short:', trimmedResponse.length);
+      Alert.alert('Xəta', 'Cavab ən azı 10 simvol olmalıdır');
+      return;
+    }
+    
+    if (trimmedResponse.length > 500) {
+      logger.warn('[StoreReviews] Response too long:', trimmedResponse.length);
+      Alert.alert('Xəta', 'Cavab maksimum 500 simvol ola bilər');
+      return;
+    }
+    
+    logger.info('[StoreReviews] Sending response to review:', { reviewId: selectedReview.id, responseLength: trimmedResponse.length });
 
     try {
       // Update the review with the store response
@@ -184,9 +213,9 @@ export default function StoreReviewsScreen() {
       setReviews(updatedReviews);
       
       // In a real app, this would send the response to the API
-      logger.debug('Store response added:', {
+      logger.info('[StoreReviews] Store response added successfully:', {
         reviewId: selectedReview.id,
-        response: responseText.trim(),
+        responseLength: trimmedResponse.length,
         timestamp: new Date().toISOString()
       });
       
@@ -195,7 +224,7 @@ export default function StoreReviewsScreen() {
       setResponseText('');
       setSelectedReview(null);
     } catch (error) {
-      logger.error('Error sending response:', error);
+      logger.error('[StoreReviews] Error sending response:', error);
       Alert.alert('Xəta', 'Cavab göndərilə bilmədi');
     }
   };
@@ -256,10 +285,17 @@ export default function StoreReviewsScreen() {
               </View>
               <Text style={styles.reviewDate}>
                 {(() => {
-                  const date = new Date(review.date);
-                  return isNaN(date.getTime()) 
-                    ? 'Tarix məlum deyil' 
-                    : date.toLocaleDateString('az-AZ');
+                  try {
+                    const date = new Date(review.date);
+                    if (isNaN(date.getTime())) {
+                      logger.warn('[StoreReviews] Invalid review date:', review.date);
+                      return 'Tarix məlum deyil';
+                    }
+                    return date.toLocaleDateString('az-AZ');
+                  } catch (error) {
+                    logger.error('[StoreReviews] Error parsing review date:', error);
+                    return 'Tarix məlum deyil';
+                  }
                 })()}
               </Text>
             </View>
@@ -310,7 +346,19 @@ export default function StoreReviewsScreen() {
             <View style={styles.responseHeader}>
               <Text style={styles.responseLabel}>Mağaza cavabı:</Text>
               <Text style={styles.responseDate}>
-                {new Date(review.storeResponse.date).toLocaleDateString('az-AZ')}
+                {(() => {
+                  try {
+                    const date = new Date(review.storeResponse.date);
+                    if (isNaN(date.getTime())) {
+                      logger.warn('[StoreReviews] Invalid response date:', review.storeResponse.date);
+                      return 'Tarix məlum deyil';
+                    }
+                    return date.toLocaleDateString('az-AZ');
+                  } catch (error) {
+                    logger.error('[StoreReviews] Error parsing response date:', error);
+                    return 'Tarix məlum deyil';
+                  }
+                })()}
               </Text>
             </View>
             <Text style={styles.responseMessage}>
