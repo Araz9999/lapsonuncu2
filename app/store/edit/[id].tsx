@@ -8,13 +8,17 @@ import {
   TextInput,
   Alert,
   KeyboardAvoidingView,
-  Platform
+  Platform,
+  ActivityIndicator,
+  Keyboard,
+  TouchableWithoutFeedback
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useLanguageStore } from '@/store/languageStore';
 import { useStoreStore } from '@/store/storeStore';
 import { useUserStore } from '@/store/userStore';
 import Colors from '@/constants/colors';
+import { logger } from '@/utils/logger';
 import {
   ArrowLeft,
   Store,
@@ -50,24 +54,71 @@ export default function EditStoreScreen() {
   const [isLoading, setIsLoading] = useState(false);
   
   useEffect(() => {
-    if (store) {
-      setFormData({
-        name: store.name,
-        categoryName: store.categoryName,
-        address: store.address,
-        description: store.description || '',
-        contactInfo: {
-          phone: store.contactInfo.phone || '',
-          email: store.contactInfo.email || '',
-          website: store.contactInfo.website || '',
-          whatsapp: store.contactInfo.whatsapp || ''
+    try {
+      if (store) {
+        // ✅ Validate store data
+        if (!store.name || !store.categoryName || !store.address) {
+          logger.error('[EditStoreScreen] Invalid store data');
+          Alert.alert(
+            language === 'az' ? 'Xəta' : 'Ошибка',
+            language === 'az' ? 'Mağaza məlumatları düzgün deyil' : 'Данные магазина неверны'
+          );
+          return;
         }
-      });
+        
+        // ✅ Null-safe access to contactInfo
+        const contactInfo = store.contactInfo || {};
+        
+        setFormData({
+          name: store.name || '',
+          categoryName: store.categoryName || '',
+          address: store.address || '',
+          description: store.description || '',
+          contactInfo: {
+            phone: contactInfo.phone || '',
+            email: contactInfo.email || '',
+            website: contactInfo.website || '',
+            whatsapp: contactInfo.whatsapp || ''
+          }
+        });
+        
+        logger.debug('[EditStoreScreen] Store data loaded:', store.id);
+      }
+    } catch (error) {
+      logger.error('[EditStoreScreen] Error loading store data:', error);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Mağaza məlumatlarını yükləyərkən xəta' : 'Ошибка при загрузке данных магазина'
+      );
     }
-  }, [store]);
+  }, [store, language]);
   
   const handleSave = async () => {
-    if (!store || !currentUser) return;
+    // ✅ Validate authentication
+    if (!currentUser || !currentUser.id) {
+      logger.error('[EditStoreScreen] User not authenticated');
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Hesaba daxil olmalısınız' : 'Вы должны войти в систему'
+      );
+      return;
+    }
+    
+    // ✅ Validate store
+    if (!store || !store.id) {
+      logger.error('[EditStoreScreen] Invalid store');
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Mağaza tapılmadı' : 'Магазин не найден'
+      );
+      return;
+    }
+    
+    // ✅ Check if already saving
+    if (isLoading) {
+      logger.warn('[EditStoreScreen] Save already in progress');
+      return;
+    }
     
     // Validation: Store name
     if (!formData.name.trim()) {
@@ -111,40 +162,91 @@ export default function EditStoreScreen() {
       return;
     }
     
-    // Validation: Email format if provided
-    if (formData.contactInfo.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.contactInfo.email.trim())) {
+    // ✅ Validation: Description length if provided
+    if (formData.description.trim() && formData.description.trim().length > 1000) {
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' ? 'Düzgün email formatı daxil edin' : 'Введите корректный формат email'
+        language === 'az' ? 'Təsvir maksimum 1000 simvol ola bilər' : 'Описание не должно превышать 1000 символов'
       );
       return;
     }
     
-    // Validation: Phone number if provided
-    if (formData.contactInfo.phone.trim() && formData.contactInfo.phone.trim().length < 9) {
-      Alert.alert(
-        language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' ? 'Telefon nömrəsi ən azı 9 rəqəm olmalıdır' : 'Номер телефона должен содержать не менее 9 цифр'
-      );
-      return;
+    // ✅ Validation: Email format if provided (enhanced regex)
+    const emailTrimmed = formData.contactInfo.email.trim();
+    if (emailTrimmed) {
+      // Enhanced email regex
+      const emailRegex = /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+      
+      if (!emailRegex.test(emailTrimmed) || emailTrimmed.length > 255) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Düzgün email formatı daxil edin' : 'Введите корректный формат email'
+        );
+        return;
+      }
     }
     
-    // Validation: WhatsApp number if provided
-    if (formData.contactInfo.whatsapp.trim() && formData.contactInfo.whatsapp.trim().length < 9) {
-      Alert.alert(
-        language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' ? 'WhatsApp nömrəsi ən azı 9 rəqəm olmalıdır' : 'Номер WhatsApp должен содержать не менее 9 цифр'
-      );
-      return;
+    // ✅ Validation: Phone number if provided (enhanced)
+    const phoneTrimmed = formData.contactInfo.phone.trim();
+    if (phoneTrimmed) {
+      // Remove non-digit characters for validation
+      const phoneDigits = phoneTrimmed.replace(/\D/g, '');
+      
+      if (phoneDigits.length < 9 || phoneDigits.length > 15) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Telefon nömrəsi 9-15 rəqəm olmalıdır' : 'Номер телефона должен содержать 9-15 цифр'
+        );
+        return;
+      }
     }
     
-    // Validation: Website URL if provided
-    if (formData.contactInfo.website.trim() && !formData.contactInfo.website.trim().match(/^https?:\/\/.+/)) {
-      Alert.alert(
-        language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' ? 'Vebsayt http:// və ya https:// ilə başlamalıdır' : 'Веб-сайт должен начинаться с http:// или https://'
-      );
-      return;
+    // ✅ Validation: WhatsApp number if provided (enhanced)
+    const whatsappTrimmed = formData.contactInfo.whatsapp.trim();
+    if (whatsappTrimmed) {
+      // Remove non-digit characters for validation
+      const whatsappDigits = whatsappTrimmed.replace(/\D/g, '');
+      
+      if (whatsappDigits.length < 9 || whatsappDigits.length > 15) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'WhatsApp nömrəsi 9-15 rəqəm olmalıdır' : 'Номер WhatsApp должен содержать 9-15 цифр'
+        );
+        return;
+      }
+    }
+    
+    // ✅ Validation: Website URL if provided (enhanced)
+    const websiteTrimmed = formData.contactInfo.website.trim();
+    if (websiteTrimmed) {
+      try {
+        const url = new URL(websiteTrimmed);
+        
+        // Check protocol
+        if (!['http:', 'https:'].includes(url.protocol)) {
+          Alert.alert(
+            language === 'az' ? 'Xəta' : 'Ошибка',
+            language === 'az' ? 'Vebsayt http:// və ya https:// ilə başlamalıdır' : 'Веб-сайт должен начинаться с http:// или https://'
+          );
+          return;
+        }
+        
+        // Check URL length
+        if (websiteTrimmed.length > 2083) {
+          Alert.alert(
+            language === 'az' ? 'Xəta' : 'Ошибка',
+            language === 'az' ? 'Vebsayt ünvanı çox uzundur' : 'URL веб-сайта слишком длинный'
+          );
+          return;
+        }
+      } catch (error) {
+        logger.error('[EditStoreScreen] Invalid website URL:', error);
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Düzgün vebsayt ünvanı daxil edin' : 'Введите корректный URL веб-сайта'
+        );
+        return;
+      }
     }
     
     setIsLoading(true);
