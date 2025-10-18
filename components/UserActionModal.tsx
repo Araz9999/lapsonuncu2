@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { logger } from '@/utils/logger';
 import {
   View,
   Text,
@@ -12,6 +11,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Share,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { 
@@ -38,8 +38,6 @@ import { useUserStore } from '@/store/userStore';
 import { useNotificationStore } from '@/store/notificationStore';
 import { useLanguageStore } from '@/store/languageStore';
 import { User } from '@/types/user';
-import { Share } from 'react-native';
-
 import { logger } from '@/utils/logger';
 interface UserActionModalProps {
   visible: boolean;
@@ -302,42 +300,105 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
   };
 
   const handleSubmitReport = () => {
-    if (reportText.trim()) {
+    // ✅ Validate input
+    if (!reportText.trim()) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Şikayət səbəbini yazın' : 'Напишите причину жалобы'
+      );
+      return;
+    }
+
+    // ✅ Validate user data
+    if (!user?.id) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'İstifadəçi məlumatı tapılmadı' : 'Информация о пользователе не найдена'
+      );
+      return;
+    }
+
+    try {
       reportUser(user.id, reportText.trim());
       Alert.alert('', t.reportSuccess);
       setShowReportInput(false);
       setReportText('');
       onClose();
+    } catch (error) {
+      logger.error('[UserActionModal] Report error:', error);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Şikayət göndərilmədi' : 'Не удалось отправить жалобу'
+      );
     }
   };
 
   const handleFollow = () => {
-    if (isFollowed) {
-      unfollowUser(user.id);
-      Alert.alert('', t.unfollowSuccess);
-    } else {
-      followUser(user.id);
-      Alert.alert('', t.followSuccess);
+    // ✅ Validate user data
+    if (!user?.id) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'İstifadəçi məlumatı tapılmadı' : 'Информация о пользователе не найдена'
+      );
+      return;
+    }
+
+    try {
+      if (isFollowed) {
+        unfollowUser(user.id);
+        Alert.alert('', t.unfollowSuccess);
+      } else {
+        followUser(user.id);
+        Alert.alert('', t.followSuccess);
+      }
+    } catch (error) {
+      logger.error('[UserActionModal] Follow/unfollow error:', error);
     }
   };
 
   const handleFavorite = () => {
-    if (isFavorite) {
-      removeFromFavoriteUsers(user.id);
-      Alert.alert('', t.unfavoriteSuccess);
-    } else {
-      addToFavoriteUsers(user.id);
-      Alert.alert('', t.favoriteSuccess);
+    // ✅ Validate user data
+    if (!user?.id) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'İstifadəçi məlumatı tapılmadı' : 'Информация о пользователе не найдена'
+      );
+      return;
+    }
+
+    try {
+      if (isFavorite) {
+        removeFromFavoriteUsers(user.id);
+        Alert.alert('', t.unfavoriteSuccess);
+      } else {
+        addToFavoriteUsers(user.id);
+        Alert.alert('', t.favoriteSuccess);
+      }
+    } catch (error) {
+      logger.error('[UserActionModal] Favorite/unfavorite error:', error);
     }
   };
 
   const handleMute = () => {
-    if (isMuted) {
-      unmuteUser(user.id);
-      Alert.alert('', t.unmuteSuccess);
-    } else {
-      muteUser(user.id);
-      Alert.alert('', t.muteSuccess);
+    // ✅ Validate user data
+    if (!user?.id) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'İstifadəçi məlumatı tapılmadı' : 'Информация о пользователе не найдена'
+      );
+      return;
+    }
+
+    try {
+      if (isMuted) {
+        unmuteUser(user.id);
+        Alert.alert('', t.unmuteSuccess);
+      } else {
+        muteUser(user.id);
+        Alert.alert('', t.muteSuccess);
+      }
+    } catch (error) {
+      logger.error('[UserActionModal] Mute/unmute error:', error);
     }
   };
 
@@ -353,12 +414,25 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
   };
 
   const handleTrust = () => {
-    if (isTrusted) {
-      untrustUser(user.id);
-      Alert.alert('', t.untrustSuccess);
-    } else {
-      trustUser(user.id);
-      Alert.alert('', t.trustSuccess);
+    // ✅ Validate user data
+    if (!user?.id) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'İstifadəçi məlumatı tapılmadı' : 'Информация о пользователе не найдена'
+      );
+      return;
+    }
+
+    try {
+      if (isTrusted) {
+        untrustUser(user.id);
+        Alert.alert('', t.untrustSuccess);
+      } else {
+        trustUser(user.id);
+        Alert.alert('', t.trustSuccess);
+      }
+    } catch (error) {
+      logger.error('[UserActionModal] Trust/untrust error:', error);
     }
   };
 
@@ -393,6 +467,15 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
   };
 
   const handleNote = () => {
+    // ✅ Validate user data
+    if (!user?.id) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'İstifadəçi məlumatı tapılmadı' : 'Информация о пользователе не найдена'
+      );
+      return;
+    }
+
     if (userNote) {
       setNoteText(userNote);
     } else {
@@ -402,15 +485,32 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
   };
 
   const handleSaveNote = () => {
-    if (noteText.trim()) {
-      addUserNote(user.id, noteText.trim());
-      Alert.alert('', t.noteSuccess);
-    } else {
-      removeUserNote(user.id);
-      Alert.alert('', t.noteRemoved);
+    // ✅ Validate user data
+    if (!user?.id) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'İstifadəçi məlumatı tapılmadı' : 'Информация о пользователе не найдена'
+      );
+      return;
     }
-    setShowNoteInput(false);
-    setNoteText('');
+
+    try {
+      if (noteText.trim()) {
+        addUserNote(user.id, noteText.trim());
+        Alert.alert('', t.noteSuccess);
+      } else {
+        removeUserNote(user.id);
+        Alert.alert('', t.noteRemoved);
+      }
+      setShowNoteInput(false);
+      setNoteText('');
+    } catch (error) {
+      logger.error('[UserActionModal] Note save error:', error);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Qeyd yadda saxlanmadı' : 'Не удалось сохранить заметку'
+      );
+    }
   };
 
   return (
