@@ -812,7 +812,7 @@ const ListingCard = React.memo(function ListingCard({
               <Trash2 size={16} color="white" />
             </TouchableOpacity>
           )}
-          {showPromoteButton && currentUser?.id === listing.userId && !listing.isFeatured && !listing.isPremium && (
+          {showPromoteButton && currentUser?.id === listing.userId && !listing.isFeatured && !listing.isPremium && !listing.isVip && (
             <TouchableOpacity 
               style={[styles.actionButton, styles.promoteButton]} 
               onPress={handlePromotePress}
@@ -831,14 +831,19 @@ const ListingCard = React.memo(function ListingCard({
             />
           </TouchableOpacity>
         </View>
-        {listing.isFeatured && (
-          <View style={[styles.featuredBadge, { backgroundColor: colors.secondary }]}>
+        {listing.isVip && (
+          <View style={[styles.featuredBadge, { backgroundColor: '#FFD700' }]}>
+            <Text style={styles.featuredText}>VIP</Text>
+          </View>
+        )}
+        {listing.isFeatured && !listing.isVip && (
+          <View style={[styles.featuredBadge, { backgroundColor: colors.warning || '#F59E0B' }]}>
             <Text style={styles.featuredText}>
-              {language === 'az' ? 'VIP' : 'VIP'}
+              {language === 'az' ? 'Önə çəkilmiş' : 'Выделено'}
             </Text>
           </View>
         )}
-        {listing.isPremium && !listing.isFeatured && (
+        {listing.isPremium && !listing.isFeatured && !listing.isVip && (
           <View style={[styles.featuredBadge, { backgroundColor: colors.primary }]}>
             <Text style={styles.featuredText}>
               {language === 'az' ? 'Premium' : 'Премиум'}
