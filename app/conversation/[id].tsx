@@ -133,6 +133,7 @@ export default function ConversationScreen() {
   const [inputText, setInputText] = useState<string>('');
   const [isRecording, setIsRecording] = useState<boolean>(false);
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
+  const [recordingTimer, setRecordingTimer] = useState<NodeJS.Timeout | null>(null); // ✅ Max duration timer
   const [showAttachmentModal, setShowAttachmentModal] = useState<boolean>(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [playingAudio, setPlayingAudio] = useState<string | null>(null);
@@ -215,23 +216,34 @@ export default function ConversationScreen() {
     }
   }, [conversationId, conversation?.unreadCount, markAsRead, conversation?.id]);
   
-  // BUG FIX: Proper cleanup for audio and recording
+  // ✅ Proper cleanup for audio and recording
   useEffect(() => {
     return () => {
-      // Cleanup audio playback
+      // ✅ Cleanup audio playback
       if (sound) {
         sound.stopAsync()
           .then(() => sound.unloadAsync())
           .catch(err => logger.warn('Error cleaning up sound:', err));
       }
       
-      // BUG FIX: Cleanup recording if still active
+      // ✅ Cleanup recording if still active
       if (recording) {
         recording.stopAndUnloadAsync()
           .catch(err => logger.warn('Error cleaning up recording:', err));
       }
+      
+      // ✅ Clear recording timer
+      if (recordingTimer) {
+        clearTimeout(recordingTimer);
+      }
+      
+      // ✅ Reset audio mode on unmount
+      Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        playsInSilentModeIOS: false,
+      }).catch(err => logger.warn('Error resetting audio mode on unmount:', err));
     };
-  }, [sound, recording]);
+  }, [sound, recording, recordingTimer]);
   
   // Early return after all hooks are called
   if (!conversationId || typeof conversationId !== 'string') {
@@ -285,7 +297,7 @@ export default function ConversationScreen() {
       }
 
       const newMessage: Message = {
-        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        id: `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`, // ✅ Use substring()
         senderId: currentUser.id,
         receiverId: otherUser.id,
         listingId: currentConversation.listingId,
@@ -427,6 +439,7 @@ export default function ConversationScreen() {
 
   const startRecording = async () => {
     try {
+      // ✅ 1. Platform check
       if (Platform.OS === 'web') {
         Alert.alert(
           language === 'az' ? 'Xəbərdarlıq' : 'Предупреждение',
@@ -434,29 +447,82 @@ export default function ConversationScreen() {
         );
         return;
       }
+      
+      // ✅ 2. Prevent concurrent recordings
+      if (recording || isRecording) {
+        logger.warn('Recording already in progress');
+        return;
+      }
 
-      const { status } = await Audio.requestPermissionsAsync();
+      // ✅ 3. Request and verify permission
+      const { status, canAskAgain } = await Audio.requestPermissionsAsync();
+      
       if (status !== 'granted') {
         Alert.alert(
           language === 'az' ? 'İcazə lazımdır' : 'Требуется разрешение',
-          language === 'az' ? 'Səs yazmaq üçün icazə verin' : 'Предоставьте разрешение для записи аудио'
+          language === 'az' 
+            ? canAskAgain 
+              ? 'Səs yazmaq üçün icazə verin' 
+              : 'Səs yazma icazəsi rədd edilib. Tənzimləmələrdən icazə verin.'
+            : canAskAgain
+              ? 'Предоставьте разрешение для записи аудио'
+              : 'Разрешение на запись отклонено. Разрешите в настройках.'
         );
         return;
       }
 
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
-      });
+      // ✅ 4. Set audio mode with error handling
+      try {
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: true,
+          playsInSilentModeIOS: true,
+          staysActiveInBackground: false,
+        });
+      } catch (audioModeError) {
+        logger.error('Failed to set audio mode:', audioModeError);
+        throw new Error('Audio mode configuration failed');
+      }
 
-      const { recording } = await Audio.Recording.createAsync(
+      // ✅ 5. Create recording
+      const { recording: newRecording } = await Audio.Recording.createAsync(
         Audio.RecordingOptionsPresets.HIGH_QUALITY
       );
       
-      setRecording(recording);
+      setRecording(newRecording);
       setIsRecording(true);
+      
+      // ✅ 6. Set max duration timer (5 minutes)
+      const MAX_DURATION_MS = 5 * 60 * 1000;
+      const timer = setTimeout(async () => {
+        logger.warn('Max recording duration reached, auto-stopping');
+        Alert.alert(
+          language === 'az' ? 'Xəbərdarlıq' : 'Предупреждение',
+          language === 'az' 
+            ? 'Maksimum qeyd müddəti (5 dəqiqə) bitdi. Səs avtomatik saxlanıldı.' 
+            : 'Достигнута максимальная длительность записи (5 минут). Аудио сохранено автоматически.'
+        );
+        await stopRecording();
+      }, MAX_DURATION_MS);
+      
+      setRecordingTimer(timer);
+      
+      logger.info('Recording started successfully');
     } catch (error) {
-      logger.debug('Failed to start recording:', error);
+      logger.error('Failed to start recording:', error);
+      
+      // ✅ Cleanup on error
+      setIsRecording(false);
+      setRecording(null);
+      
+      // ✅ Reset audio mode on error
+      try {
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
+        });
+      } catch (resetError) {
+        logger.error('Failed to reset audio mode:', resetError);
+      }
+      
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Səs yazma başladıla bilmədi' : 'Не удалось начать запись'
@@ -465,16 +531,29 @@ export default function ConversationScreen() {
   };
 
   const stopRecording = async () => {
-    // BUG FIX: Early return with proper validation
-    if (!recording || Platform.OS === 'web') return;
+    // ✅ Early return with proper validation
+    if (!recording || Platform.OS === 'web') {
+      // ✅ Clear timer even if recording is null
+      if (recordingTimer) {
+        clearTimeout(recordingTimer);
+        setRecordingTimer(null);
+      }
+      return;
+    }
 
     try {
       setIsRecording(false);
       
-      // BUG FIX: Proper cleanup sequence
+      // ✅ Clear max duration timer
+      if (recordingTimer) {
+        clearTimeout(recordingTimer);
+        setRecordingTimer(null);
+      }
+      
+      // ✅ Proper cleanup sequence
       await recording.stopAndUnloadAsync();
       
-      // BUG FIX: Reset audio mode after recording
+      // ✅ Reset audio mode after recording
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: false,
         playsInSilentModeIOS: false,
@@ -485,13 +564,48 @@ export default function ConversationScreen() {
         const uriParts = uri.split('.');
         const fileType = uriParts[uriParts.length - 1];
         
+        // ✅ Validate URI
+        if (!uri || typeof uri !== 'string' || uri.trim().length === 0) {
+          logger.error('Invalid audio URI');
+          Alert.alert(
+            language === 'az' ? 'Xəta' : 'Ошибка',
+            language === 'az' ? 'Səs faylı yaratıla bilmədi' : 'Не удалось создать аудио файл'
+          );
+          return;
+        }
+        
+        // ✅ Get recording status for duration and file size
+        const status = await recording.getStatusAsync();
+        const durationMs = status.durationMillis || 0;
+        const durationSeconds = Math.floor(durationMs / 1000);
+        
+        // ✅ Validate recording duration
+        if (durationSeconds < 1) {
+          logger.warn('Recording too short:', durationSeconds);
+          Alert.alert(
+            language === 'az' ? 'Xəbərdarlıq' : 'Предупреждение',
+            language === 'az' ? 'Səs qeydi çox qısadır (minimum 1 saniyə)' : 'Аудио слишком короткое (минимум 1 секунда)'
+          );
+          return;
+        }
+        
+        if (durationSeconds > 300) { // 5 minutes max
+          logger.warn('Recording too long:', durationSeconds);
+          Alert.alert(
+            language === 'az' ? 'Xəbərdarlıq' : 'Предупреждение',
+            language === 'az' ? 'Səs qeydi çox uzundur (maksimum 5 dəqiqə)' : 'Аудио слишком длинное (максимум 5 минут)'
+          );
+          return;
+        }
+        
         const attachment: MessageAttachment = {
-          id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // BUG FIX: Unique ID
+          id: `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`, // ✅ Use substring()
           type: 'audio',
-          uri,
+          uri: uri.trim(),
           name: `recording_${Date.now()}.${fileType}`,
-          size: 0, // BUG FIX: TODO - Get actual file size
+          size: 0, // ⚠️ TODO - Get actual file size
           mimeType: `audio/${fileType}`,
+          duration: durationSeconds, // ✅ Store duration
         };
         
         await sendMessage('', 'audio', [attachment]);
@@ -502,11 +616,17 @@ export default function ConversationScreen() {
     } catch (error) {
       logger.error('Failed to stop recording:', error);
       
-      // BUG FIX: Ensure cleanup even on error
+      // ✅ Ensure cleanup even on error
       setIsRecording(false);
       setRecording(null);
       
-      // BUG FIX: Try to reset audio mode even if recording failed
+      // ✅ Clear timer on error
+      if (recordingTimer) {
+        clearTimeout(recordingTimer);
+        setRecordingTimer(null);
+      }
+      
+      // ✅ Try to reset audio mode even if recording failed
       try {
         await Audio.setAudioModeAsync({
           allowsRecordingIOS: false,
@@ -523,7 +643,9 @@ export default function ConversationScreen() {
   };
 
   const playAudio = async (uri: string, messageId: string) => {
-    // BUG FIX: Platform check
+    // ===== VALIDATION START =====
+    
+    // ✅ 1. Platform check
     if (Platform.OS === 'web') {
       Alert.alert(
         language === 'az' ? 'Xəbərdarlıq' : 'Предупреждение',
@@ -531,9 +653,27 @@ export default function ConversationScreen() {
       );
       return;
     }
+    
+    // ✅ 2. Validate URI
+    if (!uri || typeof uri !== 'string' || uri.trim().length === 0) {
+      logger.error('Invalid audio URI');
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Səs faylı tapılmadı' : 'Аудио файл не найден'
+      );
+      return;
+    }
+    
+    // ✅ 3. Validate messageId
+    if (!messageId || typeof messageId !== 'string') {
+      logger.error('Invalid messageId');
+      return;
+    }
+    
+    // ===== VALIDATION END =====
 
     try {
-      // BUG FIX: Toggle playback if already playing
+      // ✅ 4. Toggle playback if already playing
       if (playingAudio === messageId) {
         if (sound) {
           await sound.stopAsync();
@@ -544,7 +684,7 @@ export default function ConversationScreen() {
         return;
       }
 
-      // BUG FIX: Stop and cleanup previous sound
+      // ✅ 5. Stop and cleanup previous sound
       if (sound) {
         try {
           await sound.stopAsync();
@@ -555,7 +695,7 @@ export default function ConversationScreen() {
         setSound(null);
       }
 
-      // BUG FIX: Set proper audio mode
+      // ✅ 6. Set proper audio mode
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: false,
         playsInSilentModeIOS: true,
@@ -563,11 +703,12 @@ export default function ConversationScreen() {
         shouldDuckAndroid: true,
       });
 
+      // ✅ 7. Create and play sound
       const { sound: newSound } = await Audio.Sound.createAsync(
-        { uri },
+        { uri: uri.trim() },
         { shouldPlay: true },
         (status) => {
-          // BUG FIX: Proper cleanup when audio finishes
+          // ✅ Proper cleanup when audio finishes
           if ('didJustFinish' in status && status.didJustFinish) {
             setPlayingAudio(null);
             newSound.unloadAsync().catch(err => 
@@ -582,7 +723,7 @@ export default function ConversationScreen() {
     } catch (error) {
       logger.error('Error playing audio:', error);
       
-      // BUG FIX: Cleanup on error
+      // ✅ Cleanup on error
       setPlayingAudio(null);
       setSound(null);
       
@@ -659,9 +800,16 @@ export default function ConversationScreen() {
                   ) : (
                     <Play size={20} color={Colors.primary} />
                   )}
-                  <Text style={styles.audioText}>
-                    {language === 'az' ? 'Səs mesajı' : 'Голосовое сообщение'}
-                  </Text>
+                  <View style={{ flex: 1, marginLeft: 8 }}>
+                    <Text style={styles.audioText}>
+                      {language === 'az' ? 'Səs mesajı' : 'Голосовое сообщение'}
+                    </Text>
+                    {attachment.duration && (
+                      <Text style={[styles.audioText, { fontSize: 12, opacity: 0.7 }]}>
+                        {Math.floor(attachment.duration / 60)}:{String(attachment.duration % 60).padStart(2, '0')}
+                      </Text>
+                    )}
+                  </View>
                 </TouchableOpacity>
               )}
               
