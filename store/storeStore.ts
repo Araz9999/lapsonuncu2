@@ -151,34 +151,115 @@ export const useStoreStore = create<StoreState>((set, get) => ({
   deleteStore: async (storeId) => {
     set({ isLoading: true, error: null });
     try {
-      // BUG FIX: Validate storeId
-      if (!storeId) {
-        throw new Error('Invalid storeId');
+      // ✅ VALIDATION START
+      
+      // 1. Validate storeId
+      if (!storeId || typeof storeId !== 'string' || storeId.trim().length === 0) {
+        logger.error('[deleteStore] Invalid storeId:', storeId);
+        throw new Error('Invalid store ID');
       }
       
-      // BUG FIX: Check if store exists
-      const store = get().stores.find(s => s.id === storeId);
+      // 2. Check if store exists
+      const { stores } = get();
+      const store = stores.find(s => s.id === storeId);
+      
       if (!store) {
-        logger.warn('[StoreStore] Store not found for deletion:', storeId);
-        set({ isLoading: false });
-        return;
+        logger.error('[deleteStore] Store not found:', storeId);
+        throw new Error('Store not found');
       }
       
-      // BUG FIX: Use soft delete instead of hard delete
+      // 3. Check if store is already deleted/archived
+      if (store.status === 'archived' || store.archivedAt) {
+        logger.warn('[deleteStore] Store already archived:', storeId);
+        throw new Error('Store is already deleted');
+      }
+      
+      // 4. Check for active listings
+      const { useListingStore } = await import('@/store/listingStore');
+      const { listings } = useListingStore.getState();
+      
+      const activeStoreListings = listings.filter(l => 
+        l.storeId === storeId && 
+        !l.deletedAt &&
+        !store.deletedListings.includes(l.id)
+      );
+      
+      if (activeStoreListings.length > 0) {
+        logger.warn('[deleteStore] Store has active listings:', {
+          storeId,
+          activeListingsCount: activeStoreListings.length
+        });
+        throw new Error(`Store has ${activeStoreListings.length} active listings. Please delete all listings first.`);
+      }
+      
+      // 5. Validate store data for notification
+      const followerCount = Array.isArray(store.followers) ? store.followers.length : 0;
+      const deletedListingsCount = Array.isArray(store.deletedListings) ? store.deletedListings.length : 0;
+      
+      logger.info('[deleteStore] Deleting store:', {
+        storeId,
+        name: store.name,
+        followers: followerCount,
+        deletedListings: deletedListingsCount,
+        status: store.status
+      });
+      
+      // ✅ VALIDATION END
+      
+      // Soft delete - archive the store
       const now = new Date().toISOString();
+      
       set(state => ({
         stores: state.stores.map(s => 
           s.id === storeId 
-            ? { ...s, status: 'archived' as StoreStatus, archivedAt: now }
+            ? { 
+                ...s, 
+                status: 'archived' as StoreStatus, 
+                archivedAt: now,
+                isActive: false  // ✅ Also set isActive to false
+              }
             : s
         ),
         isLoading: false
       }));
       
-      logger.info('[StoreStore] Store archived:', storeId);
+      logger.info('[deleteStore] Store archived successfully:', storeId);
+      
+      // ✅ Notify followers (async, don't wait)
+      if (followerCount > 0 && Array.isArray(store.followers)) {
+        setTimeout(async () => {
+          try {
+            const { useNotificationStore } = await import('@/store/notificationStore');
+            const { addNotification } = useNotificationStore.getState();
+            
+            for (const followerId of store.followers) {
+              if (followerId && typeof followerId === 'string') {
+                addNotification({
+                  id: `store-deleted-${storeId}-${followerId}-${Date.now()}`,
+                  type: 'store',
+                  title: store.name || 'Mağaza',
+                  message: 'Mağaza silindi',
+                  fromUserId: store.userId || '',
+                  fromUserName: store.name || 'Mağaza',
+                  fromUserAvatar: '',
+                  timestamp: Date.now(),
+                  isRead: false
+                });
+              }
+            }
+            
+            logger.info('[deleteStore] Notified followers:', followerCount);
+          } catch (notifError) {
+            logger.error('[deleteStore] Failed to notify followers:', notifError);
+            // Don't throw - notification failure shouldn't fail deletion
+          }
+        }, 100);
+      }
+      
     } catch (error) {
-      logger.error('[StoreStore] Failed to delete store:', error);
+      logger.error('[deleteStore] Failed to delete store:', error);
       set({ error: 'Failed to delete store', isLoading: false });
+      throw error; // ✅ Re-throw for UI handling
     }
   },
 
