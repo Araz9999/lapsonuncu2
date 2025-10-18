@@ -60,6 +60,12 @@ export default function DiscountAnalyticsScreen() {
   const totalConversions = activeCampaigns.reduce((sum, campaign) => sum + campaign.analytics.conversions, 0);
 
   const handleQuickDiscount = (percentage: number) => {
+    // Validation: Percentage range
+    if (percentage < 1 || percentage > 99) {
+      Alert.alert('Xəta', 'Endirim faizi 1-99 arasında olmalıdır');
+      return;
+    }
+    
     Alert.alert(
       'Sürətli Endirim',
       `Bütün məhsullara ${percentage}% endirim tətbiq etmək istəyirsiniz?`,
