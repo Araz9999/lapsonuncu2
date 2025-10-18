@@ -22,6 +22,10 @@ interface ListingState {
   resetFilters: () => void;
   addListing: (listing: Listing) => void;
   updateListing: (id: string, updates: Partial<Listing>) => void;
+  archiveListing: (id: string) => Promise<void>;
+  reactivateListing: (id: string, packageId: string) => Promise<void>;
+  getArchivedListings: (userId: string) => Listing[];
+  getExpiringListings: (userId: string, days: number) => Listing[];
   deleteListing: (id: string) => void;
   deleteListingEarly: (storeId: string, id: string) => Promise<void>;
   addListingToStore: (listing: Listing, storeId?: string) => Promise<void>;
@@ -652,57 +656,165 @@ export const useListingStore = create<ListingState>((set, get) => ({
   },
 
   checkExpiringListings: () => {
-    const { listings, userUnusedViews } = get();
-    const now = new Date();
-    const threeDaysFromNow = new Date(now.getTime() + (3 * 24 * 60 * 60 * 1000));
-    
-    listings.forEach(listing => {
-      if (listing.deletedAt) return;
+    try {
+      const { listings, userUnusedViews } = get();
       
-      const expiresAt = new Date(listing.expiresAt);
-      const timeDiff = expiresAt.getTime() - now.getTime();
-      const daysRemaining = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
-      
-      // Check if listing has expired
-      if (daysRemaining <= 0) {
-        // Handle unused views when listing expires
-        if (listing.targetViewsForFeatured && listing.views < listing.targetViewsForFeatured) {
-          const unusedViews = listing.targetViewsForFeatured - listing.views;
-          const currentUnusedViews = userUnusedViews[listing.userId] || 0;
-          
-          set(state => ({
-            userUnusedViews: {
-              ...state.userUnusedViews,
-              [listing.userId]: currentUnusedViews + unusedViews
-            }
-          }));
-          
-          // Send notification about unused views
-          const { sendNotification } = useThemeStore.getState();
-          sendNotification(
-            'İstifadə olunmayan baxışlar saxlanıldı',
-            `"${listing.title.az}" elanınızın müddəti bitdi. ${unusedViews} istifadə olunmayan baxış yeni elanlarınızda avtomatik tətbiq olunacaq.`
-          );
-        }
-        
-        // Mark listing as expired
-        get().updateListing(listing.id, {
-          isFeatured: false,
-          targetViewsForFeatured: undefined,
-          purchasedViews: undefined
-        });
-        
+      // ✅ Validate listings array
+      if (!listings || !Array.isArray(listings)) {
+        logger.error('[checkExpiringListings] Invalid listings array');
         return;
       }
       
-      // Send notification if listing expires in 3 days or less
-      if (daysRemaining <= 3 && daysRemaining > 0) {
-        const { sendNotification } = useThemeStore.getState();
-        sendNotification(
-          'Elan müddəti bitir',
-          `"${listing.title.az}" elanınızın müddəti ${daysRemaining} gündə bitəcək`
-        );
+      const now = new Date();
+      
+      // ✅ Validate current time
+      if (isNaN(now.getTime())) {
+        logger.error('[checkExpiringListings] Invalid current time');
+        return;
       }
+      
+      logger.debug('[checkExpiringListings] Checking', listings.length, 'listings at', now.toISOString());
+      
+      // Track sent notifications to prevent duplicates
+      const sentNotifications = new Set<string>();
+      
+      listings.forEach(listing => {
+        // Skip deleted listings
+        if (listing.deletedAt) return;
+        
+        // ✅ Validate listing data
+        if (!listing.id || !listing.expiresAt || !listing.userId) {
+          logger.warn('[checkExpiringListings] Invalid listing data:', listing.id);
+          return;
+        }
+        
+        const expiresAt = new Date(listing.expiresAt);
+        
+        // ✅ Validate expiration date
+        if (isNaN(expiresAt.getTime())) {
+          logger.error('[checkExpiringListings] Invalid expiresAt for listing:', listing.id);
+          return;
+        }
+        
+        const timeDiff = expiresAt.getTime() - now.getTime();
+        const daysRemaining = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+        
+        // ===== EXPIRED LISTINGS (0 or negative days) =====
+        if (daysRemaining <= 0) {
+          logger.info('[checkExpiringListings] Listing expired:', {
+            id: listing.id,
+            title: listing.title?.az || 'Unknown',
+            daysRemaining
+          });
+          
+          // Handle unused views when listing expires
+          if (listing.targetViewsForFeatured && listing.views < listing.targetViewsForFeatured) {
+            const unusedViews = listing.targetViewsForFeatured - listing.views;
+            
+            // ✅ Validate unusedViews calculation
+            if (unusedViews > 0 && isFinite(unusedViews)) {
+              const currentUnusedViews = userUnusedViews[listing.userId] || 0;
+              
+              set(state => ({
+                userUnusedViews: {
+                  ...state.userUnusedViews,
+                  [listing.userId]: currentUnusedViews + unusedViews
+                }
+              }));
+              
+              // Send notification about unused views
+              try {
+                const { sendNotification } = useThemeStore.getState();
+                if (sendNotification && typeof sendNotification === 'function') {
+                  sendNotification(
+                    'İstifadə olunmayan baxışlar saxlanıldı',
+                    `"${listing.title?.az || 'Elanınız'}" elanınızın müddəti bitdi. ${unusedViews} istifadə olunmayan baxış yeni elanlarınızda avtomatik tətbiq olunacaq.`
+                  );
+                }
+              } catch (notifError) {
+                logger.error('[checkExpiringListings] Failed to send notification:', notifError);
+              }
+            }
+          }
+          
+          // ✅ AUTO-ARCHIVE: Move expired listing to archived state
+          get().updateListing(listing.id, {
+            isFeatured: false,
+            targetViewsForFeatured: undefined,
+            purchasedViews: undefined,
+            archivedAt: now.toISOString(),  // ✅ Mark as archived
+            isArchived: true  // ✅ New field for archived status
+          });
+          
+          logger.info('[checkExpiringListings] Listing auto-archived:', listing.id);
+          
+          return;
+        }
+        
+        // ===== EXPIRING SOON NOTIFICATIONS =====
+        
+        // ✅ Send notification 7 days before expiration
+        if (daysRemaining === 7) {
+          const notifKey = `${listing.id}-7days`;
+          if (!sentNotifications.has(notifKey)) {
+            sentNotifications.add(notifKey);
+            
+            try {
+              const { sendNotification } = useThemeStore.getState();
+              if (sendNotification && typeof sendNotification === 'function') {
+                sendNotification(
+                  '📅 Elan müddəti bitir - 7 gün qalıb',
+                  `"${listing.title?.az || 'Elanınız'}" elanınızın müddəti 7 gündə bitəcək.\n\n💡 İndi yeniləsəniz 15% endirim əldə edərsiniz!`
+                );
+                logger.info('[checkExpiringListings] Sent 7-day notification for:', listing.id);
+              }
+            } catch (notifError) {
+              logger.error('[checkExpiringListings] Failed to send 7-day notification:', notifError);
+            }
+          }
+        }
+        
+        // ✅ Send notification 3 days before expiration
+        if (daysRemaining === 3) {
+          const notifKey = `${listing.id}-3days`;
+          if (!sentNotifications.has(notifKey)) {
+            sentNotifications.add(notifKey);
+            
+            try {
+              const { sendNotification } = useThemeStore.getState();
+              if (sendNotification && typeof sendNotification === 'function') {
+                sendNotification(
+                  '⚠️ Elan müddəti bitir - 3 gün qalıb',
+                  `"${listing.title?.az || 'Elanınız'}" elanınızın müddəti 3 gündə bitəcək.\n\n💡 İndi yeniləsəniz 10% endirim əldə edərsiniz!`
+                );
+                logger.info('[checkExpiringListings] Sent 3-day notification for:', listing.id);
+              }
+            } catch (notifError) {
+              logger.error('[checkExpiringListings] Failed to send 3-day notification:', notifError);
+            }
+          }
+        }
+        
+        // ✅ Send notification 1 day before expiration
+        if (daysRemaining === 1) {
+          const notifKey = `${listing.id}-1day`;
+          if (!sentNotifications.has(notifKey)) {
+            sentNotifications.add(notifKey);
+            
+            try {
+              const { sendNotification } = useThemeStore.getState();
+              if (sendNotification && typeof sendNotification === 'function') {
+                sendNotification(
+                  '🔴 SON GÜN! Elan sabah bitir',
+                  `"${listing.title?.az || 'Elanınız'}" elanınızın müddəti SABAH bitəcək!\n\n💡 Dərhal yeniləsəniz 5% endirim əldə edərsiniz!`
+                );
+                logger.info('[checkExpiringListings] Sent 1-day notification for:', listing.id);
+              }
+            } catch (notifError) {
+              logger.error('[checkExpiringListings] Failed to send 1-day notification:', notifError);
+            }
+          }
+        }
       
       // Check for expired promotions and grace periods
       if (listing.promotionEndDate) {
@@ -1025,5 +1137,233 @@ export const useListingStore = create<ListingState>((set, get) => ({
         get().applyFilters();
       }
     }
-  }
+  },
+
+  archiveListing: async (id: string) => {
+    try {
+      // ✅ VALIDATION START
+      
+      // 1. Validate ID
+      if (!id || typeof id !== 'string' || id.trim().length === 0) {
+        logger.error('[archiveListing] Invalid listing ID:', id);
+        throw new Error('Invalid listing ID');
+      }
+      
+      // 2. Find listing
+      const { listings } = get();
+      const listing = listings.find(l => l.id === id);
+      
+      if (!listing) {
+        logger.error('[archiveListing] Listing not found:', id);
+        throw new Error('Listing not found');
+      }
+      
+      // 3. Check if already deleted
+      if (listing.deletedAt) {
+        logger.warn('[archiveListing] Listing already deleted:', id);
+        throw new Error('Cannot archive a deleted listing');
+      }
+      
+      // 4. Check if already archived
+      if (listing.isArchived || listing.archivedAt) {
+        logger.warn('[archiveListing] Listing already archived:', id);
+        throw new Error('Listing is already archived');
+      }
+      
+      // ✅ VALIDATION END
+      
+      logger.info('[archiveListing] Archiving listing:', id);
+      
+      const now = new Date().toISOString();
+      
+      get().updateListing(id, {
+        isArchived: true,
+        archivedAt: now,
+        isFeatured: false,
+        isPremium: false,
+        isVip: false
+      });
+      
+      logger.info('[archiveListing] Listing archived successfully:', id);
+    } catch (error) {
+      logger.error('[archiveListing] Error:', error);
+      throw error;
+    }
+  },
+
+  reactivateListing: async (id: string, packageId: string) => {
+    try {
+      // ✅ VALIDATION START
+      
+      // 1. Validate ID
+      if (!id || typeof id !== 'string' || id.trim().length === 0) {
+        logger.error('[reactivateListing] Invalid listing ID:', id);
+        throw new Error('Invalid listing ID');
+      }
+      
+      // 2. Validate packageId
+      if (!packageId || typeof packageId !== 'string' || packageId.trim().length === 0) {
+        logger.error('[reactivateListing] Invalid package ID:', packageId);
+        throw new Error('Invalid package ID');
+      }
+      
+      // 3. Find package
+      const { adPackages } = await import('@/constants/adPackages');
+      const renewalPackage = adPackages.find(p => p.id === packageId);
+      
+      if (!renewalPackage) {
+        logger.error('[reactivateListing] Package not found:', packageId);
+        throw new Error('Renewal package not found');
+      }
+      
+      // 4. Validate package data
+      if (!renewalPackage.duration || renewalPackage.duration <= 0 || !isFinite(renewalPackage.duration)) {
+        logger.error('[reactivateListing] Invalid package duration:', renewalPackage.duration);
+        throw new Error('Invalid package duration');
+      }
+      
+      if (renewalPackage.duration > 365) {
+        logger.error('[reactivateListing] Package duration too long:', renewalPackage.duration);
+        throw new Error('Package duration cannot exceed 365 days');
+      }
+      
+      // 5. Find listing
+      const { listings } = get();
+      const listing = listings.find(l => l.id === id);
+      
+      if (!listing) {
+        logger.error('[reactivateListing] Listing not found:', id);
+        throw new Error('Listing not found');
+      }
+      
+      // 6. Check if deleted
+      if (listing.deletedAt) {
+        logger.warn('[reactivateListing] Cannot reactivate deleted listing:', id);
+        throw new Error('Cannot reactivate a deleted listing');
+      }
+      
+      // 7. Check if archived
+      if (!listing.isArchived && !listing.archivedAt) {
+        logger.warn('[reactivateListing] Listing is not archived:', id);
+        throw new Error('Listing is not archived');
+      }
+      
+      // ✅ VALIDATION END
+      
+      logger.info('[reactivateListing] Reactivating listing:', {
+        id,
+        packageId,
+        duration: renewalPackage.duration
+      });
+      
+      const now = new Date();
+      const newExpiresAt = new Date(now.getTime() + (renewalPackage.duration * 24 * 60 * 60 * 1000));
+      
+      get().updateListing(id, {
+        isArchived: false,
+        archivedAt: undefined,
+        expiresAt: newExpiresAt.toISOString(),
+        adType: renewalPackage.id as any
+      });
+      
+      logger.info('[reactivateListing] Listing reactivated successfully:', {
+        id,
+        newExpiresAt: newExpiresAt.toISOString()
+      });
+    } catch (error) {
+      logger.error('[reactivateListing] Error:', error);
+      throw error;
+    }
+  },
+
+  getArchivedListings: (userId: string) => {
+    try {
+      // ✅ Validate userId
+      if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
+        logger.error('[getArchivedListings] Invalid userId:', userId);
+        return [];
+      }
+      
+      const { listings } = get();
+      
+      // ✅ Validate listings array
+      if (!listings || !Array.isArray(listings)) {
+        logger.error('[getArchivedListings] Invalid listings array');
+        return [];
+      }
+      
+      const archivedListings = listings.filter(l => 
+        l.userId === userId && 
+        !l.deletedAt &&
+        (l.isArchived || l.archivedAt)
+      );
+      
+      logger.debug('[getArchivedListings] Found archived listings:', archivedListings.length);
+      
+      return archivedListings;
+    } catch (error) {
+      logger.error('[getArchivedListings] Error:', error);
+      return [];
+    }
+  },
+
+  getExpiringListings: (userId: string, days: number) => {
+    try {
+      // ✅ Validate userId
+      if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
+        logger.error('[getExpiringListings] Invalid userId:', userId);
+        return [];
+      }
+      
+      // ✅ Validate days
+      if (typeof days !== 'number' || !isFinite(days) || days < 0) {
+        logger.error('[getExpiringListings] Invalid days:', days);
+        return [];
+      }
+      
+      if (days > 365) {
+        logger.error('[getExpiringListings] Days too large:', days);
+        return [];
+      }
+      
+      const { listings } = get();
+      
+      // ✅ Validate listings array
+      if (!listings || !Array.isArray(listings)) {
+        logger.error('[getExpiringListings] Invalid listings array');
+        return [];
+      }
+      
+      const now = new Date();
+      const targetDate = new Date(now.getTime() + (days * 24 * 60 * 60 * 1000));
+      
+      const expiringListings = listings.filter(l => {
+        if (l.userId !== userId) return false;
+        if (l.deletedAt) return false;
+        if (l.isArchived || l.archivedAt) return false;
+        
+        const expiresAt = new Date(l.expiresAt);
+        
+        // Check if expiration date is valid
+        if (isNaN(expiresAt.getTime())) {
+          logger.warn('[getExpiringListings] Invalid expiresAt for listing:', l.id);
+          return false;
+        }
+        
+        // Check if listing expires within the specified days
+        return expiresAt <= targetDate && expiresAt > now;
+      });
+      
+      logger.debug('[getExpiringListings] Found expiring listings:', {
+        userId,
+        days,
+        count: expiringListings.length
+      });
+      
+      return expiringListings;
+    } catch (error) {
+      logger.error('[getExpiringListings] Error:', error);
+      return [];
+    }
+  },
 }));

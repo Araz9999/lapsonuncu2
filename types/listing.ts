@@ -16,6 +16,8 @@ export interface Listing {
   createdAt: string;
   expiresAt: string; // Added expiration date
   deletedAt?: string; // Added early deletion date
+  archivedAt?: string; // When listing was auto-archived
+  isArchived?: boolean; // Whether listing is archived
   storeId?: string; // Added store association
   storeAddress?: string; // Store address for store listings
   storeContact?: {
