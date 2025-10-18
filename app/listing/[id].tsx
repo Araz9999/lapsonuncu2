@@ -383,7 +383,14 @@ export default function ListingDetailScreen() {
   };
   
   const handleContact = () => {
+    logger.info('[ListingDetail] handleContact called:', { 
+      listingId: listing.id, 
+      sellerId: seller?.id,
+      isAuthenticated 
+    });
+    
     if (!isAuthenticated) {
+      logger.warn('[ListingDetail] User not authenticated for contact');
       Alert.alert(
         language === 'az' ? 'Giriş tələb olunur' : 'Требуется вход',
         language === 'az' 
@@ -403,8 +410,19 @@ export default function ListingDetailScreen() {
       return;
     }
     
+    // ✅ Validate seller exists
+    if (!seller) {
+      logger.error('[ListingDetail] No seller found for listing:', listing.id);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Satıcı məlumatları tapılmadı' : 'Информация о продавце не найдена'
+      );
+      return;
+    }
+    
     // Check if seller has hidden phone number
-    if (seller?.privacySettings.hidePhoneNumber) {
+    if (seller?.privacySettings?.hidePhoneNumber) {
+      logger.info('[ListingDetail] Seller has hidden phone number, showing in-app call option');
       Alert.alert(
         language === 'az' ? 'Telefon nömrəsi gizlədilmiş' : 'Номер телефона скрыт',
         language === 'az' 
@@ -493,7 +511,14 @@ export default function ListingDetailScreen() {
   };
   
   const handleMessage = () => {
+    logger.info('[ListingDetail] handleMessage called:', { 
+      listingId: listing.id, 
+      sellerId: seller?.id,
+      isAuthenticated 
+    });
+    
     if (!isAuthenticated) {
+      logger.warn('[ListingDetail] User not authenticated for messaging');
       Alert.alert(
         language === 'az' ? 'Giriş tələb olunur' : 'Требуется вход',
         language === 'az' 
@@ -514,6 +539,7 @@ export default function ListingDetailScreen() {
     }
     
     if (!seller) {
+      logger.error('[ListingDetail] No seller found for listing:', listing.id);
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Satıcı məlumatları tapılmadı' : 'Информация о продавце не найдена'
@@ -521,7 +547,20 @@ export default function ListingDetailScreen() {
       return;
     }
     
+    // ✅ Check if seller allows messaging
+    if (seller.privacySettings?.onlyAppMessaging === false && seller.privacySettings?.allowDirectContact === false) {
+      logger.warn('[ListingDetail] Seller has disabled messaging:', seller.id);
+      Alert.alert(
+        language === 'az' ? 'Mesaj göndərilə bilməz' : 'Невозможно отправить сообщение',
+        language === 'az' 
+          ? 'Bu istifadəçi mesajları qəbul etmir' 
+          : 'Этот пользователь не принимает сообщения'
+      );
+      return;
+    }
+    
     // Navigate to conversation with the seller
+    logger.info('[ListingDetail] Navigating to conversation:', seller.id);
     router.push(`/conversation/${seller.id}?listingId=${listing.id}&listingTitle=${encodeURIComponent(listing.title[language])}`);
   };
 
