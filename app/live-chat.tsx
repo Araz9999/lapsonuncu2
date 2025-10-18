@@ -177,6 +177,10 @@ export default function LiveChatScreen() {
   };
 
   const formatTime = (date: Date) => {
+    // ✅ Validate date
+    if (!(date instanceof Date) || isNaN(date.getTime())) {
+      return '--:--';
+    }
     return date.toLocaleTimeString('az-AZ', { 
       hour: '2-digit', 
       minute: '2-digit' 
