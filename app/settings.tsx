@@ -8,6 +8,7 @@ import { useCallStore } from '@/store/callStore';
 import { getColors } from '@/constants/colors';
 import { logger } from '@/utils/logger';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { notificationService } from '@/services/notificationService';
 import * as FileSystem from 'expo-file-system';
 import { LucideIcon } from 'lucide-react-native';
 import { 
@@ -340,6 +341,36 @@ export default function SettingsScreen() {
         },
       ]
     );
+  };
+
+  // ✅ Handle notification permission toggle
+  const handleNotificationToggle = async (value: boolean) => {
+    if (value) {
+      // Request permission when enabling
+      try {
+        const hasPermission = await notificationService.requestPermissions();
+        if (hasPermission) {
+          setNotificationsEnabled(true);
+          logger.debug('Notifications enabled');
+        } else {
+          Alert.alert(
+            language === 'az' ? 'İcazə lazımdır' : 'Требуется разрешение',
+            language === 'az' 
+              ? 'Bildirişlər üçün icazə verilməlidir. Tənzimləmələrdən icazə verə bilərsiniz.' 
+              : 'Необходимо разрешение для уведомлений. Вы можете предоставить его в настройках.'
+          );
+        }
+      } catch (error) {
+        logger.error('Notification permission error:', error);
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'İcazə alınarkən xəta baş verdi' : 'Ошибка при запросе разрешения'
+        );
+      }
+    } else {
+      // Just disable
+      setNotificationsEnabled(false);
+    }
   };
 
   const SettingItem = ({ 
@@ -705,7 +736,7 @@ export default function SettingsScreen() {
             rightComponent={
               <Switch
                 value={notificationsEnabled}
-                onValueChange={setNotificationsEnabled}
+                onValueChange={handleNotificationToggle}
                 trackColor={{ false: colors.border, true: colors.primary }}
                 thumbColor={notificationsEnabled ? '#fff' : colors.textSecondary}
               />

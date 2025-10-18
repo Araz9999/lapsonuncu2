@@ -350,16 +350,63 @@ export const useUserStore = create<UserState>()(
         return reportedUsers.includes(userId);
       },
       subscribeToUser: (userId) => {
-        const { subscribedUsers } = get();
+        // ✅ Validate userId
+        if (!userId || typeof userId !== 'string' || userId.trim() === '') {
+          logger.error('Invalid userId for subscription:', userId);
+          return;
+        }
+
+        const { subscribedUsers, currentUser } = get();
+        
+        // ✅ Prevent self-subscription
+        if (currentUser?.id === userId) {
+          logger.warn('Cannot subscribe to yourself');
+          return;
+        }
+
         if (!subscribedUsers.includes(userId)) {
           set({ subscribedUsers: [...subscribedUsers, userId] });
+          logger.debug('Subscribed to user:', userId);
+          
+          // ✅ Add notification to inform user
+          try {
+            const { useNotificationStore } = require('./notificationStore');
+            const { addNotification } = useNotificationStore.getState();
+            addNotification({
+              type: 'general',
+              title: 'Abunəlik uğurlu',
+              message: 'İstifadəçiyə abunə oldunuz. Onların yeni elanlarından xəbərdar olacaqsınız.',
+              data: { subscribedUserId: userId },
+            });
+          } catch (error) {
+            logger.debug('Could not send subscription notification:', error);
+          }
+        } else {
+          logger.debug('Already subscribed to user:', userId);
         }
       },
       unsubscribeFromUser: (userId) => {
+        // ✅ Validate userId
+        if (!userId || typeof userId !== 'string') {
+          logger.error('Invalid userId for unsubscription:', userId);
+          return;
+        }
+
         const { subscribedUsers } = get();
+        const wasSubscribed = subscribedUsers.includes(userId);
+        
         set({ subscribedUsers: subscribedUsers.filter(id => id !== userId) });
+        
+        if (wasSubscribed) {
+          logger.debug('Unsubscribed from user:', userId);
+        }
       },
       isSubscribedToUser: (userId) => {
+        // ✅ Validate userId
+        if (!userId || typeof userId !== 'string') {
+          return false;
+        }
+
         const { subscribedUsers } = get();
         return subscribedUsers.includes(userId);
       },

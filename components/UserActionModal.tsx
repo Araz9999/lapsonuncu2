@@ -362,13 +362,33 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
     }
   };
 
-  const handleSubscribe = () => {
-    if (isSubscribed) {
-      unsubscribeFromUser(user.id);
-      Alert.alert('', t.unsubscribeSuccess);
-    } else {
-      subscribeToUser(user.id);
-      Alert.alert('', t.subscribeSuccess);
+  const handleSubscribe = async () => {
+    // ✅ Validate user data
+    if (!user?.id) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'İstifadəçi məlumatı tapılmadı' : 'Информация о пользователе не найдена'
+      );
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      if (isSubscribed) {
+        unsubscribeFromUser(user.id);
+        Alert.alert('', t.unsubscribeSuccess);
+      } else {
+        subscribeToUser(user.id);
+        Alert.alert('', t.subscribeSuccess);
+      }
+    } catch (error) {
+      logger.error('Subscribe/unsubscribe error:', error);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Əməliyyat uğursuz oldu' : 'Операция не удалась'
+      );
+    } finally {
+      setIsLoading(false);
     }
   };
 
