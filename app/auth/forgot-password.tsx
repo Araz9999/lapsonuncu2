@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, KeyboardAvoidingView, Platform, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useLanguageStore } from '@/store/languageStore';
 import Colors from '@/constants/colors';
 import { X, ArrowLeft, Mail, CheckCircle, Phone, User } from 'lucide-react-native';
+import { trpc } from '@/lib/trpc';
+import { logger } from '@/utils/logger';
+import { validateEmail } from '@/utils/inputValidation';
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
@@ -14,6 +17,8 @@ export default function ForgotPasswordScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [isCodeSent, setIsCodeSent] = useState(false);
   const [contactType, setContactType] = useState<'email' | 'phone'>('email');
+  
+  const forgotPasswordMutation = trpc.auth.forgotPassword.useMutation();
   
   const detectContactType = (input: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -57,8 +62,8 @@ export default function ForgotPasswordScreen() {
     setContactType(detectedType);
     
     if (detectedType === 'email') {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(contactInfo)) {
+      // ✅ Use centralized validation
+      if (!validateEmail(contactInfo)) {
         Alert.alert(
           language === 'az' ? 'Xəta' : 'Ошибка',
           language === 'az' ? 'Düzgün e-poçt ünvanı daxil edin' : 'Введите правильный адрес электронной почты'
@@ -66,23 +71,37 @@ export default function ForgotPasswordScreen() {
         return;
       }
     } else {
-      const phoneRegex = /^[+]?[0-9]{10,15}$/;
-      if (!phoneRegex.test(contactInfo.replace(/[\s\-\(\)]/g, ''))) {
-        Alert.alert(
-          language === 'az' ? 'Xəta' : 'Ошибка',
-          language === 'az' ? 'Düzgün mobil nömrə daxil edin' : 'Введите правильный номер телефона'
-        );
-        return;
-      }
+      // ✅ Phone reset not implemented yet - show message
+      Alert.alert(
+        language === 'az' ? 'Xəbərdarlıq' : 'Предупреждение',
+        language === 'az' 
+          ? 'Telefon vasitəsilə şifrə bərpası hələ aktiv deyil. Zəhmət olmasa e-poçt istifadə edin.'
+          : 'Восстановление пароля через телефон пока не активно. Пожалуйста, используйте email.'
+      );
+      return;
     }
     
     setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      // ✅ Use real backend API
+      await forgotPasswordMutation.mutateAsync({
+        email: contactInfo.trim().toLowerCase(),
+      });
+      
+      logger.info('Password reset email sent to:', contactInfo);
       setIsCodeSent(true);
-    }, 2000);
+    } catch (error: any) {
+      logger.error('Forgot password error:', error);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        error?.message || (language === 'az' 
+          ? 'Şifrə sıfırlama linki göndərilə bilmədi. Zəhmət olmasa yenidən cəhd edin.'
+          : 'Не удалось отправить ссылку для сброса пароля. Пожалуйста, попробуйте снова.')
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
   
   const handleClose = () => {
@@ -264,12 +283,13 @@ export default function ForgotPasswordScreen() {
               onPress={handleSendResetCode}
               disabled={!contactInfo || isLoading}
             >
-              <Text style={styles.primaryButtonText}>
-                {isLoading 
-                  ? (language === 'az' ? 'Göndərilir...' : 'Отправляется...')
-                  : (language === 'az' ? 'Şifrəni əldə et' : 'Получить пароль')
-                }
-              </Text>
+              {isLoading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.primaryButtonText}>
+                  {language === 'az' ? 'Şifrə sıfırlama linki göndər' : 'Отправить ссылку для сброса'}
+                </Text>
+              )}
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.secondaryButton} onPress={handleBackToLogin}>

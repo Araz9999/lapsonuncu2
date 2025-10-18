@@ -9,13 +9,18 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { trpc } from '@/lib/trpc';
 import { Lock, Eye, EyeOff } from 'lucide-react-native';
+import { useLanguageStore } from '@/store/languageStore';
+import { logger } from '@/utils/logger';
+import Colors from '@/constants/colors';
 
 export default function ResetPasswordScreen() {
   const { token } = useLocalSearchParams<{ token: string }>();
+  const { language } = useLanguageStore();
   const [password, setPassword] = useState<string>('');
   const [confirmPassword, setConfirmPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
@@ -24,18 +29,72 @@ export default function ResetPasswordScreen() {
   const resetMutation = trpc.auth.resetPassword.useMutation();
 
   const handleResetPassword = async () => {
-    if (!password || !confirmPassword) {
-      Alert.alert('Xəta', 'Bütün xanaları doldurun');
+    // ✅ Validate token exists
+    if (!token) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' 
+          ? 'Şifrə sıfırlama linki etibarsızdır. Zəhmət olmasa yenidən cəhd edin.'
+          : 'Ссылка для сброса пароля недействительна. Пожалуйста, попробуйте снова.'
+      );
+      router.replace('/auth/forgot-password');
       return;
     }
 
-    if (password.length < 6) {
-      Alert.alert('Xəta', 'Şifrə ən azı 6 simvoldan ibarət olmalıdır');
+    if (!password || !confirmPassword) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Bütün xanaları doldurun' : 'Заполните все поля'
+      );
+      return;
+    }
+
+    // ✅ Match registration requirements (8+ chars, uppercase, lowercase, number)
+    if (password.length < 8) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' 
+          ? 'Şifrə ən az 8 simvol olmalıdır'
+          : 'Пароль должен содержать минимум 8 символов'
+      );
+      return;
+    }
+
+    if (!/[A-Z]/.test(password)) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' 
+          ? 'Şifrə ən azı 1 böyük hərf olmalıdır'
+          : 'Пароль должен содержать минимум 1 заглавную букву'
+      );
+      return;
+    }
+
+    if (!/[a-z]/.test(password)) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' 
+          ? 'Şifrə ən azı 1 kiçik hərf olmalıdır'
+          : 'Пароль должен содержать минимум 1 строчную букву'
+      );
+      return;
+    }
+
+    if (!/[0-9]/.test(password)) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' 
+          ? 'Şifrə ən azı 1 rəqəm olmalıdır'
+          : 'Пароль должен содержать минимум 1 цифру'
+      );
       return;
     }
 
     if (password !== confirmPassword) {
-      Alert.alert('Xəta', 'Şifrələr uyğun gəlmir');
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Şifrələr uyğun gəlmir' : 'Пароли не совпадают'
+      );
       return;
     }
 
@@ -45,24 +104,37 @@ export default function ResetPasswordScreen() {
         password,
       });
 
+      logger.info('Password reset successful');
+
       Alert.alert(
-        'Uğurlu!',
-        'Şifrəniz uğurla dəyişdirildi',
+        language === 'az' ? 'Uğurlu!' : 'Успешно!',
+        language === 'az' 
+          ? 'Şifrəniz uğurla dəyişdirildi'
+          : 'Ваш пароль успешно изменен',
         [
           {
-            text: 'Giriş et',
+            text: language === 'az' ? 'Giriş et' : 'Войти',
             onPress: () => router.replace('/auth/login'),
           },
         ]
       );
     } catch (error: any) {
-      Alert.alert('Xəta', error.message || 'Şifrə dəyişdirilə bilmədi');
+      logger.error('Password reset error:', error);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        error.message || (language === 'az' 
+          ? 'Şifrə dəyişdirilə bilmədi. Zəhmət olmasa yenidən cəhd edin.'
+          : 'Не удалось изменить пароль. Пожалуйста, попробуйте снова.')
+      );
     }
   };
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Şifrə Sıfırlama', headerShown: true }} />
+      <Stack.Screen options={{ 
+        title: language === 'az' ? 'Şifrə Sıfırlama' : 'Сброс пароля', 
+        headerShown: true 
+      }} />
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -72,9 +144,13 @@ export default function ResetPasswordScreen() {
             <View style={styles.iconContainer}>
               <Lock size={48} color="#007AFF" />
             </View>
-            <Text style={styles.title}>Yeni Şifrə</Text>
+            <Text style={styles.title}>
+              {language === 'az' ? 'Yeni Şifrə' : 'Новый пароль'}
+            </Text>
             <Text style={styles.description}>
-              Yeni şifrənizi daxil edin
+              {language === 'az' 
+                ? 'Yeni şifrənizi daxil edin (min 8 simvol, böyük/kiçik hərf, rəqəm)'
+                : 'Введите новый пароль (мин 8 символов, загл/строчн, цифра)'}
             </Text>
           </View>
 
@@ -83,7 +159,7 @@ export default function ResetPasswordScreen() {
               <Lock size={20} color="#8E8E93" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
-                placeholder="Yeni şifrə"
+                placeholder={language === 'az' ? 'Yeni şifrə' : 'Новый пароль'}
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
@@ -105,7 +181,7 @@ export default function ResetPasswordScreen() {
               <Lock size={20} color="#8E8E93" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
-                placeholder="Şifrəni təsdiqlə"
+                placeholder={language === 'az' ? 'Şifrəni təsdiqlə' : 'Подтвердите пароль'}
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
                 secureTextEntry={!showConfirmPassword}
@@ -128,15 +204,22 @@ export default function ResetPasswordScreen() {
               onPress={handleResetPassword}
               disabled={resetMutation.isPending}
             >
-              <Text style={styles.buttonText}>
-                {resetMutation.isPending ? 'Dəyişdirilir...' : 'Şifrəni Dəyişdir'}
-              </Text>
+              {resetMutation.isPending ? (
+                <ActivityIndicator color="#FFF" />
+              ) : (
+                <Text style={styles.buttonText}>
+                  {language === 'az' ? 'Şifrəni Dəyişdir' : 'Изменить пароль'}
+                </Text>
+              )}
             </TouchableOpacity>
           </View>
 
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Email: naxtapaz@gmail.com</Text>
-            <Text style={styles.footerText}>Telefon: +994504801313</Text>
+            <Text style={styles.footerText}>
+              {language === 'az' 
+                ? 'Köməyə ehtiyacınız varsa, bizim dəstək komandası ilə əlaqə saxlayın'
+                : 'Если вам нужна помощь, свяжитесь с нашей службой поддержки'}
+            </Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
