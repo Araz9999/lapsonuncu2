@@ -25,7 +25,7 @@ export default function ListingDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { language } = useLanguageStore();
-  const { favorites, toggleFavorite, isAuthenticated } = useUserStore();
+  const { favorites, toggleFavorite, isAuthenticated, currentUser } = useUserStore(); // ✅ Add currentUser
   const { incrementViewCount } = useListingStore();
   const { initiateCall } = useCallStore();
   const { getActiveDiscounts } = useDiscountStore();
@@ -175,6 +175,12 @@ export default function ListingDetailScreen() {
   }
   
   const seller = users.find(user => user.id === listing.userId);
+  
+  // ✅ Log warning if seller not found
+  if (!seller) {
+    logger.warn('Seller not found for listing:', listing.userId);
+  }
+  
   const isFavorite = favorites.includes(listing.id);
   
   const category = categories.find(c => c.id === listing.categoryId);
@@ -409,7 +415,15 @@ export default function ListingDetailScreen() {
             text: language === 'az' ? 'Səsli zəng' : 'Голосовой звонок',
             onPress: async () => {
               try {
-                const callId = await initiateCall(seller.id, listing.id, 'voice');
+                // ✅ Add currentUser validation
+                if (!currentUser?.id) {
+                  Alert.alert(
+                    language === 'az' ? 'Xəta' : 'Ошибка',
+                    language === 'az' ? 'Zəng üçün giriş lazımdır' : 'Требуется вход для звонка'
+                  );
+                  return;
+                }
+                const callId = await initiateCall(currentUser.id, seller.id, listing.id, 'voice'); // ✅ Fixed signature
                 router.push(`/call/${callId}`);
               } catch (error) {
                 logger.error('Failed to initiate call:', error);
@@ -420,7 +434,15 @@ export default function ListingDetailScreen() {
             text: language === 'az' ? 'Video zəng' : 'Видеозвонок',
             onPress: async () => {
               try {
-                const callId = await initiateCall(seller.id, listing.id, 'video');
+                // ✅ Add currentUser validation
+                if (!currentUser?.id) {
+                  Alert.alert(
+                    language === 'az' ? 'Xəta' : 'Ошибка',
+                    language === 'az' ? 'Video zəng üçün giriş lazımdır' : 'Требуется вход для видеозвонка'
+                  );
+                  return;
+                }
+                const callId = await initiateCall(currentUser.id, seller.id, listing.id, 'video'); // ✅ Fixed signature
                 router.push(`/call/${callId}`);
               } catch (error) {
                 logger.error('Failed to initiate video call:', error);
