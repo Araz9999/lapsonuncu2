@@ -62,6 +62,7 @@ export default function AddStoreListingScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [locationSearchQuery, setLocationSearchQuery] = useState('');
   
   const selectedLocationData = locations.find(l => l.id === selectedLocation);
   const selectedCategoryData = categories.find(c => c.id === selectedCategory);
@@ -715,11 +716,17 @@ export default function AddStoreListingScreen() {
         visible={showLocationModal}
         animationType="slide"
         presentationStyle="pageSheet"
-        onRequestClose={() => setShowLocationModal(false)}
+        onRequestClose={() => {
+          setShowLocationModal(false);
+          setLocationSearchQuery('');
+        }}
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={() => setShowLocationModal(false)}>
+            <TouchableOpacity onPress={() => {
+              setShowLocationModal(false);
+              setLocationSearchQuery('');
+            }}>
               <Text style={styles.modalCancelText}>
                 {language === 'az' ? 'Ləğv et' : 'Отмена'}
               </Text>
@@ -729,9 +736,36 @@ export default function AddStoreListingScreen() {
             </Text>
             <View style={styles.modalPlaceholder} />
           </View>
+          
+          {/* ✅ Search input */}
+          <View style={styles.searchContainer}>
+            <MapPin size={20} color={Colors.textSecondary} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder={language === 'az' ? 'Axtar...' : 'Поиск...'}
+              placeholderTextColor={Colors.textSecondary}
+              value={locationSearchQuery}
+              onChangeText={setLocationSearchQuery}
+            />
+          </View>
+          
+          {/* ✅ Filtered locations */}
           <FlatList
-            data={locations}
+            data={locationSearchQuery
+              ? locations.filter(loc =>
+                  loc.name[language].toLowerCase().includes(locationSearchQuery.toLowerCase())
+                )
+              : locations
+            }
             keyExtractor={(item) => item.id}
+            ListEmptyComponent={() => (
+              <View style={styles.emptyContainer}>
+                <MapPin size={48} color={Colors.textSecondary} />
+                <Text style={styles.emptyText}>
+                  {language === 'az' ? 'Heç bir yer tapılmadı' : 'Местоположений не найдено'}
+                </Text>
+              </View>
+            )}
             renderItem={({ item }) => (
               <TouchableOpacity
                 style={[
@@ -739,8 +773,16 @@ export default function AddStoreListingScreen() {
                   selectedLocation === item.id && styles.selectedModalItem
                 ]}
                 onPress={() => {
+                  // ✅ Validate location selection
+                  if (!item?.id) {
+                    storeLogger.error('[AddStoreListing] Invalid location selected');
+                    return;
+                  }
+                  
                   setSelectedLocation(item.id);
                   setShowLocationModal(false);
+                  setLocationSearchQuery('');
+                  storeLogger.info('[AddStoreListing] Location selected:', item.id);
                 }}
               >
                 <Text style={[
@@ -1230,5 +1272,34 @@ const styles = StyleSheet.create({
   selectedModalItemText: {
     color: Colors.primary,
     fontWeight: '500',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.background,
+    margin: 16,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  searchInput: {
+    flex: 1,
+    padding: 12,
+    fontSize: 16,
+    color: Colors.text,
+    marginLeft: 8,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: Colors.textSecondary,
+    marginTop: 16,
+    textAlign: 'center',
   },
 });
