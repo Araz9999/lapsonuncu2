@@ -35,6 +35,10 @@ import { useLanguageStore } from '@/store/languageStore';
 import { getColors } from '@/constants/colors';
 import { useThemeStore } from '@/store/themeStore';
 import { LocalizedText } from '@/types/category';
+import { reportService } from '@/services/reportService';
+import * as Sharing from 'expo-sharing';
+import * as FileSystem from 'expo-file-system';
+import { Alert, ActivityIndicator } from 'react-native';
 
 // Helper function to get localized text
 const getLocalizedText = (text: LocalizedText | string, language: 'az' | 'ru'): string => {
@@ -87,6 +91,9 @@ export default function StoreAnalyticsScreen() {
   const colors = getColors(themeMode, colorTheme);
 
   const [selectedTimeRange, setSelectedTimeRange] = useState('30d');
+  const [isExporting, setIsExporting] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  const [isSendingReport, setIsSendingReport] = useState(false);
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData>({
     views: 12450,
     viewsChange: 15.2,
@@ -315,6 +322,300 @@ export default function StoreAnalyticsScreen() {
     );
   };
 
+  const handleSendWeeklyReport = async () => {
+    try {
+      // ✅ Validate user
+      if (!currentUser || !currentUser.email || !currentUser.name) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' 
+            ? 'Hesabınızda email ünvanı tapılmadı'
+            : 'Email адрес не найден в вашем аккаунте'
+        );
+        return;
+      }
+
+      if (!store || !store.id) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Mağaza tapılmadı' : 'Магазин не найден'
+        );
+        return;
+      }
+
+      // Confirmation
+      Alert.alert(
+        language === 'az' ? 'Həftəlik Hesabat Göndər' : 'Отправить недельный отчет',
+        language === 'az'
+          ? `${currentUser.email} ünvanına həftəlik analitika hesabatı göndərilsin?`
+          : `Отправить недельный аналитический отчет на ${currentUser.email}?`,
+        [
+          { text: language === 'az' ? 'Ləğv et' : 'Отмена', style: 'cancel' },
+          {
+            text: language === 'az' ? 'Göndər' : 'Отправить',
+            onPress: async () => {
+              setIsSendingReport(true);
+
+              try {
+                const success = await reportService.generateWeeklyReport(
+                  store.id,
+                  currentUser.email,
+                  currentUser.name
+                );
+
+                if (success) {
+                  Alert.alert(
+                    language === 'az' ? 'Uğurlu!' : 'Успешно!',
+                    language === 'az'
+                      ? `Həftəlik hesabat ${currentUser.email} ünvanına göndərildi`
+                      : `Недельный отчет отправлен на ${currentUser.email}`
+                  );
+                } else {
+                  throw new Error('Failed to send report');
+                }
+              } catch (error) {
+                Alert.alert(
+                  language === 'az' ? 'Xəta' : 'Ошибка',
+                  language === 'az'
+                    ? 'Hesabat göndərilə bilmədi. Yenidən cəhd edin.'
+                    : 'Не удалось отправить отчет. Попробуйте снова.'
+                );
+              } finally {
+                setIsSendingReport(false);
+              }
+            },
+          },
+        ]
+      );
+    } catch (error) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Xəta baş verdi' : 'Произошла ошибка'
+      );
+    }
+  };
+
+  const handleExportData = async () => {
+    try {
+      if (!store || !store.id) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Mağaza tapılmadı' : 'Магазин не найден'
+        );
+        return;
+      }
+
+      // Show format selection
+      Alert.alert(
+        language === 'az' ? 'Export Format' : 'Формат экспорта',
+        language === 'az' ? 'Hansı formatda export edilsin?' : 'В каком формате экспортировать?',
+        [
+          {
+            text: 'JSON',
+            onPress: () => exportInFormat('json'),
+          },
+          {
+            text: 'CSV',
+            onPress: () => exportInFormat('csv'),
+          },
+          {
+            text: language === 'az' ? 'Ləğv et' : 'Отмена',
+            style: 'cancel',
+          },
+        ]
+      );
+    } catch (error) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Export zamanı xəta baş verdi' : 'Ошибка при экспорте'
+      );
+    }
+  };
+
+  const exportInFormat = async (format: 'json' | 'csv') => {
+    if (!store) return;
+
+    setIsExporting(true);
+
+    try {
+      // Ask about anonymization
+      Alert.alert(
+        language === 'az' ? 'Məlumat Anonimləşdirməsi' : 'Анонимизация данных',
+        language === 'az'
+          ? 'Məlumatlar anonim formatda export edilsin?\n\nAnonim format: Mağaza adı və elan başlıqları silinəcək.'
+          : 'Экспортировать данные в анонимном формате?\n\nАнонимный формат: Название магазина и названия объявлений будут удалены.',
+        [
+          {
+            text: language === 'az' ? 'Xeyr' : 'Нет',
+            onPress: () => performExport(format, false),
+          },
+          {
+            text: language === 'az' ? 'Bəli (Anonim)' : 'Да (Анонимный)',
+            onPress: () => performExport(format, true),
+          },
+        ]
+      );
+    } catch (error) {
+      setIsExporting(false);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Export zamanı xəta baş verdi' : 'Ошибка при экспорте'
+      );
+    }
+  };
+
+  const performExport = async (format: 'json' | 'csv', anonymous: boolean) => {
+    if (!store) {
+      setIsExporting(false);
+      return;
+    }
+
+    try {
+      const data = await reportService.exportData(store.id, format, anonymous);
+
+      if (!data) {
+        throw new Error('Export failed');
+      }
+
+      // Save to file
+      const fileName = `analytics_${store.id}_${Date.now()}.${format}`;
+      const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
+
+      await FileSystem.writeAsStringAsync(fileUri, data, {
+        encoding: FileSystem.EncodingType.UTF8,
+      });
+
+      // Share file
+      const canShare = await Sharing.isAvailableAsync();
+      if (canShare) {
+        await Sharing.shareAsync(fileUri, {
+          mimeType: format === 'json' ? 'application/json' : 'text/csv',
+          dialogTitle: language === 'az' ? 'Analitika Export' : 'Экспорт аналитики',
+        });
+
+        Alert.alert(
+          language === 'az' ? 'Uğurlu!' : 'Успешно!',
+          language === 'az'
+            ? `Məlumatlar ${format.toUpperCase()} formatında export edildi`
+            : `Данные экспортированы в формате ${format.toUpperCase()}`
+        );
+      } else {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az'
+            ? 'Bu cihazda paylaşma dəstəklənmir'
+            : 'Совместное использование не поддерживается на этом устройстве'
+        );
+      }
+    } catch (error) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Export zamanı xəta baş verdi' : 'Ошибка при экспорте'
+      );
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleShareAnalytics = async () => {
+    try {
+      if (!store || !store.id) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Mağaza tapılmadı' : 'Магазин не найден'
+        );
+        return;
+      }
+
+      if (!currentUser || !currentUser.name) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'İstifadəçi məlumatı tapılmadı' : 'Информация о пользователе не найдена'
+        );
+        return;
+      }
+
+      // Ask for recipient email
+      // In a real app, use TextInput modal
+      Alert.prompt(
+        language === 'az' ? 'Analitika Paylaş' : 'Поделиться аналитикой',
+        language === 'az'
+          ? 'Analitikanı paylaşmaq istədiyiniz şəxsin email ünvanını daxil edin:'
+          : 'Введите email адрес получателя:',
+        [
+          {
+            text: language === 'az' ? 'Ləğv et' : 'Отмена',
+            style: 'cancel',
+          },
+          {
+            text: language === 'az' ? 'Paylaş' : 'Поделиться',
+            onPress: (recipientEmail) => {
+              if (recipientEmail && recipientEmail.trim()) {
+                // Ask about anonymization
+                Alert.alert(
+                  language === 'az' ? 'Anonim Paylaşım?' : 'Анонимный доступ?',
+                  language === 'az'
+                    ? 'Məlumatlar anonim formatda paylaşılsın?'
+                    : 'Поделиться данными в анонимном формате?',
+                  [
+                    {
+                      text: language === 'az' ? 'Xeyr' : 'Нет',
+                      onPress: () => performShare(recipientEmail, false),
+                    },
+                    {
+                      text: language === 'az' ? 'Bəli (Anonim)' : 'Да (Анонимный)',
+                      onPress: () => performShare(recipientEmail, true),
+                    },
+                  ]
+                );
+              }
+            },
+          },
+        ],
+        'plain-text'
+      );
+    } catch (error) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Paylaşma zamanı xəta baş verdi' : 'Ошибка при совместном использовании'
+      );
+    }
+  };
+
+  const performShare = async (recipientEmail: string, anonymous: boolean) => {
+    if (!store || !currentUser) return;
+
+    setIsSharing(true);
+
+    try {
+      const success = await reportService.shareAnalytics(
+        store.id,
+        recipientEmail,
+        'Recipient', // In real app, ask for recipient name
+        currentUser.name,
+        anonymous
+      );
+
+      if (success) {
+        Alert.alert(
+          language === 'az' ? 'Uğurlu!' : 'Успешно!',
+          language === 'az'
+            ? `Analitika ${recipientEmail} ünvanına göndərildi${anonymous ? ' (anonim format)' : ''}`
+            : `Аналитика отправлена на ${recipientEmail}${anonymous ? ' (анонимный формат)' : ''}`
+        );
+      } else {
+        throw new Error('Share failed');
+      }
+    } catch (error) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Paylaşma zamanı xəta baş verdi' : 'Ошибка при совместном использовании'
+      );
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
   const renderInsights = () => {
     return (
       <View style={styles.section}>
@@ -362,11 +663,27 @@ export default function StoreAnalyticsScreen() {
           title: 'Mağaza Analitikası',
           headerRight: () => (
             <View style={styles.headerActions}>
-              <TouchableOpacity style={styles.headerButton}>
-                <Share2 size={20} color={colors.primary} />
+              <TouchableOpacity 
+                style={styles.headerButton}
+                onPress={handleShareAnalytics}
+                disabled={isSharing}
+              >
+                {isSharing ? (
+                  <ActivityIndicator size="small" color={colors.primary} />
+                ) : (
+                  <Share2 size={20} color={colors.primary} />
+                )}
               </TouchableOpacity>
-              <TouchableOpacity style={styles.headerButton}>
-                <Download size={20} color={colors.primary} />
+              <TouchableOpacity 
+                style={styles.headerButton}
+                onPress={handleExportData}
+                disabled={isExporting}
+              >
+                {isExporting ? (
+                  <ActivityIndicator size="small" color={colors.primary} />
+                ) : (
+                  <Download size={20} color={colors.primary} />
+                )}
               </TouchableOpacity>
             </View>
           )
@@ -436,6 +753,47 @@ export default function StoreAnalyticsScreen() {
 
         {/* Insights */}
         {renderInsights()}
+
+        {/* Weekly Report Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>
+            {language === 'az' ? 'Həftəlik Hesabat' : 'Недельный отчет'}
+          </Text>
+          <View style={styles.reportCard}>
+            <View style={styles.reportIcon}>
+              <Calendar size={32} color={colors.primary} />
+            </View>
+            <View style={styles.reportContent}>
+              <Text style={styles.reportTitle}>
+                {language === 'az' ? 'E-mail ilə həftəlik məlumat' : 'Еженедельная информация по email'}
+              </Text>
+              <Text style={styles.reportDescription}>
+                {language === 'az'
+                  ? 'Hər həftə email ünvanınıza analitika hesabatı göndərilsin'
+                  : 'Получайте аналитический отчет на ваш email каждую неделю'}
+              </Text>
+            </View>
+          </View>
+          <TouchableOpacity
+            style={[
+              styles.reportButton,
+              isSendingReport && styles.reportButtonDisabled,
+            ]}
+            onPress={handleSendWeeklyReport}
+            disabled={isSendingReport}
+          >
+            {isSendingReport ? (
+              <ActivityIndicator size="small" color="white" />
+            ) : (
+              <Phone size={16} color="white" />
+            )}
+            <Text style={styles.reportButtonText}>
+              {isSendingReport
+                ? (language === 'az' ? 'Göndərilir...' : 'Отправка...')
+                : (language === 'az' ? 'İndi Göndər' : 'Отправить сейчас')}
+            </Text>
+          </TouchableOpacity>
+        </View>
 
         {/* Demographics */}
         <View style={styles.section}>
@@ -782,5 +1140,53 @@ const createStyles = (colors: ReturnType<typeof getColors>) => StyleSheet.create
     fontSize: 14,
     fontWeight: '600',
     color: colors.primary,
+  },
+  reportCard: {
+    flexDirection: 'row',
+    backgroundColor: colors.background,
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  reportIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: `${colors.primary}20`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  reportContent: {
+    flex: 1,
+  },
+  reportTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  reportDescription: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    lineHeight: 18,
+  },
+  reportButton: {
+    backgroundColor: colors.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 8,
+    gap: 8,
+  },
+  reportButtonDisabled: {
+    opacity: 0.6,
+  },
+  reportButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: 'white',
   },
 });
