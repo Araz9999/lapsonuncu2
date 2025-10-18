@@ -22,6 +22,8 @@ export default function ProfileScreen() {
   const { liveChats, getAvailableOperators } = useSupportStore();
   
   const [showLiveChat, setShowLiveChat] = React.useState<boolean>(false);
+  const [isDeletingAccount, setIsDeletingAccount] = React.useState<boolean>(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState<boolean>(false);
   
   // ✅ Get current user safely with validation
   const currentUserFromStore = useUserStore.getState().currentUser;
@@ -53,10 +55,41 @@ export default function ProfileScreen() {
   };
 
   const handleDeleteProfile = () => {
-    logger.debug('[handleDeleteProfile] Delete profile button pressed');
+    // ✅ Validate user is authenticated
+    if (!isAuthenticated || !currentUser) {
+      logger.error('[handleDeleteProfile] User not authenticated');
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Hesaba daxil olmamısınız' : 'Вы не авторизованы'
+      );
+      return;
+    }
+
+    // ✅ Check if deletion is already in progress
+    if (isDeletingAccount) {
+      logger.warn('[handleDeleteProfile] Deletion already in progress');
+      return;
+    }
+
+    // ✅ Gather user data for detailed confirmation
+    const activeListingsCount = userListings.filter(l => !l.deletedAt).length;
+    const totalBalance = (typeof walletBalance === 'number' && isFinite(walletBalance) ? walletBalance : 0);
+    const totalBonus = (typeof bonusBalance === 'number' && isFinite(bonusBalance) ? bonusBalance : 0);
+    
+    logger.debug('[handleDeleteProfile] Delete profile button pressed', {
+      userId: currentUser.id,
+      activeListings: activeListingsCount,
+      walletBalance: totalBalance,
+      bonusBalance: totalBonus,
+      hasStore: !!userStore,
+    });
+    
+    // ✅ First confirmation with actual user data
     Alert.alert(
       t('deleteProfile'),
-      t('cannotBeUndone'),
+      language === 'az' 
+        ? `Profilinizi silmək istədiyinizə əminsiniz? Bu əməliyyat geri qaytarıla bilməz.\n\nSilinəcək:\n• ${activeListingsCount} elanınız\n• Bütün mesajlarınız\n• ${totalBalance.toFixed(2)} AZN balans\n• ${totalBonus.toFixed(2)} AZN bonus\n• ${userStore ? '1 mağazanız' : 'Heç bir mağaza yoxdur'}\n• Bütün şəxsi məlumatlarınız`
+        : `Вы уверены, что хотите удалить свой профиль? Это действие нельзя отменить.\n\nБудет удалено:\n• ${activeListingsCount} объявлений\n• Все ваши сообщения\n• ${totalBalance.toFixed(2)} AZN баланс\n• ${totalBonus.toFixed(2)} AZN бонус\n• ${userStore ? '1 магазин' : 'Нет магазинов'}\n• Все личные данные`,
       [
         {
           text: t('cancel'),
@@ -68,10 +101,14 @@ export default function ProfileScreen() {
           style: 'destructive',
           onPress: () => {
             logger.debug('[handleDeleteProfile] First confirmation accepted, showing second confirmation');
+            
+            // ✅ Second confirmation with delay
             setTimeout(() => {
               Alert.alert(
                 t('confirmDelete'),
-                t('areYouSure'),
+                language === 'az'
+                  ? 'SON XƏBƏRDARLIQ!\n\nBu əməliyyatı geri qaytarmaq MÜMKÜN DEYİL!\n\nBütün məlumatlarınız DAİMİ OLARAQ silinəcək.'
+                  : 'ПОСЛЕДНЕЕ ПРЕДУПРЕЖДЕНИЕ!\n\nЭто действие НЕВОЗМОЖНО отменить!\n\nВсе ваши данные будут НАВСЕГДА удалены.',
                 [
                   {
                     text: t('cancel'),
@@ -79,23 +116,37 @@ export default function ProfileScreen() {
                     onPress: () => logger.debug('[handleDeleteProfile] Second confirmation cancelled')
                   },
                   {
-                    text: t('yes'),
+                    text: language === 'az' ? 'Bəli, profilimi sil' : 'Да, удалить мой профиль',
                     style: 'destructive',
                     onPress: async () => {
-                      logger.debug('[handleDeleteProfile] Profile deletion confirmed, calling API');
+                      logger.debug('[handleDeleteProfile] Profile deletion confirmed, starting deletion process');
+                      
+                      // ✅ Set loading state
+                      setIsDeletingAccount(true);
+                      
                       try {
+                        // ✅ Validate auth service availability
+                        if (!authService || typeof authService.deleteAccount !== 'function') {
+                          throw new Error('Auth service not available');
+                        }
+
+                        logger.debug('[handleDeleteProfile] Calling authService.deleteAccount()');
                         await authService.deleteAccount();
+                        
+                        logger.debug('[handleDeleteProfile] Account deleted, calling logout');
                         logout();
-                        logger.debug('[handleDeleteProfile] Account deleted and logged out, navigating to login');
+                        
+                        logger.debug('[handleDeleteProfile] Logout successful, showing success message');
+                        
                         Alert.alert(
                           t('success'),
-                          language === 'az' ? 'Profil uğurla silindi' : 'Профиль успешно удален',
+                          language === 'az' ? 'Profiliniz uğurla silindi. Sizi görməyə ümid edirik!' : 'Ваш профиль успешно удален. Надеемся увидеть вас снова!',
                           [
                             {
                               text: 'OK',
                               onPress: () => {
                                 logger.debug('[handleDeleteProfile] Navigating to login screen');
-                                router.push('/auth/login');
+                                router.replace('/auth/login');
                               }
                             }
                           ],
@@ -103,16 +154,37 @@ export default function ProfileScreen() {
                         );
                       } catch (error) {
                         logger.error('[handleDeleteProfile] Error during profile deletion:', error);
+                        
+                        // ✅ Provide specific error messages
+                        let errorMessage = language === 'az' 
+                          ? 'Profil silinərkən xəta baş verdi' 
+                          : 'Произошла ошибка при удалении профиля';
+
+                        if (error instanceof Error) {
+                          if (error.message.includes('authenticated')) {
+                            errorMessage = language === 'az'
+                              ? 'Sessiya bitib. Zəhmət olmasa yenidən daxil olun.'
+                              : 'Сессия истекла. Пожалуйста, войдите снова.';
+                          } else if (error.message.includes('network') || error.message.includes('fetch')) {
+                            errorMessage = language === 'az'
+                              ? 'Şəbəkə xətası. İnternet bağlantınızı yoxlayın.'
+                              : 'Ошибка сети. Проверьте подключение к интернету.';
+                          }
+                        }
+                        
                         Alert.alert(
                           t('error'),
-                          language === 'az' ? 'Profil silinərkən xəta baş verdi' : 'Произошла ошибка при удалении профиля'
+                          errorMessage
                         );
+                      } finally {
+                        // ✅ Always reset loading state
+                        setIsDeletingAccount(false);
                       }
                     },
                   },
                 ]
               );
-            }, 100);
+            }, 300);
           },
         },
       ]
@@ -385,18 +457,30 @@ export default function ProfileScreen() {
         </TouchableOpacity>
         
         <TouchableOpacity 
-          style={[styles.menuItem, { borderBottomWidth: 0 }]}
+          style={[
+            styles.menuItem, 
+            { borderBottomWidth: 0 },
+            isDeletingAccount && styles.menuItemDisabled
+          ]}
           onPress={handleDeleteProfile}
           activeOpacity={0.7}
           testID="delete-profile-button"
+          disabled={isDeletingAccount}
         >
           <View style={[styles.menuIconContainer, { backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}>
-            <Trash2 size={20} color={Colors.error} />
+            {isDeletingAccount ? (
+              <ActivityIndicator size="small" color={Colors.error} />
+            ) : (
+              <Trash2 size={20} color={Colors.error} />
+            )}
           </View>
           <Text style={[styles.menuItemText, { color: Colors.error }]}>
-            {t('deleteProfile')}
+            {isDeletingAccount 
+              ? (language === 'az' ? 'Silinir...' : 'Удаление...')
+              : t('deleteProfile')
+            }
           </Text>
-          <ChevronRight size={20} color={Colors.error} />
+          {!isDeletingAccount && <ChevronRight size={20} color={Colors.error} />}
         </TouchableOpacity>
       </View>
       
@@ -561,6 +645,9 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: Colors.error,
     marginLeft: 8,
+  },
+  menuItemDisabled: {
+    opacity: 0.5,
   },
   authContainer: {
     flex: 1,
