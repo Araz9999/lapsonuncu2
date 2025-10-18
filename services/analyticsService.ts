@@ -30,15 +30,19 @@ class AnalyticsService {
 
   async initialize(): Promise<void> {
     if (!this.isEnabled || !this.isConfigured()) {
-      logger.debug('Analytics not configured or disabled');
+      logger.info('[AnalyticsService] Analytics not configured or disabled');
       return;
     }
 
+    logger.info('[AnalyticsService] Initializing analytics:', { platform: Platform.OS });
+    
     if (Platform.OS === 'web') {
       await this.initializeGoogleAnalytics();
     }
     
     await this.initializeMixpanel();
+    
+    logger.info('[AnalyticsService] Analytics initialized successfully');
   }
 
   private async initializeGoogleAnalytics(): Promise<void> {
@@ -76,8 +80,10 @@ class AnalyticsService {
       windowWithGtag.gtag = windowWithGtag.gtag || function(...args: unknown[]) {
         (windowWithGtag.dataLayer = windowWithGtag.dataLayer || []).push(args);
       };
+      
+      logger.info('[AnalyticsService] Google Analytics initialized successfully');
     } catch (error) {
-      logger.error('Failed to initialize Google Analytics:', error);
+      logger.error('[AnalyticsService] Failed to initialize Google Analytics:', error);
     }
   }
 
@@ -94,19 +100,26 @@ class AnalyticsService {
 
         script.onload = () => {
           (window as any).mixpanel.init(this.mixpanelToken);
+          logger.info('[AnalyticsService] Mixpanel initialized successfully');
         };
       } else {
-        logger.debug('Mixpanel mobile SDK would need to be installed separately');
+        logger.info('[AnalyticsService] Mixpanel mobile SDK would need to be installed separately');
       }
     } catch (error) {
-      logger.error('Failed to initialize Mixpanel:', error);
+      logger.error('[AnalyticsService] Failed to initialize Mixpanel:', error);
     }
   }
 
   track(event: AnalyticsEvent): void {
     if (!this.isEnabled) return;
+    
+    // ✅ Input validation
+    if (!event || !event.name || typeof event.name !== 'string') {
+      logger.error('[AnalyticsService] Invalid event:', event);
+      return;
+    }
 
-    logger.debug('Analytics Event:', event);
+    logger.info('[AnalyticsService] Tracking event:', { name: event.name, userId: event.userId });
 
     if (Platform.OS === 'web') {
       this.trackGoogleAnalytics(event);
@@ -129,9 +142,10 @@ class AnalyticsService {
           ...event.properties,
           user_id: event.userId,
         });
+        logger.info('[AnalyticsService] Google Analytics event tracked:', event.name);
       }
     } catch (error) {
-      logger.error('Google Analytics tracking error:', error);
+      logger.error('[AnalyticsService] Google Analytics tracking error:', error);
     }
   }
 
@@ -153,18 +167,25 @@ class AnalyticsService {
         if (event.userId) {
           windowWithMixpanel.mixpanel.identify(event.userId);
         }
+        logger.info('[AnalyticsService] Mixpanel event tracked:', event.name);
       } else {
-        logger.debug('Mixpanel mobile tracking would be implemented here');
+        logger.info('[AnalyticsService] Mixpanel mobile tracking would be implemented here');
       }
     } catch (error) {
-      logger.error('Mixpanel tracking error:', error);
+      logger.error('[AnalyticsService] Mixpanel tracking error:', error);
     }
   }
 
   identify(userProperties: UserProperties): void {
     if (!this.isEnabled) return;
+    
+    // ✅ Input validation
+    if (!userProperties || !userProperties.userId) {
+      logger.error('[AnalyticsService] Invalid user properties:', userProperties);
+      return;
+    }
 
-    logger.debug('Analytics Identify:', userProperties);
+    logger.info('[AnalyticsService] Identifying user:', { userId: userProperties.userId });
 
     if (Platform.OS === 'web') {
       if ((window as any).gtag) {
@@ -182,8 +203,14 @@ class AnalyticsService {
 
   setUserProperties(properties: Partial<UserProperties>): void {
     if (!this.isEnabled) return;
+    
+    // ✅ Input validation
+    if (!properties || Object.keys(properties).length === 0) {
+      logger.error('[AnalyticsService] Empty properties object');
+      return;
+    }
 
-    logger.debug('Analytics Set User Properties:', properties);
+    logger.info('[AnalyticsService] Setting user properties:', Object.keys(properties));
 
     if (Platform.OS === 'web' && (window as any).mixpanel) {
       (window as any).mixpanel.people.set(properties);
@@ -211,6 +238,19 @@ class AnalyticsService {
   }
 
   trackPurchase(amount: number, currency: string, itemId?: string): void {
+    // ✅ Input validation
+    if (typeof amount !== 'number' || isNaN(amount) || amount < 0) {
+      logger.error('[AnalyticsService] Invalid purchase amount:', amount);
+      return;
+    }
+    
+    if (!currency || typeof currency !== 'string') {
+      logger.error('[AnalyticsService] Invalid currency:', currency);
+      return;
+    }
+    
+    logger.info('[AnalyticsService] Tracking purchase:', { amount, currency, itemId });
+    
     this.track({
       name: 'purchase',
       properties: {
