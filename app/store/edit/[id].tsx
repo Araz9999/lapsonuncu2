@@ -368,7 +368,6 @@ export default function EditStoreScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <ArrowLeft size={24} color={Colors.text} />
@@ -381,11 +380,21 @@ export default function EditStoreScreen() {
           style={styles.saveButton}
           disabled={isLoading}
         >
-          <Save size={24} color={isLoading ? Colors.textSecondary : Colors.primary} />
+          {isLoading ? (
+            <ActivityIndicator size="small" color={Colors.primary} />
+          ) : (
+            <Save size={24} color={Colors.primary} />
+          )}
         </TouchableOpacity>
       </View>
       
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={{ flex: 1 }}>
+          <ScrollView 
+            style={styles.content} 
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
         {/* Store Basic Info */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
@@ -402,6 +411,9 @@ export default function EditStoreScreen() {
               onChangeText={(text) => setFormData(prev => ({ ...prev, name: text }))}
               placeholder={language === 'az' ? 'Mağaza adını daxil edin' : 'Введите название магазина'}
               placeholderTextColor={Colors.textSecondary}
+              maxLength={50}
+              returnKeyType="next"
+              blurOnSubmit={false}
             />
           </View>
           
@@ -415,6 +427,9 @@ export default function EditStoreScreen() {
               onChangeText={(text) => setFormData(prev => ({ ...prev, categoryName: text }))}
               placeholder={language === 'az' ? 'Kateqoriya adını daxil edin' : 'Введите название категории'}
               placeholderTextColor={Colors.textSecondary}
+              maxLength={50}
+              returnKeyType="next"
+              blurOnSubmit={false}
             />
           </View>
           
@@ -431,6 +446,9 @@ export default function EditStoreScreen() {
                 placeholder={language === 'az' ? 'Mağaza ünvanını daxil edin' : 'Введите адрес магазина'}
                 placeholderTextColor={Colors.textSecondary}
                 multiline
+                maxLength={200}
+                returnKeyType="next"
+                blurOnSubmit={false}
               />
             </View>
           </View>
@@ -447,6 +465,9 @@ export default function EditStoreScreen() {
               placeholderTextColor={Colors.textSecondary}
               multiline
               numberOfLines={4}
+              maxLength={1000}
+              returnKeyType="next"
+              blurOnSubmit={false}
             />
           </View>
         </View>
@@ -466,13 +487,20 @@ export default function EditStoreScreen() {
               <TextInput
                 style={[styles.textInput, styles.textInputWithIcon]}
                 value={formData.contactInfo.phone}
-                onChangeText={(text) => setFormData(prev => ({
-                  ...prev,
-                  contactInfo: { ...prev.contactInfo, phone: text }
-                }))}
+                onChangeText={(text) => {
+                  // ✅ Filter to allow only digits, +, -, (, ), space
+                  const filtered = text.replace(/[^0-9+\-() ]/g, '');
+                  setFormData(prev => ({
+                    ...prev,
+                    contactInfo: { ...prev.contactInfo, phone: filtered }
+                  }));
+                }}
                 placeholder={language === 'az' ? 'Telefon nömrəsi' : 'Номер телефона'}
                 placeholderTextColor={Colors.textSecondary}
                 keyboardType="phone-pad"
+                maxLength={20}
+                returnKeyType="next"
+                blurOnSubmit={false}
               />
             </View>
           </View>
@@ -494,6 +522,10 @@ export default function EditStoreScreen() {
                 placeholderTextColor={Colors.textSecondary}
                 keyboardType="email-address"
                 autoCapitalize="none"
+                autoCorrect={false}
+                maxLength={255}
+                returnKeyType="next"
+                blurOnSubmit={false}
               />
             </View>
           </View>
@@ -515,6 +547,10 @@ export default function EditStoreScreen() {
                 placeholderTextColor={Colors.textSecondary}
                 keyboardType="url"
                 autoCapitalize="none"
+                autoCorrect={false}
+                maxLength={2083}
+                returnKeyType="next"
+                blurOnSubmit={false}
               />
             </View>
           </View>
@@ -528,13 +564,20 @@ export default function EditStoreScreen() {
               <TextInput
                 style={[styles.textInput, styles.textInputWithIcon]}
                 value={formData.contactInfo.whatsapp}
-                onChangeText={(text) => setFormData(prev => ({
-                  ...prev,
-                  contactInfo: { ...prev.contactInfo, whatsapp: text }
-                }))}
+                onChangeText={(text) => {
+                  // ✅ Filter to allow only digits, +, -, (, ), space
+                  const filtered = text.replace(/[^0-9+\-() ]/g, '');
+                  setFormData(prev => ({
+                    ...prev,
+                    contactInfo: { ...prev.contactInfo, whatsapp: filtered }
+                  }));
+                }}
                 placeholder={language === 'az' ? 'WhatsApp nömrəsi' : 'Номер WhatsApp'}
                 placeholderTextColor={Colors.textSecondary}
                 keyboardType="phone-pad"
+                maxLength={20}
+                returnKeyType="done"
+                onSubmitEditing={Keyboard.dismiss}
               />
             </View>
           </View>
@@ -547,7 +590,11 @@ export default function EditStoreScreen() {
             onPress={handleSave}
             disabled={isLoading}
           >
-            <Save size={20} color="white" />
+            {isLoading ? (
+              <ActivityIndicator size="small" color="white" />
+            ) : (
+              <Save size={20} color="white" />
+            )}
             <Text style={styles.saveButtonText}>
               {isLoading 
                 ? (language === 'az' ? 'Yadda saxlanılır...' : 'Сохранение...')
@@ -557,7 +604,8 @@ export default function EditStoreScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
-    </TouchableWithoutFeedback>
+        </View>
+      </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
   );
 }
