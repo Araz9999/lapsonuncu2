@@ -174,16 +174,29 @@ export default function CreateListingScreen() {
 
       // BUG FIX: Validate assets array exists and has items
       if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0]) {
+        const asset = result.assets[0];
+        
+        // ✅ Check file size (max 5MB)
+        if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024) {
+          Alert.alert(
+            language === 'az' ? 'Şəkil çox böyükdür' : 'Изображение слишком большое',
+            language === 'az' 
+              ? 'Maksimum 5MB ölçüsündə şəkil əlavə edin' 
+              : 'Добавьте изображение размером до 5MB'
+          );
+          return;
+        }
+        
         if (images.length >= (selectedPackageData?.features.photosCount || 3)) {
           Alert.alert(
             language === 'az' ? 'Limit aşıldı' : 'Лимит превышен',
             language === 'az' 
               ? `Seçdiyiniz paket maksimum ${selectedPackageData?.features.photosCount} şəkil əlavə etməyə imkan verir` 
-              : `Выбранный пакет позволяет добавить максимум ${selectedPackageData?.features.photosCount} izображений`
+              : `Выбранный пакет позволяет добавить максимум ${selectedPackageData?.features.photosCount} изображений`
           );
           return;
         }
-        setImages([...images, result.assets[0].uri]);
+        setImages([...images, asset.uri]);
       }
     } catch (error) {
       logger.error('Camera error:', error);
@@ -325,24 +338,56 @@ export default function CreateListingScreen() {
     const isStoreListingWithSlots = addToStore && selectedStore && canAddToSelectedStore;
 
     try {
-      // Process payment only if not adding to store with available slots
+      // ✅ Process payment only if not adding to store with available slots
       if (!isStoreListingWithSlots && selectedPackage !== 'free') {
         const packagePrice = selectedPackageData?.price || 0;
-        if (!spendFromBalance(packagePrice)) {
+        
+        // ✅ Check if can afford first
+        if (!canAfford(packagePrice)) {
           Alert.alert(
-            language === 'az' ? 'Ödəniş xətası' : 'Ошибка оплаты',
+            language === 'az' ? 'Balans kifayət etmir' : 'Недостаточно средств',
             language === 'az' 
-              ? 'Balansınızdan ödəniş çıxıla bilmədi' 
-              : 'Не удалось списать средства с баланса'
+              ? 'Balansınızı artırın' 
+              : 'Пополните баланс',
+            [
+              {
+                text: language === 'az' ? 'Ləğv et' : 'Отмена',
+                style: 'cancel',
+              },
+              {
+                text: language === 'az' ? 'Balans artır' : 'Пополнить баланс',
+                onPress: () => router.push('/wallet'),
+              },
+            ]
           );
           return;
         }
+        
+        // ✅ Actually spend and check success
+        const paymentSuccess = spendFromBalance(packagePrice);
+        if (!paymentSuccess) {
+          Alert.alert(
+            language === 'az' ? 'Ödəniş xətası' : 'Ошибка оплаты',
+            language === 'az' 
+              ? 'Balansınızdan ödəniş çıxıla bilmədi. Yenidən cəhd edin.' 
+              : 'Не удалось списать средства с баланса. Попробуйте еще раз.'
+          );
+          return;
+        }
+        
+        logger.info('Payment successful for listing', { packagePrice, package: selectedPackage });
       }
 
-      // Calculate expiration date based on package duration
+      // ✅ Calculate expiration date with validation
       const now = new Date();
-      const expirationDate = new Date(now);
-      expirationDate.setDate(now.getDate() + (selectedPackageData?.duration || 3));
+      const duration = Math.max(1, Math.min(365, selectedPackageData?.duration || 3)); // 1-365 days
+      const expirationDate = new Date(now.getTime() + duration * 24 * 60 * 60 * 1000);
+      
+      // ✅ Validate result
+      if (isNaN(expirationDate.getTime())) {
+        logger.error('Invalid expiration date calculated, using fallback');
+        expirationDate.setTime(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+      }
 
       // Create the listing object
       const newListing: Listing = {
@@ -801,10 +846,10 @@ export default function CreateListingScreen() {
                 <TextInput
                   style={styles.priceInput}
                   value={price}
-                  onChangeText={setPrice}
+                  onChangeText={(text) => setPrice(sanitizeNumericInput(text, 2))}
                   placeholder="0"
                   placeholderTextColor={Colors.placeholder}
-                  keyboardType="numeric"
+                  keyboardType="decimal-pad"
                 />
                 <Text style={styles.currency}>
                   {currency}
