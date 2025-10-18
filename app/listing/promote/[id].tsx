@@ -37,7 +37,7 @@ export default function PromoteListingScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { language } = useLanguageStore();
   const { listings, promoteListing, purchaseViews, applyCreativeEffects } = useListingStore();
-  const { currentUser, walletBalance, bonusBalance, spendFromWallet, spendFromBonus } = useUserStore();
+  const { currentUser, walletBalance, bonusBalance, spendFromBalance, getTotalBalance } = useUserStore();
   const [selectedPackage, setSelectedPackage] = useState<PromotionPackage | null>(null);
   const [selectedViewPackage, setSelectedViewPackage] = useState<ViewPackage | null>(null);
   const [selectedEffects, setSelectedEffects] = useState<CreativeEffect[]>([]);
@@ -58,9 +58,23 @@ export default function PromoteListingScreen() {
   }
   
   const handlePromote = async () => {
-    if (!selectedPackage || !currentUser) return;
+    if (!selectedPackage) {
+      logger.error('[PromoteListing] No package selected');
+      return;
+    }
     
-    const totalBalance = walletBalance + bonusBalance;
+    if (!currentUser) {
+      logger.error('[PromoteListing] No current user');
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'İstifadəçi məlumatları tapılmadı' : 'Информация о пользователе не найдена'
+      );
+      return;
+    }
+    
+    logger.info('[PromoteListing] Promoting listing:', { listingId: listing.id, packageId: selectedPackage.id, price: selectedPackage.price });
+    
+    const totalBalance = getTotalBalance();
     if (totalBalance < selectedPackage.price) {
       Alert.alert(
         language === 'az' ? 'Kifayət qədər balans yoxdur' : 'Недостаточно средств',
@@ -97,37 +111,26 @@ export default function PromoteListingScreen() {
     }
     
     const approved = await confirm(confirmMessage, language === 'az' ? 'Təsdiq edin' : 'Подтвердите');
-    if (!approved) return;
+    if (!approved) {
+      logger.info('[PromoteListing] User cancelled promotion');
+      return;
+    }
+    
     setIsProcessing(true);
     try {
-      // ✅ Spend money with proper validation
-      let remainingAmount = selectedPackage.price;
-      let paymentSuccess = true;
-      
-      if (bonusBalance > 0) {
-        const bonusToSpend = Math.min(bonusBalance, remainingAmount);
-        const bonusSuccess = spendFromBonus(bonusToSpend);
-        if (bonusSuccess) {
-          remainingAmount -= bonusToSpend;
-        } else {
-          paymentSuccess = false;
-        }
-      }
-      
-      if (paymentSuccess && remainingAmount > 0) {
-        const walletSuccess = spendFromWallet(remainingAmount);
-        if (!walletSuccess) {
-          paymentSuccess = false;
-        }
-      }
+      // ✅ Use spendFromBalance for automatic bonus → wallet ordering
+      const paymentSuccess = spendFromBalance(selectedPackage.price);
       
       if (!paymentSuccess) {
+        logger.error('[PromoteListing] Payment failed:', { price: selectedPackage.price, balance: getTotalBalance() });
         Alert.alert(
           language === 'az' ? 'Xəta' : 'Ошибка',
           language === 'az' ? 'Ödəniş uğursuz oldu' : 'Платеж не удался'
         );
         return;
       }
+      
+      logger.info('[PromoteListing] Payment successful:', { price: selectedPackage.price });
       const promotionEndDate = new Date(Math.max(
         listingExpiryDate.getTime(),
         currentDate.getTime() + (selectedPackage.duration * 24 * 60 * 60 * 1000)
@@ -142,8 +145,10 @@ export default function PromoteListingScreen() {
           : `\n\nПакет будет активен до ${promotionEndDate.toLocaleDateString('ru-RU')}.`;
       }
       Alert.alert(language === 'az' ? 'Uğurlu!' : 'Успешно!', successMessage);
+      logger.info('[PromoteListing] Promotion successful');
       router.back();
-    } catch {
+    } catch (error) {
+      logger.error('[PromoteListing] Promotion failed:', error);
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Təşviq zamanı xəta baş verdi' : 'Произошла ошибка при продвижении'
@@ -154,30 +159,40 @@ export default function PromoteListingScreen() {
   };
   
   const handleSelectEffect = (effect: CreativeEffect) => {
-    logger.debug('[handleSelectEffect] Called with effect:', effect.id);
-    logger.debug('[handleSelectEffect] Current selected effects:', selectedEffects.map(e => e.id));
-    
     setSelectedEffects(prev => {
       const isSelected = prev.some(selected => selected.id === effect.id);
-      logger.debug('[handleSelectEffect] Is effect already selected?', isSelected);
       
       if (isSelected) {
         const newEffects = prev.filter(selected => selected.id !== effect.id);
-        logger.debug('[handleSelectEffect] Removing effect, new count:', newEffects.length);
+        logger.info('[PromoteListing] Effect removed:', { effectId: effect.id, remaining: newEffects.length });
         return newEffects;
       } else {
         const newEffects = [...prev, effect];
-        logger.debug('[handleSelectEffect] Adding effect, new count:', newEffects.length);
+        logger.info('[PromoteListing] Effect added:', { effectId: effect.id, total: newEffects.length });
         return newEffects;
       }
     });
   };
   
   const handlePurchaseEffects = async () => {
-    if (selectedEffects.length === 0 || !currentUser) return;
+    if (selectedEffects.length === 0) {
+      logger.warn('[PromoteListing] No effects selected');
+      return;
+    }
+    
+    if (!currentUser) {
+      logger.error('[PromoteListing] No current user for effects purchase');
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'İstifadəçi məlumatları tapılmadı' : 'Информация о пользователе не найдена'
+      );
+      return;
+    }
     
     const totalPrice = selectedEffects.reduce((sum, effect) => sum + effect.price, 0);
-    const totalBalance = walletBalance + bonusBalance;
+    logger.info('[PromoteListing] Purchasing effects:', { count: selectedEffects.length, totalPrice });
+    
+    const totalBalance = getTotalBalance();
     
     if (totalBalance < totalPrice) {
       Alert.alert(
@@ -219,37 +234,26 @@ export default function PromoteListingScreen() {
     }
     
     const approved = await confirm(confirmMessage, language === 'az' ? 'Təsdiq edin' : 'Подтвердите');
-    if (!approved) return;
+    if (!approved) {
+      logger.info('[PromoteListing] User cancelled effects purchase');
+      return;
+    }
+    
     setIsProcessing(true);
     try {
-      // ✅ Spend money with proper validation
-      let remainingAmount = totalPrice;
-      let paymentSuccess = true;
-      
-      if (bonusBalance > 0) {
-        const bonusToSpend = Math.min(bonusBalance, remainingAmount);
-        const bonusSuccess = spendFromBonus(bonusToSpend);
-        if (bonusSuccess) {
-          remainingAmount -= bonusToSpend;
-        } else {
-          paymentSuccess = false;
-        }
-      }
-      
-      if (paymentSuccess && remainingAmount > 0) {
-        const walletSuccess = spendFromWallet(remainingAmount);
-        if (!walletSuccess) {
-          paymentSuccess = false;
-        }
-      }
+      // ✅ Use spendFromBalance for automatic bonus → wallet ordering
+      const paymentSuccess = spendFromBalance(totalPrice);
       
       if (!paymentSuccess) {
+        logger.error('[PromoteListing] Effects payment failed:', { totalPrice, balance: getTotalBalance() });
         Alert.alert(
           language === 'az' ? 'Xəta' : 'Ошибка',
           language === 'az' ? 'Ödəniş uğursuz oldu' : 'Платеж не удался'
         );
         return;
       }
+      
+      logger.info('[PromoteListing] Effects payment successful:', { totalPrice });
       const effectEndDates = selectedEffects.map(effect => {
         const effectEndDate = new Date(Math.max(
           listingExpiryDate.getTime(),
@@ -270,8 +274,10 @@ export default function PromoteListingScreen() {
           : `\n\nЭффекты будут активны до ${latestEndDate.toLocaleDateString('ru-RU')}.`;
       }
       Alert.alert(language === 'az' ? 'Uğurlu!' : 'Успешно!', successMessage);
+      logger.info('[PromoteListing] Effects applied successfully');
       router.back();
-    } catch {
+    } catch (error) {
+      logger.error('[PromoteListing] Effects application failed:', error);
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Effekt tətbiqi zamanı xəta baş verdi' : 'Произошла ошибка при применении эффектов'
@@ -282,9 +288,23 @@ export default function PromoteListingScreen() {
   };
   
   const handlePurchaseViews = async () => {
-    if (!selectedViewPackage || !currentUser) return;
+    if (!selectedViewPackage) {
+      logger.error('[PromoteListing] No view package selected');
+      return;
+    }
     
-    const totalBalance = walletBalance + bonusBalance;
+    if (!currentUser) {
+      logger.error('[PromoteListing] No current user for views purchase');
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'İstifadəçi məlumatları tapılmadı' : 'Информация о пользователе не найдена'
+      );
+      return;
+    }
+    
+    logger.info('[PromoteListing] Purchasing views:', { packageId: selectedViewPackage.id, views: selectedViewPackage.views, price: selectedViewPackage.price });
+    
+    const totalBalance = getTotalBalance();
     if (totalBalance < selectedViewPackage.price) {
       Alert.alert(
         language === 'az' ? 'Kifayət qədər balans yoxdur' : 'Недостаточно средств',
@@ -327,37 +347,26 @@ export default function PromoteListingScreen() {
     }
     
     const approved = await confirm(confirmMessage, language === 'az' ? 'Təsdiq edin' : 'Подтвердите');
-    if (!approved) return;
+    if (!approved) {
+      logger.info('[PromoteListing] User cancelled views purchase');
+      return;
+    }
+    
     setIsProcessing(true);
     try {
-      // ✅ Spend money with proper validation
-      let remainingAmount = selectedViewPackage.price;
-      let paymentSuccess = true;
-      
-      if (bonusBalance > 0) {
-        const bonusToSpend = Math.min(bonusBalance, remainingAmount);
-        const bonusSuccess = spendFromBonus(bonusToSpend);
-        if (bonusSuccess) {
-          remainingAmount -= bonusToSpend;
-        } else {
-          paymentSuccess = false;
-        }
-      }
-      
-      if (paymentSuccess && remainingAmount > 0) {
-        const walletSuccess = spendFromWallet(remainingAmount);
-        if (!walletSuccess) {
-          paymentSuccess = false;
-        }
-      }
+      // ✅ Use spendFromBalance for automatic bonus → wallet ordering
+      const paymentSuccess = spendFromBalance(selectedViewPackage.price);
       
       if (!paymentSuccess) {
+        logger.error('[PromoteListing] Views payment failed:', { price: selectedViewPackage.price, balance: getTotalBalance() });
         Alert.alert(
           language === 'az' ? 'Xəta' : 'Ошибка',
           language === 'az' ? 'Ödəniş uğursuz oldu' : 'Платеж не удался'
         );
         return;
       }
+      
+      logger.info('[PromoteListing] Views payment successful:', { price: selectedViewPackage.price });
       await purchaseViews(listing.id, selectedViewPackage.views);
       let successMessage = language === 'az'
         ? `Elanınız ${selectedViewPackage.views} əlavə baxış aldı və ön sıralara keçdi!\n\n🎯 Elanınız ${targetViews} baxışa çatana qədər ön sıralarda qalacaq.`
@@ -368,8 +377,10 @@ export default function PromoteListingScreen() {
           : `\n\n💡 Неиспользованные просмотры автоматически применятся к новым объявлениям после истечения текущего.`;
       }
       Alert.alert(language === 'az' ? 'Uğurlu!' : 'Успешно!', successMessage);
+      logger.info('[PromoteListing] Views purchased successfully');
       router.back();
-    } catch {
+    } catch (error) {
+      logger.error('[PromoteListing] Views purchase failed:', error);
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Baxış alışı zamanı xəta baş verdi' : 'Произошла ошибка при покупке просмотров'
