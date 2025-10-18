@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import { useListingStore } from '@/store/listingStore';
 import { useRatingStore } from '@/store/ratingStore'; // ✅ Import rating store
 import StoreExpirationManager from '@/components/StoreExpirationManager';
 import Colors from '@/constants/colors';
+import { logger } from '@/utils/logger';
 import {
   ArrowLeft,
   Store,
@@ -62,6 +63,18 @@ export default function MyStoreScreen() {
   const canReactivate = userStore ? canStoreBeReactivated(userStore.id) : false;
   const storePlans = getStorePlans();
   
+  // ✅ Log screen access
+  useEffect(() => {
+    logger.info('[MyStore] Screen opened:', { 
+      hasStore: !!userStore,
+      storeId: userStore?.id,
+      storeName: userStore?.name,
+      storeStatus: currentStoreStatus,
+      adsUsed: storeUsage?.used,
+      adsMax: storeUsage?.max
+    });
+  }, []);
+  
   // Get store listings
   const storeListings = userStore 
     ? listings.filter(listing => 
@@ -72,7 +85,15 @@ export default function MyStoreScreen() {
     : [];
   
   const handleDeleteStore = () => {
-    if (!userStore) return;
+    if (!userStore) {
+      logger.warn('[MyStore] Delete attempt without store');
+      return;
+    }
+    
+    logger.info('[MyStore] Delete store initiated:', { 
+      storeId: userStore.id,
+      storeName: userStore.name
+    });
     
     Alert.alert(
       language === 'az' ? 'Mağazanı sil' : 'Удалить магазин',
@@ -81,21 +102,25 @@ export default function MyStoreScreen() {
         : 'Вы уверены, что хотите удалить свой магазин? Это действие нельзя отменить.',
       [
         {
-          text: language === 'az' ? 'Ləğv et' : 'Отмена',
-          style: 'cancel'
+          text: language === 'az' ? 'Ləğv et' : 'Отmena',
+          style: 'cancel',
+          onPress: () => logger.info('[MyStore] Delete store cancelled')
         },
         {
           text: language === 'az' ? 'Sil' : 'Удалить',
           style: 'destructive',
           onPress: async () => {
             try {
+              logger.info('[MyStore] Deleting store:', { storeId: userStore.id });
               await deleteStore(userStore.id);
+              logger.info('[MyStore] Store deleted successfully:', { storeId: userStore.id });
               Alert.alert(
                 language === 'az' ? 'Uğurlu!' : 'Успешно!',
                 language === 'az' ? 'Mağaza silindi' : 'Магазин удален'
               );
               router.back();
             } catch (error) {
+              logger.error('[MyStore] Store deletion failed:', error);
               Alert.alert(
                 language === 'az' ? 'Xəta' : 'Ошибка',
                 language === 'az' ? 'Mağaza silinərkən xəta baş verdi' : 'Ошибка при удалении магазина'
@@ -108,7 +133,17 @@ export default function MyStoreScreen() {
   };
   
   const handleDeleteListing = (listingId: string) => {
-    if (!userStore) return;
+    if (!userStore) {
+      logger.warn('[MyStore] Delete listing attempt without store');
+      return;
+    }
+    
+    const listing = storeListings.find(l => l.id === listingId);
+    logger.info('[MyStore] Delete listing initiated:', { 
+      storeId: userStore.id,
+      listingId,
+      listingTitle: listing?.title?.az || listing?.title?.ru
+    });
     
     Alert.alert(
       language === 'az' ? 'Elanı sil' : 'Удалить объявление',
@@ -118,19 +153,23 @@ export default function MyStoreScreen() {
       [
         {
           text: language === 'az' ? 'Ləğv et' : 'Отмена',
-          style: 'cancel'
+          style: 'cancel',
+          onPress: () => logger.info('[MyStore] Delete listing cancelled')
         },
         {
           text: language === 'az' ? 'Sil' : 'Удалить',
           style: 'destructive',
           onPress: async () => {
             try {
+              logger.info('[MyStore] Deleting listing:', { storeId: userStore.id, listingId });
               await deleteListingEarly(userStore.id, listingId);
+              logger.info('[MyStore] Listing deleted successfully:', { listingId });
               Alert.alert(
                 language === 'az' ? 'Uğurlu!' : 'Успешно!',
                 language === 'az' ? 'Elan silindi' : 'Объявление удалено'
               );
             } catch (error) {
+              logger.error('[MyStore] Listing deletion failed:', error);
               Alert.alert(
                 language === 'az' ? 'Xəta' : 'Ошибка',
                 language === 'az' ? 'Elan silinərkən xəta baş verdi' : 'Ошибка при удалении объявления'
