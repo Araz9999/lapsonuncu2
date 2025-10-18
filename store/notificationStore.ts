@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native'; // ✅ Import Platform
 
 export interface Notification {
   id: string;
@@ -44,17 +45,18 @@ export const useNotificationStore = create<NotificationState>()(
           unreadCount: state.unreadCount + 1,
         }));
         
-        // Trigger haptic feedback for notification on mobile
-        if (typeof window !== 'undefined' && 'navigator' in window) {
-          import('react-native').then(({ Platform }) => {
-            if (Platform.OS !== 'web') {
-              import('expo-haptics').then((Haptics) => {
-                if (Haptics && Haptics.notificationAsync) {
-                  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-                }
-              }).catch(() => {});
+        // ✅ Trigger haptic feedback for notification on mobile (simplified)
+        if (Platform.OS !== 'web') {
+          (async () => {
+            try {
+              const Haptics = await import('expo-haptics');
+              await Haptics.notificationAsync(
+                Haptics.NotificationFeedbackType.Success
+              );
+            } catch (error) {
+              // Haptics not available - silent fail (optional feature)
             }
-          }).catch(() => {});
+          })();
         }
       },
       
