@@ -110,21 +110,33 @@ export default function StoreAnalyticsScreen() {
   const storeListings = listings.filter(l => l.storeId === store?.id);
 
   useEffect(() => {
-    // Simulate loading analytics data based on time range
+    // ✅ Simulate loading analytics data based on time range
     const loadAnalytics = () => {
-      // In a real app, this would fetch data from API
-      const multiplier = selectedTimeRange === '7d' ? 0.3 : 
-                        selectedTimeRange === '30d' ? 1 : 
-                        selectedTimeRange === '90d' ? 2.5 : 8;
-      
-      setAnalyticsData(prev => ({
-        ...prev,
-        views: Math.floor(prev.views * multiplier),
-        favorites: Math.floor(prev.favorites * multiplier),
-        messages: Math.floor(prev.messages * multiplier),
-        sales: Math.floor(prev.sales * multiplier),
-        revenue: Math.floor(prev.revenue * multiplier)
-      }));
+      try {
+        // In a real app, this would fetch data from API
+        const multiplier = selectedTimeRange === '7d' ? 0.3 : 
+                          selectedTimeRange === '30d' ? 1 : 
+                          selectedTimeRange === '90d' ? 2.5 : 8;
+        
+        // ✅ Use base values to prevent accumulation
+        const baseViews = 12450;
+        const baseFavorites = 234;
+        const baseMessages = 89;
+        const baseSales = 45;
+        const baseRevenue = 2340;
+        
+        setAnalyticsData(prev => ({
+          ...prev,
+          views: Math.floor(baseViews * multiplier),
+          favorites: Math.floor(baseFavorites * multiplier),
+          messages: Math.floor(baseMessages * multiplier),
+          sales: Math.floor(baseSales * multiplier),
+          revenue: Math.floor(baseRevenue * multiplier)
+        }));
+      } catch (error) {
+        // ✅ Fallback on error
+        setAnalyticsData(prev => prev);
+      }
     };
 
     loadAnalytics();
@@ -159,11 +171,19 @@ export default function StoreAnalyticsScreen() {
     title: string,
     value: string | number,
     change: number,
-    icon: React.ComponentType<any>,
+    icon: React.ComponentType<{size: number; color: string}>,
     color: string = colors.primary
   ) => {
+    // ✅ Validate inputs
+    if (!title || typeof change !== 'number' || isNaN(change) || !isFinite(change)) {
+      return null;
+    }
+    
     const isPositive = change >= 0;
     const IconComponent = icon;
+    
+    // ✅ Format change value
+    const formattedChange = Math.abs(change).toFixed(1);
     
     return (
       <View style={styles.statCard}>
@@ -181,7 +201,7 @@ export default function StoreAnalyticsScreen() {
               styles.changeText,
               { color: isPositive ? colors.success : colors.error }
             ]}>
-              {Math.abs(change)}%
+              {formattedChange}%
             </Text>
           </View>
         </View>
@@ -192,27 +212,42 @@ export default function StoreAnalyticsScreen() {
   };
 
   const renderChart = () => {
-    const maxValue = Math.max(...viewsChartData.map(d => d.value));
+    // ✅ Handle empty data
+    if (!viewsChartData || viewsChartData.length === 0) {
+      return (
+        <View style={styles.chartContainer}>
+          <Text style={styles.chartTitle}>Həftəlik Baxışlar</Text>
+          <Text style={[styles.statTitle, { textAlign: 'center', marginTop: 20 }]}>
+            Məlumat yoxdur
+          </Text>
+        </View>
+      );
+    }
+    
+    // ✅ Prevent division by zero
+    const maxValue = Math.max(...viewsChartData.map(d => d.value), 1);
     
     return (
       <View style={styles.chartContainer}>
         <Text style={styles.chartTitle}>Həftəlik Baxışlar</Text>
         <View style={styles.chart}>
           {viewsChartData.map((data, index) => {
-            const height = (data.value / maxValue) * 120;
+            // ✅ Safe height calculation
+            const height = maxValue > 0 ? (data.value / maxValue) * 120 : 0;
+            
             return (
               <View key={index} style={styles.chartBar}>
                 <View
                   style={[
                     styles.bar,
                     {
-                      height,
+                      height: Math.max(height, 2), // ✅ Min height 2px
                       backgroundColor: data.color
                     }
                   ]}
                 />
                 <Text style={styles.barLabel}>{data.label}</Text>
-                <Text style={styles.barValue}>{data.value}</Text>
+                <Text style={styles.barValue}>{data.value.toLocaleString()}</Text>
               </View>
             );
           })}
@@ -222,36 +257,60 @@ export default function StoreAnalyticsScreen() {
   };
 
   const renderTopListings = () => {
+    // ✅ Handle empty listings
+    if (!topPerformingListings || topPerformingListings.length === 0) {
+      return (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Ən Çox Baxılan Elanlar</Text>
+          <Text style={[styles.statTitle, { textAlign: 'center', marginTop: 20 }]}>
+            Elan yoxdur
+          </Text>
+        </View>
+      );
+    }
+    
     return (
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Ən Çox Baxılan Elanlar</Text>
-        {topPerformingListings.map((listing, index) => (
-          <TouchableOpacity
-            key={listing.id}
-            style={styles.listingItem}
-            onPress={() => router.push(`/listing/${listing.id}`)}
-          >
-            <View style={styles.listingRank}>
-              <Text style={styles.rankText}>{index + 1}</Text>
-            </View>
-            <View style={styles.listingContent}>
-              <Text style={styles.listingTitle} numberOfLines={1}>
-                {getLocalizedText(listing.title, language)}
-              </Text>
-              <Text style={styles.listingPrice}>{listing.price} AZN</Text>
-            </View>
-            <View style={styles.listingStats}>
-              <View style={styles.statItem}>
-                <Eye size={14} color={colors.textSecondary} />
-                <Text style={styles.statText}>{listing.views || 0}</Text>
+        {topPerformingListings.map((listing, index) => {
+          // ✅ Null-safety checks
+          const title = listing?.title ? getLocalizedText(listing.title, language) : 'Başlıqsız';
+          const price = listing?.price || 0;
+          const views = listing?.views || 0;
+          const favorites = (listing as {favorites?: number}).favorites || 0;
+          
+          return (
+            <TouchableOpacity
+              key={listing.id}
+              style={styles.listingItem}
+              onPress={() => {
+                if (listing?.id) {
+                  router.push(`/listing/${listing.id}`);
+                }
+              }}
+            >
+              <View style={styles.listingRank}>
+                <Text style={styles.rankText}>{index + 1}</Text>
               </View>
-              <View style={styles.statItem}>
-                <Heart size={14} color={colors.textSecondary} />
-                <Text style={styles.statText}>{(listing as any).favorites || 0}</Text>
+              <View style={styles.listingContent}>
+                <Text style={styles.listingTitle} numberOfLines={1}>
+                  {title}
+                </Text>
+                <Text style={styles.listingPrice}>{price.toFixed(2)} AZN</Text>
               </View>
-            </View>
-          </TouchableOpacity>
-        ))}
+              <View style={styles.listingStats}>
+                <View style={styles.statItem}>
+                  <Eye size={14} color={colors.textSecondary} />
+                  <Text style={styles.statText}>{views.toLocaleString()}</Text>
+                </View>
+                <View style={styles.statItem}>
+                  <Heart size={14} color={colors.textSecondary} />
+                  <Text style={styles.statText}>{favorites.toLocaleString()}</Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          );
+        })}
       </View>
     );
   };
