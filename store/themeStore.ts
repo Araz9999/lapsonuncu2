@@ -135,10 +135,14 @@ export const useThemeStore = create<ThemeState>()(
         
         if (Platform.OS !== 'web') {
           try {
-            // Use system notification sound with haptic feedback
-            const Haptics = await import('expo-haptics');
-            await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            logger.debug('Playing notification sound with haptic feedback');
+            // ✅ Check vibration setting before haptic
+            if (state.vibrationEnabled) {
+              const Haptics = await import('expo-haptics');
+              await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              logger.debug('Playing notification sound with haptic feedback');
+            } else {
+              logger.debug('Playing notification sound without haptic (disabled)');
+            }
           } catch (error) {
             logger.debug('Failed to play notification sound:', error);
           }
