@@ -10,11 +10,14 @@ export interface Listing {
   location: LocalizedText;
   categoryId: number;
   subcategoryId: number;
+  subSubcategoryId?: number; // Added sub-subcategory ID (3rd level)
   images: string[];
   userId: string;
   createdAt: string;
   expiresAt: string; // Added expiration date
   deletedAt?: string; // Added early deletion date
+  archivedAt?: string; // When listing was auto-archived
+  isArchived?: boolean; // Whether listing is archived
   storeId?: string; // Added store association
   storeAddress?: string; // Store address for store listings
   storeContact?: {

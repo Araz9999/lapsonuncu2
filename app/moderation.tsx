@@ -37,6 +37,22 @@ export default function ModerationScreen() {
 
   // Check if user has moderation permissions
   const canAccessModeration = currentUser?.role === 'admin' || currentUser?.role === 'moderator';
+  
+  // ✅ Get moderator permissions
+  const hasPermission = (permission: string) => {
+    if (!currentUser) return false;
+    if (currentUser.role === 'admin') return true; // Admin has all permissions
+    if (currentUser.role === 'moderator' && currentUser.moderatorInfo) {
+      return currentUser.moderatorInfo.permissions.includes(permission as any);
+    }
+    return false;
+  };
+  
+  const canManageReports = hasPermission('manage_reports');
+  const canManageTickets = hasPermission('manage_tickets');
+  const canManageUsers = hasPermission('manage_users');
+  const canManageModerators = hasPermission('manage_moderators');
+  const canViewAnalytics = hasPermission('view_analytics');
 
   useEffect(() => {
     if (!canAccessModeration) {
@@ -70,7 +86,7 @@ export default function ModerationScreen() {
   }: {
     title: string;
     value: number;
-    icon: any;
+    icon: React.ComponentType<{size: number; color: string}>; // ✅ Proper type
     color: string;
     onPress?: () => void;
   }) => (
@@ -97,7 +113,7 @@ export default function ModerationScreen() {
   }: {
     title: string;
     subtitle: string;
-    icon: any;
+    icon: React.ComponentType<{size: number; color: string}>; // ✅ Proper type
     onPress: () => void;
     badge?: number;
     color?: string;
@@ -165,28 +181,28 @@ export default function ModerationScreen() {
           <View style={styles.statsGrid}>
             <StatCard
               title={language === 'az' ? 'Gözləyən şikayətlər' : 'Ожидающие жалобы'}
-              value={pendingReports.length}
+              value={pendingReports?.length || 0} {/* ✅ Null-safe */}
               icon={Clock}
               color="#F59E0B"
               onPress={() => showComingSoon(language === 'az' ? 'Şikayətlər' : 'Жалобы')}
             />
             <StatCard
               title={language === 'az' ? 'Açıq biletlər' : 'Открытые тикеты'}
-              value={openTickets.length + inProgressTickets.length}
+              value={(openTickets?.length || 0) + (inProgressTickets?.length || 0)} {/* ✅ Null-safe */}
               icon={HelpCircle}
               color="#3B82F6"
               onPress={() => showComingSoon(language === 'az' ? 'Dəstək biletləri' : 'Тикеты поддержки')}
             />
             <StatCard
               title={language === 'az' ? 'Moderatorlar' : 'Модераторы'}
-              value={moderators.length}
+              value={moderators?.length || 0} {/* ✅ Null-safe */}
               icon={UserCheck}
               color="#10B981"
               onPress={() => showComingSoon(language === 'az' ? 'Moderatorlar' : 'Модераторы')}
             />
             <StatCard
               title={language === 'az' ? 'Həll edilmiş' : 'Решенные'}
-              value={stats.resolvedReports}
+              value={stats?.resolvedReports || 0} {/* ✅ Null-safe */}
               icon={CheckCircle}
               color="#059669"
             />
@@ -199,63 +215,79 @@ export default function ModerationScreen() {
             {language === 'az' ? 'Sürətli əməliyyatlar' : 'Быстрые действия'}
           </Text>
           
-          <MenuCard
-            title={language === 'az' ? 'Şikayətləri idarə et' : 'Управление жалобами'}
-            subtitle={language === 'az' 
-              ? `${pendingReports.length} gözləyən şikayət` 
-              : `${pendingReports.length} ожидающих жалоб`
-            }
-            icon={Flag}
-            onPress={() => showComingSoon(language === 'az' ? 'Şikayətlər' : 'Жалобы')}
-            badge={pendingReports.length}
-            color="#EF4444"
-          />
+          {/* ✅ Only show if user has manage_reports permission */}
+          {canManageReports && (
+            <MenuCard
+              title={language === 'az' ? 'Şikayətləri idarə et' : 'Управление жалобами'}
+              subtitle={language === 'az' 
+                ? `${pendingReports?.length || 0} gözləyən şikayət` 
+                : `${pendingReports?.length || 0} ожидающих жалоб`
+              }
+              icon={Flag}
+              onPress={() => showComingSoon(language === 'az' ? 'Şikayətlər' : 'Жалобы')}
+              badge={pendingReports?.length || 0}
+              color="#EF4444"
+            />
+          )}
 
-          <MenuCard
-            title={language === 'az' ? 'Dəstək biletləri' : 'Тикеты поддержки'}
-            subtitle={language === 'az' 
-              ? `${openTickets.length + inProgressTickets.length} aktiv bilet` 
-              : `${openTickets.length + inProgressTickets.length} активных тикетов`
-            }
-            icon={HelpCircle}
-            onPress={() => showComingSoon(language === 'az' ? 'Dəstək biletləri' : 'Тикеты поддержки')}
-            badge={openTickets.length + inProgressTickets.length}
-            color="#3B82F6"
-          />
+          {/* ✅ Only show if user has manage_tickets permission */}
+          {canManageTickets && (
+            <MenuCard
+              title={language === 'az' ? 'Dəstək biletləri' : 'Тикеты поддержки'}
+              subtitle={language === 'az' 
+                ? `${(openTickets?.length || 0) + (inProgressTickets?.length || 0)} aktiv bilet` 
+                : `${(openTickets?.length || 0) + (inProgressTickets?.length || 0)} активных тикетов`
+              }
+              icon={HelpCircle}
+              onPress={() => showComingSoon(language === 'az' ? 'Dəstək biletləri' : 'Тикеты поддержки')}
+              badge={(openTickets?.length || 0) + (inProgressTickets?.length || 0)}
+              color="#3B82F6"
+            />
+          )}
 
-          <MenuCard
-            title={language === 'az' ? 'İstifadəçi idarəetməsi' : 'Управление пользователями'}
-            subtitle={language === 'az' 
-              ? 'İstifadəçiləri idarə edin və moderasiya edin' 
-              : 'Управляйте и модерируйте пользователей'
-            }
-            icon={Users}
-            onPress={() => showComingSoon(language === 'az' ? 'İstifadəçi idarəetməsi' : 'Управление пользователями')}
-            color="#8B5CF6"
-          />
+          {/* ✅ Only show if user has manage_users permission */}
+          {canManageUsers && (
+            <MenuCard
+              title={language === 'az' ? 'İstifadəçi idarəetməsi' : 'Управление пользователями'}
+              subtitle={language === 'az' 
+                ? 'İstifadəçiləri idarə edin və moderasiya edin' 
+                : 'Управляйте и модерируйте пользователей'
+              }
+              icon={Users}
+              onPress={() => showComingSoon(language === 'az' ? 'İstifadəçi idarəetməsi' : 'Управление пользователями')}
+              color="#8B5CF6"
+            />
+          )}
 
-          <MenuCard
-            title={language === 'az' ? 'Moderator idarəetməsi' : 'Управление модераторами'}
-            subtitle={language === 'az' 
-              ? `${moderators.length} aktiv moderator` 
-              : `${moderators.length} активных модераторов`
-            }
-            icon={UserCheck}
-            onPress={() => showComingSoon(language === 'az' ? 'Moderator idarəetməsi' : 'Управление модераторами')}
-            color="#10B981"
-          />
+          {/* ✅ Only show if user has manage_moderators permission */}
+          {canManageModerators && (
+            <MenuCard
+              title={language === 'az' ? 'Moderator idarəetməsi' : 'Управление модераторами'}
+              subtitle={language === 'az' 
+                ? `${moderators?.length || 0} aktiv moderator` 
+                : `${moderators?.length || 0} активных модераторов`
+              }
+              icon={UserCheck}
+              onPress={() => showComingSoon(language === 'az' ? 'Moderator idarəetməsi' : 'Управление модераторами')}
+              color="#10B981"
+            />
+          )}
 
-          <MenuCard
-            title={language === 'az' ? 'Analitika və hesabatlar' : 'Аналитика и отчеты'}
-            subtitle={language === 'az' 
-              ? 'Moderasiya statistikası və hesabatlar' 
-              : 'Статистика модерации и отчеты'
-            }
-            icon={BarChart3}
-            onPress={() => showComingSoon(language === 'az' ? 'Analitika' : 'Аналитика')}
-            color="#F59E0B"
-          />
+          {/* ✅ Only show if user has view_analytics permission */}
+          {canViewAnalytics && (
+            <MenuCard
+              title={language === 'az' ? 'Analitika və hesabatlar' : 'Аналитика и отчеты'}
+              subtitle={language === 'az' 
+                ? 'Moderasiya statistikası və hesabatlar' 
+                : 'Статистика модерации и отчеты'
+              }
+              icon={BarChart3}
+              onPress={() => showComingSoon(language === 'az' ? 'Analitika' : 'Аналитика')}
+              color="#F59E0B"
+            />
+          )}
 
+          {/* ✅ Settings always visible to all moderators */}
           <MenuCard
             title={language === 'az' ? 'Moderasiya tənzimləmələri' : 'Настройки модерации'}
             subtitle={language === 'az' 
@@ -266,6 +298,23 @@ export default function ModerationScreen() {
             onPress={() => showComingSoon(language === 'az' ? 'Moderasiya tənzimləmələri' : 'Настройки модерации')}
             color="#6B7280"
           />
+          
+          {/* ✅ Show warning if moderator has no permissions */}
+          {currentUser?.role === 'moderator' && 
+           !canManageReports && 
+           !canManageTickets && 
+           !canManageUsers && 
+           !canManageModerators && 
+           !canViewAnalytics && (
+            <View style={[styles.warningCard, { backgroundColor: `${colors.error}20` }]}>
+              <Text style={[styles.warningText, { color: colors.error }]}>
+                {language === 'az' 
+                  ? 'Sizin heç bir moderasiya icazəniz yoxdur. Admin ilə əlaqə saxlayın.' 
+                  : 'У вас нет прав модерации. Обратитесь к администратору.'
+                }
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Recent Activity */}
@@ -469,5 +518,15 @@ const styles = StyleSheet.create({
   },
   bottomSpacing: {
     height: 40,
+  },
+  warningCard: {
+    padding: 16,
+    borderRadius: 12,
+    marginTop: 8,
+  },
+  warningText: {
+    fontSize: 14,
+    textAlign: 'center',
+    fontWeight: '500',
   },
 });

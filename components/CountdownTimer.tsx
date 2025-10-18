@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,8 @@ import {
   TouchableOpacity,
   TextInput,
   Modal,
-  Alert
+  Alert,
+  Keyboard
 } from 'react-native';
 import { Timer, Edit3 } from 'lucide-react-native';
 
@@ -150,30 +151,36 @@ export default function CountdownTimer({
   }, [currentEndDate]);
 
   useEffect(() => {
-    let animationRef: any = null;
+    // ✅ Type-safe animation reference
+    let animationRef: Animated.CompositeAnimation | null = null;
     let isActive = true;
     
     const pulse = () => {
       if (!isActive) return;
       
-      animationRef = Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.1,
-          duration: 500,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 500,
-          useNativeDriver: true,
-        }),
-      ]);
-      
-      animationRef.start((finished: boolean) => {
-        if (finished && !isExpired && isActive) {
-          pulse();
-        }
-      });
+      try {
+        animationRef = Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.1,
+            duration: 500,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 500,
+            useNativeDriver: true,
+          }),
+        ]);
+        
+        animationRef.start((result) => {
+          // ✅ Check finished property
+          if (result.finished && !isExpired && isActive) {
+            pulse();
+          }
+        });
+      } catch (error) {
+        logger.error('[CountdownTimer] Animation error:', error);
+      }
     };
 
     if (!isExpired) {
@@ -182,66 +189,176 @@ export default function CountdownTimer({
     
     return () => {
       isActive = false;
-      if (animationRef) {
-        animationRef.stop();
+      try {
+        if (animationRef) {
+          animationRef.stop();
+          animationRef = null;  // ✅ Clear reference
+        }
+        // ✅ Reset animation value
+        pulseAnim.setValue(1);
+      } catch (error) {
+        logger.error('[CountdownTimer] Cleanup error:', error);
       }
     };
   }, [isExpired, pulseAnim]);
 
-  const handleManualTimeSet = () => {
-    const days = parseInt(manualTime.days, 10) || 0;
-    const hours = parseInt(manualTime.hours, 10) || 0;
-    const minutes = parseInt(manualTime.minutes, 10) || 0;
+  const handleManualTimeSet = useCallback(() => {
+    try {
+      // ✅ Parse and validate inputs
+      const daysStr = manualTime.days.trim();
+      const hoursStr = manualTime.hours.trim();
+      const minutesStr = manualTime.minutes.trim();
+      
+      // ✅ Check if inputs are provided
+      if (!daysStr && !hoursStr && !minutesStr) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Vaxt daxil edin' : 'Введите время'
+        );
+        return;
+      }
+      
+      const days = parseInt(daysStr, 10) || 0;
+      const hours = parseInt(hoursStr, 10) || 0;
+      const minutes = parseInt(minutesStr, 10) || 0;
+      
+      // ✅ Comprehensive validation
+      if (isNaN(days) || isNaN(hours) || isNaN(minutes)) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Yanlış rəqəmlər' : 'Неверные числа'
+        );
+        return;
+      }
 
-    if (days < 0 || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+      // ✅ Range validation
+      if (days < 0 || days > 365) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Gün 0-365 arasında olmalıdır' : 'Дни должны быть от 0 до 365'
+        );
+        return;
+      }
+      
+      if (hours < 0 || hours > 23) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Saat 0-23 arasında olmalıdır' : 'Часы должны быть от 0 до 23'
+        );
+        return;
+      }
+      
+      if (minutes < 0 || minutes > 59) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Dəqiqə 0-59 arasında olmalıdır' : 'Минуты должны быть от 0 до 59'
+        );
+        return;
+      }
+
+      // ✅ Check if time is zero
+      if (days === 0 && hours === 0 && minutes === 0) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Vaxt 0-dan böyük olmalıdır' : 'Время должно быть больше 0'
+        );
+        return;
+      }
+
+      // ✅ Calculate total milliseconds
+      const totalMilliseconds = 
+        (days * 24 * 60 * 60 * 1000) + 
+        (hours * 60 * 60 * 1000) + 
+        (minutes * 60 * 1000);
+      
+      // ✅ Check for overflow (max 1 year)
+      const MAX_DURATION_MS = 365 * 24 * 60 * 60 * 1000;
+      if (totalMilliseconds > MAX_DURATION_MS) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Maksimum müddət 365 gündür' : 'Максимальный срок 365 дней'
+        );
+        return;
+      }
+      
+      const newEndDate = new Date(Date.now() + totalMilliseconds);
+      
+      // ✅ Validate the created date
+      if (isNaN(newEndDate.getTime())) {
+        logger.error('[CountdownTimer] Invalid date created');
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Tarix yaradıla bilmədi' : 'Не удалось создать дату'
+        );
+        return;
+      }
+      
+      logger.debug('[CountdownTimer] Manual time set:', {
+        days, hours, minutes,
+        totalMs: totalMilliseconds,
+        newEndDate: newEndDate.toISOString(),
+        currentTime: new Date().toISOString()
+      });
+      
+      initialDurationMs.current = totalMilliseconds > 0 ? totalMilliseconds : 1000;
+      setShowManualInput(false);
+      setIsExpired(false);
+      
+      if (onTimeChange) {
+        onTimeChange(newEndDate);
+      }
+    } catch (error) {
+      logger.error('[CountdownTimer] Error setting manual time:', error);
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' ? 'Düzgün vaxt daxil edin' : 'Введите корректное время'
+        language === 'az' ? 'Vaxt təyin edilərkən xəta' : 'Ошибка при установке времени'
       );
-      return;
-    }
-
-    if (days === 0 && hours === 0 && minutes === 0) {
-      Alert.alert(
-        language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' ? 'Vaxt 0-dan böyük olmalıdır' : 'Время должно быть больше 0'
-      );
-      return;
-    }
-
-    const totalMilliseconds = (days * 24 * 60 * 60 * 1000) + (hours * 60 * 60 * 1000) + (minutes * 60 * 1000);
-    const newEndDate = new Date(Date.now() + totalMilliseconds);
-    
-    logger.debug('[CountdownTimer] Manual time set:', {
-      days, hours, minutes,
-      totalMs: totalMilliseconds,
-      newEndDate: newEndDate.toISOString(),
-      currentTime: new Date().toISOString()
-    });
-    
-    initialDurationMs.current = totalMilliseconds > 0 ? totalMilliseconds : 1000;
-    setShowManualInput(false);
-    setIsExpired(false);
-    
-    if (onTimeChange) {
-      onTimeChange(newEndDate);
     }
   };
 
-  const openManualInput = () => {
-    const now = new Date().getTime();
-    const distance = Math.max(0, currentEndDate.getTime() - now);
-    
-    const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-    
-    setManualTime({
-      days: days.toString(),
-      hours: hours.toString(),
-      minutes: minutes.toString()
-    });
-    setShowManualInput(true);
+  const openManualInput = useCallback(() => {
+    try {
+      const now = Date.now();
+      const endTs = currentEndDate.getTime();
+      
+      // ✅ Validate endDate
+      if (isNaN(endTs)) {
+        logger.error('[CountdownTimer] Invalid endDate in openManualInput');
+        // Set default to 1 day
+        setManualTime({
+          days: '1',
+          hours: '0',
+          minutes: '0'
+        });
+        setShowManualInput(true);
+        return;
+      }
+      
+      const distance = Math.max(0, endTs - now);
+      
+      const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+      
+      // ✅ Ensure values are within valid ranges
+      setManualTime({
+        days: Math.min(365, Math.max(0, days)).toString(),
+        hours: Math.min(23, Math.max(0, hours)).toString(),
+        minutes: Math.min(59, Math.max(0, minutes)).toString()
+      });
+      
+      setShowManualInput(true);
+      logger.debug('[CountdownTimer] Manual input opened:', { days, hours, minutes });
+    } catch (error) {
+      logger.error('[CountdownTimer] Error opening manual input:', error);
+      // Set default values on error
+      setManualTime({
+        days: '1',
+        hours: '0',
+        minutes: '0'
+      });
+      setShowManualInput(true);
+    }
   };
 
   const renderManualInputModal = () => (
@@ -249,10 +366,24 @@ export default function CountdownTimer({
       visible={showManualInput}
       transparent
       animationType="slide"
-      onRequestClose={() => setShowManualInput(false)}
+      onRequestClose={() => {
+        Keyboard.dismiss();
+        setShowManualInput(false);
+      }}
     >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
+      <TouchableOpacity 
+        style={styles.modalOverlay}
+        activeOpacity={1}
+        onPress={() => {
+          Keyboard.dismiss();
+          setShowManualInput(false);
+        }}
+      >
+        <TouchableOpacity 
+          style={styles.modalContent}
+          activeOpacity={1}
+          onPress={(e) => e.stopPropagation()}
+        >
           <Text style={styles.modalTitle}>
             {language === 'az' ? 'Vaxt Təyin Et' : 'Установить время'}
           </Text>
@@ -265,10 +396,19 @@ export default function CountdownTimer({
               <TextInput
                 style={styles.timeInput}
                 value={manualTime.days}
-                onChangeText={(text) => setManualTime(prev => ({ ...prev, days: text }))}
+                onChangeText={(text) => {
+                  // ✅ Filter to allow only digits
+                  const filtered = text.replace(/[^0-9]/g, '');
+                  // ✅ Limit to 3 digits (max 365)
+                  const limited = filtered.substring(0, 3);
+                  setManualTime(prev => ({ ...prev, days: limited }));
+                }}
                 keyboardType="numeric"
                 placeholder="0"
                 placeholderTextColor="#9CA3AF"
+                maxLength={3}
+                returnKeyType="next"
+                blurOnSubmit={false}
               />
             </View>
             
@@ -279,10 +419,19 @@ export default function CountdownTimer({
               <TextInput
                 style={styles.timeInput}
                 value={manualTime.hours}
-                onChangeText={(text) => setManualTime(prev => ({ ...prev, hours: text }))}
+                onChangeText={(text) => {
+                  // ✅ Filter to allow only digits
+                  const filtered = text.replace(/[^0-9]/g, '');
+                  // ✅ Limit to 2 digits (max 23)
+                  const limited = filtered.substring(0, 2);
+                  setManualTime(prev => ({ ...prev, hours: limited }));
+                }}
                 keyboardType="numeric"
                 placeholder="0"
                 placeholderTextColor="#9CA3AF"
+                maxLength={2}
+                returnKeyType="next"
+                blurOnSubmit={false}
               />
             </View>
             
@@ -293,10 +442,19 @@ export default function CountdownTimer({
               <TextInput
                 style={styles.timeInput}
                 value={manualTime.minutes}
-                onChangeText={(text) => setManualTime(prev => ({ ...prev, minutes: text }))}
+                onChangeText={(text) => {
+                  // ✅ Filter to allow only digits
+                  const filtered = text.replace(/[^0-9]/g, '');
+                  // ✅ Limit to 2 digits (max 59)
+                  const limited = filtered.substring(0, 2);
+                  setManualTime(prev => ({ ...prev, minutes: limited }));
+                }}
                 keyboardType="numeric"
                 placeholder="0"
                 placeholderTextColor="#9CA3AF"
+                maxLength={2}
+                returnKeyType="done"
+                onSubmitEditing={handleManualTimeSet}
               />
             </View>
           </View>
@@ -320,8 +478,8 @@ export default function CountdownTimer({
               </Text>
             </TouchableOpacity>
           </View>
-        </View>
-      </View>
+        </TouchableOpacity>
+      </TouchableOpacity>
     </Modal>
   );
 
@@ -414,13 +572,43 @@ export default function CountdownTimer({
               styles.progressFill,
               {
                 width: `${(() => {
-                  const endTs = currentEndDate?.getTime?.();
-                  const remaining = endTs && !isNaN(endTs) ? Math.max(0, endTs - Date.now()) : 0;
-                  const base = typeof initialDurationMs.current === 'number' && !isNaN(initialDurationMs.current) && initialDurationMs.current > 0 
-                    ? initialDurationMs.current 
-                    : (endTs && !isNaN(endTs) ? Math.max(1000, endTs - (Date.now() - 1000)) : 1000);
-                  const pct = 1 - remaining / base;
-                  return Math.max(0, Math.min(100, pct * 100));
+                  try {
+                    // ✅ Get current time
+                    const now = Date.now();
+                    
+                    // ✅ Get end timestamp
+                    const endTs = currentEndDate?.getTime?.();
+                    if (!endTs || isNaN(endTs)) {
+                      return 100; // Fully expired if invalid
+                    }
+                    
+                    // ✅ Calculate remaining time
+                    const remaining = Math.max(0, endTs - now);
+                    
+                    // ✅ Get initial duration
+                    let base = initialDurationMs.current;
+                    
+                    // ✅ Validate base duration
+                    if (typeof base !== 'number' || isNaN(base) || base <= 0) {
+                      // Fallback: use remaining time as base
+                      base = remaining > 0 ? remaining : 1000;
+                    }
+                    
+                    // ✅ If expired, return 100%
+                    if (remaining <= 0) {
+                      return 100;
+                    }
+                    
+                    // ✅ Calculate progress percentage (elapsed / total)
+                    const elapsed = base - remaining;
+                    const percentage = (elapsed / base) * 100;
+                    
+                    // ✅ Clamp between 0 and 100
+                    return Math.max(0, Math.min(100, percentage));
+                  } catch (error) {
+                    logger.error('[CountdownTimer] Progress calculation error:', error);
+                    return 0;
+                  }
                 })()}%`
               }
             ]}

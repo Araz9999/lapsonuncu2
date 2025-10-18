@@ -86,7 +86,7 @@ export default function StoresScreen() {
           <View style={styles.storesGrid}>
             {filteredStores.map((store) => {
               const isFollowing = currentUser ? isFollowingStore(currentUser.id, store.id) : false;
-              const averageRating = store.totalRatings > 0 ? store.rating / store.totalRatings : 0;
+              const averageRating = store.totalRatings > 0 ? store.rating / Math.max(store.totalRatings, 1) : 0;
               
               return (
                 <View key={store.id} style={styles.storeCard}>
