@@ -16,16 +16,16 @@ import { logger } from '@/utils/logger';
 export default function ProfileScreen() {
   const router = useRouter();
   const { t, language } = useTranslation();
-  const { isAuthenticated, logout, favorites, freeAdsThisMonth, walletBalance, bonusBalance } = useUserStore();
+  const { isAuthenticated, logout, favorites, freeAdsThisMonth, walletBalance, bonusBalance, currentUser } = useUserStore(); // ✅ Get real currentUser
   const { listings } = useListingStore();
   const { getUserStore } = useStoreStore();
   const { liveChats, getAvailableOperators } = useSupportStore();
   
   const [showLiveChat, setShowLiveChat] = React.useState<boolean>(false);
+  const [isDeleting, setIsDeleting] = React.useState<boolean>(false); // ✅ Loading state
   
-  // Mock current user (first user in the list)
-  const currentUser = users[0];
-  const userStore = getUserStore(currentUser.id);
+  // ✅ Use real currentUser from useUserStore (not mock data)
+  const userStore = currentUser ? getUserStore(currentUser.id) : null;
   
   // Get user's active chats for live support
   const userChats = isAuthenticated ? liveChats.filter(chat => 
@@ -47,6 +47,21 @@ export default function ProfileScreen() {
   };
 
   const handleDeleteProfile = () => {
+    // ✅ Validate user exists
+    if (!currentUser) {
+      Alert.alert(
+        t('error'),
+        language === 'az' ? 'İstifadəçi tapılmadı' : 'Пользователь не найден'
+      );
+      return;
+    }
+    
+    // ✅ Prevent deletion if already in progress
+    if (isDeleting) {
+      logger.debug('[handleDeleteProfile] Deletion already in progress, ignoring');
+      return;
+    }
+    
     logger.debug('[handleDeleteProfile] Delete profile button pressed');
     Alert.alert(
       t('deleteProfile'),
@@ -62,51 +77,61 @@ export default function ProfileScreen() {
           style: 'destructive',
           onPress: () => {
             logger.debug('[handleDeleteProfile] First confirmation accepted, showing second confirmation');
-            setTimeout(() => {
-              Alert.alert(
-                t('confirmDelete'),
-                t('areYouSure'),
-                [
-                  {
-                    text: t('cancel'),
-                    style: 'cancel',
-                    onPress: () => logger.debug('[handleDeleteProfile] Second confirmation cancelled')
+            // ✅ No setTimeout needed - show second confirmation immediately
+            Alert.alert(
+              t('confirmDelete'),
+              t('areYouSure'),
+              [
+                {
+                  text: t('cancel'),
+                  style: 'cancel',
+                  onPress: () => logger.debug('[handleDeleteProfile] Second confirmation cancelled')
+                },
+                {
+                  text: t('yes'),
+                  style: 'destructive',
+                  onPress: async () => {
+                    setIsDeleting(true); // ✅ Set loading state
+                    logger.debug('[handleDeleteProfile] Profile deletion confirmed, calling API');
+                    
+                    try {
+                      await authService.deleteAccount();
+                      logout();
+                      logger.debug('[handleDeleteProfile] Account deleted and logged out, navigating to login');
+                      
+                      // ✅ Show success and auto-navigate
+                      Alert.alert(
+                        t('success'),
+                        language === 'az' 
+                          ? 'Profil uğurla silindi. Giriş səhifəsinə yönləndirilirsiniz...' 
+                          : 'Профиль успешно удален. Перенаправление на страницу входа...',
+                        [],
+                        { cancelable: false }
+                      );
+                      
+                      // ✅ Auto-navigate after 2 seconds
+                      setTimeout(() => {
+                        logger.debug('[handleDeleteProfile] Navigating to login screen');
+                        router.push('/auth/login');
+                      }, 2000);
+                    } catch (error) {
+                      logger.error('[handleDeleteProfile] Error during profile deletion:', error);
+                      
+                      // ✅ Show detailed error message
+                      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                      Alert.alert(
+                        t('error'),
+                        language === 'az' 
+                          ? `Profil silinərkən xəta baş verdi: ${errorMessage}` 
+                          : `Произошла ошибка при удалении профиля: ${errorMessage}`
+                      );
+                    } finally {
+                      setIsDeleting(false); // ✅ Reset loading state
+                    }
                   },
-                  {
-                    text: t('yes'),
-                    style: 'destructive',
-                    onPress: async () => {
-                      logger.debug('[handleDeleteProfile] Profile deletion confirmed, calling API');
-                      try {
-                        await authService.deleteAccount();
-                        logout();
-                        logger.debug('[handleDeleteProfile] Account deleted and logged out, navigating to login');
-                        Alert.alert(
-                          t('success'),
-                          language === 'az' ? 'Profil uğurla silindi' : 'Профиль успешно удален',
-                          [
-                            {
-                              text: 'OK',
-                              onPress: () => {
-                                logger.debug('[handleDeleteProfile] Navigating to login screen');
-                                router.push('/auth/login');
-                              }
-                            }
-                          ],
-                          { cancelable: false }
-                        );
-                      } catch (error) {
-                        logger.error('[handleDeleteProfile] Error during profile deletion:', error);
-                        Alert.alert(
-                          t('error'),
-                          language === 'az' ? 'Profil silinərkən xəta baş verdi' : 'Произошла ошибка при удалении профиля'
-                        );
-                      }
-                    },
-                  },
-                ]
-              );
-            }, 100);
+                },
+              ]
+            );
           },
         },
       ]
