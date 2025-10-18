@@ -16,6 +16,7 @@ import { useLanguageStore } from '@/store/languageStore';
 import { useThemeStore } from '@/store/themeStore';
 import { getColors } from '@/constants/colors';
 import { users } from '@/mocks/users';
+import { logger } from '@/utils/logger';
 
 export default function BlockedUsersScreen() {
   const { language } = useLanguageStore();
@@ -48,43 +49,99 @@ export default function BlockedUsersScreen() {
 
   const t = texts[language];
 
-  const blockedUsersList = users.filter(user => blockedUsers.includes(user.id));
+  logger.info('[BlockedUsers] Screen opened:', { 
+    totalBlocked: blockedUsers.length,
+    userId: users[0]?.id // Just for context
+  });
+  
+  const blockedUsersList = users.filter(user => {
+    if (!user || !user.id) {
+      logger.warn('[BlockedUsers] Invalid user in users list:', user);
+      return false;
+    }
+    return blockedUsers.includes(user.id);
+  });
 
   const handleUnblock = (userId: string) => {
+    if (!userId || typeof userId !== 'string') {
+      logger.error('[BlockedUsers] Invalid userId for unblock:', userId);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'İstifadəçi tapılmadı' : 'Пользователь не найден'
+      );
+      return;
+    }
+    
+    logger.info('[BlockedUsers] Unblock confirmation requested:', { userId });
+    
     Alert.alert(
       '',
       t.unblockConfirm,
       [
-        { text: t.no, style: 'cancel' },
+        { 
+          text: t.no, 
+          style: 'cancel',
+          onPress: () => logger.info('[BlockedUsers] Unblock cancelled:', { userId })
+        },
         {
           text: t.yes,
           onPress: () => {
-            unblockUser(userId);
-            Alert.alert('', t.unblockSuccess);
+            try {
+              logger.info('[BlockedUsers] Unblocking user:', { userId });
+              unblockUser(userId);
+              logger.info('[BlockedUsers] User unblocked successfully:', { userId });
+              Alert.alert('', t.unblockSuccess);
+            } catch (error) {
+              logger.error('[BlockedUsers] Failed to unblock user:', error);
+              Alert.alert(
+                language === 'az' ? 'Xəta' : 'Ошибка',
+                language === 'az' 
+                  ? 'Blokdan çıxarma uğursuz oldu' 
+                  : 'Не удалось разблокировать'
+              );
+            }
           },
         },
       ]
     );
   };
 
-  const renderBlockedUser = ({ item }: { item: typeof users[0] }) => (
-    <View style={[styles.userCard, { backgroundColor: colors.card }]}>
-      <Image source={{ uri: item.avatar }} style={styles.avatar} />
-      <View style={styles.userInfo}>
-        <Text style={[styles.userName, { color: colors.text }]}>{item.name}</Text>
-        <Text style={[styles.userLocation, { color: colors.textSecondary }]}>
-          {item.location[language] || item.location.az}
-        </Text>
+  const renderBlockedUser = ({ item }: { item: typeof users[0] }) => {
+    if (!item) {
+      logger.warn('[BlockedUsers] Null item in renderBlockedUser');
+      return null;
+    }
+    
+    if (!item.id || !item.name) {
+      logger.warn('[BlockedUsers] Invalid user data:', { id: item.id, hasName: !!item.name });
+      return null;
+    }
+    
+    return (
+      <View style={[styles.userCard, { backgroundColor: colors.card }]}>
+        <Image 
+          source={{ uri: item.avatar }} 
+          style={styles.avatar}
+          onError={(error) => {
+            logger.warn('[BlockedUsers] Avatar load failed:', { userId: item.id, error });
+          }}
+        />
+        <View style={styles.userInfo}>
+          <Text style={[styles.userName, { color: colors.text }]}>{item.name}</Text>
+          <Text style={[styles.userLocation, { color: colors.textSecondary }]}>
+            {item.location?.[language] || item.location?.az || ''}
+          </Text>
+        </View>
+        <TouchableOpacity
+          style={[styles.unblockButton, { backgroundColor: colors.success + '20' }]}
+          onPress={() => handleUnblock(item.id)}
+        >
+          <UserCheck size={20} color={colors.success} />
+          <Text style={[styles.unblockText, { color: colors.success }]}>{t.unblock}</Text>
+        </TouchableOpacity>
       </View>
-      <TouchableOpacity
-        style={[styles.unblockButton, { backgroundColor: colors.success + '20' }]}
-        onPress={() => handleUnblock(item.id)}
-      >
-        <UserCheck size={20} color={colors.success} />
-        <Text style={[styles.unblockText, { color: colors.success }]}>{t.unblock}</Text>
-      </TouchableOpacity>
-    </View>
-  );
+    );
+  };
 
   const renderEmptyState = () => (
     <View style={styles.emptyState}>

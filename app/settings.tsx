@@ -824,8 +824,28 @@ export default function SettingsScreen() {
               <Switch
                 value={currentUser?.privacySettings?.hidePhoneNumber ?? false}
                 onValueChange={(value) => {
-                  if (currentUser) {
+                  if (!currentUser) {
+                    logger.error('[Settings] No current user for privacy update');
+                    Alert.alert(
+                      language === 'az' ? 'Xəta' : 'Ошибка',
+                      language === 'az' ? 'İstifadəçi tapılmadı' : 'Пользователь не найден'
+                    );
+                    return;
+                  }
+                  
+                  logger.info('[Settings] Updating hidePhoneNumber:', { value, userId: currentUser.id });
+                  
+                  try {
                     updatePrivacySettings({ hidePhoneNumber: value });
+                    logger.info('[Settings] hidePhoneNumber updated successfully');
+                  } catch (error) {
+                    logger.error('[Settings] Failed to update hidePhoneNumber:', error);
+                    Alert.alert(
+                      language === 'az' ? 'Xəta' : 'Ошибка',
+                      language === 'az' 
+                        ? 'Məxfilik tənzimləməsi yenilənə bilmədi' 
+                        : 'Не удалось обновить настройки конфиденциальности'
+                    );
                   }
                 }}
                 trackColor={{ false: colors.border, true: colors.primary }}
@@ -845,11 +865,34 @@ export default function SettingsScreen() {
               <Switch
                 value={currentUser?.privacySettings?.onlyAppMessaging ?? false}
                 onValueChange={(value) => {
-                  if (currentUser) {
+                  if (!currentUser) {
+                    logger.error('[Settings] No current user for onlyAppMessaging update');
+                    Alert.alert(
+                      language === 'az' ? 'Xəta' : 'Ошибка',
+                      language === 'az' ? 'İstifadəçi tapılmadı' : 'Пользователь не найден'
+                    );
+                    return;
+                  }
+                  
+                  logger.info('[Settings] Updating onlyAppMessaging:', { value, userId: currentUser.id });
+                  
+                  try {
                     updatePrivacySettings({ 
                       onlyAppMessaging: value,
                       allowDirectContact: !value
                     });
+                    logger.info('[Settings] onlyAppMessaging updated successfully:', { 
+                      onlyAppMessaging: value,
+                      allowDirectContact: !value
+                    });
+                  } catch (error) {
+                    logger.error('[Settings] Failed to update onlyAppMessaging:', error);
+                    Alert.alert(
+                      language === 'az' ? 'Xəta' : 'Ошибка',
+                      language === 'az' 
+                        ? 'Mesajlaşma tənzimləməsi yenilənə bilmədi' 
+                        : 'Не удалось обновить настройки сообщений'
+                    );
                   }
                 }}
                 trackColor={{ false: colors.border, true: colors.primary }}
@@ -869,11 +912,34 @@ export default function SettingsScreen() {
               <Switch
                 value={currentUser?.privacySettings?.allowDirectContact ?? false}
                 onValueChange={(value) => {
-                  if (currentUser) {
+                  if (!currentUser) {
+                    logger.error('[Settings] No current user for allowDirectContact update');
+                    Alert.alert(
+                      language === 'az' ? 'Xəta' : 'Ошибка',
+                      language === 'az' ? 'İstifadəçi tapılmadı' : 'Пользователь не найден'
+                    );
+                    return;
+                  }
+                  
+                  logger.info('[Settings] Updating allowDirectContact:', { value, userId: currentUser.id });
+                  
+                  try {
                     updatePrivacySettings({ 
                       allowDirectContact: value,
                       onlyAppMessaging: !value
                     });
+                    logger.info('[Settings] allowDirectContact updated successfully:', { 
+                      allowDirectContact: value,
+                      onlyAppMessaging: !value
+                    });
+                  } catch (error) {
+                    logger.error('[Settings] Failed to update allowDirectContact:', error);
+                    Alert.alert(
+                      language === 'az' ? 'Xəta' : 'Ошибка',
+                      language === 'az' 
+                        ? 'Əlaqə tənzimləməsi yenilənə bilmədi' 
+                        : 'Не удалось обновить настройки контактов'
+                    );
                   }
                 }}
                 trackColor={{ false: colors.border, true: colors.primary }}
@@ -886,10 +952,13 @@ export default function SettingsScreen() {
             icon={UserX}
             title={language === 'az' ? 'Blok edilmiş istifadəçilər' : 'Заблокированные пользователи'}
             subtitle={language === 'az' 
-              ? `${blockedUsers.length} istifadəçi blok edilib` 
-              : `${blockedUsers.length} пользователей заблокировано`
+              ? `${blockedUsers?.length || 0} istifadəçi blok edilib` 
+              : `${blockedUsers?.length || 0} пользователей заблокировано`
             }
-            onPress={() => router.push('/blocked-users')}
+            onPress={() => {
+              logger.info('[Settings] Navigating to blocked users');
+              router.push('/blocked-users');
+            }}
           />
         </AnimatedSection>
 
