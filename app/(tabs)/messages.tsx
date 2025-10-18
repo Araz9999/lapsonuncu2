@@ -40,22 +40,52 @@ export default function MessagesScreen() {
 
   const formatDate = useCallback((dateString: string) => {
     const date = new Date(dateString);
-    const now = new Date();
-    const diffTime = Math.abs(now.getTime() - date.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     
-    if (diffDays === 0) {
+    // ✅ Validate date
+    if (isNaN(date.getTime())) {
+      return language === 'az' ? 'Tarix məlum deyil' : 'Дата неизвестна';
+    }
+    
+    const now = new Date();
+    
+    // ✅ Check if same calendar day
+    const isSameDay = 
+      date.getDate() === now.getDate() &&
+      date.getMonth() === now.getMonth() &&
+      date.getFullYear() === now.getFullYear();
+    
+    if (isSameDay) {
       return language === 'az' ? 'Bu gün' : 'Сегодня';
-    } else if (diffDays === 1) {
+    }
+    
+    // ✅ Check if yesterday
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const isYesterday = 
+      date.getDate() === yesterday.getDate() &&
+      date.getMonth() === yesterday.getMonth() &&
+      date.getFullYear() === yesterday.getFullYear();
+    
+    if (isYesterday) {
       return language === 'az' ? 'Dünən' : 'Вчера';
-    } else {
+    }
+    
+    // ✅ Calculate difference for other days
+    const diffTime = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays > 0 && diffDays <= 7) {
       return diffDays + (language === 'az' ? ' gün əvvəl' : ' дней назад');
     }
+    
+    return date.toLocaleDateString(language === 'az' ? 'az-AZ' : 'ru-RU');
   }, [language]);
 
   const getOtherUser = (participants: string[]) => {
-    const selfId = currentUser?.id || 'user1';
-    const otherUserId = participants.find(id => id !== selfId);
+    // ✅ No hardcoded fallback - return null if no currentUser
+    if (!currentUser?.id) return null;
+    
+    const otherUserId = participants.find(id => id !== currentUser.id);
     return users.find(user => user.id === otherUserId);
   };
 

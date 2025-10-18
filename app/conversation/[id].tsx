@@ -285,7 +285,7 @@ export default function ConversationScreen() {
       }
 
       const newMessage: Message = {
-        id: `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+        id: `${Date.now()}_${Math.random().toString(36).substring(2, 11)}`, // ✅ Consistent ID format
         senderId: currentUser.id,
         receiverId: otherUser.id,
         listingId: currentConversation.listingId,
@@ -371,7 +371,7 @@ export default function ConversationScreen() {
         // Send each image as a separate message
         for (const asset of result.assets) {
           const attachment: MessageAttachment = {
-            id: Date.now().toString() + Math.random().toString(),
+            id: `${Date.now()}_${Math.random().toString(36).substring(2, 11)}`, // ✅ Consistent ID format
             type: 'image',
             uri: asset.uri,
             name: asset.fileName || 'image.jpg',
@@ -405,7 +405,7 @@ export default function ConversationScreen() {
       if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0]) {
         const asset = result.assets[0];
         const attachment: MessageAttachment = {
-          id: Date.now().toString(),
+          id: `${Date.now()}_${Math.random().toString(36).substring(2, 11)}`, // ✅ Consistent ID format
           type: 'file',
           uri: asset.uri,
           name: asset.name,
@@ -595,6 +595,10 @@ export default function ConversationScreen() {
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
+    // ✅ Validate date
+    if (isNaN(date.getTime())) {
+      return '--:--';
+    }
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
@@ -745,7 +749,15 @@ export default function ConversationScreen() {
               style={styles.appCallButton}
               onPress={async () => {
                 try {
-                  const callId = await initiateCall(otherUser.id, conversation?.listingId || '', 'voice');
+                  if (!currentUser?.id) {
+                    logger.error('No current user for call initiation');
+                    Alert.alert(
+                      language === 'az' ? 'Xəta' : 'Ошибка',
+                      language === 'az' ? 'Zəng etmək üçün daxil olun' : 'Войдите для совершения звонка'
+                    );
+                    return;
+                  }
+                  const callId = await initiateCall(currentUser.id, otherUser.id, conversation?.listingId || '', 'voice');
                   router.push(`/call/${callId}`);
                 } catch (error) {
                   logger.error('Failed to initiate call:', error);
