@@ -42,7 +42,8 @@ export default function LiveChatScreen() {
     setTyping, 
     markMessagesAsRead,
     startLiveChat,
-    categories
+    categories,
+    getAvailableOperators
   } = useSupportStore();
   const colors = getColors(themeMode, colorTheme);
 
@@ -63,6 +64,7 @@ export default function LiveChatScreen() {
 
   const currentChat = currentChatId ? liveChats.find(chat => chat.id === currentChatId) : undefined;
   const operator = currentChat?.operatorId ? operators.find(op => op.id === currentChat.operatorId) : undefined;
+  const availableOperators = getAvailableOperators();
 
   // Check if user has an active chat
   useEffect(() => {
@@ -359,6 +361,23 @@ export default function LiveChatScreen() {
           : 'Свяжитесь напрямую с нашим оператором'
         }
       </Text>
+      
+      {/* Operator Status */}
+      {availableOperators.length > 0 ? (
+        <View style={[styles.operatorStatusBanner, { backgroundColor: `${colors.primary}15` }]}>
+          <View style={styles.onlineDot} />
+          <Text style={[styles.operatorStatusText, { color: colors.primary }]}>
+            {availableOperators.length} {language === 'az' ? 'operator onlayn' : 'операторов онлайн'}
+          </Text>
+        </View>
+      ) : (
+        <View style={[styles.operatorStatusBanner, { backgroundColor: '#FFF3E0' }]}>
+          <View style={[styles.onlineDot, { backgroundColor: '#FF9500' }]} />
+          <Text style={[styles.operatorStatusText, { color: '#FF9500' }]}>
+            {language === 'az' ? 'Operatorlar oflayn - mesaj buraxın' : 'Операторы оффлайн - оставьте сообщение'}
+          </Text>
+        </View>
+      )}
 
       <View style={styles.formSection}>
         <Text style={[styles.formLabel, { color: colors.text }]}>
@@ -376,7 +395,10 @@ export default function LiveChatScreen() {
                     borderColor: colors.border
                   }
                 ]}
-                onPress={() => setSelectedCategory(category.id)}
+                onPress={() => {
+                  logger.info('[LiveChat] Category selected:', { categoryId: category.id });
+                  setSelectedCategory(category.id);
+                }}
               >
                 <Text style={[
                   styles.categoryChipText,
@@ -894,5 +916,24 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  operatorStatusBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 24,
+  },
+  onlineDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#4CAF50',
+    marginRight: 8,
+  },
+  operatorStatusText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
