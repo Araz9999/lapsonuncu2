@@ -196,7 +196,7 @@ class AuthService {
 
   async deleteAccount(): Promise<void> {
     if (!this.tokens?.accessToken) {
-      throw new Error('Not authenticated');
+      throw new Error('Authentication token not found. Please log in again.');
     }
 
     try {
@@ -216,6 +216,9 @@ class AuthService {
       logger.error('Delete account request failed:', error);
       throw error;
     } finally {
+      // ✅ Clear auth data regardless of success/failure
+      // On success: user is deleted, tokens invalid
+      // On failure: still logged out for security
       await this.clearAuthData();
     }
   }
