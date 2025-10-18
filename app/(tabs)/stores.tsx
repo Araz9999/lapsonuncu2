@@ -46,10 +46,19 @@ export default function StoresTabScreen() {
   const handleFollowToggle = async (storeId: string) => {
     if (!currentUser) return;
     
+    // ✅ Get store
+    const store = stores.find(s => s.id === storeId);
+    if (!store) return;
+    
     const isFollowing = isFollowingStore(currentUser.id, storeId);
     if (isFollowing) {
       await unfollowStore(currentUser.id, storeId);
     } else {
+      // ✅ Check if active
+      if (!store.isActive) {
+        return; // Silently ignore for inactive stores in tab view
+      }
+      
       await followStore(currentUser.id, storeId);
     }
   };

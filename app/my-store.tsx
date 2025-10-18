@@ -13,6 +13,7 @@ import { useLanguageStore } from '@/store/languageStore';
 import { useStoreStore } from '@/store/storeStore';
 import { useUserStore } from '@/store/userStore';
 import { useListingStore } from '@/store/listingStore';
+import { useRatingStore } from '@/store/ratingStore'; // ✅ Import rating store
 import StoreExpirationManager from '@/components/StoreExpirationManager';
 import Colors from '@/constants/colors';
 import {
@@ -152,6 +153,20 @@ export default function MyStoreScreen() {
     
     const price = prices[promotionType];
     
+    // ✅ Get wallet functions
+    const { walletBalance, spendFromWallet } = useUserStore.getState();
+    
+    // ✅ Check balance first
+    if (walletBalance < price) {
+      Alert.alert(
+        language === 'az' ? '💰 Kifayət qədər balans yoxdur' : '💰 Недостаточно средств',
+        language === 'az' 
+          ? `İrəli çəkmək üçün ${price} AZN lazımdır.\nCari balansınız: ${walletBalance.toFixed(2)} AZN\n\nZəhmət olmasa balansınızı artırın.`
+          : `Для продвижения требуется ${price} AZN.\nВаш текущий баланс: ${walletBalance.toFixed(2)} AZN\n\nПожалуйста, пополните баланс.`
+      );
+      return;
+    }
+    
     Alert.alert(
       language === 'az' ? 'Elanı irəli çək' : 'Продвинуть объявление',
       language === 'az' 
@@ -166,6 +181,17 @@ export default function MyStoreScreen() {
           text: language === 'az' ? 'Ödə' : 'Оплатить',
           onPress: async () => {
             try {
+              // ✅ Process payment first
+              const paymentSuccess = spendFromWallet(price);
+              if (!paymentSuccess) {
+                Alert.alert(
+                  language === 'az' ? 'Ödəniş Xətası' : 'Ошибка оплаты',
+                  language === 'az' ? 'Ödəniş zamanı xəta baş verdi' : 'Произошла ошибка при оплате'
+                );
+                return;
+              }
+              
+              // ✅ Then promote
               await promoteListingInStore(selectedListingId, promotionType, price);
               setShowPromoteModal(false);
               setSelectedListingId(null);
@@ -191,6 +217,20 @@ export default function MyStoreScreen() {
     const selectedPlan = storePlans.find(p => p.id === selectedPlanId);
     if (!selectedPlan) return;
     
+    // ✅ Get wallet functions
+    const { walletBalance, spendFromWallet } = useUserStore.getState();
+    
+    // ✅ Check balance first
+    if (walletBalance < selectedPlan.price) {
+      Alert.alert(
+        language === 'az' ? '💰 Kifayət qədər balans yoxdur' : '💰 Недостаточно средств',
+        language === 'az' 
+          ? `Mağazanı yeniləmək üçün ${selectedPlan.price} AZN lazımdır.\nCari balansınız: ${walletBalance.toFixed(2)} AZN\n\nZəhmət olmasa balansınızı artırın.`
+          : `Для обновления магазина требуется ${selectedPlan.price} AZN.\nВаш текущий баланс: ${walletBalance.toFixed(2)} AZN\n\nПожалуйста, пополните баланс.`
+      );
+      return;
+    }
+    
     Alert.alert(
       language === 'az' ? 'Mağazanı yenilə' : 'Обновить магазин',
       language === 'az' 
@@ -205,6 +245,17 @@ export default function MyStoreScreen() {
           text: language === 'az' ? 'Ödə' : 'Оплатить',
           onPress: async () => {
             try {
+              // ✅ Process payment first
+              const paymentSuccess = spendFromWallet(selectedPlan.price);
+              if (!paymentSuccess) {
+                Alert.alert(
+                  language === 'az' ? 'Ödəniş Xətası' : 'Ошибка оплаты',
+                  language === 'az' ? 'Ödəniş zamanı xəta baş verdi' : 'Произошла ошибка при оплате'
+                );
+                return;
+              }
+              
+              // ✅ Then renew/reactivate
               if (canReactivate) {
                 await reactivateStore(userStore.id, selectedPlanId);
               } else {
