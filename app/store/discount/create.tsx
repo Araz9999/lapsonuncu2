@@ -8,6 +8,9 @@ import {
   TextInput,
   Alert,
   Switch,
+  Platform,
+  KeyboardAvoidingView,
+  Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
@@ -203,11 +206,16 @@ export default function CreateDiscountScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <Stack.Screen 
-        options={{ 
-          title: 'Endirim Yarat',
-          headerRight: () => (
+    <SafeAreaView style={styles.flex}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      >
+        <Stack.Screen 
+          options={{ 
+            title: 'Endirim Yarat',
+            headerRight: () => (
             <TouchableOpacity style={styles.saveButton} onPress={handleSubmit}>
               <Text style={styles.saveButtonText}>Yadda saxla</Text>
             </TouchableOpacity>
@@ -215,7 +223,11 @@ export default function CreateDiscountScreen() {
         }} 
       />
       
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.content} 
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Əsas Məlumatlar</Text>
           
@@ -227,6 +239,8 @@ export default function CreateDiscountScreen() {
               onChangeText={(text) => setFormData(prev => ({ ...prev, title: text }))}
               placeholder="Məsələn: Yay Endirimi"
               placeholderTextColor="#9CA3AF"
+              maxLength={100}
+              returnKeyType="next"
             />
           </View>
           
@@ -240,6 +254,8 @@ export default function CreateDiscountScreen() {
               placeholderTextColor="#9CA3AF"
               multiline
               numberOfLines={3}
+              maxLength={500}
+              returnKeyType="done"
             />
           </View>
         </View>
@@ -288,10 +304,15 @@ export default function CreateDiscountScreen() {
             <TextInput
               style={styles.input}
               value={formData.value}
-              onChangeText={(text) => setFormData(prev => ({ ...prev, value: text }))}
+              onChangeText={(text) => {
+                const numericValue = text.replace(/[^0-9.]/g, '');
+                setFormData(prev => ({ ...prev, value: numericValue }));
+              }}
               placeholder={formData.type === 'percentage' ? '20' : formData.type === 'fixed_amount' ? '10' : '2'}
               placeholderTextColor="#9CA3AF"
-              keyboardType="numeric"
+              keyboardType="decimal-pad"
+              returnKeyType="done"
+              onSubmitEditing={Keyboard.dismiss}
             />
           </View>
           
@@ -301,10 +322,14 @@ export default function CreateDiscountScreen() {
               <TextInput
                 style={styles.input}
                 value={formData.maxDiscountAmount}
-                onChangeText={(text) => setFormData(prev => ({ ...prev, maxDiscountAmount: text }))}
+                onChangeText={(text) => {
+                  const numericValue = text.replace(/[^0-9.]/g, '');
+                  setFormData(prev => ({ ...prev, maxDiscountAmount: numericValue }));
+                }}
                 placeholder="50"
                 placeholderTextColor="#9CA3AF"
-                keyboardType="numeric"
+                keyboardType="decimal-pad"
+                returnKeyType="next"
               />
             </View>
           )}
@@ -314,10 +339,14 @@ export default function CreateDiscountScreen() {
             <TextInput
               style={styles.input}
               value={formData.minPurchaseAmount}
-              onChangeText={(text) => setFormData(prev => ({ ...prev, minPurchaseAmount: text }))}
+              onChangeText={(text) => {
+                const numericValue = text.replace(/[^0-9.]/g, '');
+                setFormData(prev => ({ ...prev, minPurchaseAmount: numericValue }));
+              }}
               placeholder="100"
               placeholderTextColor="#9CA3AF"
-              keyboardType="numeric"
+              keyboardType="decimal-pad"
+              returnKeyType="next"
             />
           </View>
         </View>
@@ -372,6 +401,8 @@ export default function CreateDiscountScreen() {
                 onChangeText={(text) => setFormData(prev => ({ ...prev, countdownTitle: text }))}
                 placeholder="Məsələn: Məhdud Vaxt Təklifi!"
                 placeholderTextColor="#9CA3AF"
+                maxLength={50}
+                returnKeyType="done"
               />
               
               <Text style={styles.label}>Timer Vaxtı</Text>
@@ -400,10 +431,15 @@ export default function CreateDiscountScreen() {
             <TextInput
               style={styles.input}
               value={formData.usageLimit}
-              onChangeText={(text) => setFormData(prev => ({ ...prev, usageLimit: text }))}
+              onChangeText={(text) => {
+                const numericValue = text.replace(/[^0-9]/g, '');
+                setFormData(prev => ({ ...prev, usageLimit: numericValue }));
+              }}
               placeholder="100"
               placeholderTextColor="#9CA3AF"
               keyboardType="numeric"
+              returnKeyType="done"
+              onSubmitEditing={Keyboard.dismiss}
             />
             <Text style={styles.helperText}>Boş buraxsanız, limitsiz olacaq</Text>
           </View>
@@ -419,11 +455,15 @@ export default function CreateDiscountScreen() {
           </View>
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     backgroundColor: '#F9FAFB',

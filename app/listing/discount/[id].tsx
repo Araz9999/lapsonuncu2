@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput, Switch, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput, Switch, Platform, KeyboardAvoidingView, Keyboard } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useLanguageStore } from '@/store/languageStore';
@@ -480,7 +480,16 @@ export default function ListingDiscountScreen() {
   const preview = getDiscountPreview();
   
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: (insets?.bottom ?? 0) + 16 }}>
+    <KeyboardAvoidingView
+      style={styles.flex}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+    >
+      <ScrollView 
+        style={styles.container} 
+        contentContainerStyle={{ paddingBottom: (insets?.bottom ?? 0) + 16 }}
+        keyboardShouldPersistTaps="handled"
+      >
       {/* Header */}
       <View style={{ height: insets.top, backgroundColor: Colors.card }} />
       <View style={styles.header}>
@@ -615,6 +624,8 @@ export default function ListingDiscountScreen() {
                 onChangeText={setDiscountTitle}
                 placeholder={language === 'az' ? 'Məs: Yay endirimi' : 'Напр: Летняя скидка'}
                 placeholderTextColor={Colors.textSecondary}
+                returnKeyType="next"
+                maxLength={100}
               />
             </View>
             
@@ -630,6 +641,8 @@ export default function ListingDiscountScreen() {
                 placeholderTextColor={Colors.textSecondary}
                 multiline
                 numberOfLines={3}
+                maxLength={500}
+                returnKeyType="done"
               />
             </View>
           </>
@@ -676,6 +689,8 @@ export default function ListingDiscountScreen() {
             placeholder={discountType === 'percentage' ? '10' : '50'}
             placeholderTextColor={Colors.textSecondary}
             keyboardType="numeric"
+            returnKeyType="done"
+            onSubmitEditing={Keyboard.dismiss}
           />
         </View>
         
@@ -752,6 +767,8 @@ export default function ListingDiscountScreen() {
                 onChangeText={setTimerTitle}
                 placeholder={language === 'az' ? 'Məs: Məhdud vaxt təklifi!' : 'Напр: Ограниченное по времени предложение!'}
                 placeholderTextColor={Colors.textSecondary}
+                returnKeyType="done"
+                maxLength={50}
               />
             </View>
             
@@ -848,11 +865,15 @@ export default function ListingDiscountScreen() {
                     <TextInput
                       style={styles.compactTimeInput}
                       value={customDays}
-                      onChangeText={setCustomDays}
+                      onChangeText={(text) => {
+                        const numericValue = text.replace(/[^0-9]/g, '');
+                        setCustomDays(numericValue);
+                      }}
                       placeholder="0"
                       placeholderTextColor={Colors.textSecondary}
                       keyboardType="numeric"
                       maxLength={3}
+                      returnKeyType="next"
                     />
                   </View>
                   <Text style={styles.compactTimeSeparator}>:</Text>
@@ -863,11 +884,18 @@ export default function ListingDiscountScreen() {
                     <TextInput
                       style={styles.compactTimeInput}
                       value={customHours}
-                      onChangeText={setCustomHours}
+                      onChangeText={(text) => {
+                        const numericValue = text.replace(/[^0-9]/g, '');
+                        const hours = parseInt(numericValue) || 0;
+                        if (hours <= 23) {
+                          setCustomHours(numericValue);
+                        }
+                      }}
                       placeholder="0"
                       placeholderTextColor={Colors.textSecondary}
                       keyboardType="numeric"
                       maxLength={2}
+                      returnKeyType="next"
                     />
                   </View>
                   <Text style={styles.compactTimeSeparator}>:</Text>
@@ -878,11 +906,19 @@ export default function ListingDiscountScreen() {
                     <TextInput
                       style={styles.compactTimeInput}
                       value={customMinutes}
-                      onChangeText={setCustomMinutes}
+                      onChangeText={(text) => {
+                        const numericValue = text.replace(/[^0-9]/g, '');
+                        const minutes = parseInt(numericValue) || 0;
+                        if (minutes <= 59) {
+                          setCustomMinutes(numericValue);
+                        }
+                      }}
                       placeholder="0"
                       placeholderTextColor={Colors.textSecondary}
                       keyboardType="numeric"
                       maxLength={2}
+                      returnKeyType="done"
+                      onSubmitEditing={Keyboard.dismiss}
                     />
                   </View>
                 </View>
@@ -977,10 +1013,14 @@ export default function ListingDiscountScreen() {
               <TextInput
                 style={styles.textInput}
                 value={minPurchaseAmount}
-                onChangeText={setMinPurchaseAmount}
+                onChangeText={(text) => {
+                  const numericValue = text.replace(/[^0-9.]/g, '');
+                  setMinPurchaseAmount(numericValue);
+                }}
                 placeholder="0"
                 placeholderTextColor={Colors.textSecondary}
-                keyboardType="numeric"
+                keyboardType="decimal-pad"
+                returnKeyType="next"
               />
             </View>
             
@@ -992,10 +1032,14 @@ export default function ListingDiscountScreen() {
                 <TextInput
                   style={styles.textInput}
                   value={maxDiscountAmount}
-                  onChangeText={setMaxDiscountAmount}
+                  onChangeText={(text) => {
+                    const numericValue = text.replace(/[^0-9.]/g, '');
+                    setMaxDiscountAmount(numericValue);
+                  }}
                   placeholder="100"
                   placeholderTextColor={Colors.textSecondary}
-                  keyboardType="numeric"
+                  keyboardType="decimal-pad"
+                  returnKeyType="next"
                 />
               </View>
             )}
@@ -1007,10 +1051,15 @@ export default function ListingDiscountScreen() {
               <TextInput
                 style={styles.textInput}
                 value={usageLimit}
-                onChangeText={setUsageLimit}
+                onChangeText={(text) => {
+                  const numericValue = text.replace(/[^0-9]/g, '');
+                  setUsageLimit(numericValue);
+                }}
                 placeholder={language === 'az' ? 'Limitsiz' : 'Без ограничений'}
                 placeholderTextColor={Colors.textSecondary}
                 keyboardType="numeric"
+                returnKeyType="done"
+                onSubmitEditing={Keyboard.dismiss}
               />
             </View>
             
@@ -1063,10 +1112,14 @@ export default function ListingDiscountScreen() {
         </TouchableOpacity>
       </View>
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     backgroundColor: Colors.background,
