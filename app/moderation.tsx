@@ -70,7 +70,7 @@ export default function ModerationScreen() {
   }: {
     title: string;
     value: number;
-    icon: any;
+    icon: React.ComponentType<{size: number; color: string}>; // ✅ Proper type
     color: string;
     onPress?: () => void;
   }) => (
@@ -97,7 +97,7 @@ export default function ModerationScreen() {
   }: {
     title: string;
     subtitle: string;
-    icon: any;
+    icon: React.ComponentType<{size: number; color: string}>; // ✅ Proper type
     onPress: () => void;
     badge?: number;
     color?: string;
@@ -165,28 +165,28 @@ export default function ModerationScreen() {
           <View style={styles.statsGrid}>
             <StatCard
               title={language === 'az' ? 'Gözləyən şikayətlər' : 'Ожидающие жалобы'}
-              value={pendingReports.length}
+              value={pendingReports?.length || 0} {/* ✅ Null-safe */}
               icon={Clock}
               color="#F59E0B"
               onPress={() => showComingSoon(language === 'az' ? 'Şikayətlər' : 'Жалобы')}
             />
             <StatCard
               title={language === 'az' ? 'Açıq biletlər' : 'Открытые тикеты'}
-              value={openTickets.length + inProgressTickets.length}
+              value={(openTickets?.length || 0) + (inProgressTickets?.length || 0)} {/* ✅ Null-safe */}
               icon={HelpCircle}
               color="#3B82F6"
               onPress={() => showComingSoon(language === 'az' ? 'Dəstək biletləri' : 'Тикеты поддержки')}
             />
             <StatCard
               title={language === 'az' ? 'Moderatorlar' : 'Модераторы'}
-              value={moderators.length}
+              value={moderators?.length || 0} {/* ✅ Null-safe */}
               icon={UserCheck}
               color="#10B981"
               onPress={() => showComingSoon(language === 'az' ? 'Moderatorlar' : 'Модераторы')}
             />
             <StatCard
               title={language === 'az' ? 'Həll edilmiş' : 'Решенные'}
-              value={stats.resolvedReports}
+              value={stats?.resolvedReports || 0} {/* ✅ Null-safe */}
               icon={CheckCircle}
               color="#059669"
             />

@@ -76,11 +76,60 @@ export const useModerationStore = create<ModerationState>()(
       },
 
       createReport: (reportData) => {
+        // ===== VALIDATION START =====
+        
+        // ✅ 1. Validate required fields
+        if (!reportData || typeof reportData !== 'object') {
+          throw new Error('Şikayət məlumatları düzgün deyil');
+        }
+        
+        if (!reportData.reporterId || typeof reportData.reporterId !== 'string') {
+          throw new Error('Şikayət edən istifadəçi ID-si tələb olunur');
+        }
+        
+        if (!reportData.targetId || typeof reportData.targetId !== 'string') {
+          throw new Error('Hədəf ID-si tələb olunur');
+        }
+        
+        if (!reportData.type || typeof reportData.type !== 'string') {
+          throw new Error('Şikayət növü tələb olunur');
+        }
+        
+        // ✅ 2. Validate type enum
+        const validTypes: ReportType[] = ['spam', 'inappropriate_content', 'fake_listing', 'harassment', 'fraud', 'copyright', 'other'];
+        if (!validTypes.includes(reportData.type as ReportType)) {
+          throw new Error('Şikayət növü yanlışdır');
+        }
+        
+        // ✅ 3. Validate reason
+        if (!reportData.reason || typeof reportData.reason !== 'string') {
+          throw new Error('Səbəb tələb olunur');
+        }
+        
+        const trimmedReason = reportData.reason.trim();
+        if (trimmedReason.length < 10) {
+          throw new Error('Səbəb ən azı 10 simvol olmalıdır');
+        }
+        if (trimmedReason.length > 1000) {
+          throw new Error('Səbəb maksimum 1000 simvol ola bilər');
+        }
+        
+        // ✅ 4. Validate priority
+        if (reportData.priority) {
+          const validPriorities: ReportPriority[] = ['low', 'medium', 'high', 'urgent'];
+          if (!validPriorities.includes(reportData.priority as ReportPriority)) {
+            throw new Error('Öncəlik səviyyəsi yanlışdır');
+          }
+        }
+        
+        // ===== VALIDATION END =====
+        
         const newReport: Report = {
           ...reportData,
-          id: `report_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          id: `report_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`, // ✅ Use substring()
           status: 'pending',
           priority: reportData.priority || 'medium',
+          reason: trimmedReason,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
@@ -93,6 +142,52 @@ export const useModerationStore = create<ModerationState>()(
       },
 
       updateReportStatus: (reportId, status, moderatorId, notes) => {
+        // ===== VALIDATION START =====
+        
+        // ✅ 1. Validate reportId
+        if (!reportId || typeof reportId !== 'string') {
+          throw new Error('Şikayət ID-si tələb olunur');
+        }
+        
+        // ✅ 2. Check if report exists
+        const report = get().reports.find(r => r.id === reportId);
+        if (!report) {
+          throw new Error('Şikayət tapılmadı');
+        }
+        
+        // ✅ 3. Validate status
+        const validStatuses: ReportStatus[] = ['pending', 'in_review', 'resolved', 'dismissed'];
+        if (!validStatuses.includes(status)) {
+          throw new Error('Status yanlışdır');
+        }
+        
+        // ✅ 4. Validate moderatorId if provided
+        if (moderatorId) {
+          if (typeof moderatorId !== 'string') {
+            throw new Error('Moderator ID-si düzgün deyil');
+          }
+          
+          // Check if moderator exists
+          const moderator = get().moderators.find(m => m.id === moderatorId);
+          if (!moderator) {
+            throw new Error('Moderator tapılmadı');
+          }
+        }
+        
+        // ✅ 5. Validate notes if provided
+        if (notes) {
+          if (typeof notes !== 'string') {
+            throw new Error('Qeydlər mətn olmalıdır');
+          }
+          
+          const trimmedNotes = notes.trim();
+          if (trimmedNotes.length > 1000) {
+            throw new Error('Qeydlər maksimum 1000 simvol ola bilər');
+          }
+        }
+        
+        // ===== VALIDATION END =====
+        
         set((state) => ({
           reports: state.reports.map((report) =>
             report.id === reportId
@@ -100,7 +195,7 @@ export const useModerationStore = create<ModerationState>()(
                   ...report,
                   status,
                   assignedModeratorId: moderatorId || report.assignedModeratorId,
-                  moderatorNotes: notes || report.moderatorNotes,
+                  moderatorNotes: notes?.trim() || report.moderatorNotes,
                   updatedAt: new Date().toISOString(),
                 }
               : report
@@ -111,6 +206,32 @@ export const useModerationStore = create<ModerationState>()(
       },
 
       assignReportToModerator: (reportId, moderatorId) => {
+        // ===== VALIDATION START =====
+        
+        // ✅ 1. Validate reportId
+        if (!reportId || typeof reportId !== 'string') {
+          throw new Error('Şikayət ID-si tələb olunur');
+        }
+        
+        // ✅ 2. Check if report exists
+        const report = get().reports.find(r => r.id === reportId);
+        if (!report) {
+          throw new Error('Şikayət tapılmadı');
+        }
+        
+        // ✅ 3. Validate moderatorId
+        if (!moderatorId || typeof moderatorId !== 'string') {
+          throw new Error('Moderator ID-si tələb olunur');
+        }
+        
+        // ✅ 4. Check if moderator exists
+        const moderator = get().moderators.find(m => m.id === moderatorId);
+        if (!moderator) {
+          throw new Error('Moderator tapılmadı');
+        }
+        
+        // ===== VALIDATION END =====
+        
         set((state) => ({
           reports: state.reports.map((report) =>
             report.id === reportId
@@ -126,13 +247,52 @@ export const useModerationStore = create<ModerationState>()(
       },
 
       resolveReport: (reportId, resolution, moderatorId) => {
+        // ===== VALIDATION START =====
+        
+        // ✅ 1. Validate reportId
+        if (!reportId || typeof reportId !== 'string') {
+          throw new Error('Şikayət ID-si tələb olunur');
+        }
+        
+        // ✅ 2. Check if report exists
+        const report = get().reports.find(r => r.id === reportId);
+        if (!report) {
+          throw new Error('Şikayət tapılmadı');
+        }
+        
+        // ✅ 3. Validate resolution
+        if (!resolution || typeof resolution !== 'string') {
+          throw new Error('Həll yolu tələb olunur');
+        }
+        
+        const trimmedResolution = resolution.trim();
+        if (trimmedResolution.length < 10) {
+          throw new Error('Həll yolu ən azı 10 simvol olmalıdır');
+        }
+        if (trimmedResolution.length > 1000) {
+          throw new Error('Həll yolu maksimum 1000 simvol ola bilər');
+        }
+        
+        // ✅ 4. Validate moderatorId
+        if (!moderatorId || typeof moderatorId !== 'string') {
+          throw new Error('Moderator ID-si tələb olunur');
+        }
+        
+        // ✅ 5. Check if moderator exists
+        const moderator = get().moderators.find(m => m.id === moderatorId);
+        if (!moderator) {
+          throw new Error('Moderator tapılmadı');
+        }
+        
+        // ===== VALIDATION END =====
+        
         set((state) => ({
           reports: state.reports.map((report) =>
             report.id === reportId
               ? {
                   ...report,
                   status: 'resolved',
-                  resolution,
+                  resolution: trimmedResolution,
                   assignedModeratorId: moderatorId,
                   updatedAt: new Date().toISOString(),
                 }
@@ -144,13 +304,52 @@ export const useModerationStore = create<ModerationState>()(
       },
 
       dismissReport: (reportId, reason, moderatorId) => {
+        // ===== VALIDATION START =====
+        
+        // ✅ 1. Validate reportId
+        if (!reportId || typeof reportId !== 'string') {
+          throw new Error('Şikayət ID-si tələb olunur');
+        }
+        
+        // ✅ 2. Check if report exists
+        const report = get().reports.find(r => r.id === reportId);
+        if (!report) {
+          throw new Error('Şikayət tapılmadı');
+        }
+        
+        // ✅ 3. Validate reason
+        if (!reason || typeof reason !== 'string') {
+          throw new Error('Rədd səbəbi tələb olunur');
+        }
+        
+        const trimmedReason = reason.trim();
+        if (trimmedReason.length < 10) {
+          throw new Error('Rədd səbəbi ən azı 10 simvol olmalıdır');
+        }
+        if (trimmedReason.length > 1000) {
+          throw new Error('Rədd səbəbi maksimum 1000 simvol ola bilər');
+        }
+        
+        // ✅ 4. Validate moderatorId
+        if (!moderatorId || typeof moderatorId !== 'string') {
+          throw new Error('Moderator ID-si tələb olunur');
+        }
+        
+        // ✅ 5. Check if moderator exists
+        const moderator = get().moderators.find(m => m.id === moderatorId);
+        if (!moderator) {
+          throw new Error('Moderator tapılmadı');
+        }
+        
+        // ===== VALIDATION END =====
+        
         set((state) => ({
           reports: state.reports.map((report) =>
             report.id === reportId
               ? {
                   ...report,
                   status: 'dismissed',
-                  resolution: reason,
+                  resolution: trimmedReason,
                   assignedModeratorId: moderatorId,
                   updatedAt: new Date().toISOString(),
                 }
@@ -164,7 +363,7 @@ export const useModerationStore = create<ModerationState>()(
       createModerationAction: (actionData) => {
         const newAction: ModerationAction = {
           ...actionData,
-          id: `action_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          id: `action_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`, // ✅ Use substring()
           createdAt: new Date().toISOString(),
           isActive: true,
         };
@@ -183,9 +382,59 @@ export const useModerationStore = create<ModerationState>()(
       },
 
       createSupportTicket: (ticketData) => {
+        // ===== VALIDATION START =====
+        
+        // ✅ 1. Validate required fields
+        if (!ticketData || typeof ticketData !== 'object') {
+          throw new Error('Bilet məlumatları düzgün deyil');
+        }
+        
+        if (!ticketData.userId || typeof ticketData.userId !== 'string') {
+          throw new Error('İstifadəçi ID-si tələb olunur');
+        }
+        
+        if (!ticketData.subject || typeof ticketData.subject !== 'string') {
+          throw new Error('Mövzu tələb olunur');
+        }
+        
+        const trimmedSubject = ticketData.subject.trim();
+        if (trimmedSubject.length < 5) {
+          throw new Error('Mövzu ən azı 5 simvol olmalıdır');
+        }
+        if (trimmedSubject.length > 200) {
+          throw new Error('Mövzu maksimum 200 simvol ola bilər');
+        }
+        
+        // ✅ 2. Validate message
+        if (!ticketData.message || typeof ticketData.message !== 'string') {
+          throw new Error('Mesaj tələb olunur');
+        }
+        
+        const trimmedMessage = ticketData.message.trim();
+        if (trimmedMessage.length < 10) {
+          throw new Error('Mesaj ən azı 10 simvol olmalıdır');
+        }
+        if (trimmedMessage.length > 2000) {
+          throw new Error('Mesaj maksimum 2000 simvol ola bilər');
+        }
+        
+        // ✅ 3. Validate category
+        if (!ticketData.category || typeof ticketData.category !== 'string') {
+          throw new Error('Kateqoriya tələb olunur');
+        }
+        
+        const validCategories: SupportCategory[] = ['technical', 'billing', 'account', 'listing', 'store', 'report', 'other'];
+        if (!validCategories.includes(ticketData.category as SupportCategory)) {
+          throw new Error('Kateqoriya yanlışdır');
+        }
+        
+        // ===== VALIDATION END =====
+        
         const newTicket: SupportTicket = {
           ...ticketData,
-          id: `ticket_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          id: `ticket_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`, // ✅ Use substring()
+          subject: trimmedSubject,
+          message: trimmedMessage,
           status: 'open',
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -198,6 +447,27 @@ export const useModerationStore = create<ModerationState>()(
       },
 
       updateTicketStatus: (ticketId, status) => {
+        // ===== VALIDATION START =====
+        
+        // ✅ 1. Validate ticketId
+        if (!ticketId || typeof ticketId !== 'string') {
+          throw new Error('Bilet ID-si tələb olunur');
+        }
+        
+        // ✅ 2. Check if ticket exists
+        const ticket = get().supportTickets.find(t => t.id === ticketId);
+        if (!ticket) {
+          throw new Error('Bilet tapılmadı');
+        }
+        
+        // ✅ 3. Validate status
+        const validStatuses: TicketStatus[] = ['open', 'in_progress', 'resolved', 'closed'];
+        if (!validStatuses.includes(status)) {
+          throw new Error('Status yanlışdır');
+        }
+        
+        // ===== VALIDATION END =====
+        
         set((state) => ({
           supportTickets: state.supportTickets.map((ticket) =>
             ticket.id === ticketId
@@ -212,6 +482,32 @@ export const useModerationStore = create<ModerationState>()(
       },
 
       assignTicketToModerator: (ticketId, moderatorId) => {
+        // ===== VALIDATION START =====
+        
+        // ✅ 1. Validate ticketId
+        if (!ticketId || typeof ticketId !== 'string') {
+          throw new Error('Bilet ID-si tələb olunur');
+        }
+        
+        // ✅ 2. Check if ticket exists
+        const ticket = get().supportTickets.find(t => t.id === ticketId);
+        if (!ticket) {
+          throw new Error('Bilet tapılmadı');
+        }
+        
+        // ✅ 3. Validate moderatorId
+        if (!moderatorId || typeof moderatorId !== 'string') {
+          throw new Error('Moderator ID-si tələb olunur');
+        }
+        
+        // ✅ 4. Check if moderator exists
+        const moderator = get().moderators.find(m => m.id === moderatorId);
+        if (!moderator) {
+          throw new Error('Moderator tapılmadı');
+        }
+        
+        // ===== VALIDATION END =====
+        
         set((state) => ({
           supportTickets: state.supportTickets.map((ticket) =>
             ticket.id === ticketId
@@ -227,9 +523,46 @@ export const useModerationStore = create<ModerationState>()(
       },
 
       addTicketResponse: (ticketId, responseData) => {
+        // ===== VALIDATION START =====
+        
+        // ✅ 1. Validate ticketId
+        if (!ticketId || typeof ticketId !== 'string') {
+          throw new Error('Bilet ID-si tələb olunur');
+        }
+        
+        // ✅ 2. Check if ticket exists
+        const ticket = get().supportTickets.find(t => t.id === ticketId);
+        if (!ticket) {
+          throw new Error('Bilet tapılmadı');
+        }
+        
+        // ✅ 3. Validate response data
+        if (!responseData || typeof responseData !== 'object') {
+          throw new Error('Cavab məlumatları düzgün deyil');
+        }
+        
+        if (!responseData.message || typeof responseData.message !== 'string') {
+          throw new Error('Cavab mesajı tələb olunur');
+        }
+        
+        const trimmedMessage = responseData.message.trim();
+        if (trimmedMessage.length < 5) {
+          throw new Error('Cavab ən azı 5 simvol olmalıdır');
+        }
+        if (trimmedMessage.length > 2000) {
+          throw new Error('Cavab maksimum 2000 simvol ola bilər');
+        }
+        
+        if (!responseData.responderId || typeof responseData.responderId !== 'string') {
+          throw new Error('Cavab verən ID-si tələb olunur');
+        }
+        
+        // ===== VALIDATION END =====
+        
         const newResponse: SupportResponse = {
           ...responseData,
-          id: `response_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          id: `response_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`, // ✅ Use substring()
+          message: trimmedMessage,
           createdAt: new Date().toISOString(),
         };
 
@@ -247,6 +580,50 @@ export const useModerationStore = create<ModerationState>()(
       },
 
       addModerator: (user, permissions) => {
+        // ===== VALIDATION START =====
+        
+        // ✅ 1. Validate user object
+        if (!user || typeof user !== 'object') {
+          throw new Error('İstifadəçi məlumatları düzgün deyil');
+        }
+        
+        if (!user.id || typeof user.id !== 'string') {
+          throw new Error('İstifadəçi ID-si tələb olunur');
+        }
+        
+        // ✅ 2. Check if user is already a moderator
+        const existingModerator = get().moderators.find(m => m.id === user.id);
+        if (existingModerator) {
+          throw new Error('İstifadəçi artıq moderatordur');
+        }
+        
+        // ✅ 3. Validate permissions array
+        if (!permissions || !Array.isArray(permissions)) {
+          throw new Error('İcazələr düzgün deyil');
+        }
+        
+        const validPermissions: ModeratorPermission[] = [
+          'manage_reports',
+          'manage_users',
+          'manage_listings',
+          'manage_stores',
+          'manage_tickets',
+          'view_analytics',
+          'manage_moderators'
+        ];
+        
+        const invalidPerms = permissions.filter(p => !validPermissions.includes(p as ModeratorPermission));
+        if (invalidPerms.length > 0) {
+          throw new Error(`Yanlış icazələr: ${invalidPerms.join(', ')}`);
+        }
+        
+        // ✅ 4. Require at least one permission
+        if (permissions.length === 0) {
+          throw new Error('Ən azı 1 icazə tələb olunur');
+        }
+        
+        // ===== VALIDATION END =====
+        
         const moderatorUser: User = {
           ...user,
           role: 'moderator',
@@ -265,12 +642,72 @@ export const useModerationStore = create<ModerationState>()(
       },
 
       removeModerator: (userId) => {
+        // ===== VALIDATION START =====
+        
+        // ✅ 1. Validate userId
+        if (!userId || typeof userId !== 'string') {
+          throw new Error('İstifadəçi ID-si tələb olunur');
+        }
+        
+        // ✅ 2. Check if moderator exists
+        const moderator = get().moderators.find(m => m.id === userId);
+        if (!moderator) {
+          throw new Error('Moderator tapılmadı');
+        }
+        
+        // ✅ 3. Check if this is the last moderator
+        if (get().moderators.length === 1) {
+          throw new Error('Son moderatoru silmək olmaz');
+        }
+        
+        // ===== VALIDATION END =====
+        
         set((state) => ({
           moderators: state.moderators.filter((mod) => mod.id !== userId),
         }));
       },
 
       updateModeratorPermissions: (userId, permissions) => {
+        // ===== VALIDATION START =====
+        
+        // ✅ 1. Validate userId
+        if (!userId || typeof userId !== 'string') {
+          throw new Error('İstifadəçi ID-si tələb olunur');
+        }
+        
+        // ✅ 2. Check if moderator exists
+        const moderator = get().moderators.find(m => m.id === userId);
+        if (!moderator || !moderator.moderatorInfo) {
+          throw new Error('Moderator tapılmadı');
+        }
+        
+        // ✅ 3. Validate permissions array
+        if (!permissions || !Array.isArray(permissions)) {
+          throw new Error('İcazələr düzgün deyil');
+        }
+        
+        const validPermissions: ModeratorPermission[] = [
+          'manage_reports',
+          'manage_users',
+          'manage_listings',
+          'manage_stores',
+          'manage_tickets',
+          'view_analytics',
+          'manage_moderators'
+        ];
+        
+        const invalidPerms = permissions.filter(p => !validPermissions.includes(p as ModeratorPermission));
+        if (invalidPerms.length > 0) {
+          throw new Error(`Yanlış icazələr: ${invalidPerms.join(', ')}`);
+        }
+        
+        // ✅ 4. Require at least one permission
+        if (permissions.length === 0) {
+          throw new Error('Ən azı 1 icazə tələb olunur');
+        }
+        
+        // ===== VALIDATION END =====
+        
         set((state) => ({
           moderators: state.moderators.map((mod) =>
             mod.id === userId && mod.moderatorInfo
@@ -307,14 +744,87 @@ export const useModerationStore = create<ModerationState>()(
       },
 
       updateStats: () => {
-        const { reports, moderationActions } = get();
+        const { reports, moderationActions, moderators } = get();
+        
+        // ✅ Validate reports array
+        if (!reports || !Array.isArray(reports)) {
+          set({ stats: {
+            totalReports: 0,
+            pendingReports: 0,
+            resolvedReports: 0,
+            dismissedReports: 0,
+            averageResolutionTime: 0,
+            reportsByType: {
+              spam: 0,
+              inappropriate_content: 0,
+              fake_listing: 0,
+              harassment: 0,
+              fraud: 0,
+              copyright: 0,
+              other: 0,
+            },
+            reportsByPriority: {
+              low: 0,
+              medium: 0,
+              high: 0,
+              urgent: 0,
+            },
+            moderatorStats: {},
+          }});
+          return;
+        }
+        
+        // ✅ Calculate average resolution time
+        const resolvedReports = reports.filter((r) => r.status === 'resolved');
+        let averageResolutionTime = 0;
+        
+        if (resolvedReports.length > 0) {
+          const totalResolutionTime = resolvedReports.reduce((sum, report) => {
+            const created = new Date(report.createdAt).getTime();
+            const updated = new Date(report.updatedAt).getTime();
+            
+            // ✅ Validate dates
+            if (isNaN(created) || isNaN(updated)) {
+              return sum;
+            }
+            
+            const resolutionTime = updated - created;
+            
+            // ✅ Validate resolution time is positive
+            if (resolutionTime < 0 || !isFinite(resolutionTime)) {
+              return sum;
+            }
+            
+            return sum + resolutionTime;
+          }, 0);
+          
+          // ✅ Prevent division by zero
+          averageResolutionTime = totalResolutionTime / Math.max(resolvedReports.length, 1);
+          
+          // ✅ Convert to hours and round
+          averageResolutionTime = Math.round((averageResolutionTime / (1000 * 60 * 60)) * 10) / 10;
+        }
+        
+        // ✅ Calculate moderator stats
+        const moderatorStats: Record<string, { handledReports: number; averageResponseTime: number }> = {};
+        
+        for (const moderator of moderators || []) {
+          if (!moderator?.id) continue;
+          
+          const handledReports = reports.filter(r => r.assignedModeratorId === moderator.id && r.status === 'resolved');
+          
+          moderatorStats[moderator.id] = {
+            handledReports: handledReports.length,
+            averageResponseTime: 0, // TODO: Calculate based on response times
+          };
+        }
         
         const stats: ModerationStats = {
           totalReports: reports.length,
           pendingReports: reports.filter((r) => r.status === 'pending').length,
-          resolvedReports: reports.filter((r) => r.status === 'resolved').length,
+          resolvedReports: resolvedReports.length,
           dismissedReports: reports.filter((r) => r.status === 'dismissed').length,
-          averageResolutionTime: 0, // Calculate based on resolved reports
+          averageResolutionTime,
           reportsByType: {
             spam: reports.filter((r) => r.type === 'spam').length,
             inappropriate_content: reports.filter((r) => r.type === 'inappropriate_content').length,
@@ -330,7 +840,7 @@ export const useModerationStore = create<ModerationState>()(
             high: reports.filter((r) => r.priority === 'high').length,
             urgent: reports.filter((r) => r.priority === 'urgent').length,
           },
-          moderatorStats: {},
+          moderatorStats,
         };
 
         set({ stats });
