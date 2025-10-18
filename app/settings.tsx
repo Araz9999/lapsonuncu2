@@ -1049,12 +1049,21 @@ export default function SettingsScreen() {
               <Switch
                 value={animationEffectsEnabled}
                 onValueChange={(value) => {
+                  logger.info('[Settings] Animation effects toggle:', { 
+                    from: animationEffectsEnabled, 
+                    to: value,
+                    feature: 'animation_effects'
+                  });
+                  
                   setAnimationEffectsEnabled(value);
+                  
+                  logger.info('[Settings] Animation effects updated successfully:', { enabled: value });
+                  
                   Alert.alert(
                     language === 'az' ? 'Animasiya effektləri' : 'Эффекты анимации',
                     language === 'az' 
-                      ? `Animasiya effektləri ${value ? 'aktiv' : 'deaktiv'} edildi`
-                      : `Эффекты анимации ${value ? 'включены' : 'выключены'}`
+                      ? `Animasiya effektləri ${value ? 'aktiv' : 'deaktiv'} edildi. Tətbiq keçidləri və UI animasiyaları ${value ? 'göstəriləcək' : 'gizlədiləcək'}.`
+                      : `Эффекты анимации ${value ? 'включены' : 'выключены'}. Переходы и UI-анимации ${value ? 'будут показаны' : 'будут скрыты'}.`
                   );
                 }}
                 trackColor={{ false: colors.border, true: '#FFD700' }}
@@ -1072,12 +1081,24 @@ export default function SettingsScreen() {
               <Switch
                 value={dynamicColorsEnabled}
                 onValueChange={(value) => {
+                  logger.info('[Settings] Dynamic colors toggle:', { 
+                    from: dynamicColorsEnabled, 
+                    to: value,
+                    feature: 'dynamic_colors'
+                  });
+                  
                   setDynamicColorsEnabled(value);
+                  
+                  logger.info('[Settings] Dynamic colors updated successfully:', { enabled: value });
+                  
                   Alert.alert(
                     language === 'az' ? 'Dinamik rənglər' : 'Динамические цвета',
                     language === 'az' 
-                      ? `Dinamik rənglər ${value ? 'aktiv' : 'deaktiv'} edildi`
-                      : `Динамические цвета ${value ? 'включены' : 'выключены'}`
+                      ? `Dinamik rənglər ${value ? 'aktiv' : 'deaktiv'} edildi. Tətbiq ${value ? 'elan şəkillərindən dominant rəngləri çıxaracaq və interfeysi avtomatik uyğunlaşdıracaq' : 'standart rəng sxemindən istifadə edəcək'}.`
+                      : `Динамические цвета ${value ? 'включены' : 'выключены'}. Приложение ${value ? 'будет извлекать доминантные цвета из изображений объявлений и автоматически адаптировать интерфейс' : 'будет использовать стандартную цветовую схему'}.`,
+                    [
+                      { text: language === 'az' ? 'Başa düşdüm' : 'Понятно' }
+                    ]
                   );
                 }}
                 trackColor={{ false: 'rgba(255,255,255,0.3)', true: 'rgba(255,255,255,0.8)' }}
@@ -1095,12 +1116,24 @@ export default function SettingsScreen() {
               <Switch
                 value={adaptiveInterfaceEnabled}
                 onValueChange={(value) => {
+                  logger.info('[Settings] Adaptive interface toggle:', { 
+                    from: adaptiveInterfaceEnabled, 
+                    to: value,
+                    feature: 'adaptive_interface'
+                  });
+                  
                   setAdaptiveInterfaceEnabled(value);
+                  
+                  logger.info('[Settings] Adaptive interface updated successfully:', { enabled: value });
+                  
                   Alert.alert(
                     language === 'az' ? 'Adaptiv interfeys' : 'Адаптивный интерфейс',
                     language === 'az' 
-                      ? `Adaptiv interfeys ${value ? 'aktiv' : 'deaktiv'} edildi`
-                      : `Адаптивный интерфейс ${value ? 'включен' : 'выключен'}`
+                      ? `Adaptiv interfeys ${value ? 'aktiv' : 'deaktiv'} edildi. Tətbiq ${value ? 'istifadə tərzinizi öyrənəcək və sizə uyğun şəkildə uyğunlaşacaq (ən çox baxdığınız kateqoriyalar, tez-tez istifadə etdiyiniz filtrələr və s.)' : 'standart interfeysdən istifadə edəcək'}.`
+                      : `Адаптивный интерфейс ${value ? 'включен' : 'выключен'}. Приложение ${value ? 'будет изучать ваш стиль использования и адаптироваться (наиболее просматриваемые категории, часто используемые фильтры и т.д.)' : 'будет использовать стандартный интерфейс'}.`,
+                    [
+                      { text: language === 'az' ? 'Başa düşdüm' : 'Понятно' }
+                    ]
                   );
                 }}
                 trackColor={{ false: colors.border, true: '#FFD700' }}
@@ -1115,19 +1148,44 @@ export default function SettingsScreen() {
             subtitle={language === 'az' ? 'Eksklüziv xüsusiyyətlər və üstünlüklər' : 'Эксклюзивные функции и преимущества'}
             isPremium
             onPress={() => {
+              logger.info('[Settings] Premium mode tapped:', { userId: currentUser?.id });
+              
               Alert.alert(
                 language === 'az' ? 'Premium rejim' : 'Премиум режим',
                 language === 'az' 
-                  ? 'Premium üzvlük üçün əlaqə saxlayın'
-                  : 'Свяжитесь с нами для премиум подписки',
+                  ? 'Premium üzvlük ilə:\n\n✨ Limitsiz VIP elanlar\n🚀 Prioritet dəstək\n🎨 Eksklüziv dizayn temaları\n📊 Detallı analitika\n💎 Reklamsız təcrübə\n\nÜzvlük üçün əlaqə saxlayın:'
+                  : 'С премиум подпиской:\n\n✨ Безлимитные VIP объявления\n🚀 Приоритетная поддержка\n🎨 Эксклюзивные темы дизайна\n📊 Детальная аналитика\n💎 Без рекламы\n\nСвяжитесь с нами для подписки:',
                 [
                   {
-                    text: language === 'az' ? 'Əlaqə' : 'Связаться',
-                    onPress: () => logger.debug('Contact for premium')
+                    text: language === 'az' ? 'Ləğv et' : 'Отмена',
+                    style: 'cancel',
+                    onPress: () => {
+                      logger.info('[Settings] Premium mode dialog cancelled');
+                    }
                   },
                   {
-                    text: language === 'az' ? 'Ləğv et' : 'Отмена',
-                    style: 'cancel'
+                    text: language === 'az' ? 'Dəstək' : 'Поддержка',
+                    onPress: () => {
+                      logger.info('[Settings] Premium mode: navigating to support');
+                      router.push('/support');
+                    }
+                  },
+                  {
+                    text: language === 'az' ? 'Daha çox' : 'Подробнее',
+                    onPress: () => {
+                      logger.info('[Settings] Premium mode: viewing details');
+                      Alert.alert(
+                        language === 'az' ? 'Premium Paketlər' : 'Премиум пакеты',
+                        language === 'az'
+                          ? '💎 Aylıq: 19.99 AZN\n👑 İllik: 199.99 AZN (2 ay pulsuz!)\n🌟 Ömürlük: 499.99 AZN\n\nBütün paketlərdə 7 günlük pulsuz sınaq mövcuddur!'
+                          : '💎 Месяц: 19.99 AZN\n👑 Год: 199.99 AZN (2 месяца бесплатно!)\n🌟 Навсегда: 499.99 AZN\n\nВо всех пакетах доступна 7-дневная бесплатная пробная версия!',
+                        [
+                          { 
+                            text: language === 'az' ? 'Bağla' : 'Закрыть'
+                          }
+                        ]
+                      );
+                    }
                   }
                 ]
               );
