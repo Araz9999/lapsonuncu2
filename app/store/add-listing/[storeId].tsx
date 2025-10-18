@@ -193,6 +193,19 @@ export default function AddStoreListingScreen() {
 
       // BUG FIX: Validate assets array exists and has items
       if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0]) {
+        const asset = result.assets[0];
+        
+        // ✅ Check file size (max 5MB)
+        if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024) {
+          Alert.alert(
+            language === 'az' ? 'Şəkil çox böyükdür' : 'Изображение слишком большое',
+            language === 'az' 
+              ? 'Maksimum 5MB ölçüsündə şəkil əlavə edin' 
+              : 'Добавьте изображение размером до 5MB'
+          );
+          return;
+        }
+        
         if (images.length >= 5) {
           Alert.alert(
             language === 'az' ? 'Limit aşıldı' : 'Лимит превышен',
@@ -202,7 +215,7 @@ export default function AddStoreListingScreen() {
           );
           return;
         }
-        setImages([...images, result.assets[0].uri]);
+        setImages([...images, asset.uri]);
       }
     } catch (error) {
       storeLogger.error('Camera error:', error);
