@@ -127,6 +127,8 @@ export default function LoginScreen() {
   };
 
   const handleSocialLogin = async (provider: 'google' | 'facebook' | 'vk') => {
+    logger.info('[Login] Social login initiated:', { provider });
+    
     try {
       setLoadingSocial(provider);
       
@@ -138,6 +140,7 @@ export default function LoginScreen() {
         const statusData = await statusResponse.json();
         if (!statusData.configured[provider]) {
           setLoadingSocial(null);
+          logger.warn('[Login] Provider not configured:', { provider });
           showSocialLoginError(provider, `${provider.charAt(0).toUpperCase() + provider.slice(1)} login is not configured yet. Please contact support.`);
           return;
         }
@@ -148,13 +151,18 @@ export default function LoginScreen() {
         (result) => {
           setLoadingSocial(null);
           if (result.success && result.user) {
+            logger.info(`[Login] Social login successful (${provider}):`, { 
+              userId: result.user.id,
+              email: result.user.email
+            });
+            
             // ✅ Create complete user object
             const userObject = {
               id: result.user.id as string,
               name: result.user.name as string,
               email: result.user.email as string,
               phone: '',
-              avatar: result.user.avatar as string,
+              avatar: result.user.avatar as string || '',
               verified: true,
               rating: 0,
               totalRatings: 0,
@@ -176,19 +184,18 @@ export default function LoginScreen() {
             };
             
             login(userObject);
-            logger.info(`Social login successful (${provider}):`, result.user.email);
             router.replace('/(tabs)');
           }
         },
         (error) => {
           setLoadingSocial(null);
-          logger.error(`Social login error (${provider}):`, error);
+          logger.error(`[Login] Social login error (${provider}):`, error);
           showSocialLoginError(provider, error);
         }
       );
     } catch (error) {
       setLoadingSocial(null);
-      logger.error(`Social login initiation error (${provider}):`, error);
+      logger.error(`[Login] Social login initiation error (${provider}):`, error);
       showSocialLoginError(provider, 'Failed to initiate login. Please try again.');
     }
   };
