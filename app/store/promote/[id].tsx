@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -30,13 +30,25 @@ export default function StorePromotionScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { language } = useLanguageStore();
   const { stores } = useStoreStore();
-  const { currentUser, walletBalance, bonusBalance, spendFromWallet, spendFromBonus } = useUserStore();
+  const { currentUser, walletBalance, bonusBalance, spendFromBalance, getTotalBalance } = useUserStore();
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  
+  // ✅ Log screen access
+  useEffect(() => {
+    logger.info('[StorePromotion] Screen opened:', { storeId: id });
+  }, [id]);
   
   const store = stores.find(s => s.id === id);
   
   if (!store || !currentUser || store.userId !== currentUser.id) {
+    logger.warn('[StorePromotion] Access denied or store not found:', { 
+      storeId: id, 
+      hasStore: !!store,
+      hasUser: !!currentUser,
+      isOwner: store?.userId === currentUser?.id
+    });
     return (
       <View style={styles.container}>
         <View style={styles.header}>
@@ -104,31 +116,74 @@ export default function StorePromotionScreen() {
   ];
 
   const handleSelectPlan = (planId: string) => {
+    logger.info('[StorePromotion] Plan selected:', { 
+      storeId: id,
+      planId,
+      previousPlan: selectedPlan
+    });
     setSelectedPlan(planId);
   };
 
   const handlePurchase = async () => {
-    if (!selectedPlan) return;
+    if (!selectedPlan) {
+      logger.warn('[StorePromotion] No plan selected');
+      return;
+    }
+    
+    if (isProcessing) {
+      logger.warn('[StorePromotion] Already processing a purchase');
+      return;
+    }
     
     const plan = promotionPlans.find(p => p.id === selectedPlan);
-    if (!plan) return;
+    if (!plan) {
+      logger.error('[StorePromotion] Selected plan not found:', { planId: selectedPlan });
+      return;
+    }
+    
+    logger.info('[StorePromotion] Purchase initiated:', { 
+      storeId: id,
+      planId: plan.id,
+      price: plan.price,
+      duration: plan.duration
+    });
     
     // ✅ Check balance first
-    const totalBalance = walletBalance + bonusBalance;
+    const totalBalance = getTotalBalance();
     if (totalBalance < plan.price) {
+      logger.warn('[StorePromotion] Insufficient balance:', { 
+        required: plan.price,
+        available: totalBalance
+      });
       Alert.alert(
         language === 'az' ? 'Balans kifayət etmir' : 'Недостаточно средств',
         language === 'az' 
           ? `Bu plan üçün ${plan.price} AZN lazımdır. Balansınız: ${totalBalance.toFixed(2)} AZN`
           : `Для этого плана требуется ${plan.price} AZN. Ваш баланс: ${totalBalance.toFixed(2)} AZN`,
         [
-          { text: language === 'az' ? 'Ləğv et' : 'Отмена', style: 'cancel' },
-          { text: language === 'az' ? 'Balans artır' : 'Пополнить баланс', onPress: () => router.push('/wallet') }
+          { 
+            text: language === 'az' ? 'Ləğv et' : 'Отмена', 
+            style: 'cancel',
+            onPress: () => logger.info('[StorePromotion] User cancelled due to insufficient balance')
+          },
+          { 
+            text: language === 'az' ? 'Balans artır' : 'Пополнить баланс', 
+            onPress: () => {
+              logger.info('[StorePromotion] Navigating to wallet to add balance');
+              router.push('/wallet');
+            }
+          }
         ]
       );
       return;
     }
 
+    logger.info('[StorePromotion] Showing confirmation dialog:', { 
+      planId: plan.id,
+      price: plan.price,
+      balance: totalBalance
+    });
+    
     Alert.alert(
       language === 'az' ? 'Ödəniş təsdiqi' : 'Подтверждение оплаты',
       language === 'az' 
@@ -138,39 +193,45 @@ export default function StorePromotionScreen() {
         {
           text: language === 'az' ? 'Ləğv et' : 'Отмена',
           style: 'cancel',
+          onPress: () => {
+            logger.info('[StorePromotion] User cancelled payment confirmation');
+          }
         },
         {
           text: language === 'az' ? 'Ödə' : 'Оплатить',
           onPress: async () => {
+            if (isProcessing) {
+              logger.warn('[StorePromotion] Already processing payment');
+              return;
+            }
+            
+            setIsProcessing(true);
+            logger.info('[StorePromotion] Processing payment:', { 
+              storeId: id,
+              planId: plan.id,
+              price: plan.price
+            });
+            
             try {
-              // ✅ Spend money with proper validation
-              let remainingAmount = plan.price;
-              let paymentSuccess = true;
-              
-              if (bonusBalance > 0) {
-                const bonusToSpend = Math.min(bonusBalance, remainingAmount);
-                const bonusSuccess = spendFromBonus(bonusToSpend);
-                if (bonusSuccess) {
-                  remainingAmount -= bonusToSpend;
-                } else {
-                  paymentSuccess = false;
-                }
-              }
-              
-              if (paymentSuccess && remainingAmount > 0) {
-                const walletSuccess = spendFromWallet(remainingAmount);
-                if (!walletSuccess) {
-                  paymentSuccess = false;
-                }
-              }
+              // ✅ Use spendFromBalance for automatic bonus → wallet ordering
+              const paymentSuccess = spendFromBalance(plan.price);
               
               if (!paymentSuccess) {
+                logger.error('[StorePromotion] Payment failed:', { 
+                  price: plan.price, 
+                  balance: getTotalBalance() 
+                });
                 Alert.alert(
                   language === 'az' ? 'Xəta' : 'Ошибка',
                   language === 'az' ? 'Ödəniş uğursuz oldu' : 'Платеж не удался'
                 );
                 return;
               }
+              
+              logger.info('[StorePromotion] Payment successful:', { 
+                price: plan.price,
+                remainingBalance: getTotalBalance()
+              });
               
               // ✅ Payment successful - show success
               Alert.alert(
@@ -181,16 +242,21 @@ export default function StorePromotionScreen() {
                 [
                   {
                     text: 'OK',
-                    onPress: () => router.back(),
+                    onPress: () => {
+                      logger.info('[StorePromotion] Success confirmed, navigating back');
+                      router.back();
+                    },
                   },
                 ]
               );
             } catch (error) {
-              logger.error('Store promotion error:', error);
+              logger.error('[StorePromotion] Store promotion error:', error);
               Alert.alert(
                 language === 'az' ? 'Xəta' : 'Ошибка',
                 language === 'az' ? 'Təşviq zamanı xəta baş verdi' : 'Произошла ошибка при продвижении'
               );
+            } finally {
+              setIsProcessing(false);
             }
           },
         },
@@ -320,10 +386,20 @@ export default function StorePromotionScreen() {
 
       {selectedPlan && (
         <View style={styles.footer}>
-          <TouchableOpacity style={styles.purchaseButton} onPress={handlePurchase}>
+          <TouchableOpacity 
+            style={[
+              styles.purchaseButton,
+              isProcessing && styles.processingButton
+            ]} 
+            onPress={handlePurchase}
+            disabled={isProcessing}
+          >
             <CreditCard size={20} color="white" />
             <Text style={styles.purchaseButtonText}>
-              {language === 'az' ? 'Ödəniş et' : 'Оплатить'}
+              {isProcessing 
+                ? (language === 'az' ? 'Emal edilir...' : 'Обработка...')
+                : (language === 'az' ? 'Ödəniş et' : 'Оплатить')
+              }
             </Text>
           </TouchableOpacity>
         </View>
@@ -532,5 +608,8 @@ const styles = StyleSheet.create({
   balanceDetail: {
     fontSize: 12,
     color: Colors.textSecondary || '#6B7280',
+  },
+  processingButton: {
+    opacity: 0.6,
   },
 });
