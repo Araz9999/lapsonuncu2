@@ -24,8 +24,10 @@ import {
 } from 'lucide-react-native';
 import { useStoreStore } from '@/store/storeStore';
 import { useUserStore } from '@/store/userStore';
+import { useLanguageStore } from '@/store/languageStore';
 import { getColors } from '@/constants/colors';
 import { useThemeStore } from '@/store/themeStore';
+import { logger } from '@/utils/logger';
 
 interface ThemeColor {
   id: string;
@@ -154,6 +156,7 @@ export default function StoreThemeScreen() {
   const router = useRouter();
   const { storeId } = useLocalSearchParams<{ storeId: string }>();
   const { currentUser } = useUserStore();
+  const { language } = useLanguageStore();
   const { stores, getUserStore, editStore } = useStoreStore();
   const { themeMode, colorTheme } = useThemeStore();
   const colors = getColors(themeMode, colorTheme);
@@ -177,32 +180,61 @@ export default function StoreThemeScreen() {
   const selectedThemeLayout = themeLayouts.find(l => l.id === selectedLayout) || themeLayouts[0];
 
   const handleSaveTheme = async () => {
+    if (!store) {
+      logger.error('[StoreTheme] No store for theme save');
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Mağaza tapılmadı' : 'Магазин не найден'
+      );
+      return;
+    }
+    
+    if (!selectedColor || !selectedLayout) {
+      logger.error('[StoreTheme] Missing theme selections:', { color: selectedColor, layout: selectedLayout });
+      return;
+    }
+    
+    logger.info('[StoreTheme] Saving theme:', { 
+      storeId: store.id, 
+      color: selectedColor, 
+      layout: selectedLayout 
+    });
+    
     try {
-      if (store) {
-        await editStore(store.id, {
-          theme: {
-            colorScheme: selectedColor,
-            layout: selectedLayout
-          }
-        });
-      }
+      await editStore(store.id, {
+        theme: {
+          colorScheme: selectedColor,
+          layout: selectedLayout
+        }
+      });
+      
+      logger.info('[StoreTheme] Theme saved successfully:', store.id);
       Alert.alert('Uğurlu', 'Mağaza görünüşü yeniləndi');
     } catch (error) {
+      logger.error('[StoreTheme] Failed to save theme:', error);
       Alert.alert('Xəta', 'Görünüş yenilənə bilmədi');
     }
   };
 
   const handleResetTheme = () => {
+    logger.info('[StoreTheme] Reset theme requested:', { currentColor: selectedColor, currentLayout: selectedLayout });
+    
     Alert.alert(
       'Sıfırla',
       'Bütün dəyişiklikləri sıfırlamaq istəyirsiniz?',
       [
-        { text: 'Xeyr', style: 'cancel' },
+        { 
+          text: 'Xeyr', 
+          style: 'cancel',
+          onPress: () => logger.info('[StoreTheme] Reset cancelled')
+        },
         {
           text: 'Bəli',
           onPress: () => {
+            logger.info('[StoreTheme] Resetting theme to defaults');
             setSelectedColor('default');
             setSelectedLayout('classic');
+            logger.info('[StoreTheme] Theme reset to defaults');
           }
         }
       ]
@@ -219,7 +251,24 @@ export default function StoreThemeScreen() {
           styles.colorOption,
           isSelected && [styles.selectedColorOption, { backgroundColor: colors.background }]
         ]}
-        onPress={() => setSelectedColor(color.id)}
+        onPress={() => {
+          // ✅ Check if premium color requires premium access
+          if (color.premium && currentUser?.role !== 'admin') {
+            logger.warn('[StoreTheme] Premium color selected without premium access:', color.id);
+            Alert.alert(
+              'Premium Xüsusiyyət',
+              'Bu rəng mövzusu premium istifadəçilər üçündür. Premium plan almaq istəyirsinizmi?',
+              [
+                { text: 'Xeyr', style: 'cancel' },
+                { text: 'Bəli', onPress: () => router.push('/pricing') }
+              ]
+            );
+            return;
+          }
+          
+          logger.info('[StoreTheme] Color selected:', color.id);
+          setSelectedColor(color.id);
+        }}
       >
         <View style={styles.colorPreview}>
           <View style={[styles.colorCircle, { backgroundColor: color.primary, borderColor: colors.white }]} />
@@ -246,7 +295,24 @@ export default function StoreThemeScreen() {
           styles.layoutOption,
           isSelected && [styles.selectedLayoutOption, { backgroundColor: colors.background }]
         ]}
-        onPress={() => setSelectedLayout(layout.id)}
+        onPress={() => {
+          // ✅ Check if premium layout requires premium access
+          if (layout.premium && currentUser?.role !== 'admin') {
+            logger.warn('[StoreTheme] Premium layout selected without premium access:', layout.id);
+            Alert.alert(
+              'Premium Xüsusiyyət',
+              'Bu dizayn layoutu premium istifadəçilər üçündür. Premium plan almaq istəyirsinizmi?',
+              [
+                { text: 'Xeyr', style: 'cancel' },
+                { text: 'Bəli', onPress: () => router.push('/pricing') }
+              ]
+            );
+            return;
+          }
+          
+          logger.info('[StoreTheme] Layout selected:', layout.id);
+          setSelectedLayout(layout.id);
+        }}
       >
         <View style={[styles.layoutPreview, { backgroundColor: colors.lightGray }]}>
           <Text style={styles.layoutEmoji}>{layout.preview}</Text>
