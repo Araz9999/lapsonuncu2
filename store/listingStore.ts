@@ -587,25 +587,90 @@ export const useListingStore = create<ListingState>((set, get) => ({
   },
 
   applyCreativeEffects: async (id: string, effects: any[], effectEndDates: any[]) => {
-    // Validation: Check if effects array is valid
+    // ===== VALIDATION START =====
+    
+    // 1. Check if effects array is valid
     if (!effects || !Array.isArray(effects) || effects.length === 0) {
       logger.error('[ListingStore] Invalid effects array:', effects);
       throw new Error('Effektlər düzgün deyil');
     }
     
-    // Validation: Check if effectEndDates array is valid and matches effects length
+    // 2. Check max effects limit
+    if (effects.length > 10) {
+      logger.error('[ListingStore] Too many effects:', effects.length);
+      throw new Error('Maksimum 10 effekt əlavə edə bilərsiniz');
+    }
+    
+    // 3. Check if effectEndDates array is valid and matches effects length
     if (!effectEndDates || !Array.isArray(effectEndDates) || effectEndDates.length !== effects.length) {
       logger.error('[ListingStore] Invalid effectEndDates array:', effectEndDates);
       throw new Error('Effekt tarixləri düzgün deyil');
     }
     
-    // Validation: Check each effect has required properties
-    for (const effect of effects) {
-      if (!effect.id || !effect.name || !effect.price || !effect.duration) {
-        logger.error('[ListingStore] Invalid effect structure:', effect);
-        throw new Error('Effekt məlumatları tam deyil');
+    // 4. Check for duplicate effects
+    const effectIds = effects.map(e => e.id);
+    const uniqueIds = new Set(effectIds);
+    if (effectIds.length !== uniqueIds.size) {
+      logger.error('[ListingStore] Duplicate effects detected');
+      throw new Error('Eyni effekt 2 dəfə tətbiq edilə bilməz');
+    }
+    
+    // 5. Validate each effect has required properties
+    for (let i = 0; i < effects.length; i++) {
+      const effect = effects[i];
+      const endDate = effectEndDates[i];
+      
+      // Check effect structure
+      if (!effect.id || typeof effect.id !== 'string') {
+        logger.error('[ListingStore] Invalid effect ID:', effect);
+        throw new Error(`Effekt ${i + 1}: ID düzgün deyil`);
+      }
+      
+      if (!effect.name || typeof effect.name !== 'object') {
+        logger.error('[ListingStore] Invalid effect name:', effect);
+        throw new Error(`Effekt ${i + 1}: Ad düzgün deyil`);
+      }
+      
+      if (!effect.price || typeof effect.price !== 'number' || effect.price <= 0 || !isFinite(effect.price)) {
+        logger.error('[ListingStore] Invalid effect price:', effect.price);
+        throw new Error(`Effekt ${i + 1}: Qiymət düzgün deyil`);
+      }
+      
+      if (effect.price > 100) {
+        logger.error('[ListingStore] Effect price too high:', effect.price);
+        throw new Error(`Effekt ${i + 1}: Qiymət çox yüksəkdir`);
+      }
+      
+      if (!effect.duration || typeof effect.duration !== 'number' || effect.duration <= 0 || !isFinite(effect.duration)) {
+        logger.error('[ListingStore] Invalid effect duration:', effect.duration);
+        throw new Error(`Effekt ${i + 1}: Müddət düzgün deyil`);
+      }
+      
+      if (effect.duration > 365) {
+        logger.error('[ListingStore] Effect duration too long:', effect.duration);
+        throw new Error(`Effekt ${i + 1}: Müddət çox uzundur`);
+      }
+      
+      // Check end date
+      if (!endDate || !endDate.endDate) {
+        logger.error('[ListingStore] Invalid end date:', endDate);
+        throw new Error(`Effekt ${i + 1}: Bitmə tarixi düzgün deyil`);
+      }
+      
+      const endDateObj = endDate.endDate instanceof Date ? endDate.endDate : new Date(endDate.endDate);
+      if (isNaN(endDateObj.getTime())) {
+        logger.error('[ListingStore] Invalid end date value:', endDate.endDate);
+        throw new Error(`Effekt ${i + 1}: Bitmə tarixi etibarsızdır`);
+      }
+      
+      const now = new Date();
+      if (endDateObj <= now) {
+        logger.error('[ListingStore] End date in past:', endDateObj);
+        throw new Error(`Effekt ${i + 1}: Bitmə tarixi keçmişdədir`);
       }
     }
+    
+    // ===== VALIDATION END =====
     
     // Simulate payment processing
     await new Promise(resolve => setTimeout(resolve, 1000));
