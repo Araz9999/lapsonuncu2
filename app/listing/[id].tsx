@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Alert, Linking, Platform, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Alert, Linking, Platform, Modal, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import * as Sharing from 'expo-sharing';
+import * as Clipboard from 'expo-clipboard';
 import UserActionModal from '@/components/UserActionModal';
 import UserAnalytics from '@/components/UserAnalytics';
 import { useLanguageStore } from '@/store/languageStore';
@@ -33,6 +34,7 @@ export default function ListingDetailScreen() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [shareModalVisible, setShareModalVisible] = useState(false);
   const [showUserActionModal, setShowUserActionModal] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
   
   // Get listings from store instead of mock data
   const { listings } = useListingStore();
@@ -209,26 +211,77 @@ export default function ListingDetailScreen() {
     setShareModalVisible(true);
   };
 
+  // ✅ Helper: Generate share URL (moved to avoid hardcoding)
+  const getShareUrl = () => {
+    // TODO: Replace with your actual production URL
+    const baseUrl = __DEV__ 
+      ? 'https://dev.yourapp.com/listing' 
+      : 'https://yourapp.com/listing';
+    return `${baseUrl}/${listing?.id || ''}`;
+  };
+
   const generateShareText = () => {
-    const baseUrl = 'https://yourapp.com/listing';
-    const shareUrl = `${baseUrl}/${listing.id}`;
+    // ✅ Validate listing exists
+    if (!listing) {
+      logger.error('[generateShareText] Listing is null');
+      return '';
+    }
+
+    // ✅ Validate required fields
+    if (!listing.id || !listing.title || !listing.location || !listing.currency) {
+      logger.error('[generateShareText] Missing required listing fields:', {
+        hasId: !!listing.id,
+        hasTitle: !!listing.title,
+        hasLocation: !!listing.location,
+        hasCurrency: !!listing.currency
+      });
+      return '';
+    }
+
+    const shareUrl = getShareUrl();
+    
+    // ✅ Safe title access with fallback
+    const title = listing.title[language] || listing.title.az || listing.title.en || 'Elan';
+    
+    // ✅ Safe location access with fallback
+    const location = listing.location[language] || listing.location.az || listing.location.en || '';
     
     // Use discounted price if available, otherwise use regular price
     const displayPrice = priceInfo && priceInfo.absoluteSavings >= 1 
-      ? `${priceInfo.discountedPrice} ${listing.currency} (${language === 'az' ? 'Endirimli qiymət' : 'Цена со скидкой'})`
-      : `${listing.price} ${listing.currency}`;
+      ? `${priceInfo.discountedPrice.toFixed(2)} ${listing.currency} (${language === 'az' ? 'Endirimli qiymət' : 'Цена со скидкой'})`
+      : `${listing.price.toFixed(2)} ${listing.currency}`;
     
     return language === 'az' 
-      ? `${listing.title[language]}\n\n${displayPrice}\n${listing.location[language]}\n\n${shareUrl}`
-      : `${listing.title[language]}\n\n${displayPrice}\n${listing.location[language]}\n\n${shareUrl}`;
+      ? `${title}\n\n${displayPrice}\n${location}\n\n${shareUrl}`
+      : `${title}\n\n${displayPrice}\n${location}\n\n${shareUrl}`;
   };
 
   const shareToSocialMedia = async (platform: string) => {
-    const shareText = generateShareText();
-    const encodedText = encodeURIComponent(shareText);
-    const baseUrl = 'https://yourapp.com/listing';
-    const shareUrl = `${baseUrl}/${listing.id}`;
-    const encodedUrl = encodeURIComponent(shareUrl);
+    // ✅ Validate listing
+    if (!listing) {
+      logger.error('[shareToSocialMedia] Listing is null');
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Elan məlumatları tapılmadı' : 'Информация объявлении не найдена'
+      );
+      setShareModalVisible(false);
+      return;
+    }
+
+    // ✅ Set loading state
+    setIsSharing(true);
+
+    try {
+      const shareText = generateShareText();
+      
+      // ✅ Validate generated text
+      if (!shareText) {
+        throw new Error('Failed to generate share text');
+      }
+
+      const encodedText = encodeURIComponent(shareText);
+      const shareUrl = getShareUrl();
+      const encodedUrl = encodeURIComponent(shareUrl);
     
     let url = '';
     
@@ -240,20 +293,26 @@ export default function ListingDetailScreen() {
         url = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodedText}`;
         break;
       case 'instagram':
-        // Instagram doesn't support direct URL sharing, so we'll copy to clipboard
-        if (Platform.OS === 'web') {
-          navigator.clipboard.writeText(shareText);
+        // ✅ Instagram doesn't support direct URL sharing, so we'll copy to clipboard
+        try {
+          await Clipboard.setStringAsync(shareText);
           Alert.alert(
             language === 'az' ? 'Kopyalandı' : 'Скопировано',
-            language === 'az' ? 'Mətn panoya kopyalandı. Instagram-da paylaşa bilərsiniz.' : 'Текст скопирован в буфер. Можете поделиться в Instagram.'
+            language === 'az' 
+              ? 'Mətn panoya kopyalandı. Instagram tətbiqini açın və paylaşın.' 
+              : 'Текст скопирован. Откройте Instagram и поделитесь.'
           );
-        } else {
+        } catch (clipboardError) {
+          logger.error('[shareToSocialMedia] Clipboard error:', clipboardError);
           Alert.alert(
-            'Instagram',
-            language === 'az' ? 'Instagram tətbiqini açın və məzmunu paylaşın' : 'Откройте приложение Instagram и поделитесь контентом'
+            language === 'az' ? 'Xəta' : 'Ошибка',
+            language === 'az' 
+              ? 'Panoya kopyalana bilmədi. Lütfən Instagram tətbiqini açın.' 
+              : 'Не удалось скопировать. Откройте Instagram.'
           );
         }
         setShareModalVisible(false);
+        setIsSharing(false);
         return;
       case 'telegram':
         url = `https://t.me/share/url?url=${encodedUrl}&text=${encodedText}`;
@@ -268,52 +327,120 @@ export default function ListingDetailScreen() {
         url = `https://connect.ok.ru/offer?url=${encodedUrl}&title=${encodeURIComponent(listing.title[language])}&description=${encodeURIComponent(listing.description[language])}`;
         break;
       case 'tiktok':
-        // TikTok doesn't support direct URL sharing
-        Alert.alert(
-          'TikTok',
-          language === 'az' ? 'TikTok tətbiqini açın və məzmunu paylaşın' : 'Откройте приложение TikTok и поделитесь контентом'
-        );
-        setShareModalVisible(false);
-        return;
-      case 'native':
-        // Use native sharing
-        if (await Sharing.isAvailableAsync()) {
-          await Sharing.shareAsync(shareUrl, {
-            dialogTitle: language === 'az' ? 'Elanı paylaş' : 'Поделиться объявлением',
-          });
-        } else {
+        // ✅ TikTok doesn't support direct URL sharing, copy to clipboard
+        try {
+          await Clipboard.setStringAsync(shareText);
           Alert.alert(
-            language === 'az' ? 'Xəta' : 'Ошибка',
-            language === 'az' ? 'Paylaşma funksiyası mövcud deyil' : 'Функция обмена недоступна'
+            'TikTok',
+            language === 'az' 
+              ? 'Mətn kopyalandı. TikTok tətbiqini açın və paylaşın.' 
+              : 'Текст скопирован. Откройте TikTok и поделитесь.'
+          );
+        } catch (clipboardError) {
+          logger.error('[shareToSocialMedia] TikTok clipboard error:', clipboardError);
+          Alert.alert(
+            'TikTok',
+            language === 'az' 
+              ? 'TikTok tətbiqini açın və məzmunu paylaşın' 
+              : 'Откройте приложение TikTok и поделитесь'
           );
         }
         setShareModalVisible(false);
+        setIsSharing(false);
+        return;
+      case 'native':
+        // ✅ Use native sharing with better error handling
+        try {
+          if (await Sharing.isAvailableAsync()) {
+            await Sharing.shareAsync(shareUrl, {
+              dialogTitle: language === 'az' ? 'Elanı paylaş' : 'Поделиться объявлением',
+            });
+            logger.debug('[shareToSocialMedia] Native share successful');
+          } else {
+            logger.warn('[shareToSocialMedia] Native sharing not available');
+            Alert.alert(
+              language === 'az' ? 'Xəta' : 'Ошибка',
+              language === 'az' ? 'Paylaşma funksiyası mövcud deyil' : 'Функция обмена недоступна'
+            );
+          }
+        } catch (nativeShareError) {
+          logger.error('[shareToSocialMedia] Native share error:', nativeShareError);
+          Alert.alert(
+            language === 'az' ? 'Xəta' : 'Ошибка',
+            language === 'az' ? 'Paylaşma zamanı xəta baş verdi' : 'Произошла ошибка при попытке поделиться'
+          );
+        }
+        setShareModalVisible(false);
+        setIsSharing(false);
         return;
       case 'copy':
-        if (Platform.OS === 'web') {
-          navigator.clipboard.writeText(shareText);
+        // ✅ Universal clipboard for all platforms
+        try {
+          await Clipboard.setStringAsync(shareText);
+          logger.debug('[shareToSocialMedia] Text copied to clipboard');
+          Alert.alert(
+            language === 'az' ? 'Kopyalandı' : 'Скопировано',
+            language === 'az' ? 'Mətn və link panoya kopyalandı' : 'Текст и ссылка скопированы'
+          );
+        } catch (clipboardError) {
+          logger.error('[shareToSocialMedia] Clipboard error:', clipboardError);
+          Alert.alert(
+            language === 'az' ? 'Xəta' : 'Ошибка',
+            language === 'az' ? 'Panoya kopyalana bilmədi' : 'Не удалось скопировать'
+          );
         }
-        Alert.alert(
-          language === 'az' ? 'Kopyalandı' : 'Скопировано',
-          language === 'az' ? 'Link panoya kopyalandı' : 'Ссылка скопирована в буфер'
-        );
         setShareModalVisible(false);
+        setIsSharing(false);
         return;
     }
     
-    try {
-      const supported = await Linking.canOpenURL(url);
-      if (supported) {
-        await Linking.openURL(url);
-      } else {
-        // Fallback to web browser
-        await Linking.openURL(url);
+      // ✅ Validate URL before opening
+      if (!url) {
+        throw new Error('Invalid URL generated');
+      }
+
+      logger.debug('[shareToSocialMedia] Opening URL:', url.substring(0, 50) + '...');
+      
+      try {
+        const supported = await Linking.canOpenURL(url);
+        if (supported) {
+          await Linking.openURL(url);
+          logger.debug('[shareToSocialMedia] Successfully opened:', platform);
+        } else {
+          logger.warn('[shareToSocialMedia] URL not supported, trying fallback:', platform);
+          // Fallback to web browser
+          await Linking.openURL(url);
+        }
+      } catch (linkingError) {
+        logger.error('[shareToSocialMedia] Linking error:', linkingError);
+        
+        // Provide specific error messages based on platform
+        let errorMessage = language === 'az' ? 'Paylaşma zamanı xəta baş verdi' : 'Произошла ошибка при попытке поделиться';
+        
+        if (platform === 'whatsapp') {
+          errorMessage = language === 'az' 
+            ? 'WhatsApp tətbiqi quraşdırılmayıb və ya açıla bilmir' 
+            : 'WhatsApp не установлен или не может быть открыт';
+        } else if (platform === 'telegram') {
+          errorMessage = language === 'az' 
+            ? 'Telegram tətbiqi quraşdırılmayıb və ya açıla bilmir' 
+            : 'Telegram не установлен или не может быть открыт';
+        }
+        
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          errorMessage
+        );
       }
     } catch (error) {
+      logger.error('[shareToSocialMedia] General error:', error);
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Paylaşma zamanı xəta baş verdi' : 'Произошла ошибка при попытке поделиться'
       );
+    } finally {
+      // ✅ Always reset loading state
+      setIsSharing(false);
     }
     
     setShareModalVisible(false);
@@ -355,12 +482,23 @@ export default function ListingDetailScreen() {
             </View>
             
             <ScrollView style={styles.shareOptions}>
-              <View style={styles.shareGrid}>
+              {/* ✅ Loading indicator */}
+              {isSharing && (
+                <View style={styles.loadingOverlay}>
+                  <ActivityIndicator size="large" color={Colors.primary} />
+                  <Text style={styles.loadingText}>
+                    {language === 'az' ? 'Paylaşılır...' : 'Отправка...'}
+                  </Text>
+                </View>
+              )}
+              
+              <View style={[styles.shareGrid, isSharing && styles.shareGridDisabled]}>
                 {socialPlatforms.map((platform) => (
                   <TouchableOpacity
                     key={platform.id}
                     style={styles.shareOption}
                     onPress={() => shareToSocialMedia(platform.id)}
+                    disabled={isSharing}
                   >
                     <View style={[styles.shareIconContainer, { backgroundColor: platform.color }]}>
                       <platform.iconComponent size={24} color="white" />
@@ -1065,6 +1203,26 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.textSecondary,
     textAlign: 'center',
+  },
+  shareGridDisabled: {
+    opacity: 0.5,
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 999,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: Colors.text,
+    fontWeight: '500',
   },
   discountedPriceContainer: {
     flex: 1,

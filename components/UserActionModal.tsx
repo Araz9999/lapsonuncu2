@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { logger } from '@/utils/logger';
 import {
   View,
   Text,
@@ -39,7 +38,6 @@ import { useNotificationStore } from '@/store/notificationStore';
 import { useLanguageStore } from '@/store/languageStore';
 import { User } from '@/types/user';
 import { Share } from 'react-native';
-
 import { logger } from '@/utils/logger';
 interface UserActionModalProps {
   visible: boolean;
@@ -342,13 +340,41 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
   };
 
   const handleShare = async () => {
+    // ✅ Validate user
+    if (!user || !user.name) {
+      logger.error('[handleShare] Invalid user object');
+      return;
+    }
+
     try {
+      // ✅ Safe location access
+      const location = user.location?.[language] || user.location?.az || user.location?.en || '';
+      
+      // ✅ Generate share message
+      const shareMessage = location 
+        ? `${user.name} profilini görün - ${location}`
+        : `${user.name} profilini görün`;
+
+      logger.debug('[handleShare] Sharing user profile:', user.id);
+      
       await Share.share({
-        message: `${user.name} profilini görün - ${user.location[language] || user.location.az}`,
+        message: shareMessage,
         title: user.name,
       });
+      
+      logger.debug('[handleShare] Share successful');
     } catch (error) {
-      logger.error('Share error:', error);
+      // ✅ User cancelled sharing is not an error
+      if (error instanceof Error && error.message.includes('cancel')) {
+        logger.debug('[handleShare] User cancelled share');
+        return;
+      }
+      
+      logger.error('[handleShare] Share error:', error);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Paylaşma zamanı xəta baş verdi' : 'Произошла ошибка при попытке поделиться'
+      );
     }
   };
 
