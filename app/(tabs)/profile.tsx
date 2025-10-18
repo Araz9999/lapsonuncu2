@@ -23,8 +23,14 @@ export default function ProfileScreen() {
   
   const [showLiveChat, setShowLiveChat] = React.useState<boolean>(false);
   
-  // Mock current user (first user in the list)
-  const currentUser = users[0];
+  // ✅ Get current user safely with validation
+  const currentUserFromStore = useUserStore.getState().currentUser;
+  const currentUser = currentUserFromStore || users[0]; // Fallback to mock user
+  
+  // ✅ Validate current user
+  if (!currentUser || !currentUser.id) {
+    logger.error('[ProfileScreen] Invalid current user');
+  }
   const userStore = getUserStore(currentUser.id);
   
   // Get user's active chats for live support
@@ -114,13 +120,37 @@ export default function ProfileScreen() {
   };
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const month = date.toLocaleString(language === 'az' ? 'az-AZ' : 'ru-RU', { month: 'long' });
-    const year = date.getFullYear();
+    // ✅ Validate date string
+    if (!dateString || typeof dateString !== 'string') {
+      logger.warn('[formatDate] Invalid date string:', dateString);
+      return language === 'az' ? 'Tarix yoxdur' : 'Дата отсутствует';
+    }
     
-    return language === 'az' 
-      ? `${month} ${year}` 
-      : `${month} ${year}`;
+    try {
+      const date = new Date(dateString);
+      
+      // ✅ Check if date is valid
+      if (isNaN(date.getTime())) {
+        logger.warn('[formatDate] Invalid date:', dateString);
+        return language === 'az' ? 'Yanlış tarix' : 'Неверная дата';
+      }
+      
+      const month = date.toLocaleString(language === 'az' ? 'az-AZ' : 'ru-RU', { month: 'long' });
+      const year = date.getFullYear();
+      
+      // ✅ Validate year is reasonable
+      if (year < 2000 || year > 2100) {
+        logger.warn('[formatDate] Suspicious year:', year);
+        return language === 'az' ? 'Yanlış tarix' : 'Неверная дата';
+      }
+      
+      return language === 'az' 
+        ? `${month} ${year}` 
+        : `${month} ${year}`;
+    } catch (error) {
+      logger.error('[formatDate] Error formatting date:', error);
+      return language === 'az' ? 'Tarix xətası' : 'Ошибка даты';
+    }
   };
 
   if (!isAuthenticated) {
@@ -141,17 +171,46 @@ export default function ProfileScreen() {
     );
   }
 
-  const handleAvatarPress = () => {
-    // TODO: İmplementasiya lazımdır - profil şəklini dəyişdirmək
-    Alert.alert(
-      language === 'az' ? 'Profil şəkli' : 'Фото профиля',
-      language === 'az' ? 'Profil şəklini dəyişdirmək istəyirsiniz?' : 'Хотите изменить фото профиля?',
-      [
-        { text: language === 'az' ? 'Ləğv et' : 'Отмена', style: 'cancel' },
-        { text: language === 'az' ? 'Kameradan çək' : 'Сделать фото', onPress: () => logger.debug('Camera photo selected') },
-        { text: language === 'az' ? 'Qalereyadan seç' : 'Выбрать из галереи', onPress: () => logger.debug('Gallery photo selected') }
-      ]
-    );
+  const handleAvatarPress = async () => {
+    try {
+      Alert.alert(
+        language === 'az' ? 'Profil şəkli' : 'Фото профиля',
+        language === 'az' ? 'Profil şəklini dəyişdirmək istəyirsiniz?' : 'Хотите изменить фото профиля?',
+        [
+          { text: language === 'az' ? 'Ləğv et' : 'Отмена', style: 'cancel' },
+          { 
+            text: language === 'az' ? 'Kameradan çək' : 'Сделать фото', 
+            onPress: () => {
+              logger.info('[handleAvatarPress] Camera photo option selected');
+              Alert.alert(
+                language === 'az' ? 'Kamera' : 'Камера',
+                language === 'az' 
+                  ? 'Kamera funksiyası hazırlanır. Tezliklə əlavə olunacaq.' 
+                  : 'Функция камеры в разработке. Скоро будет добавлена.'
+              );
+            }
+          },
+          { 
+            text: language === 'az' ? 'Qalereyadan seç' : 'Выбрать из галереи', 
+            onPress: () => {
+              logger.info('[handleAvatarPress] Gallery photo option selected');
+              Alert.alert(
+                language === 'az' ? 'Qalereya' : 'Галерея',
+                language === 'az' 
+                  ? 'Qalereya funksiyası hazırlanır. Tezliklə əlavə olunacaq.' 
+                  : 'Функция галереи в разработке. Скоро будет добавлена.'
+              );
+            }
+          }
+        ]
+      );
+    } catch (error) {
+      logger.error('[handleAvatarPress] Error:', error);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Bir xəta baş verdi' : 'Произошла ошибка'
+      );
+    }
   };
 
   return (
@@ -208,7 +267,7 @@ export default function ProfileScreen() {
               {t('wallet')}
             </Text>
             <Text style={styles.walletBalance}>
-              {walletBalance.toFixed(2)} AZN + {bonusBalance.toFixed(2)} AZN bonus
+              {(typeof walletBalance === 'number' && isFinite(walletBalance) ? walletBalance : 0).toFixed(2)} AZN + {(typeof bonusBalance === 'number' && isFinite(bonusBalance) ? bonusBalance : 0).toFixed(2)} AZN bonus
             </Text>
           </View>
           <ChevronRight size={20} color={Colors.textSecondary} />

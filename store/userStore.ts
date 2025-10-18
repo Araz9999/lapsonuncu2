@@ -34,6 +34,7 @@ interface UserState {
   getTotalBalance: () => number;
   canAfford: (amount: number) => boolean;
   updateUserBalance: (userId: string, amount: number) => Promise<void>;
+  updateUserProfile: (updates: Partial<Pick<User, 'name' | 'email' | 'phone' | 'avatar'>>) => void;
   updatePrivacySettings: (settings: Partial<User['privacySettings']>) => void;
   blockUser: (userId: string) => void;
   unblockUser: (userId: string) => void;
@@ -275,19 +276,174 @@ export const useUserStore = create<UserState>()(
           });
         }
       },
-      updatePrivacySettings: (settings) => {
-        const { currentUser } = get();
-        if (currentUser) {
-          set({
-            currentUser: {
-              ...currentUser,
-              privacySettings: {
-                ...currentUser.privacySettings,
-                ...settings
-              }
-            }
-          });
+      updateUserProfile: (updates) => {
+        // ===== VALIDATION START =====
+        
+        // ✅ 1. Check if updates is an object
+        if (!updates || typeof updates !== 'object' || Array.isArray(updates)) {
+          logger.error('[UserStore] Invalid updates object');
+          throw new Error('Yeniləmələr düzgün deyil');
         }
+        
+        // ✅ 2. Validate allowed keys only
+        const allowedKeys = ['name', 'email', 'phone', 'avatar'];
+        const invalidKeys = Object.keys(updates).filter(key => !allowedKeys.includes(key));
+        
+        if (invalidKeys.length > 0) {
+          logger.warn('[UserStore] Invalid profile update keys:', invalidKeys);
+          throw new Error(`Yanlış sahə: ${invalidKeys.join(', ')}`);
+        }
+        
+        // ✅ 3. Validate name
+        if ('name' in updates) {
+          const name = updates.name;
+          if (typeof name !== 'string') {
+            throw new Error('Ad mətn olmalıdır');
+          }
+          
+          const trimmedName = name.trim();
+          if (trimmedName.length < 2) {
+            throw new Error('Ad ən azı 2 simvol olmalıdır');
+          }
+          if (trimmedName.length > 100) {
+            throw new Error('Ad maksimum 100 simvol ola bilər');
+          }
+          
+          updates.name = trimmedName;
+        }
+        
+        // ✅ 4. Validate email
+        if ('email' in updates) {
+          const email = updates.email;
+          if (typeof email !== 'string') {
+            throw new Error('Email mətn olmalıdır');
+          }
+          
+          const trimmedEmail = email.trim().toLowerCase();
+          const emailRegex = /^[a-zA-Z0-9._+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+          
+          if (!emailRegex.test(trimmedEmail)) {
+            throw new Error('Email formatı düzgün deyil');
+          }
+          if (trimmedEmail.length > 255) {
+            throw new Error('Email maksimum 255 simvol ola bilər');
+          }
+          
+          updates.email = trimmedEmail;
+        }
+        
+        // ✅ 5. Validate phone
+        if ('phone' in updates) {
+          const phone = updates.phone;
+          if (typeof phone !== 'string') {
+            throw new Error('Telefon mətn olmalıdır');
+          }
+          
+          const cleanedPhone = phone.replace(/[^\d+]/g, '');
+          if (cleanedPhone.length < 10 || cleanedPhone.length > 15) {
+            throw new Error('Telefon nömrəsi 10-15 rəqəm olmalıdır');
+          }
+          
+          updates.phone = cleanedPhone;
+        }
+        
+        // ✅ 6. Validate avatar
+        if ('avatar' in updates) {
+          const avatar = updates.avatar;
+          if (typeof avatar !== 'string') {
+            throw new Error('Avatar URL mətn olmalıdır');
+          }
+          
+          const trimmedAvatar = avatar.trim();
+          if (trimmedAvatar.length > 500) {
+            throw new Error('Avatar URL çox uzundur');
+          }
+          
+          // Basic URL validation
+          try {
+            new URL(trimmedAvatar);
+          } catch {
+            throw new Error('Avatar URL düzgün deyil');
+          }
+          
+          updates.avatar = trimmedAvatar;
+        }
+        
+        // ✅ 7. Check if user is logged in
+        const { currentUser } = get();
+        if (!currentUser) {
+          logger.error('[UserStore] No user logged in');
+          throw new Error('İstifadəçi daxil olmayıb');
+        }
+        
+        // ===== VALIDATION END =====
+        
+        logger.info('[UserStore] Updating user profile:', Object.keys(updates));
+        
+        set({
+          currentUser: {
+            ...currentUser,
+            ...updates
+          }
+        });
+      },
+      updatePrivacySettings: (settings) => {
+        // ===== VALIDATION START =====
+        
+        // ✅ 1. Check if settings is an object
+        if (!settings || typeof settings !== 'object' || Array.isArray(settings)) {
+          logger.error('[UserStore] Invalid settings object');
+          throw new Error('Tənzimləmələr düzgün deyil');
+        }
+        
+        // ✅ 2. Validate allowed keys only
+        const allowedKeys = ['hidePhoneNumber', 'allowDirectContact', 'onlyAppMessaging'];
+        const invalidKeys = Object.keys(settings).filter(key => !allowedKeys.includes(key));
+        
+        if (invalidKeys.length > 0) {
+          logger.warn('[UserStore] Invalid privacy settings keys:', invalidKeys);
+          // Remove invalid keys
+          invalidKeys.forEach(key => delete (settings as any)[key]);
+        }
+        
+        // ✅ 3. Validate values are booleans
+        for (const key of Object.keys(settings)) {
+          const value = (settings as any)[key];
+          if (typeof value !== 'boolean') {
+            logger.error('[UserStore] Privacy setting value must be boolean:', key, value);
+            throw new Error(`Tənzimləmə dəyəri yanlışdır: ${key}`);
+          }
+        }
+        
+        // ✅ 4. Check conflicting settings
+        if ('onlyAppMessaging' in settings && 'allowDirectContact' in settings) {
+          if (settings.onlyAppMessaging === true && settings.allowDirectContact === true) {
+            logger.warn('[UserStore] Conflicting privacy settings: both onlyAppMessaging and allowDirectContact are true');
+            // Resolve conflict: onlyAppMessaging takes precedence
+            settings.allowDirectContact = false;
+          }
+        }
+        
+        // ✅ 5. Check if user is logged in
+        const { currentUser } = get();
+        if (!currentUser) {
+          logger.error('[UserStore] No user logged in');
+          throw new Error('İstifadəçi daxil olmayıb');
+        }
+        
+        // ===== VALIDATION END =====
+        
+        logger.info('[UserStore] Updating privacy settings:', settings);
+        
+        set({
+          currentUser: {
+            ...currentUser,
+            privacySettings: {
+              ...currentUser.privacySettings,
+              ...settings
+            }
+          }
+        });
       },
       blockUser: (userId) => {
         // BUG FIX: Validate userId
