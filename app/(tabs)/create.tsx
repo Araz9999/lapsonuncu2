@@ -36,6 +36,7 @@ export default function CreateListingScreen() {
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [contactPreference, setContactPreference] = useState<'phone' | 'message' | 'both'>('both');
   const [categorySearchQuery, setCategorySearchQuery] = useState('');
+  const [locationSearchQuery, setLocationSearchQuery] = useState('');
   
   // Category navigation state
   const [categoryNavigationStack, setCategoryNavigationStack] = useState<any[]>([]);
@@ -695,12 +696,22 @@ export default function CreateListingScreen() {
   };
 
   const renderLocationModal = () => {
+    // ✅ Filter locations based on search query
+    const filteredLocations = locationSearchQuery
+      ? locations.filter(loc =>
+          loc.name[language].toLowerCase().includes(locationSearchQuery.toLowerCase())
+        )
+      : locations;
+
     return (
       <Modal
         visible={showLocationModal}
         animationType="slide"
         transparent={true}
-        onRequestClose={() => setShowLocationModal(false)}
+        onRequestClose={() => {
+          setShowLocationModal(false);
+          setLocationSearchQuery('');
+        }}
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
@@ -710,27 +721,71 @@ export default function CreateListingScreen() {
               </Text>
               <TouchableOpacity 
                 style={styles.modalCloseButton}
-                onPress={() => setShowLocationModal(false)}
+                onPress={() => {
+                  setShowLocationModal(false);
+                  setLocationSearchQuery('');
+                }}
               >
                 <Text style={styles.modalCloseText}>×</Text>
               </TouchableOpacity>
             </View>
             
-            <FlatList
-              data={locations}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={styles.modalItem}
-                  onPress={() => {
-                    setSelectedLocation(item.id);
-                    setShowLocationModal(false);
-                  }}
-                >
-                  <Text style={styles.modalItemText}>{item.name[language]}</Text>
-                </TouchableOpacity>
-              )}
-            />
+            {/* ✅ Search input */}
+            <View style={styles.searchContainer}>
+              <Search size={20} color={Colors.textSecondary} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder={language === 'az' ? 'Axtar...' : 'Поиск...'}
+                placeholderTextColor={Colors.textSecondary}
+                value={locationSearchQuery}
+                onChangeText={setLocationSearchQuery}
+              />
+            </View>
+            
+            {/* ✅ Show message if no results */}
+            {filteredLocations.length === 0 ? (
+              <View style={styles.emptySearchContainer}>
+                <MapPin size={48} color={Colors.textSecondary} />
+                <Text style={styles.emptySearchText}>
+                  {language === 'az' ? 'Heç bir yer tapılmadı' : 'Местоположений не найдено'}
+                </Text>
+              </View>
+            ) : (
+              <FlatList
+                data={filteredLocations}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={[
+                      styles.modalItem,
+                      selectedLocation === item.id && styles.selectedModalItem
+                    ]}
+                    onPress={() => {
+                      // ✅ Validate selection
+                      if (!item?.id) {
+                        logger.error('[CreateListing] Invalid location selected');
+                        return;
+                      }
+                      
+                      setSelectedLocation(item.id);
+                      setShowLocationModal(false);
+                      setLocationSearchQuery('');
+                      logger.info('[CreateListing] Location selected:', item.id);
+                    }}
+                  >
+                    <Text style={[
+                      styles.modalItemText,
+                      selectedLocation === item.id && styles.selectedModalItemText
+                    ]}>
+                      {item.name[language]}
+                    </Text>
+                    {selectedLocation === item.id && (
+                      <Check size={20} color={Colors.primary} />
+                    )}
+                  </TouchableOpacity>
+                )}
+              />
+            )}
           </View>
         </View>
       </Modal>
@@ -2225,5 +2280,24 @@ const styles = StyleSheet.create({
   },
   authRequiredSecondaryButtonText: {
     color: Colors.primary,
+  },
+  emptySearchContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  emptySearchText: {
+    fontSize: 16,
+    color: Colors.textSecondary,
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  selectedModalItem: {
+    backgroundColor: Colors.primaryLight || 'rgba(0, 122, 255, 0.1)',
+  },
+  selectedModalItemText: {
+    color: Colors.primary,
+    fontWeight: '600',
   },
 });
