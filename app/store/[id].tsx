@@ -6,7 +6,8 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
-  Linking
+  Linking,
+  Alert,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useLanguageStore } from '@/store/languageStore';
