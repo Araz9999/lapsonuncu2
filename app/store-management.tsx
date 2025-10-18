@@ -53,6 +53,7 @@ export default function StoreManagementScreen() {
   const [selectedListingId, setSelectedListingId] = useState<string | null>(null);
   const [promotionType, setPromotionType] = useState<'vip' | 'premium' | 'featured'>('vip');
   const [showSettingsMenu, setShowSettingsMenu] = useState<boolean>(false);
+  const [isDeletingStore, setIsDeletingStore] = useState<boolean>(false);
   
   // Mock current user (first user in the list)
   const currentUser = users[0];
@@ -69,35 +70,170 @@ export default function StoreManagementScreen() {
   };
   
   const handleDeleteStore = (storeId: string) => {
-    const store = stores.find(s => s.id === storeId);
-    if (!store) return;
+    // ✅ VALIDATION START
     
+    // 1. Check authentication
+    if (!currentUser || !currentUser.id) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Daxil olmamısınız' : 'Вы не вошли в систему'
+      );
+      return;
+    }
+    
+    // 2. Validate storeId
+    if (!storeId || typeof storeId !== 'string' || storeId.trim().length === 0) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Düzgün olmayan mağaza ID' : 'Некорректный ID магазина'
+      );
+      return;
+    }
+    
+    // 3. Find store
+    const store = stores.find(s => s.id === storeId);
+    
+    if (!store) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Mağaza tapılmadı' : 'Магазин не найден'
+      );
+      return;
+    }
+    
+    // 4. Check ownership
+    if (store.userId !== currentUser.id) {
+      Alert.alert(
+        language === 'az' ? 'İcazə yoxdur' : 'Нет разрешения',
+        language === 'az' 
+          ? 'Siz bu mağazanı silə bilməzsiniz. Yalnız öz mağazalarınızı silə bilərsiniz.' 
+          : 'Вы не можете удалить этот магазин. Вы можете удалить только свои собственные магазины.'
+      );
+      return;
+    }
+    
+    // 5. Check if already being deleted
+    if (isDeletingStore) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Mağaza artıq silinir' : 'Магазин уже удаляется'
+      );
+      return;
+    }
+    
+    // 6. Check if store is already deleted
+    if (store.status === 'archived' || store.archivedAt) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Mağaza artıq silinib' : 'Магазин уже удален'
+      );
+      return;
+    }
+    
+    // ✅ VALIDATION END
+    
+    // Get store data for detailed confirmation
+    const storeListings = listings.filter(l => 
+      l.storeId === storeId && 
+      !l.deletedAt &&
+      !store.deletedListings.includes(l.id)
+    );
+    const activeListingsCount = storeListings.length;
+    const deletedListingsCount = Array.isArray(store.deletedListings) 
+      ? store.deletedListings.length 
+      : 0;
+    const followersCount = Array.isArray(store.followers) 
+      ? store.followers.length 
+      : 0;
+    const totalListingsCount = activeListingsCount + deletedListingsCount;
+    const storeUsage = getStoreUsage(storeId);
+    
+    // First confirmation with detailed info
     Alert.alert(
-      language === 'az' ? 'Mağazanı sil' : 'Удалить магазин',
+      language === 'az' ? '⚠️ Mağazanı sil' : '⚠️ Удалить магазин',
       language === 'az' 
-        ? `"${store.name}" mağazasını silmək istədiyinizə əminsiniz? Bu əməliyyat geri qaytarıla bilməz.`
-        : `Вы уверены, что хотите удалить магазин "${store.name}"? Это действие нельзя отменить.`,
+        ? `"${store.name}" mağazasını silmək istədiyinizə əminsiniz?\n\n📊 Mağaza məlumatları:\n• Ad: ${store.name}\n• Aktiv elanlar: ${activeListingsCount}\n• Silinmiş elanlar: ${deletedListingsCount}\n• Ümumi elanlar: ${totalListingsCount}\n• İzləyicilər: ${followersCount}\n• İstifadə: ${storeUsage?.used || 0}/${storeUsage?.max || 0}\n• Status: ${store.status}\n\n${activeListingsCount > 0 ? '⚠️ DİQQƏT: Mağazada aktiv elanlar var! Əvvəlcə bütün elanları silməlisiniz.\n\n' : ''}⚠️ Bu əməliyyat geri qaytarıla bilməz!\n• Bütün mağaza məlumatları silinəcək\n• İzləyicilərə bildiriş göndəriləcək\n• Mağazaya giriş mümkün olmayacaq`
+        : `Вы уверены, что хотите удалить магазин "${store.name}"?\n\n📊 Данные магазина:\n• Название: ${store.name}\n• Активные объявления: ${activeListingsCount}\n• Удаленные объявления: ${deletedListingsCount}\n• Всего объявлений: ${totalListingsCount}\n• Подписчики: ${followersCount}\n• Использование: ${storeUsage?.used || 0}/${storeUsage?.max || 0}\n• Статус: ${store.status}\n\n${activeListingsCount > 0 ? '⚠️ ВНИМАНИЕ: В магазине есть активные объявления! Сначала нужно удалить все объявления.\n\n' : ''}⚠️ Это действие нельзя отменить!\n• Все данные магазина будут удалены\n• Подписчики будут уведомлены\n• Доступ к магазину будет закрыт`,
       [
         {
           text: language === 'az' ? 'Ləğv et' : 'Отмена',
           style: 'cancel'
         },
         {
-          text: language === 'az' ? 'Sil' : 'Удалить',
+          text: language === 'az' ? 'Davam et' : 'Продолжить',
           style: 'destructive',
-          onPress: async () => {
-            try {
-              await deleteStore(storeId);
+          onPress: () => {
+            // Delay for emphatic second confirmation
+            setTimeout(() => {
+              // Second confirmation (more emphatic)
               Alert.alert(
-                language === 'az' ? 'Uğurlu!' : 'Успешно!',
-                language === 'az' ? 'Mağaza silindi' : 'Магазин удален'
+                language === 'az' ? '🔴 SON XƏBƏRDARLIQ' : '🔴 ПОСЛЕДНЕЕ ПРЕДУПРЕЖДЕНИЕ',
+                language === 'az'
+                  ? `"${store.name}" mağazasını həqiqətən silmək istəyirsiniz?\n\n❌ Bu əməliyyat GERİ QAYTARILA BİLMƏZ!\n❌ Bütün məlumatlar silinəcək!\n❌ ${followersCount} izləyici bildiriş alacaq!\n\nBu son təsdiqdir. Əminsinizsə, "MƏN ƏMİNƏM" düyməsinə basın.`
+                  : `Вы действительно хотите удалить магазин "${store.name}"?\n\n❌ Это действие НЕЛЬЗЯ ОТМЕНИТЬ!\n❌ Все данные будут удалены!\n❌ ${followersCount} подписчиков получат уведомление!\n\nЭто последнее подтверждение. Если уверены, нажмите "Я УВЕРЕН".`,
+                [
+                  {
+                    text: language === 'az' ? 'Ləğv et' : 'Отмена',
+                    style: 'cancel'
+                  },
+                  {
+                    text: language === 'az' ? 'MƏN ƏMİNƏM' : 'Я УВЕРЕН',
+                    style: 'destructive',
+                    onPress: async () => {
+                      setIsDeletingStore(true);
+                      
+                      try {
+                        await deleteStore(storeId);
+                        
+                        Alert.alert(
+                          language === 'az' ? '✅ Uğurlu!' : '✅ Успешно!',
+                          language === 'az' 
+                            ? `"${store.name}" mağazası silindi.\n\n${followersCount > 0 ? `${followersCount} izləyiciyə bildiriş göndərildi.\n\n` : ''}Siz indi yeni mağaza yarada bilərsiniz.`
+                            : `Магазин "${store.name}" удален.\n\n${followersCount > 0 ? `${followersCount} подписчикам отправлено уведомление.\n\n` : ''}Теперь вы можете создать новый магазин.`,
+                          [
+                            {
+                              text: 'OK'
+                            }
+                          ],
+                          { cancelable: false }
+                        );
+                      } catch (error) {
+                        let errorMessage = language === 'az' 
+                          ? 'Mağaza silinərkən xəta baş verdi' 
+                          : 'Ошибка при удалении магазина';
+                        
+                        if (error instanceof Error) {
+                          if (error.message.includes('tapılmadı') || error.message.includes('not found')) {
+                            errorMessage = language === 'az' ? 'Mağaza tapılmadı' : 'Магазин не найден';
+                          } else if (error.message.includes('silinib') || error.message.includes('already deleted') || error.message.includes('archived')) {
+                            errorMessage = language === 'az' ? 'Mağaza artıq silinib' : 'Магазин уже удален';
+                          } else if (error.message.includes('active listings') || error.message.includes('aktiv elan')) {
+                            const match = error.message.match(/(\d+)/);
+                            const count = match ? match[1] : '?';
+                            errorMessage = language === 'az' 
+                              ? `Mağazada ${count} aktiv elan var. Əvvəlcə bütün elanları silməlisiniz.`
+                              : `В магазине ${count} активных объявлений. Сначала удалите все объявления.`;
+                          } else if (error.message.includes('network') || error.message.includes('timeout')) {
+                            errorMessage = language === 'az' 
+                              ? 'Şəbəkə xətası. Yenidən cəhd edin.' 
+                              : 'Ошибка сети. Попробуйте снова.';
+                          } else if (error.message.includes('Invalid')) {
+                            errorMessage = language === 'az' ? 'Düzgün olmayan məlumat' : 'Некорректные данные';
+                          }
+                        }
+                        
+                        Alert.alert(
+                          language === 'az' ? 'Xəta' : 'Ошибка',
+                          errorMessage
+                        );
+                      } finally {
+                        setIsDeletingStore(false);
+                      }
+                    }
+                  }
+                ]
               );
-            } catch (error) {
-              Alert.alert(
-                language === 'az' ? 'Xəta' : 'Ошибка',
-                language === 'az' ? 'Mağaza silinərkən xəta baş verdi' : 'Ошибка при удалении магазина'
-              );
-            }
+            }, 300); // Delay for emphasis
           }
         }
       ]
