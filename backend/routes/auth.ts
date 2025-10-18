@@ -37,13 +37,15 @@ function validateState(state: string): boolean {
 auth.get('/:provider/login', async (c) => {
   const provider = c.req.param('provider');
   
-  logger.info(`[Auth] Initiating ${provider} login`);
+  logger.info(`[Auth] Initiating ${provider} login`, { provider });
 
   if (!['google', 'facebook', 'vk'].includes(provider)) {
+    logger.warn('[Auth] Invalid provider requested:', { provider });
     return c.json({ error: 'Invalid provider' }, 400);
   }
 
   if (!oauthService.isConfigured(provider)) {
+    logger.warn(`[Auth] Provider not configured:`, { provider });
     return c.json({ 
       error: 'Provider not configured',
       message: `${provider} OAuth is not configured. Please add the required environment variables.`
@@ -53,10 +55,12 @@ auth.get('/:provider/login', async (c) => {
   try {
     const state = generateState();
     stateStore.set(state, { provider, createdAt: Date.now() });
+    
+    logger.info('[Auth] State generated and stored:', { provider, stateLength: state.length });
 
     const authUrl = oauthService.getAuthorizationUrl(provider, state);
     
-    logger.info(`[Auth] Redirecting to ${provider} authorization URL`);
+    logger.info(`[Auth] Redirecting to ${provider} authorization URL`, { provider });
     return c.redirect(authUrl);
   } catch (error) {
     logger.error(`[Auth] Error initiating ${provider} login:`, error);
@@ -70,21 +74,33 @@ auth.get('/:provider/callback', async (c) => {
   const state = c.req.query('state');
   const error = c.req.query('error');
 
-  logger.info(`[Auth] Received ${provider} callback`);
+  logger.info(`[Auth] Received ${provider} callback`, { 
+    provider,
+    hasCode: !!code,
+    hasState: !!state,
+    hasError: !!error
+  });
 
   if (error) {
-    logger.error(`[Auth] OAuth error from ${provider}:`, error);
+    logger.error(`[Auth] OAuth error from ${provider}:`, { provider, error });
     const frontendUrl = process.env.FRONTEND_URL || process.env.EXPO_PUBLIC_FRONTEND_URL || 'https://1r36dhx42va8pxqbqz5ja.rork.app';
     return c.redirect(`${frontendUrl}/auth/login?error=${encodeURIComponent(error)}`);
   }
 
   if (!code || !state) {
-    logger.error(`[Auth] Missing code or state in ${provider} callback`);
+    logger.error(`[Auth] Missing code or state in ${provider} callback`, { 
+      provider,
+      hasCode: !!code,
+      hasState: !!state
+    });
     return c.json({ error: 'Missing code or state' }, 400);
   }
 
   if (!validateState(state)) {
-    logger.error(`[Auth] Invalid or expired state in ${provider} callback`);
+    logger.error(`[Auth] Invalid or expired state in ${provider} callback`, { 
+      provider,
+      state: state.substring(0, 8) + '...'
+    });
     return c.json({ error: 'Invalid or expired state' }, 400);
   }
 
@@ -99,13 +115,21 @@ auth.get('/:provider/callback', async (c) => {
     let user = await userDB.findBySocialId(provider, userInfo.id);
 
     if (!user) {
-      logger.info(`[Auth] User not found, checking by email: ${userInfo.email}`);
+      logger.info(`[Auth] User not found, checking by email:`, { 
+        provider,
+        email: userInfo.email
+      });
       user = await userDB.findByEmail(userInfo.email);
 
       if (user) {
-        logger.info(`[Auth] Found existing user by email, linking ${provider} account`);
+        logger.info(`[Auth] Found existing user by email, linking ${provider} account`, { 
+          provider,
+          userId: user.id,
+          email: user.email
+        });
         // BUG FIX: Validate provider type before using
         if (provider !== 'google' && provider !== 'facebook' && provider !== 'vk') {
+          logger.error('[Auth] Invalid OAuth provider:', { provider });
           throw new Error('Invalid OAuth provider');
         }
         await userDB.addSocialProvider(user.id, {
@@ -115,10 +139,19 @@ auth.get('/:provider/callback', async (c) => {
           name: userInfo.name,
           avatar: userInfo.avatar,
         });
+        logger.info(`[Auth] Social provider linked successfully`, { 
+          provider,
+          userId: user.id
+        });
       } else {
-        logger.info(`[Auth] Creating new user from ${provider} data`);
+        logger.info(`[Auth] Creating new user from ${provider} data`, { 
+          provider,
+          email: userInfo.email,
+          name: userInfo.name
+        });
         // BUG FIX: Validate provider type before using
         if (provider !== 'google' && provider !== 'facebook' && provider !== 'vk') {
+          logger.error('[Auth] Invalid OAuth provider:', { provider });
           throw new Error('Invalid OAuth provider');
         }
         user = await userDB.createUser({
@@ -136,17 +169,36 @@ auth.get('/:provider/callback', async (c) => {
           role: 'user',
           balance: 0,
         });
+        logger.info(`[Auth] New user created from ${provider}`, { 
+          provider,
+          userId: user.id,
+          email: user.email
+        });
       }
+    } else {
+      logger.info(`[Auth] User found by social ID`, { 
+        provider,
+        userId: user.id,
+        email: user.email
+      });
     }
 
-    logger.info(`[Auth] Generating JWT tokens for user`);
+    logger.info(`[Auth] Generating JWT tokens for user`, { 
+      provider,
+      userId: user.id,
+      email: user.email,
+      role: user.role
+    });
     const tokens = await generateTokenPair({
       userId: user.id,
       email: user.email,
       role: user.role,
     });
 
+    logger.info(`[Auth] JWT tokens generated successfully`, { provider, userId: user.id });
+
     stateStore.delete(state);
+    logger.info(`[Auth] State cleaned up`, { provider });
 
     // SECURITY: Store tokens in httpOnly cookies instead of URL parameters
     setCookie(c, 'accessToken', tokens.accessToken, {
@@ -179,7 +231,14 @@ auth.get('/:provider/callback', async (c) => {
 });
 
 auth.post('/logout', async (c) => {
-  logger.info('[Auth] User logout');
+  try {
+    const authHeader = c.req.header('authorization') || c.req.header('Authorization');
+    const userId = authHeader ? 'authenticated' : 'unknown';
+    
+    logger.info('[Auth] User logout requested', { userId });
+  } catch (error) {
+    logger.warn('[Auth] Could not extract user info for logout:', error);
+  }
   
   setCookie(c, 'accessToken', '', {
     httpOnly: true,
@@ -197,15 +256,25 @@ auth.post('/logout', async (c) => {
     path: '/',
   });
 
+  logger.info('[Auth] User logged out successfully');
   return c.json({ success: true });
 });
 
 auth.get('/status', async (c) => {
+  logger.info('[Auth] Status check requested');
+  
   const providers = ['google', 'facebook', 'vk'];
   const status = providers.reduce((acc, provider) => {
     acc[provider] = oauthService.isConfigured(provider);
     return acc;
   }, {} as Record<string, boolean>);
+
+  logger.info('[Auth] Status check result:', { 
+    google: status.google,
+    facebook: status.facebook,
+    vk: status.vk,
+    availableCount: Object.values(status).filter(Boolean).length
+  });
 
   return c.json({
     configured: status,
@@ -216,17 +285,22 @@ auth.get('/status', async (c) => {
 // Delete current authenticated user's account
 auth.delete('/delete', async (c) => {
   try {
+    logger.info('[Auth] Account deletion requested');
+    
     const authHeader = c.req.header('authorization') || c.req.header('Authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      logger.warn('[Auth] Unauthorized deletion attempt');
       return c.json({ error: 'Unauthorized' }, 401);
     }
 
     const token = authHeader.replace('Bearer ', '').trim();
     const payload = await verifyToken(token);
     if (!payload?.userId) {
+      logger.warn('[Auth] Invalid token for deletion');
       return c.json({ error: 'Invalid token' }, 401);
     }
 
+    logger.info('[Auth] Deleting user account:', { userId: payload.userId });
     const deleted = await userDB.deleteUser(payload.userId);
 
     // Clear cookies regardless (mirrors /logout)
@@ -246,9 +320,11 @@ auth.delete('/delete', async (c) => {
     });
 
     if (!deleted) {
+      logger.warn('[Auth] User not found for deletion:', { userId: payload.userId });
       return c.json({ success: false, message: 'User not found' }, 404);
     }
 
+    logger.info('[Auth] User account deleted successfully:', { userId: payload.userId });
     return c.json({ success: true });
   } catch (error) {
     logger.error('[Auth] Delete account failed:', error);
