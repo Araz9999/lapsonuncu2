@@ -150,12 +150,20 @@ export default function CallHistoryScreen() {
       try {
         if (!currentUser?.id) {
           logger.error('No current user for call initiation');
+          Alert.alert(
+            language === 'az' ? 'Xəta' : 'Ошибка',
+            language === 'az' ? 'Zəng başlatmaq üçün giriş edin' : 'Войдите для совершения звонка'
+          );
           return;
         }
         const callId = await initiateCall(currentUser.id, otherUserId, call.listingId, call.type);
         router.push(`/call/${callId}`);
       } catch (error) {
         logger.error('Failed to initiate call:', error);
+        Alert.alert(
+          language === 'az' ? 'Zəng Xətası' : 'Ошибка звонка',
+          language === 'az' ? 'Zəng başlatmaq mümkün olmadı' : 'Не удалось начать звонок'
+        );
       }
     }
   };
@@ -286,12 +294,20 @@ export default function CallHistoryScreen() {
                 try {
                   if (!currentUser?.id) {
                     logger.error('No current user for video call initiation');
+                    Alert.alert(
+                      language === 'az' ? 'Xəta' : 'Ошибка',
+                      language === 'az' ? 'Video zəng başlatmaq üçün giriş edin' : 'Войдите для видеозвонка'
+                    );
                     return;
                   }
                   const callId = await initiateCall(currentUser.id, otherUserId, item.listingId, 'video');
                   router.push(`/call/${callId}`);
                 } catch (error) {
                   logger.error('Failed to initiate video call:', error);
+                  Alert.alert(
+                    language === 'az' ? 'Video Zəng Xətası' : 'Ошибка видеозвонка',
+                    language === 'az' ? 'Video zəng başlatmaq mümkün olmadı' : 'Не удалось начать видеозвонок'
+                  );
                 }
               }}
             >

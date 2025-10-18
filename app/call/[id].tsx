@@ -8,6 +8,7 @@ import {
   Dimensions,
   Platform,
   StatusBar,
+  Alert,
 } from 'react-native';
 import { useLocalSearchParams, Stack, router } from 'expo-router';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
@@ -17,6 +18,7 @@ import { useUserStore } from '@/store/userStore';
 import { users } from '@/mocks/users';
 import { listings } from '@/mocks/listings';
 import Colors from '@/constants/colors';
+import { logger } from '@/utils/logger'; // ✅ Import logger
 import {
   Phone,
   PhoneOff,
@@ -77,7 +79,7 @@ export default function CallScreen() {
         logger.info('Call screen unmounting, camera will be released');
       }
     };
-  }, []);
+  }, [activeCall?.isVideoEnabled]); // ✅ Add dependency
 
   if (!activeCall || !callId) {
     return null;
@@ -87,10 +89,48 @@ export default function CallScreen() {
   const otherUserId = activeCall.callerId === currentUser?.id ? activeCall.receiverId : activeCall.callerId;
   const otherUser = users.find(user => user.id === otherUserId);
   const listing = listings.find(l => l.id === activeCall.listingId);
+  
+  // ✅ Validate other user exists
+  if (!otherUser) {
+    logger.error('Other user not found:', otherUserId);
+    useEffect(() => {
+      router.back();
+    }, []);
+    return (
+      <View style={styles.container}>
+        <View style={styles.content}>
+          <Text style={styles.permissionText}>
+            {language === 'az' ? 'İstifadəçi tapılmadı' : 'Пользователь не найден'}
+          </Text>
+        </View>
+      </View>
+    );
+  }
 
   const handleEndCall = () => {
     endCall(callId);
     router.back();
+  };
+  
+  // ✅ Handle camera permission request with error handling
+  const handleRequestPermission = async () => {
+    try {
+      const result = await requestPermission();
+      if (!result.granted) {
+        Alert.alert(
+          language === 'az' ? 'İcazə verilmədi' : 'Разрешение отклонено',
+          language === 'az' 
+            ? 'Video zəng üçün kamera icazəsi tələb olunur'
+            : 'Для видеозвонка требуется разрешение камеры'
+        );
+      }
+    } catch (error) {
+      logger.error('Failed to request camera permission:', error);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'İcazə tələbi zamanı xəta' : 'Ошибка при запросе разрешения'
+      );
+    }
   };
 
   const toggleCameraFacing = () => {
@@ -133,7 +173,7 @@ export default function CallScreen() {
           <Text style={styles.permissionText}>
             {language === 'az' ? 'Video zəng üçün kamera icazəsi lazımdır' : 'Для видеозвонка требуется разрешение камеры'}
           </Text>
-          <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
+          <TouchableOpacity style={styles.permissionButton} onPress={handleRequestPermission}>
             <Text style={styles.permissionButtonText}>
               {language === 'az' ? 'İcazə ver' : 'Разрешить'}
             </Text>
