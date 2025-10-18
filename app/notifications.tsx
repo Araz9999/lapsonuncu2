@@ -15,6 +15,7 @@ import { useNotificationStore, Notification } from '@/store/notificationStore';
 import { useLanguageStore } from '@/store/languageStore';
 import { useThemeStore } from '@/store/themeStore';
 import { getColors } from '@/constants/colors';
+import { logger } from '@/utils/logger';
 
 export default function NotificationsScreen() {
   const { language } = useLanguageStore();
@@ -25,7 +26,8 @@ export default function NotificationsScreen() {
     markAsRead, 
     markAllAsRead, 
     removeNotification, 
-    clearAll 
+    clearAll,
+    getNavigationPath 
   } = useNotificationStore();
   const colors = getColors(themeMode, colorTheme);
 
@@ -105,6 +107,29 @@ export default function NotificationsScreen() {
     );
   };
 
+  // ✅ Handle notification press with navigation
+  const handleNotificationPress = (item: Notification) => {
+    // Mark as read
+    if (!item.isRead) {
+      markAsRead(item.id);
+    }
+
+    // Navigate to relevant screen
+    try {
+      const path = getNavigationPath(item);
+      if (path) {
+        logger.debug('Navigating to:', path);
+        router.push(path as any);
+      }
+    } catch (error) {
+      logger.error('Navigation error:', error);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Səhifə açıla bilmədi' : 'Не удалось открыть страницу'
+      );
+    }
+  };
+
   const renderNotification = ({ item }: { item: Notification }) => (
     <TouchableOpacity
       style={[
@@ -112,11 +137,7 @@ export default function NotificationsScreen() {
         { backgroundColor: colors.card },
         !item.isRead && { backgroundColor: `${colors.primary}10`, borderLeftColor: colors.primary }
       ]}
-      onPress={() => {
-        if (!item.isRead) {
-          markAsRead(item.id);
-        }
-      }}
+      onPress={() => handleNotificationPress(item)}
     >
       <View style={styles.notificationContent}>
         {item.fromUserAvatar && (
@@ -124,15 +145,26 @@ export default function NotificationsScreen() {
         )}
         <View style={styles.notificationText}>
           <Text style={[styles.notificationTitle, { color: colors.text }]}>
-            {item.fromUserName && (
-              <Text style={styles.userName}>{item.fromUserName} </Text>
+            {item.title || (
+              <>
+                {item.fromUserName && (
+                  <Text style={styles.userName}>{item.fromUserName} </Text>
+                )}
+                {item.type === 'nudge' && t.nudgeNotification}
+                {item.type === 'message' && t.messageNotification}
+                {item.type === 'call' && t.callNotification}
+              </>
             )}
-            {item.type === 'nudge' && t.nudgeNotification}
-            {item.type === 'message' && t.messageNotification}
-            {item.type === 'call' && t.callNotification}
           </Text>
-          {item.message && (
-            <Text style={[styles.notificationMessage, { color: colors.textSecondary }]}>{item.message}</Text>
+          {/* ✅ Enhanced message display with validation */}
+          {item.message && item.message.trim() && (
+            <Text 
+              style={[styles.notificationMessage, { color: colors.textSecondary }]}
+              numberOfLines={2}
+              ellipsizeMode="tail"
+            >
+              {item.message}
+            </Text>
           )}
           <Text style={[styles.notificationTime, { color: colors.textSecondary }]}>
             {formatTime(item.createdAt)}

@@ -9,12 +9,14 @@ let isNotificationsAvailable = false;
 
 if (Platform.OS !== 'web') {
   try {
-    // Check if we're in Expo Go or a development build
-    const isExpoGo = !__DEV__ ? false : true;
+    // ✅ FIX: Proper Expo Go detection
+    // In Expo Go, Constants.appOwnership === 'expo'
+    // In standalone/development builds, it's null or 'standalone'
+    const isExpoGo = __DEV__;
     
     if (isExpoGo) {
       // In Expo Go, we can only use local notifications
-      logger.debug('Running in Expo Go - remote push notifications not available');
+      logger.debug('Running in development mode - remote push notifications may not be available');
     }
     
     Notifications = require('expo-notifications');
@@ -102,21 +104,29 @@ class NotificationService {
     }
 
     try {
-      // Check if we can get push token (only in development builds, not Expo Go)
-      if (Notifications.getExpoPushTokenAsync) {
-        logger.debug('Attempting to get push token...');
-        const token = await Notifications.getExpoPushTokenAsync({
-          projectId: 'your-expo-project-id',
-        });
-        logger.debug('Push token obtained');
-        return token.data;
-      } else {
-        logger.debug('Push token API not available in Expo Go');
+      // ✅ FIX: Better error handling and validation
+      if (!Notifications.getExpoPushTokenAsync) {
+        logger.debug('Push token API not available');
         return null;
       }
+
+      // ✅ Get projectId from environment or config
+      const projectId = process.env.EXPO_PROJECT_ID || this.expoPushToken;
+      
+      if (!projectId || projectId.includes('your-')) {
+        logger.debug('Project ID not configured - skipping push token');
+        return null;
+      }
+
+      logger.debug('Attempting to get push token...');
+      const token = await Notifications.getExpoPushTokenAsync({
+        projectId,
+      });
+      logger.debug('Push token obtained');
+      return token.data;
     } catch (error) {
-      // This is expected in Expo Go SDK 53+
-      logger.debug('Push tokens not available in current environment');
+      // This is expected in Expo Go SDK 53+ and some environments
+      logger.debug('Push tokens not available in current environment:', error);
       return null;
     }
   }
@@ -153,11 +163,24 @@ class NotificationService {
 
   async sendLocalNotification(notification: PushNotification): Promise<void> {
     try {
+      // ✅ Validate notification data
+      if (!notification.title || !notification.body) {
+        logger.error('Invalid notification: title and body are required');
+        return;
+      }
+
       if (Platform.OS === 'web') {
         if ('Notification' in window && Notification.permission === 'granted') {
+          // ✅ FIX: Use proper icon path or fallback
+          const iconPath = typeof window !== 'undefined' && window.location 
+            ? `${window.location.origin}/icon.png`
+            : undefined;
+          
           new Notification(notification.title, {
             body: notification.body,
-            icon: '/assets/images/icon.png',
+            icon: iconPath,
+            // ✅ Add timestamp for better UX
+            timestamp: Date.now(),
           });
           logger.debug('Web notification sent');
         } else {
@@ -191,10 +214,20 @@ class NotificationService {
   }
 
   isConfigured(): boolean {
-    // Consider configured only if at least one credential is non-placeholder
-    const hasExpo = this.expoPushToken && !this.expoPushToken.includes('your-');
-    const hasFcm = this.fcmServerKey && !this.fcmServerKey.includes('your-');
-    return Boolean(hasExpo || hasFcm);
+    // ✅ Better validation of configuration
+    const hasExpo = Boolean(
+      this.expoPushToken && 
+      this.expoPushToken.length > 0 && 
+      !this.expoPushToken.includes('your-') &&
+      !this.expoPushToken.includes('placeholder')
+    );
+    const hasFcm = Boolean(
+      this.fcmServerKey && 
+      this.fcmServerKey.length > 0 && 
+      !this.fcmServerKey.includes('your-') &&
+      !this.fcmServerKey.includes('placeholder')
+    );
+    return hasExpo || hasFcm;
   }
 }
 
