@@ -195,27 +195,56 @@ class AuthService {
   }
 
   async deleteAccount(): Promise<void> {
+    // ✅ Validate authentication
     if (!this.tokens?.accessToken) {
+      logger.error('[deleteAccount] Not authenticated');
       throw new Error('Not authenticated');
     }
 
+    // ✅ Validate current user
+    if (!this.currentUser || !this.currentUser.id) {
+      logger.error('[deleteAccount] No current user');
+      throw new Error('No user data available');
+    }
+
+    logger.debug('[deleteAccount] Starting account deletion for user:', this.currentUser.id);
+
     try {
+      // ✅ Add timeout to prevent hanging requests
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+
       const response = await fetch(`${config.BASE_URL}/auth/delete-account`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${this.tokens.accessToken}`,
           'Content-Type': 'application/json',
         },
+        signal: controller.signal,
       });
 
+      clearTimeout(timeoutId);
+
+      // ✅ Better error handling
       if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        throw new Error(error.message || 'Failed to delete account');
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        logger.error('[deleteAccount] Server error:', errorData);
+        throw new Error(errorData.message || 'Failed to delete account');
       }
+
+      logger.debug('[deleteAccount] Account deleted successfully');
     } catch (error) {
-      logger.error('Delete account request failed:', error);
+      // ✅ Differentiate between network and server errors
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          logger.error('[deleteAccount] Request timeout');
+          throw new Error('Request timeout - please try again');
+        }
+        logger.error('[deleteAccount] Delete account request failed:', error.message);
+      }
       throw error;
     } finally {
+      logger.debug('[deleteAccount] Clearing auth data');
       await this.clearAuthData();
     }
   }

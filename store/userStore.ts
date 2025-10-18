@@ -61,6 +61,7 @@ interface UserState {
   addUserNote: (userId: string, note: string) => void;
   removeUserNote: (userId: string) => void;
   getUserNote: (userId: string) => string | null;
+  deleteUserAccount: () => Promise<void>;
 }
 
 export const useUserStore = create<UserState>()(
@@ -599,6 +600,44 @@ export const useUserStore = create<UserState>()(
       getUserNote: (userId) => {
         const { userNotes } = get();
         return userNotes[userId] || null;
+      },
+      deleteUserAccount: async () => {
+        // ✅ Validate current user exists
+        const { currentUser, isAuthenticated } = get();
+        
+        if (!isAuthenticated || !currentUser) {
+          logger.error('[deleteUserAccount] User not authenticated');
+          throw new Error('User not authenticated');
+        }
+
+        logger.debug('[deleteUserAccount] Deleting user account:', currentUser.id);
+
+        try {
+          // ✅ Clear all user data from store
+          set({
+            currentUser: null,
+            isAuthenticated: false,
+            favorites: [],
+            freeAdsThisMonth: 0,
+            lastFreeAdDate: null,
+            walletBalance: 0,
+            bonusBalance: 0,
+            blockedUsers: [],
+            nudgeHistory: {},
+            mutedUsers: [],
+            followedUsers: [],
+            favoriteUsers: [],
+            trustedUsers: [],
+            reportedUsers: [],
+            subscribedUsers: [],
+            userNotes: {},
+          });
+
+          logger.debug('[deleteUserAccount] User data cleared from store');
+        } catch (error) {
+          logger.error('[deleteUserAccount] Error clearing user data:', error);
+          throw error;
+        }
       },
     }),
     {
