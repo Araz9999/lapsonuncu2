@@ -14,6 +14,7 @@ interface CallStore {
   ringtoneInterval: NodeJS.Timeout | null;
   dialToneInterval: NodeJS.Timeout | null;
   incomingCallTimeouts: Map<string, NodeJS.Timeout>; // ✅ Track timeouts for cleanup
+  outgoingCallTimeouts: Map<string, NodeJS.Timeout>; // ✅ Track outgoing call timeouts
   
   // Call actions
   initiateCall: (currentUserId: string, receiverId: string, listingId: string, type: CallType) => Promise<string>;
@@ -443,15 +444,20 @@ export const useCallStore = create<CallStore>((set, get) => ({
     await get().stopAllSounds();
     
     // ✅ Clear all incoming call timeouts
-    const timeouts = get().incomingCallTimeouts;
-    timeouts.forEach((timeout) => clearTimeout(timeout));
+    const incomingTimeouts = get().incomingCallTimeouts;
+    incomingTimeouts.forEach((timeout) => clearTimeout(timeout));
+    
+    // ✅ Clear all outgoing call timeouts
+    const outgoingTimeouts = get().outgoingCallTimeouts;
+    outgoingTimeouts.forEach((timeout) => clearTimeout(timeout));
     
     set({ 
       ringtoneSound: null, 
       dialToneSound: null, 
       ringtoneInterval: null, 
       dialToneInterval: null,
-      incomingCallTimeouts: new Map()
+      incomingCallTimeouts: new Map(),
+      outgoingCallTimeouts: new Map()
     });
   },
   
