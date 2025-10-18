@@ -58,27 +58,73 @@ export default function StoreDiscountsScreen() {
   const [excludeListings, setExcludeListings] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   
-  const handleApplyDiscount = async () => {
-    if (!selectedListing || !store) return;
-    
-    // Validation: Empty check
-    if (!discountPercentage.trim()) {
+  // Helper: Validate discount percentage
+  const validateDiscountPercentage = (value: string): number | null => {
+    if (!value || typeof value !== 'string' || value.trim().length === 0) {
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Endirim faizini daxil edin' : 'Введите процент скидки'
       );
-      return;
+      return null;
     }
     
-    // Validation: Range check
-    const discount = parseFloat(discountPercentage);
-    if (isNaN(discount) || discount <= 0 || discount >= 100) {
+    const discount = parseFloat(value.trim());
+    
+    if (isNaN(discount) || !isFinite(discount)) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Düzgün endirim faizi daxil edin' : 'Введите корректный процент'
+      );
+      return null;
+    }
+    
+    if (discount < 1 || discount > 99) {
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Endirim faizi 1-99 arasında olmalıdır' : 'Процент скидки должен быть от 1 до 99'
       );
-      return;
+      return null;
     }
+    
+    return discount;
+  };
+  
+  // Helper: Validate discount percentage
+  const validateDiscountPercentage = (value: string): number | null => {
+    if (!value || typeof value !== 'string' || value.trim().length === 0) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Endirim faizini daxil edin' : 'Введите процент скидки'
+      );
+      return null;
+    }
+    
+    const discount = parseFloat(value.trim());
+    
+    if (isNaN(discount) || !isFinite(discount)) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Düzgün endirim faizi daxil edin' : 'Введите корректный процент'
+      );
+      return null;
+    }
+    
+    if (discount < 1 || discount > 99) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Endirim faizi 1-99 arasında olmalıdır' : 'Процент скидки должен быть от 1 до 99'
+      );
+      return null;
+    }
+    
+    return discount;
+  };
+  
+  const handleApplyDiscount = async () => {
+    if (!selectedListing || !store) return;
+    
+    const discount = validateDiscountPercentage(discountPercentage);
+    if (discount === null) return;
     
     const listing = storeListings.find(l => l.id === selectedListing);
     if (!listing) return;
@@ -165,24 +211,8 @@ export default function StoreDiscountsScreen() {
   const handleApplyStoreWideDiscount = async () => {
     if (!store) return;
     
-    // Validation: Empty check
-    if (!storeWideDiscount.trim()) {
-      Alert.alert(
-        language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' ? 'Endirim faizini daxil edin' : 'Введите процент скидки'
-      );
-      return;
-    }
-    
-    // Validation: Range check
-    const discount = parseFloat(storeWideDiscount);
-    if (isNaN(discount) || discount <= 0 || discount >= 100) {
-      Alert.alert(
-        language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' ? 'Endirim faizi 1-99 arasında olmalıdır' : 'Процент скидки должен быть от 1 до 99'
-      );
-      return;
-    }
+    const discount = validateDiscountPercentage(storeWideDiscount);
+    if (discount === null) return;
     
     const applicableListings = storeListings.filter(l => 
       !excludeListings.includes(l.id) && !l.priceByAgreement

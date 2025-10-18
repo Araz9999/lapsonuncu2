@@ -83,15 +83,13 @@ export default function ListingDiscountScreen() {
     logger.debug('[handleCreateDiscount] Discount title:', discountTitle);
     logger.debug('[handleCreateDiscount] Discount value:', discountValue);
     logger.debug('[handleCreateDiscount] Discount type:', discountType);
-    console.log('[handleCreateDiscount] Button clicked');
-    console.log('[handleCreateDiscount] Listing storeId:', listing.storeId);
-    console.log('[handleCreateDiscount] Discount title:', discountTitle);
-    console.log('[handleCreateDiscount] Discount value:', discountValue);
-    console.log('[handleCreateDiscount] Discount type:', discountType);
-    console.log('[handleCreateDiscount] Timer settings:', { enableTimerBar, showTimerBar, timerTitle, timerBarColor });
+    logger.debug('[handleCreateDiscount] Timer settings:', { enableTimerBar, showTimerBar, timerTitle, timerBarColor });
     
+    // ===== VALIDATION START =====
+    
+    // 1. Store discount title validation
     if (listing.storeId && !discountTitle.trim()) {
-      logger.debug('[handleCreateDiscount] Validation failed: Missing title for store discount');
+      logger.debug('[handleCreateDiscount] Validation failed: Missing title');
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Endirim başlığını daxil edin' : 'Введите название скидки'
@@ -99,39 +97,141 @@ export default function ListingDiscountScreen() {
       return;
     }
     
-    if (!discountValue.trim() || isNaN(Number(discountValue))) {
-      logger.debug('[handleCreateDiscount] Validation failed: Invalid discount value');
+    if (listing.storeId && discountTitle.trim().length > 100) {
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' ? 'Düzgün endirim dəyəri daxil edin' : 'Введите корректное значение скидки'
+        language === 'az' ? 'Başlıq maksimum 100 simvol ola bilər' : 'Заголовок не должен превышать 100 символов'
       );
       return;
     }
     
-    const value = Number(discountValue);
-    if (value <= 0 || (discountType === 'percentage' && value >= 100)) {
-      logger.debug('[handleCreateDiscount] Validation failed: Value out of range');
+    // 2. Description validation
+    if (discountDescription.trim().length > 500) {
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' 
-          ? 'Endirim dəyəri düzgün deyil'
-          : 'Неверное значение скидки'
+        language === 'az' ? 'Təsvir maksimum 500 simvol ola bilər' : 'Описание не должно превышать 500 символов'
       );
       return;
     }
+    
+    // 3. Discount value validation
+    if (!discountValue || typeof discountValue !== 'string' || discountValue.trim().length === 0) {
+      logger.debug('[handleCreateDiscount] Validation failed: Missing value');
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Endirim dəyəri daxil edin' : 'Введите значение скидки'
+      );
+      return;
+    }
+    
+    const value = parseFloat(discountValue.trim());
+    
+    if (isNaN(value) || !isFinite(value)) {
+      logger.debug('[handleCreateDiscount] Validation failed: Invalid value');
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Düzgün endirim dəyəri daxil edin' : 'Введите корректное значение'
+      );
+      return;
+    }
+    
+    if (discountType === 'percentage') {
+      if (value < 1 || value > 99) {
+        logger.debug('[handleCreateDiscount] Validation failed: Percentage out of range');
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' 
+            ? 'Endirim faizi 1-99 arasında olmalıdır'
+            : 'Процент скидки должен быть от 1 до 99'
+        );
+        return;
+      }
+    } else if (discountType === 'fixed_amount') {
+      if (value <= 0) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Endirim məbləği 0-dan böyük olmalıdır' : 'Сумма скидки должна быть больше 0'
+        );
+        return;
+      }
+      
+      if (value > 10000) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Endirim məbləği maksimum 10,000 AZN ola bilər' : 'Сумма скидки не должна превышать 10,000 AZN'
+        );
+        return;
+      }
+      
+      if (value >= listing.price) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Endirim məbləği məhsul qiymətindən az olmalıdır' : 'Сумма скидки должна быть меньше цены'
+        );
+        return;
+      }
+    }
+    
+    // 4. Date range validation
+    const now = new Date();
+    
+    if (startDate >= endDate) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Başlama tarixi bitmə tarixindən əvvəl olmalıdır' : 'Дата начала должна быть раньше даты окончания'
+      );
+      return;
+    }
+    
+    const maxDuration = 365 * 24 * 60 * 60 * 1000; // 1 year
+    if (endDate.getTime() - startDate.getTime() > maxDuration) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Endirim müddəti maksimum 1 il ola bilər' : 'Максимальная длительность скидки 1 год'
+      );
+      return;
+    }
+    
+    // 5. Timer bar validation (if enabled)
+    if (enableTimerBar) {
+      if (!timerTitle || timerTitle.trim().length === 0) {
+        logger.debug('[handleCreateDiscount] Validation failed: Missing timer title');
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Sayğac başlığını daxil edin' : 'Введите заголовок таймера'
+        );
+        return;
+      }
+      
+      if (timerTitle.trim().length > 50) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Sayğac başlığı maksimum 50 simvol ola bilər' : 'Заголовок таймера не должен превышать 50 символов'
+        );
+        return;
+      }
+      
+      if (timerEndDate <= now) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Sayğac tarixi gələcəkdə olmalıdır' : 'Дата таймера должна быть в будущем'
+        );
+        return;
+      }
+      
+      const maxTimerDuration = 30 * 24 * 60 * 60 * 1000; // 30 days
+      if (timerEndDate.getTime() - now.getTime() > maxTimerDuration) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Sayğac maksimum 30 günlük ola bilər' : 'Максимальная длительность таймера 30 дней'
+        );
+        return;
+      }
+    }
+    
+    // ===== VALIDATION END =====
     
     logger.debug('[handleCreateDiscount] Validation passed, showing confirmation dialog');
-    // Validate timer bar settings if enabled (only check if timer is actually being activated)
-    if (enableTimerBar && !timerTitle.trim()) {
-      console.log('[handleCreateDiscount] Validation failed: Missing timer title');
-      Alert.alert(
-        language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' ? 'Sayğac başlığını daxil edin' : 'Введите заголовок таймера'
-      );
-      return;
-    }
-    
-    console.log('[handleCreateDiscount] Validation passed, showing confirmation dialog');
     
     Alert.alert(
       language === 'az' ? 'Endirim tətbiq edilsin?' : 'Применить скидку?',
@@ -229,11 +329,13 @@ export default function ListingDiscountScreen() {
       
       if (discountType === 'percentage') {
         discountPercentage = value;
-        finalPrice = originalPrice * (1 - value / 100);
+        // Use precise calculation, round to 2 decimals
+        finalPrice = parseFloat((originalPrice * (1 - value / 100)).toFixed(2));
         logger.debug('[handleCreateIndividualDiscount] Percentage discount - Final price:', finalPrice);
       } else if (discountType === 'fixed_amount') {
-        finalPrice = Math.max(0, originalPrice - value);
-        discountPercentage = originalPrice > 0 ? ((originalPrice - finalPrice) / originalPrice) * 100 : 0;
+        // Use precise calculation, round to 2 decimals
+        finalPrice = parseFloat(Math.max(0, originalPrice - value).toFixed(2));
+        discountPercentage = originalPrice > 0 ? parseFloat((((originalPrice - finalPrice) / originalPrice) * 100).toFixed(2)) : 0;
         logger.debug('[handleCreateIndividualDiscount] Fixed amount discount:', {
           originalPrice,
           discountAmount: value,
@@ -254,25 +356,18 @@ export default function ListingDiscountScreen() {
       const updateData: Partial<typeof listing> = {
         hasDiscount: true,
         originalPrice,
-        price: Math.round(finalPrice),
+        price: finalPrice, // ✅ Use precise value instead of Math.round
         promotionEndDate: chosenEndDate.toISOString(),
         discountEndDate: chosenEndDate.toISOString(),
         discountPercentage: discountType === 'percentage' ? value : discountPercentage,
         // Timer bar settings
         timerBarEnabled: enableTimerBar,
-        timerBarTitle: enableTimerBar ? timerTitle : undefined,
+        timerBarTitle: enableTimerBar ? timerTitle.trim() : undefined,
         timerBarColor: enableTimerBar ? timerBarColor : undefined,
         timerBarEndDate: enableTimerBar ? timerEndDate.toISOString() : undefined,
       };
       
       logger.debug('[handleCreateIndividualDiscount] Update data:', updateData);
-      console.log('[handleCreateIndividualDiscount] Update data:', updateData);
-      console.log('[handleCreateIndividualDiscount] Timer bar enabled:', enableTimerBar);
-      console.log('[handleCreateIndividualDiscount] Timer bar settings:', {
-        title: timerTitle,
-        color: timerBarColor,
-        endDate: timerEndDate.toISOString()
-      });
       updateListing(listing.id, updateData);
       logger.debug('[handleCreateIndividualDiscount] Listing updated successfully');
       
