@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,13 +7,15 @@ import {
   TouchableOpacity,
   Image,
   TextInput,
-  Dimensions
+  Dimensions,
+  Alert
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useLanguageStore } from '@/store/languageStore';
 import { useStoreStore } from '@/store/storeStore';
 import { useUserStore } from '@/store/userStore';
 import Colors from '@/constants/colors';
+import { logger } from '@/utils/logger';
 import {
   Search,
   Star,
@@ -35,6 +37,14 @@ export default function StoresScreen() {
   const { currentUser } = useUserStore();
   const [searchQuery, setSearchQuery] = useState<string>('');
   
+  // ✅ Log screen access
+  useEffect(() => {
+    logger.info('[Stores] Screen opened:', { 
+      totalStores: stores.length,
+      activeStores: stores.filter(s => s.isActive).length
+    });
+  }, []);
+  
   const activeStores = stores.filter(store => store.isActive);
   const filteredStores = activeStores.filter(store => 
     store.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -42,22 +52,42 @@ export default function StoresScreen() {
   );
   
   const handleStorePress = (storeId: string) => {
+    logger.info('[Stores] Store pressed:', { storeId });
     router.push(`/store/${storeId}`);
   };
   
   const handleFollowToggle = async (storeId: string) => {
-    if (!currentUser) return;
+    if (!currentUser) {
+      logger.warn('[Stores] Follow attempt without user');
+      return;
+    }
     
     // ✅ Get store
     const store = stores.find(s => s.id === storeId);
-    if (!store) return;
+    if (!store) {
+      logger.error('[Stores] Store not found for follow:', { storeId });
+      return;
+    }
     
     const isFollowing = isFollowingStore(currentUser.id, storeId);
+    logger.info('[Stores] Follow toggle initiated:', { 
+      storeId, 
+      storeName: store.name,
+      isFollowing,
+      action: isFollowing ? 'unfollow' : 'follow'
+    });
+    
     if (isFollowing) {
-      await unfollowStore(currentUser.id, storeId);
+      try {
+        await unfollowStore(currentUser.id, storeId);
+        logger.info('[Stores] Store unfollowed successfully:', { storeId });
+      } catch (error) {
+        logger.error('[Stores] Unfollow failed:', error);
+      }
     } else {
       // ✅ Check if active
       if (!store.isActive) {
+        logger.warn('[Stores] Cannot follow inactive store:', { storeId, status: store.status });
         Alert.alert(
           language === 'az' ? 'Mağaza aktiv deyil' : 'Магазин неактивен',
           language === 'az' ? 'Bu mağaza hal-hazırda aktiv deyil' : 'Этот магазин в данный момент неактивен'
@@ -65,7 +95,12 @@ export default function StoresScreen() {
         return;
       }
       
-      await followStore(currentUser.id, storeId);
+      try {
+        await followStore(currentUser.id, storeId);
+        logger.info('[Stores] Store followed successfully:', { storeId });
+      } catch (error) {
+        logger.error('[Stores] Follow failed:', error);
+      }
     }
   };
   
@@ -89,7 +124,12 @@ export default function StoresScreen() {
             placeholder={language === 'az' ? 'Mağaza axtar...' : 'Поиск магазинов...'}
             placeholderTextColor={Colors.textSecondary}
             value={searchQuery}
-            onChangeText={setSearchQuery}
+            onChangeText={(text) => {
+              setSearchQuery(text);
+              if (text.trim()) {
+                logger.info('[Stores] Search query:', { query: text, resultsCount: filteredStores.length });
+              }
+            }}
           />
         </View>
       </View>
