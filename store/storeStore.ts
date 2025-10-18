@@ -103,7 +103,7 @@ export const useStoreStore = create<StoreState>((set, get) => ({
       );
       
       if (existingStore) {
-        throw new Error('User already has an active store');
+        throw new Error('User already has an active store. Multiple stores require additional purchase.');
       }
       
       // BUG FIX: Generate unique ID with random component
@@ -191,6 +191,12 @@ export const useStoreStore = create<StoreState>((set, get) => ({
   },
 
   getAllUserStores: (userId) => {
+    // ✅ Validate userId
+    if (!userId || typeof userId !== 'string') {
+      logger.warn('[StoreStore] Invalid userId for getAllUserStores');
+      return [];
+    }
+    
     const { stores } = get();
     return stores.filter(store => 
       store.userId === userId && 
@@ -505,14 +511,41 @@ export const useStoreStore = create<StoreState>((set, get) => ({
   editStore: async (storeId, updates) => {
     set({ isLoading: true, error: null });
     try {
+      // ✅ Validate storeId
+      if (!storeId) {
+        throw new Error('Invalid storeId');
+      }
+      
+      // ✅ Validate updates
+      if (updates.name !== undefined && (!updates.name || !updates.name.trim())) {
+        throw new Error('Store name cannot be empty');
+      }
+      
+      // ✅ Validate email if provided
+      if (updates.contactInfo?.email) {
+        const { validateEmail } = await import('@/utils/inputValidation');
+        if (!validateEmail(updates.contactInfo.email)) {
+          throw new Error('Invalid email format');
+        }
+      }
+      
+      // ✅ Validate website if provided
+      if (updates.contactInfo?.website) {
+        const { validateWebsiteURL } = await import('@/utils/inputValidation');
+        if (!validateWebsiteURL(updates.contactInfo.website)) {
+          throw new Error('Invalid website URL');
+        }
+      }
+      
       set(state => ({
         stores: state.stores.map(store => 
           store.id === storeId ? { ...store, ...updates } : store
         ),
         isLoading: false
       }));
-    } catch {
-      set({ error: 'Failed to edit store', isLoading: false });
+    } catch (error) {
+      logger.error('[StoreStore] Failed to edit store:', error);
+      set({ error: error instanceof Error ? error.message : 'Failed to edit store', isLoading: false });
     }
   },
 
