@@ -118,11 +118,14 @@ export default function CreateListingScreen() {
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [4, 3],
-        quality: 0.8, // BUG FIX: Reduced quality for better performance
+        quality: 0.8,
       });
 
-      // BUG FIX: Validate assets array exists and has items
+      // ✅ Validate assets array and file size
       if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0]) {
+        const asset = result.assets[0];
+        
+        // ✅ Check image limit
         if (images.length >= (selectedPackageData?.features.photosCount || 3)) {
           Alert.alert(
             language === 'az' ? 'Limit aşıldı' : 'Лимит превышен',
@@ -132,7 +135,20 @@ export default function CreateListingScreen() {
           );
           return;
         }
-        setImages([...images, result.assets[0].uri]);
+        
+        // ✅ Validate file size (max 10MB)
+        if (asset.fileSize && asset.fileSize > 10 * 1024 * 1024) {
+          Alert.alert(
+            language === 'az' ? 'Şəkil çox böyükdür' : 'Изображение слишком большое',
+            language === 'az' 
+              ? 'Maksimum 10MB ölçüsündə şəkil əlavə edin' 
+              : 'Добавьте изображение размером до 10MB'
+          );
+          return;
+        }
+        
+        setImages([...images, asset.uri]);
+        logger.info('Image added from gallery', { fileSize: asset.fileSize });
       }
     } catch (error) {
       logger.error('Gallery error:', error);
@@ -169,20 +185,20 @@ export default function CreateListingScreen() {
       const result = await ImagePicker.launchCameraAsync({
         allowsEditing: true,
         aspect: [4, 3],
-        quality: 0.8, // BUG FIX: Reduced quality for better performance
+        quality: 0.8,
       });
 
-      // BUG FIX: Validate assets array exists and has items
+      // ✅ Validate assets array and file size
       if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0]) {
         const asset = result.assets[0];
         
-        // ✅ Check file size (max 5MB)
-        if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024) {
+        // ✅ Check file size (max 10MB - same as gallery for consistency)
+        if (asset.fileSize && asset.fileSize > 10 * 1024 * 1024) {
           Alert.alert(
             language === 'az' ? 'Şəkil çox böyükdür' : 'Изображение слишком большое',
             language === 'az' 
-              ? 'Maksimum 5MB ölçüsündə şəkil əlavə edin' 
-              : 'Добавьте изображение размером до 5MB'
+              ? 'Maksimum 10MB ölçüsündə şəkil əlavə edin' 
+              : 'Добавьте изображение размером до 10MB'
           );
           return;
         }

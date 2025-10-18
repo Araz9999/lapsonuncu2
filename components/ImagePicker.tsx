@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, FlatList, Platform } from 'react-native';
-import { Image } from 'expo-image'; // BUG FIX: Use expo-image for better performance
+import { View, Text, TouchableOpacity, StyleSheet, FlatList, Platform, Alert } from 'react-native';
+import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import Colors from '@/constants/colors';
 import { useMessageStore } from '@/store/messageStore';
+import { useUserStore } from '@/store/userStore';
+import { useLanguageStore } from '@/store/languageStore';
 import { MessageAttachment } from '@/types/message';
+import { logger } from '@/utils/logger';
 
 type ImagePickerProps = {
   conversationId: string;
@@ -13,74 +16,124 @@ type ImagePickerProps = {
 
 export default function ImagePickerComponent({ conversationId, onClose }: ImagePickerProps) {
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const { addMessage } = useMessageStore();
+  const { currentUser } = useUserStore();
+  const { language } = useLanguageStore();
 
   const pickImages = async () => {
     try {
-      // BUG FIX: Request permissions with proper error handling
+      setIsLoading(true);
+      
+      // ✅ Request permissions with proper error handling
       if (Platform.OS !== 'web') {
         const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (!permissionResult.granted) {
-          alert('Permission to access gallery is required!');
+          Alert.alert(
+            language === 'az' ? 'İcazə lazımdır' : 'Требуется разрешение',
+            language === 'az' ? 'Qalereya daxil olmaq üçün icazə lazımdır' : 'Для доступа к галерее требуется разрешение'
+          );
           return;
         }
       }
 
-      // BUG FIX: Reduced quality for better performance and smaller file sizes
+      // ✅ Reduced quality for better performance
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsMultipleSelection: true,
-        quality: 0.8, // Reduced from 1 to compress images
+        quality: 0.8,
         allowsEditing: false,
       });
 
-      // BUG FIX: Validate assets array exists and has items
+      // ✅ Validate assets and file sizes
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        // BUG FIX: Limit to maximum 10 images to prevent memory issues
         const maxImages = 10;
+        const maxFileSize = 10 * 1024 * 1024; // 10MB per image
         const currentCount = selectedImages.length;
         
         if (currentCount >= maxImages) {
-          alert(`Maximum ${maxImages} images allowed`);
+          Alert.alert(
+            language === 'az' ? 'Limit aşıldı' : 'Лимит превышен',
+            language === 'az' 
+              ? `Maksimum ${maxImages} şəkil əlavə edə bilərsiniz`
+              : `Можно добавить максимум ${maxImages} изображений`
+          );
+          return;
+        }
+        
+        // ✅ Validate each image size
+        const validAssets = [];
+        for (const asset of result.assets) {
+          if (asset.fileSize && asset.fileSize > maxFileSize) {
+            Alert.alert(
+              language === 'az' ? 'Şəkil çox böyükdür' : 'Изображение слишком большое',
+              language === 'az'
+                ? `${asset.fileName || 'Şəkil'} çox böyükdür (max 10MB)`
+                : `${asset.fileName || 'Изображение'} слишком большое (макс 10MB)`
+            );
+            continue;
+          }
+          validAssets.push(asset);
+        }
+        
+        if (validAssets.length === 0) {
           return;
         }
         
         const availableSlots = maxImages - currentCount;
-        const imageUris = result.assets.slice(0, availableSlots).map(asset => asset.uri);
+        const imageUris = validAssets.slice(0, availableSlots).map(asset => asset.uri);
         setSelectedImages(prev => [...prev, ...imageUris]);
+        
+        logger.info(`Added ${imageUris.length} images`);
       }
     } catch (error) {
-      // BUG FIX: Added error handling
-      console.error('Error picking images:', error);
-      alert('Failed to pick images. Please try again.');
+      logger.error('Error picking images:', error);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Şəkil seçilə bilmədi' : 'Не удалось выбрать изображение'
+      );
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const sendImages = () => {
-    // BUG FIX: Added validation
+    // ✅ Validation
     if (selectedImages.length === 0) {
-      alert('Please select at least one image');
+      Alert.alert(
+        language === 'az' ? 'Xəbərdarlıq' : 'Предупреждение',
+        language === 'az' ? 'Ən azı bir şəkil seçin' : 'Выберите хотя бы одно изображение'
+      );
+      return;
+    }
+
+    // ✅ Validate current user
+    if (!currentUser) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'İstifadəçi məlumatı tapılmadı' : 'Информация о пользователе не найдена'
+      );
       return;
     }
 
     try {
       selectedImages.forEach((uri, index) => {
-        // BUG FIX: Added unique ID generation to prevent conflicts
-        const uniqueId = `${Date.now()}-${index}-${Math.random().toString(36).substring(2, 11)}`;
+        // ✅ Unique ID generation
+        const uniqueId = `${Date.now()}_${index}_${Math.random().toString(36).substring(2, 11)}`;
         
         const attachment: MessageAttachment = {
           id: uniqueId,
           type: 'image',
           uri: uri,
-          name: `image_${index + 1}.jpg`,
-          size: 0, // BUG FIX: TODO - Get actual file size for validation
+          name: `image_${Date.now()}_${index + 1}.jpg`,
+          size: 0, // File size not available from URI only
           mimeType: 'image/jpeg'
         };
 
         const message = {
           id: uniqueId,
-          senderId: 'user1', // BUG FIX: TODO - Get from actual user context
-          receiverId: 'user2',
+          senderId: currentUser.id,
+          receiverId: 'unknown', // Will be set by conversation context
           listingId: '1',
           text: '',
           type: 'image' as const,
@@ -93,21 +146,23 @@ export default function ImagePickerComponent({ conversationId, onClose }: ImageP
         addMessage(conversationId, message);
       });
       
+      logger.info(`Sent ${selectedImages.length} images`);
       setSelectedImages([]);
       onClose();
     } catch (error) {
-      // BUG FIX: Added error handling
-      console.error('Error sending images:', error);
-      alert('Failed to send images. Please try again.');
+      logger.error('Error sending images:', error);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Şəkillər göndərilə bilmədi' : 'Не удалось отправить изображения'
+      );
     }
   };
 
-  const renderItem = ({ item }: { item: string }) => (
+  const renderItem = ({ item, index }: { item: string; index: number }) => (
     <View style={styles.imageContainer}>
       <Image 
         source={{ uri: item }} 
         style={styles.selectedImage}
-        // BUG FIX: Add caching and performance optimizations
         cachePolicy="memory-disk"
         transition={200}
         contentFit="cover"
@@ -116,33 +171,51 @@ export default function ImagePickerComponent({ conversationId, onClose }: ImageP
         style={styles.removeButton}
         onPress={() => setSelectedImages(prev => prev.filter(uri => uri !== item))}
       >
-        <Text style={styles.removeButtonText}>X</Text>
+        <Text style={styles.removeButtonText}>×</Text>
       </TouchableOpacity>
     </View>
   );
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Select Images</Text>
-      <TouchableOpacity style={styles.pickButton} onPress={pickImages}>
-        <Text style={styles.pickButtonText}>Pick Images from Gallery</Text>
+      <Text style={styles.title}>
+        {language === 'az' ? 'Şəkil seçin' : 'Выберите изображения'}
+      </Text>
+      <TouchableOpacity 
+        style={[styles.pickButton, isLoading && styles.disabledButton]} 
+        onPress={pickImages}
+        disabled={isLoading}
+      >
+        <Text style={styles.pickButtonText}>
+          {isLoading
+            ? (language === 'az' ? 'Yüklənir...' : 'Загрузка...')
+            : (language === 'az' ? 'Qalereyadan şəkil seç' : 'Выбрать из галереи')
+          }
+        </Text>
       </TouchableOpacity>
       {selectedImages.length > 0 && (
         <>
           <FlatList
             data={selectedImages}
             renderItem={renderItem}
-            keyExtractor={(item, index) => index.toString()}
+            keyExtractor={(item, index) => `${item}_${index}`}
             horizontal
             style={styles.imageList}
           />
           <TouchableOpacity style={styles.sendButton} onPress={sendImages}>
-            <Text style={styles.sendButtonText}>Send Images ({selectedImages.length})</Text>
+            <Text style={styles.sendButtonText}>
+              {language === 'az' 
+                ? `Şəkilləri göndər (${selectedImages.length})`
+                : `Отправить изображения (${selectedImages.length})`
+              }
+            </Text>
           </TouchableOpacity>
         </>
       )}
       <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-        <Text style={styles.closeButtonText}>Close</Text>
+        <Text style={styles.closeButtonText}>
+          {language === 'az' ? 'Bağla' : 'Закрыть'}
+        </Text>
       </TouchableOpacity>
     </View>
   );
@@ -220,5 +293,9 @@ const styles = StyleSheet.create({
   },
   closeButtonText: {
     color: Colors.textSecondary,
+  },
+  disabledButton: {
+    backgroundColor: Colors.textSecondary,
+    opacity: 0.6,
   },
 });

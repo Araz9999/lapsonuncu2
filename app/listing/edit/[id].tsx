@@ -182,14 +182,30 @@ export default function EditListingScreen() {
         quality: 0.8,
       });
 
+      // ✅ Validate result and file size
       if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0]) {
+        const asset = result.assets[0];
+        
+        // ✅ Check file size (max 10MB)
+        if (asset.fileSize && asset.fileSize > 10 * 1024 * 1024) {
+          Alert.alert(
+            language === 'az' ? 'Şəkil çox böyükdür' : 'Изображение слишком большое',
+            language === 'az' 
+              ? 'Maksimum 10MB ölçüsündə şəkil əlavə edin' 
+              : 'Добавьте изображение размером до 10MB'
+          );
+          return;
+        }
+        
         setFormData(prev => ({
           ...prev,
-          images: [...prev.images, result.assets[0].uri]
+          images: [...prev.images, asset.uri]
         }));
+        
+        logger.info('Image added from camera', { fileSize: asset.fileSize });
       }
     } catch (error) {
-      logger.debug('Camera error:', error);
+      logger.error('Camera error:', error);
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Şəkil çəkərkən xəta baş verdi' : 'Произошла ошибка при съемке'
@@ -215,14 +231,30 @@ export default function EditListingScreen() {
         quality: 0.8,
       });
 
+      // ✅ Validate result and file size
       if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0]) {
+        const asset = result.assets[0];
+        
+        // ✅ Check file size (max 10MB)
+        if (asset.fileSize && asset.fileSize > 10 * 1024 * 1024) {
+          Alert.alert(
+            language === 'az' ? 'Şəkil çox böyükdür' : 'Изображение слишком большое',
+            language === 'az' 
+              ? 'Maksimum 10MB ölçüsündə şəkil əlavə edin' 
+              : 'Добавьте изображение размером до 10MB'
+          );
+          return;
+        }
+        
         setFormData(prev => ({
           ...prev,
-          images: [...prev.images, result.assets[0].uri]
+          images: [...prev.images, asset.uri]
         }));
+        
+        logger.info('Image added from gallery', { fileSize: asset.fileSize });
       }
     } catch (error) {
-      logger.debug('Gallery error:', error);
+      logger.error('Gallery error:', error);
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Şəkil seçərkən xəta baş verdi' : 'Произошла ошибка при выборе изображения'
