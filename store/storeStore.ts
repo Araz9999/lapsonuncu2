@@ -551,38 +551,86 @@ export const useStoreStore = create<StoreState>((set, get) => ({
 
   applyDiscountToProduct: async (storeId, listingId, discountPercentage) => {
     try {
+      // ✅ Validate inputs
+      if (!storeId || typeof storeId !== 'string') {
+        logger.error('[StoreStore] Invalid storeId for applyDiscountToProduct');
+        throw new Error('Invalid store ID');
+      }
+      
+      if (!listingId || typeof listingId !== 'string') {
+        logger.error('[StoreStore] Invalid listingId for applyDiscountToProduct');
+        throw new Error('Invalid listing ID');
+      }
+      
+      if (typeof discountPercentage !== 'number' || isNaN(discountPercentage) || discountPercentage < 1 || discountPercentage > 99) {
+        logger.error('[StoreStore] Invalid discountPercentage:', discountPercentage);
+        throw new Error('Discount percentage must be between 1 and 99');
+      }
+      
       const { useListingStore } = await import('@/store/listingStore');
       const { updateListing, listings } = useListingStore.getState();
       
       const listing = listings.find(l => l.id === listingId && l.storeId === storeId);
-      if (!listing) throw new Error('Listing not found in store');
+      if (!listing) {
+        logger.error('[StoreStore] Listing not found:', { listingId, storeId });
+        throw new Error('Listing not found in store');
+      }
       
       if (listing.priceByAgreement) {
+        logger.warn('[StoreStore] Cannot discount price-by-agreement listing:', listingId);
         throw new Error('Cannot apply discount to price by agreement listings');
       }
       
-      const discountAmount = (listing.price * discountPercentage) / 100;
-      const discountedPrice = Math.max(0, listing.price - discountAmount);
+      // ✅ Calculate from originalPrice (or current price if not discounted yet)
+      const basePrice = listing.originalPrice || listing.price;
+      const discountAmount = (basePrice * discountPercentage) / 100;
+      const discountedPrice = Math.round(Math.max(0, basePrice - discountAmount));
+      
+      logger.info('[StoreStore] Applying discount:', { listingId, basePrice, discountPercentage, discountedPrice });
       
       updateListing(listingId, {
-        originalPrice: listing.originalPrice || listing.price,
+        originalPrice: basePrice,
         price: discountedPrice,
         discountPercentage,
         hasDiscount: true
       });
+      
+      logger.info('[StoreStore] Discount applied successfully to listing:', listingId);
     } catch (error) {
-      logger.error('Failed to apply discount:', error);
+      logger.error('[StoreStore] Failed to apply discount:', error);
       throw error;
     }
   },
 
   removeDiscountFromProduct: async (storeId, listingId) => {
     try {
+      // ✅ Validate inputs
+      if (!storeId || typeof storeId !== 'string') {
+        logger.error('[StoreStore] Invalid storeId for removeDiscountFromProduct');
+        throw new Error('Invalid store ID');
+      }
+      
+      if (!listingId || typeof listingId !== 'string') {
+        logger.error('[StoreStore] Invalid listingId for removeDiscountFromProduct');
+        throw new Error('Invalid listing ID');
+      }
+      
       const { useListingStore } = await import('@/store/listingStore');
       const { updateListing, listings } = useListingStore.getState();
       
       const listing = listings.find(l => l.id === listingId && l.storeId === storeId);
-      if (!listing || !listing.hasDiscount) return;
+      
+      if (!listing) {
+        logger.error('[StoreStore] Listing not found:', { listingId, storeId });
+        throw new Error('Listing not found in store');
+      }
+      
+      if (!listing.hasDiscount) {
+        logger.warn('[StoreStore] Listing has no discount to remove:', listingId);
+        return;
+      }
+      
+      logger.info('[StoreStore] Removing discount from listing:', listingId);
       
       updateListing(listingId, {
         price: listing.originalPrice || listing.price,
@@ -590,14 +638,32 @@ export const useStoreStore = create<StoreState>((set, get) => ({
         discountPercentage: undefined,
         hasDiscount: false
       });
+      
+      logger.info('[StoreStore] Discount removed successfully from listing:', listingId);
     } catch (error) {
-      logger.error('Failed to remove discount:', error);
+      logger.error('[StoreStore] Failed to remove discount:', error);
       throw error;
     }
   },
 
   applyStoreWideDiscount: async (storeId, discountPercentage, excludeListingIds = []) => {
     try {
+      // ✅ Validate inputs
+      if (!storeId || typeof storeId !== 'string') {
+        logger.error('[StoreStore] Invalid storeId for applyStoreWideDiscount');
+        throw new Error('Invalid store ID');
+      }
+      
+      if (typeof discountPercentage !== 'number' || isNaN(discountPercentage) || discountPercentage < 1 || discountPercentage > 99) {
+        logger.error('[StoreStore] Invalid discountPercentage:', discountPercentage);
+        throw new Error('Discount percentage must be between 1 and 99');
+      }
+      
+      if (!Array.isArray(excludeListingIds)) {
+        logger.error('[StoreStore] excludeListingIds must be an array');
+        throw new Error('Exclude list must be an array');
+      }
+      
       const { useListingStore } = await import('@/store/listingStore');
       const { listings, updateListing } = useListingStore.getState();
       
@@ -608,25 +674,52 @@ export const useStoreStore = create<StoreState>((set, get) => ({
         !l.priceByAgreement
       );
       
-      for (const listing of storeListings) {
-        const discountAmount = (listing.price * discountPercentage) / 100;
-        const discountedPrice = Math.max(0, listing.price - discountAmount);
-        
-        updateListing(listing.id, {
-          originalPrice: listing.originalPrice || listing.price,
-          price: discountedPrice,
-          discountPercentage,
-          hasDiscount: true
-        });
+      if (storeListings.length === 0) {
+        logger.warn('[StoreStore] No applicable listings found for store-wide discount:', storeId);
+        return;
       }
+      
+      logger.info('[StoreStore] Applying store-wide discount:', { storeId, discountPercentage, listingCount: storeListings.length, excludedCount: excludeListingIds.length });
+      
+      let successCount = 0;
+      let errorCount = 0;
+      
+      for (const listing of storeListings) {
+        try {
+          // ✅ Calculate from originalPrice (or current price if not discounted yet)
+          const basePrice = listing.originalPrice || listing.price;
+          const discountAmount = (basePrice * discountPercentage) / 100;
+          const discountedPrice = Math.round(Math.max(0, basePrice - discountAmount));
+          
+          updateListing(listing.id, {
+            originalPrice: basePrice,
+            price: discountedPrice,
+            discountPercentage,
+            hasDiscount: true
+          });
+          
+          successCount++;
+        } catch (listingError) {
+          logger.error('[StoreStore] Failed to discount individual listing:', { listingId: listing.id, error: listingError });
+          errorCount++;
+        }
+      }
+      
+      logger.info('[StoreStore] Store-wide discount applied:', { storeId, successCount, errorCount, totalAttempted: storeListings.length });
     } catch (error) {
-      logger.error('Failed to apply store-wide discount:', error);
+      logger.error('[StoreStore] Failed to apply store-wide discount:', error);
       throw error;
     }
   },
 
   removeStoreWideDiscount: async (storeId) => {
     try {
+      // ✅ Validate inputs
+      if (!storeId || typeof storeId !== 'string') {
+        logger.error('[StoreStore] Invalid storeId for removeStoreWideDiscount');
+        throw new Error('Invalid store ID');
+      }
+      
       const { useListingStore } = await import('@/store/listingStore');
       const { listings, updateListing } = useListingStore.getState();
       
@@ -636,27 +729,84 @@ export const useStoreStore = create<StoreState>((set, get) => ({
         !l.deletedAt
       );
       
-      for (const listing of storeListings) {
-        updateListing(listing.id, {
-          price: listing.originalPrice || listing.price,
-          originalPrice: undefined,
-          discountPercentage: undefined,
-          hasDiscount: false
-        });
+      if (storeListings.length === 0) {
+        logger.warn('[StoreStore] No discounted listings found to remove:', storeId);
+        return;
       }
+      
+      logger.info('[StoreStore] Removing store-wide discount:', { storeId, listingCount: storeListings.length });
+      
+      let successCount = 0;
+      let errorCount = 0;
+      
+      for (const listing of storeListings) {
+        try {
+          updateListing(listing.id, {
+            price: listing.originalPrice || listing.price,
+            originalPrice: undefined,
+            discountPercentage: undefined,
+            hasDiscount: false
+          });
+          
+          successCount++;
+        } catch (listingError) {
+          logger.error('[StoreStore] Failed to remove discount from individual listing:', { listingId: listing.id, error: listingError });
+          errorCount++;
+        }
+      }
+      
+      logger.info('[StoreStore] Store-wide discount removed:', { storeId, successCount, errorCount, totalAttempted: storeListings.length });
     } catch (error) {
-      logger.error('Failed to remove store-wide discount:', error);
+      logger.error('[StoreStore] Failed to remove store-wide discount:', error);
       throw error;
     }
   },
 
   getStoreDiscounts: (storeId) => {
     try {
-      // This would normally be imported dynamically, but for type safety we'll use a different approach
+      // ✅ Validate storeId
+      if (!storeId || typeof storeId !== 'string') {
+        logger.error('[StoreStore] Invalid storeId for getStoreDiscounts');
+        return [];
+      }
+      
+      // ✅ Get actual discounts from listingStore
+      // Note: We can't use dynamic import in sync function, so we access the global state
       const discounts: { listingId: string; originalPrice: number; discountedPrice: number; discountPercentage: number }[] = [];
+      
+      // Access listingStore if available
+      try {
+        // This is a workaround for type safety - in production, use proper state management
+        const listingStoreModule = require('@/store/listingStore');
+        if (listingStoreModule && listingStoreModule.useListingStore) {
+          const { listings } = listingStoreModule.useListingStore.getState();
+          
+          const discountedListings = listings.filter((l: any) => 
+            l.storeId === storeId && 
+            l.hasDiscount && 
+            !l.deletedAt &&
+            l.originalPrice &&
+            l.discountPercentage
+          );
+          
+          discountedListings.forEach((listing: any) => {
+            discounts.push({
+              listingId: listing.id,
+              originalPrice: listing.originalPrice,
+              discountedPrice: listing.price,
+              discountPercentage: listing.discountPercentage
+            });
+          });
+          
+          logger.info('[StoreStore] Retrieved store discounts:', { storeId, count: discounts.length });
+        }
+      } catch (moduleError) {
+        logger.warn('[StoreStore] Could not load listingStore for discounts:', moduleError);
+      }
+      
       return discounts;
     } catch (error) {
-      logger.error('Failed to get store discounts:', error);
+      logger.error('[StoreStore] Failed to get store discounts:', error);
       return [];
     }
   },
