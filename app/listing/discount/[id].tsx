@@ -11,6 +11,7 @@ import { ArrowLeft, Tag, Percent, Info, Save, Trash2, Plus, HelpCircle, Timer } 
 import CountdownTimer from '@/components/CountdownTimer';
 
 import { logger } from '@/utils/logger';
+import { sanitizeTextInput } from '@/utils/inputValidation';
 export default function ListingDiscountScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -52,6 +53,32 @@ export default function ListingDiscountScreen() {
   const [customHours, setCustomHours] = useState('6');
   const [customMinutes, setCustomMinutes] = useState('0');
   
+  // ✅ Handle time input changes with validation
+  const handleTimeInputChange = (text: string, setter: (value: string) => void, max: number) => {
+    // Only allow numbers
+    const cleaned = text.replace(/[^0-9]/g, '');
+    
+    if (cleaned === '') {
+      setter('0');
+      return;
+    }
+    
+    const num = parseInt(cleaned, 10);
+    
+    if (isNaN(num)) {
+      setter('0');
+      return;
+    }
+    
+    // Enforce max limit
+    if (num > max) {
+      setter(max.toString());
+      return;
+    }
+    
+    setter(num.toString());
+  };
+  
   const listing = storeListings.find(item => item.id === id);
   const existingDiscounts = listing?.storeId ? getStoreDiscounts(listing.storeId).filter(discount => 
     discount.applicableListings.includes(listing.id)
@@ -86,15 +113,14 @@ export default function ListingDiscountScreen() {
   }
   
   const handleCreateDiscount = () => {
-    logger.debug('[handleCreateDiscount] Button clicked');
-    logger.debug('[handleCreateDiscount] Listing storeId:', listing.storeId);
-    logger.debug('[handleCreateDiscount] Discount title:', discountTitle);
-    logger.debug('[handleCreateDiscount] Discount value:', discountValue);
-    logger.debug('[handleCreateDiscount] Discount type:', discountType);
-    logger.debug('[handleCreateDiscount] Timer settings:', { enableTimerBar, showTimerBar, timerTitle, timerBarColor });
+    logger.info('[ListingDiscount] Creating discount:', { listingId: listing.id, storeId: listing.storeId, type: discountType, value: discountValue });
     
-    if (listing.storeId && !discountTitle.trim()) {
-      logger.debug('[handleCreateDiscount] Validation failed: Missing title for store discount');
+    // ✅ Sanitize title and description
+    const sanitizedTitle = listing.storeId ? sanitizeTextInput(discountTitle) : '';
+    const sanitizedDescription = listing.storeId ? sanitizeTextInput(discountDescription) : '';
+    
+    if (listing.storeId && !sanitizedTitle) {
+      logger.error('[ListingDiscount] Validation failed: Missing title for store discount');
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Endirim başlığını daxil edin' : 'Введите название скидки'
@@ -103,7 +129,7 @@ export default function ListingDiscountScreen() {
     }
     
     if (!discountValue.trim() || isNaN(Number(discountValue))) {
-      logger.debug('[handleCreateDiscount] Validation failed: Invalid discount value');
+      logger.error('[ListingDiscount] Validation failed: Invalid discount value');
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Düzgün endirim dəyəri daxil edin' : 'Введите корректное значение скидки'
@@ -113,7 +139,7 @@ export default function ListingDiscountScreen() {
     
     const value = Number(discountValue);
     if (value <= 0 || (discountType === 'percentage' && value >= 100)) {
-      logger.debug('[handleCreateDiscount] Validation failed: Value out of range');
+      logger.error('[ListingDiscount] Validation failed: Value out of range');
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' 
@@ -123,10 +149,22 @@ export default function ListingDiscountScreen() {
       return;
     }
     
-    logger.debug('[handleCreateDiscount] Validation passed, showing confirmation dialog');
+    // ✅ Validate timer title if enabled
+    const sanitizedTimerTitle = (enableTimerBar && showTimerBar) ? sanitizeTextInput(timerTitle) : '';
+    
+    if (enableTimerBar && showTimerBar && !sanitizedTimerTitle) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Sayğac başlığını daxil edin' : 'Введите заголовок таймера'
+      );
+      logger.error('[ListingDiscount] Validation failed: Empty timer title after sanitization');
+      return;
+    }
+    
+    logger.info('[ListingDiscount] Validation passed, showing confirmation dialog');
     // Validate timer bar settings if enabled
     if (enableTimerBar && showTimerBar && !timerTitle.trim()) {
-      logger.debug('[handleCreateDiscount] Validation failed: Missing timer title');
+      logger.error('[ListingDiscount] Validation failed: Missing timer title');
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Sayğac başlığını daxil edin' : 'Введите заголовок таймера'
@@ -143,22 +181,22 @@ export default function ListingDiscountScreen() {
         {
           text: language === 'az' ? 'Ləğv et' : 'Отмена',
           style: 'cancel',
-          onPress: () => logger.debug('[handleCreateDiscount] User cancelled')
+          onPress: () => logger.info('[ListingDiscount] User cancelled discount creation')
         },
         {
           text: language === 'az' ? 'Təsdiq et' : 'Подтвердить',
           onPress: () => {
-            logger.debug('[handleCreateDiscount] User confirmed, applying discount');
+            logger.info('[ListingDiscount] User confirmed, applying discount');
             try {
               if (listing.storeId) {
-                logger.debug('[handleCreateDiscount] Creating store discount');
+                logger.info('[ListingDiscount] Creating store discount');
                 handleCreateStoreDiscount();
               } else {
-                logger.debug('[handleCreateDiscount] Creating individual discount');
+                logger.info('[ListingDiscount] Creating individual discount');
                 handleCreateIndividualDiscount();
               }
             } catch (error) {
-              logger.error('[handleCreateDiscount] Error applying discount:', error);
+              logger.error('[ListingDiscount] Error applying discount:', error);
               Alert.alert(
                 language === 'az' ? 'Xəta!' : 'Ошибка!',
                 language === 'az' ? 'Endirim tətbiq edilərkən xəta baş verdi' : 'Произошла ошибка при применении скидки'
@@ -171,13 +209,17 @@ export default function ListingDiscountScreen() {
   };
   
   const handleCreateStoreDiscount = () => {
-    logger.debug('[handleCreateStoreDiscount] Creating store discount');
+    logger.info('[ListingDiscount] Creating store discount');
     
     try {
+      // ✅ Use sanitized values
+      const sanitizedTitle = sanitizeTextInput(discountTitle);
+      const sanitizedDescription = sanitizeTextInput(discountDescription);
+      
       const discountData = {
         storeId: listing.storeId!,
-        title: discountTitle,
-        description: discountDescription,
+        title: sanitizedTitle,
+        description: sanitizedDescription,
         type: discountType,
         value: Number(discountValue),
         minPurchaseAmount: minPurchaseAmount ? Number(minPurchaseAmount) : undefined,
@@ -190,9 +232,9 @@ export default function ListingDiscountScreen() {
         isActive,
       };
       
-      logger.debug('[handleCreateStoreDiscount] Discount data:', discountData);
+      logger.info('[ListingDiscount] Discount data:', discountData);
       addDiscount(discountData);
-      logger.debug('[handleCreateStoreDiscount] Discount added successfully');
+      logger.info('[ListingDiscount] Discount added successfully');
       
       Alert.alert(
         language === 'az' ? 'Uğurlu!' : 'Успешно!',
@@ -201,14 +243,14 @@ export default function ListingDiscountScreen() {
           {
             text: language === 'az' ? 'Tamam' : 'OK',
             onPress: () => {
-              logger.debug('[handleCreateStoreDiscount] Navigating back');
+              logger.info('[ListingDiscount] Navigating back after store discount creation');
               router.back();
             },
           },
         ]
       );
     } catch (error) {
-      logger.error('[handleCreateStoreDiscount] Error creating store discount:', error);
+      logger.error('[ListingDiscount] Error creating store discount:', error);
       Alert.alert(
         language === 'az' ? 'Xəta!' : 'Ошибка!',
         language === 'az' ? 'Mağaza endirimi yaradılarkən xəta baş verdi' : 'Произошла ошибка при создании скидки магазина'
@@ -217,7 +259,7 @@ export default function ListingDiscountScreen() {
   };
   
   const handleCreateIndividualDiscount = () => {
-    logger.debug('[handleCreateIndividualDiscount] Starting individual discount creation');
+    logger.info('[ListingDiscount] Starting individual discount creation');
     
     try {
       const value = Number(discountValue);
@@ -225,17 +267,17 @@ export default function ListingDiscountScreen() {
       let originalPrice = listing.originalPrice || listing.price;
       let finalPrice = listing.price;
       
-      logger.debug('[handleCreateIndividualDiscount] Discount type:', discountType, 'Value:', value);
-      logger.debug('[handleCreateIndividualDiscount] Original price:', originalPrice, 'Current price:', listing.price);
+      logger.info('[ListingDiscount] Discount type:', discountType, 'Value:', value);
+      logger.info('[ListingDiscount] Original price:', originalPrice, 'Current price:', listing.price);
       
       if (discountType === 'percentage') {
         discountPercentage = value;
         finalPrice = originalPrice * (1 - value / 100);
-        logger.debug('[handleCreateIndividualDiscount] Percentage discount - Final price:', finalPrice);
+        logger.info('[ListingDiscount] Percentage discount - Final price:', finalPrice);
       } else if (discountType === 'fixed_amount') {
         finalPrice = Math.max(0, originalPrice - value);
         discountPercentage = originalPrice > 0 ? ((originalPrice - finalPrice) / originalPrice) * 100 : 0;
-        logger.debug('[handleCreateIndividualDiscount] Fixed amount discount:', {
+        logger.info('[ListingDiscount] Fixed amount discount:', {
           originalPrice,
           discountAmount: value,
           finalPrice,
@@ -245,11 +287,14 @@ export default function ListingDiscountScreen() {
       
       const chosenEndDate = enableTimerBar && showTimerBar ? timerEndDate : endDate;
       
-      logger.debug('[handleCreateIndividualDiscount] Timer settings:', {
+      // ✅ Sanitize timer title
+      const sanitizedTimerTitle = enableTimerBar && showTimerBar ? sanitizeTextInput(timerTitle) : undefined;
+      
+      logger.info('[ListingDiscount] Timer settings:', {
         enableTimerBar,
         showTimerBar,
-        chosenEndDate: chosenEndDate.toISOString(),
-        timerEndDate: timerEndDate.toISOString()
+        timerTitle: sanitizedTimerTitle,
+        chosenEndDate: chosenEndDate.toISOString()
       });
       
       const updateData: Partial<typeof listing> = {
@@ -261,20 +306,16 @@ export default function ListingDiscountScreen() {
         discountPercentage: discountType === 'percentage' ? value : discountPercentage,
         // Timer bar settings
         timerBarEnabled: enableTimerBar && showTimerBar,
-        timerBarTitle: enableTimerBar && showTimerBar ? timerTitle : undefined,
+        timerBarTitle: sanitizedTimerTitle,
         timerBarColor: enableTimerBar && showTimerBar ? timerBarColor : undefined,
         timerBarEndDate: enableTimerBar && showTimerBar ? timerEndDate.toISOString() : undefined,
       };
       
-      logger.debug('[handleCreateIndividualDiscount] Update data:', updateData);
-      logger.debug('[handleCreateIndividualDiscount] Timer bar enabled:', enableTimerBar && showTimerBar);
-      logger.debug('[handleCreateIndividualDiscount] Timer bar settings:', {
-        title: timerTitle,
-        color: timerBarColor,
-        endDate: timerEndDate.toISOString()
-      });
+      logger.info('[ListingDiscount] Update data:', updateData);
+      
       updateListing(listing.id, updateData);
-      logger.debug('[handleCreateIndividualDiscount] Listing updated successfully');
+      
+      logger.info('[ListingDiscount] Listing updated successfully');
       
       Alert.alert(
         language === 'az' ? 'Uğurlu!' : 'Успешно!',
@@ -283,14 +324,14 @@ export default function ListingDiscountScreen() {
           {
             text: language === 'az' ? 'Tamam' : 'OK',
             onPress: () => {
-              logger.debug('[handleCreateIndividualDiscount] Navigating back');
+              logger.info('[ListingDiscount] Navigating back after individual discount creation');
               router.back();
             },
           },
         ]
       );
     } catch (error) {
-      logger.error('[handleCreateIndividualDiscount] Error:', error);
+      logger.error('[ListingDiscount] Error creating individual discount:', error);
       Alert.alert(
         language === 'az' ? 'Xəta!' : 'Ошибка!',
         language === 'az' ? 'Elan endirimi tətbiq edilərkən xəta baş verdi' : 'Произошла ошибка при применении скидки на объявление'
@@ -774,7 +815,6 @@ export default function ListingDiscountScreen() {
                       placeholderTextColor={Colors.textSecondary}
                       keyboardType="number-pad"
                       maxLength={2}
-                      maxLength={2}
                     />
                   </View>
                   <Text style={styles.compactTimeSeparator}>:</Text>
@@ -789,7 +829,6 @@ export default function ListingDiscountScreen() {
                       placeholder="0"
                       placeholderTextColor={Colors.textSecondary}
                       keyboardType="number-pad"
-                      maxLength={2}
                       maxLength={2}
                     />
                   </View>
@@ -953,7 +992,7 @@ export default function ListingDiscountScreen() {
         <TouchableOpacity
           style={styles.createButton}
           onPress={() => {
-            logger.debug('[Apply Discount Button] Button pressed');
+            logger.info('[ListingDiscount] Apply discount button pressed');
             handleCreateDiscount();
           }}
           activeOpacity={0.7}
