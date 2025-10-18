@@ -447,38 +447,78 @@ export const useUserStore = create<UserState>()(
         });
       },
       blockUser: (userId) => {
-        // BUG FIX: Validate userId
-        if (!userId || typeof userId !== 'string') {
+        // ✅ Comprehensive validation
+        if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
           logger.error('[UserStore] Invalid userId for blocking');
-          return;
+          throw new Error('İstifadəçi ID-si yanlışdır');
         }
         
-        // BUG FIX: Don't allow blocking yourself
+        // ✅ Check if user is authenticated
         const { currentUser } = get();
-        if (currentUser && currentUser.id === userId) {
-          logger.warn('[UserStore] Cannot block yourself');
-          return;
+        if (!currentUser || !currentUser.id) {
+          logger.error('[UserStore] User not authenticated');
+          throw new Error('Hesaba daxil olmamısınız');
+        }
+        
+        // ✅ Don't allow blocking yourself
+        if (currentUser.id === userId) {
+          logger.error('[UserStore] Cannot block yourself');
+          throw new Error('Özünüzü blok edə bilməzsiniz');
         }
         
         const { blockedUsers } = get();
-        if (!blockedUsers.includes(userId)) {
-          set({ blockedUsers: [...blockedUsers, userId] });
-          logger.info('[UserStore] User blocked:', userId);
+        
+        // ✅ Check if already blocked
+        if (blockedUsers.includes(userId)) {
+          logger.warn('[UserStore] User already blocked:', userId);
+          throw new Error('İstifadəçi artıq blok edilib');
         }
+        
+        // ✅ Add to blocked users
+        set({ blockedUsers: [...blockedUsers, userId] });
+        logger.info('[UserStore] User blocked:', userId);
       },
       unblockUser: (userId) => {
-        // BUG FIX: Validate userId
-        if (!userId || typeof userId !== 'string') {
+        // ✅ Comprehensive validation
+        if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
           logger.error('[UserStore] Invalid userId for unblocking');
-          return;
+          throw new Error('İstifadəçi ID-si yanlışdır');
+        }
+        
+        // ✅ Check if user is authenticated
+        const { currentUser } = get();
+        if (!currentUser || !currentUser.id) {
+          logger.error('[UserStore] User not authenticated');
+          throw new Error('Hesaba daxil olmamısınız');
         }
         
         const { blockedUsers } = get();
+        
+        // ✅ Check if user is actually blocked
+        if (!blockedUsers.includes(userId)) {
+          logger.warn('[UserStore] User is not blocked:', userId);
+          throw new Error('İstifadəçi blok edilməyib');
+        }
+        
+        // ✅ Remove from blocked users
         set({ blockedUsers: blockedUsers.filter(id => id !== userId) });
         logger.info('[UserStore] User unblocked:', userId);
       },
       isUserBlocked: (userId) => {
+        // ✅ Validate userId
+        if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
+          logger.error('[UserStore] Invalid userId for isUserBlocked check');
+          return false;
+        }
+        
         const { blockedUsers } = get();
+        
+        // ✅ Validate blockedUsers array
+        if (!Array.isArray(blockedUsers)) {
+          logger.error('[UserStore] Invalid blockedUsers array');
+          return false;
+        }
+        
         return blockedUsers.includes(userId);
       },
       canNudgeUser: (userId) => {
