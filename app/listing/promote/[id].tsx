@@ -113,11 +113,29 @@ export default function PromoteListingScreen() {
           : `\n\nПакет будет активен до ${promotionEndDate.toLocaleDateString('ru-RU')}.`;
       }
       Alert.alert(language === 'az' ? 'Uğurlu!' : 'Успешно!', successMessage);
+      
+      // Clear selection after success
+      setSelectedPackage(null);
+      
       router.back();
-    } catch {
+    } catch (error) {
+      logger.error('[handlePromote] Error:', error);
+      
+      let errorMessage = language === 'az' 
+        ? 'Təşviq zamanı xəta baş verdi' 
+        : 'Произошла ошибка при продвижении';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('tapılmadı') || error.message.includes('not found')) {
+          errorMessage = language === 'az' ? 'Elan tapılmadı' : 'Объявление не найдено';
+        } else if (error.message.includes('network') || error.message.includes('timeout')) {
+          errorMessage = language === 'az' ? 'Şəbəkə xətası. Yenidən cəhd edin.' : 'Ошибка сети. Попробуйте снова.';
+        }
+      }
+      
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' ? 'Təşviq zamanı xəta baş verdi' : 'Произошла ошибка при продвижении'
+        errorMessage
       );
     } finally {
       setIsProcessing(false);
@@ -145,20 +163,113 @@ export default function PromoteListingScreen() {
   };
   
   const handlePurchaseEffects = async () => {
-    if (selectedEffects.length === 0 || !currentUser) return;
+    // ===== VALIDATION START =====
     
+    // 1. Check user authentication
+    if (!currentUser) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Daxil olmamısınız' : 'Вы не вошли в систему'
+      );
+      return;
+    }
+    
+    // 2. Check if effects are selected
+    if (selectedEffects.length === 0) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Heç bir effekt seçilməyib' : 'Не выбраны эффекты'
+      );
+      return;
+    }
+    
+    // 3. Validate each effect structure
+    for (const effect of selectedEffects) {
+      if (!effect.id || typeof effect.id !== 'string') {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Effekt ID-si düzgün deyil' : 'Некорректный ID эффекта'
+        );
+        return;
+      }
+      
+      if (!effect.price || typeof effect.price !== 'number' || effect.price <= 0 || !isFinite(effect.price)) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Effekt qiyməti düzgün deyil' : 'Некорректная цена эффекта'
+        );
+        return;
+      }
+      
+      if (effect.price > 100) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Effekt qiyməti çox yüksəkdir (maks 100 AZN)' : 'Цена эффекта слишком высока (макс 100 AZN)'
+        );
+        return;
+      }
+      
+      if (!effect.duration || typeof effect.duration !== 'number' || effect.duration <= 0 || !isFinite(effect.duration)) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Effekt müddəti düzgün deyil' : 'Некорректная длительность эффекта'
+        );
+        return;
+      }
+      
+      if (effect.duration > 365) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Effekt müddəti çox uzundur (maks 365 gün)' : 'Длительность эффекта слишком велика (макс 365 дней)'
+        );
+        return;
+      }
+    }
+    
+    // 4. Check for duplicate effects
+    const effectIds = selectedEffects.map(e => e.id);
+    const uniqueEffectIds = new Set(effectIds);
+    if (effectIds.length !== uniqueEffectIds.size) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Eyni effekt 2 dəfə seçilə bilməz' : 'Один и тот же эффект не может быть выбран дважды'
+      );
+      return;
+    }
+    
+    // 5. Calculate total price and validate
     const totalPrice = selectedEffects.reduce((sum, effect) => sum + effect.price, 0);
+    
+    if (!isFinite(totalPrice) || totalPrice <= 0) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Ümumi qiymət hesablana bilmədi' : 'Не удалось рассчитать общую стоимость'
+      );
+      return;
+    }
+    
+    if (totalPrice > 1000) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Ümumi qiymət çox yüksəkdir (maks 1000 AZN)' : 'Общая стоимость слишком велика (макс 1000 AZN)'
+      );
+      return;
+    }
+    
+    // 6. Check balance
     const totalBalance = walletBalance + bonusBalance;
     
     if (totalBalance < totalPrice) {
       Alert.alert(
         language === 'az' ? 'Kifayət qədər balans yoxdur' : 'Недостаточно средств',
         language === 'az' 
-          ? `Bu effektlər üçün ${totalPrice} AZN lazımdır. Balansınız: ${totalBalance} AZN`
-          : `Для этих эффектов требуется ${totalPrice} AZN. Ваш баланс: ${totalBalance} AZN`
+          ? `Bu effektlər üçün ${totalPrice.toFixed(2)} AZN lazımdır. Balansınız: ${totalBalance.toFixed(2)} AZN`
+          : `Для этих эффектов требуется ${totalPrice.toFixed(2)} AZN. Ваш баланс: ${totalBalance.toFixed(2)} AZN`
       );
       return;
     }
+    
+    // ===== VALIDATION END =====
     
     // Check if any effect duration exceeds listing expiry
     const currentDate = new Date();
@@ -181,24 +292,45 @@ export default function PromoteListingScreen() {
     
     const approved = await confirm(confirmMessage, language === 'az' ? 'Təsdiq edin' : 'Подтвердите');
     if (!approved) return;
+    
     setIsProcessing(true);
+    
+    // Store original balance for rollback
+    const originalWalletBalance = walletBalance;
+    const originalBonusBalance = bonusBalance;
+    
     try {
+      // Process payment
       let remainingAmount = totalPrice;
+      let spentFromBonus = 0;
+      let spentFromWallet = 0;
+      
       if (bonusBalance > 0) {
-        const bonusToSpend = Math.min(bonusBalance, remainingAmount);
-        spendFromBonus(bonusToSpend);
-        remainingAmount -= bonusToSpend;
+        spentFromBonus = Math.min(bonusBalance, remainingAmount);
+        spendFromBonus(spentFromBonus);
+        remainingAmount -= spentFromBonus;
+        logger.info('[PurchaseEffects] Spent from bonus:', spentFromBonus);
       }
+      
       if (remainingAmount > 0) {
+        spentFromWallet = remainingAmount;
         spendFromWallet(remainingAmount);
+        logger.info('[PurchaseEffects] Spent from wallet:', spentFromWallet);
       }
+      
+      logger.info('[PurchaseEffects] Total payment:', totalPrice, 'Bonus:', spentFromBonus, 'Wallet:', spentFromWallet);
+      
+      // Calculate effect end dates
       const effectEndDates = selectedEffects.map(effect => {
+        const effectDuration = Math.max(1, effect.duration); // Ensure at least 1 day
         const effectEndDate = new Date(Math.max(
           listingExpiryDate.getTime(),
-          currentDate.getTime() + (effect.duration * 24 * 60 * 60 * 1000)
+          currentDate.getTime() + (effectDuration * 24 * 60 * 60 * 1000)
         ));
         return { effect, endDate: effectEndDate };
       });
+      
+      // Apply effects
       await applyCreativeEffects(listing.id, selectedEffects, effectEndDates);
       let successMessage = language === 'az'
         ? `Kreativ effektlər elanınıza tətbiq edildi!`
@@ -212,11 +344,50 @@ export default function PromoteListingScreen() {
           : `\n\nЭффекты будут активны до ${latestEndDate.toLocaleDateString('ru-RU')}.`;
       }
       Alert.alert(language === 'az' ? 'Uğurlu!' : 'Успешно!', successMessage);
+      
+      // Clear selected effects after successful purchase
+      setSelectedEffects([]);
+      
       router.back();
-    } catch {
+    } catch (error) {
+      // Payment rollback
+      logger.error('[PurchaseEffects] Error applying effects, rolling back payment:', error);
+      
+      // Rollback: Add money back to user's balance
+      const { addToWallet, addToBonus } = useUserStore.getState();
+      
+      if (spentFromBonus > 0) {
+        addToBonus(spentFromBonus);
+        logger.info('[PurchaseEffects] Rolled back bonus:', spentFromBonus);
+      }
+      
+      if (spentFromWallet > 0) {
+        addToWallet(spentFromWallet);
+        logger.info('[PurchaseEffects] Rolled back wallet:', spentFromWallet);
+      }
+      
+      // Show detailed error message
+      let errorMessage = language === 'az' 
+        ? 'Effekt tətbiqi zamanı xəta baş verdi' 
+        : 'Произошла ошибка при применении эффектов';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('tapılmadı') || error.message.includes('not found')) {
+          errorMessage = language === 'az' ? 'Elan tapılmadı' : 'Объявление не найдено';
+        } else if (error.message.includes('düzgün deyil') || error.message.includes('invalid')) {
+          errorMessage = language === 'az' ? 'Effekt məlumatları düzgün deyil' : 'Данные эффектов некорректны';
+        } else if (error.message.includes('network') || error.message.includes('timeout')) {
+          errorMessage = language === 'az' ? 'Şəbəkə xətası. Yenidən cəhd edin.' : 'Ошибка сети. Попробуйте снова.';
+        }
+      }
+      
+      errorMessage += language === 'az' 
+        ? '\n\nÖdənişiniz geri qaytarıldı.' 
+        : '\n\nВаш платеж был возвращен.';
+      
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' ? 'Effekt tətbiqi zamanı xəta baş verdi' : 'Произошла ошибка при применении эффектов'
+        errorMessage
       );
     } finally {
       setIsProcessing(false);
@@ -282,11 +453,29 @@ export default function PromoteListingScreen() {
           : `\n\n💡 Неиспользованные просмотры автоматически применятся к новым объявлениям после истечения текущего.`;
       }
       Alert.alert(language === 'az' ? 'Uğurlu!' : 'Успешно!', successMessage);
+      
+      // Clear selection after success
+      setSelectedViewPackage(null);
+      
       router.back();
-    } catch {
+    } catch (error) {
+      logger.error('[handlePurchaseViews] Error:', error);
+      
+      let errorMessage = language === 'az' 
+        ? 'Baxış alışı zamanı xəta baş verdi' 
+        : 'Произошла ошибка при покупке просмотров';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('tapılmadı') || error.message.includes('not found')) {
+          errorMessage = language === 'az' ? 'Elan tapılmadı' : 'Объявление не найдено';
+        } else if (error.message.includes('network') || error.message.includes('timeout')) {
+          errorMessage = language === 'az' ? 'Şəbəkə xətası. Yenidən cəhd edin.' : 'Ошибка сети. Попробуйте снова.';
+        }
+      }
+      
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' ? 'Baxış alışı zamanı xəta baş verdi' : 'Произошла ошибка при покупке просмотров'
+        errorMessage
       );
     } finally {
       setIsProcessing(false);
@@ -584,13 +773,14 @@ export default function PromoteListingScreen() {
                     : selectedEffects.length > 0
                       ? selectedEffects.reduce((sum, effect) => sum + effect.price, 0)
                       : 0;
-                return (!currentUser || (walletBalance + bonusBalance) < required || isProcessing) && styles.disabledButton;
+                const isDisabled = !currentUser || (walletBalance + bonusBalance) < required || isProcessing;
+                return isDisabled && styles.disabledButton;
               })()
             ]}
             onPress={activeTab === 'promotion' ? handlePromote : activeTab === 'views' ? handlePurchaseViews : handlePurchaseEffects}
             disabled={(() => {
               const required = activeTab === 'promotion'
-                ? (selectedPackage?.price ?? 0)
+                  ? (selectedPackage?.price ?? 0)
                 : activeTab === 'views'
                   ? (selectedViewPackage?.price ?? 0)
                   : selectedEffects.length > 0

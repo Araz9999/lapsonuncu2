@@ -143,6 +143,44 @@ export default function CreativeEffectsSection({ onSelectEffect, selectedEffects
   const isEffectSelected = (effect: CreativeEffect) => {
     return selectedEffects.some(selected => selected.id === effect.id);
   };
+  
+  // Validate effect before selection
+  const handleEffectPress = (effect: CreativeEffect) => {
+    // ===== VALIDATION START =====
+    
+    // 1. Check if effect is valid
+    if (!effect || !effect.id) {
+      logger.error('[CreativeEffects] Invalid effect:', effect);
+      return;
+    }
+    
+    // 2. Check price
+    if (!effect.price || typeof effect.price !== 'number' || effect.price <= 0) {
+      logger.error('[CreativeEffects] Invalid effect price:', effect.price);
+      return;
+    }
+    
+    // 3. Check duration
+    if (!effect.duration || typeof effect.duration !== 'number' || effect.duration <= 0) {
+      logger.error('[CreativeEffects] Invalid effect duration:', effect.duration);
+      return;
+    }
+    
+    // ===== VALIDATION END =====
+    
+    logger.debug('[CreativeEffects] Effect card pressed:', effect.id);
+    logger.debug('[CreativeEffects] Effect name:', effect.name);
+    logger.debug('[CreativeEffects] Effect price:', effect.price);
+    logger.debug('[CreativeEffects] Is currently selected:', isEffectSelected(effect));
+    logger.debug('[CreativeEffects] Calling onSelectEffect...');
+    
+    try {
+      onSelectEffect(effect);
+      logger.debug('[CreativeEffects] onSelectEffect called successfully');
+    } catch (error) {
+      logger.error('[CreativeEffects] Error calling onSelectEffect:', error);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -166,19 +204,7 @@ export default function CreativeEffectsSection({ onSelectEffect, selectedEffects
                 styles.effectCard,
                 isSelected && { borderColor: effect.color, borderWidth: 2 }
               ]}
-              onPress={() => {
-                logger.debug('[CreativeEffects] Effect card pressed:', effect.id);
-                logger.debug('[CreativeEffects] Effect name:', effect.name);
-                logger.debug('[CreativeEffects] Effect price:', effect.price);
-                logger.debug('[CreativeEffects] Is currently selected:', isSelected);
-                logger.debug('[CreativeEffects] Calling onSelectEffect...');
-                try {
-                  onSelectEffect(effect);
-                  logger.debug('[CreativeEffects] onSelectEffect called successfully');
-                } catch (error) {
-                  logger.error('[CreativeEffects] Error calling onSelectEffect:', error);
-                }
-              }}
+              onPress={() => handleEffectPress(effect)}
               activeOpacity={0.7}
             >
               <View style={styles.effectHeader}>
@@ -214,24 +240,37 @@ export default function CreativeEffectsSection({ onSelectEffect, selectedEffects
       {selectedEffects.length > 0 && (
         <View style={styles.selectedEffectsContainer}>
           <Text style={styles.selectedTitle}>
-            {language === 'az' ? 'Seçilmiş Effektlər:' : 'Выбранные эффекты:'}
+            {language === 'az' ? 'Seçilmiş Effektlər:' : 'Выбранные эффекты:'} ({selectedEffects.length})
           </Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.selectedEffects}>
             {selectedEffects.map((effect) => (
               <View key={effect.id} style={[styles.selectedEffect, { borderColor: effect.color }]}>
                 <EffectPreview effect={effect} />
-                <Text style={styles.selectedEffectName}>
+                <Text style={styles.selectedEffectName} numberOfLines={2}>
                   {effect.name[language as keyof typeof effect.name]}
                 </Text>
-                <Text style={styles.selectedEffectPrice}>
-                  {effect.price} AZN
-                </Text>
+                <View style={styles.selectedEffectDetails}>
+                  <Text style={styles.selectedEffectPrice}>
+                    {effect.price.toFixed(2)} AZN
+                  </Text>
+                  <Text style={styles.selectedEffectDuration}>
+                    {effect.duration}d
+                  </Text>
+                </View>
               </View>
             ))}
           </ScrollView>
           <View style={styles.totalContainer}>
-            <Text style={styles.totalText}>
-              {language === 'az' ? 'Ümumi:' : 'Итого:'} {selectedEffects.reduce((sum, effect) => sum + effect.price, 0)} AZN
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>
+                {language === 'az' ? 'Ümumi:' : 'Итого:'}
+              </Text>
+              <Text style={styles.totalText}>
+                {selectedEffects.reduce((sum, effect) => sum + effect.price, 0).toFixed(2)} AZN
+              </Text>
+            </View>
+            <Text style={styles.totalDuration}>
+              {language === 'az' ? 'Müddət:' : 'Длительность:'} {Math.max(...selectedEffects.map(e => e.duration))} {language === 'az' ? 'gün' : 'дней'}
             </Text>
           </View>
         </View>
@@ -384,16 +423,43 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: Colors.primary || '#0E7490',
   },
+  selectedEffectDetails: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  selectedEffectDuration: {
+    fontSize: 9,
+    color: Colors.textSecondary || '#6B7280',
+    fontWeight: '500',
+  },
   totalContainer: {
     borderTopWidth: 1,
     borderTopColor: Colors.border || '#E5E7EB',
     paddingTop: 12,
+  },
+  totalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 4,
+  },
+  totalLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.text || '#1F2937',
   },
   totalText: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
     color: Colors.primary || '#0E7490',
+  },
+  totalDuration: {
+    fontSize: 12,
+    color: Colors.textSecondary || '#6B7280',
+    textAlign: 'center',
+    marginTop: 4,
   },
   particle: {
     position: 'absolute',
