@@ -142,12 +142,74 @@ export const useUserStore = create<UserState>()(
         });
       },
       addToWallet: (amount) => {
+        // ===== VALIDATION START =====
+        
+        // 1. Check if amount is a number
+        if (typeof amount !== 'number' || isNaN(amount) || !isFinite(amount)) {
+          logger.error('[UserStore] Invalid amount for addToWallet:', amount);
+          throw new Error('Məbləğ düzgün deyil');
+        }
+        
+        // 2. Check if amount is positive
+        if (amount <= 0) {
+          logger.error('[UserStore] Amount must be positive:', amount);
+          throw new Error('Məbləğ müsbət olmalıdır');
+        }
+        
+        // 3. Check maximum single transaction (100,000 AZN)
+        if (amount > 100000) {
+          logger.error('[UserStore] Amount too large:', amount);
+          throw new Error('Məbləğ çox böyükdür (maks 100,000 AZN)');
+        }
+        
+        // 4. Check resulting balance won't overflow
         const { walletBalance } = get();
-        set({ walletBalance: walletBalance + amount });
+        const newBalance = walletBalance + amount;
+        
+        if (!isFinite(newBalance) || newBalance > 1000000) {
+          logger.error('[UserStore] New balance would be too large:', newBalance);
+          throw new Error('Maksimum balans limiti (1,000,000 AZN)');
+        }
+        
+        // ===== VALIDATION END =====
+        
+        logger.info('[UserStore] Adding to wallet:', { amount, oldBalance: walletBalance, newBalance });
+        set({ walletBalance: newBalance });
       },
       addBonus: (amount) => {
+        // ===== VALIDATION START =====
+        
+        // 1. Check if amount is a number
+        if (typeof amount !== 'number' || isNaN(amount) || !isFinite(amount)) {
+          logger.error('[UserStore] Invalid amount for addBonus:', amount);
+          throw new Error('Bonus məbləği düzgün deyil');
+        }
+        
+        // 2. Check if amount is positive
+        if (amount <= 0) {
+          logger.error('[UserStore] Bonus amount must be positive:', amount);
+          throw new Error('Bonus məbləği müsbət olmalıdır');
+        }
+        
+        // 3. Check maximum single bonus (10,000 AZN)
+        if (amount > 10000) {
+          logger.error('[UserStore] Bonus amount too large:', amount);
+          throw new Error('Bonus məbləği çox böyükdür (maks 10,000 AZN)');
+        }
+        
+        // 4. Check resulting balance won't overflow
         const { bonusBalance } = get();
-        set({ bonusBalance: bonusBalance + amount });
+        const newBalance = bonusBalance + amount;
+        
+        if (!isFinite(newBalance) || newBalance > 100000) {
+          logger.error('[UserStore] New bonus balance would be too large:', newBalance);
+          throw new Error('Maksimum bonus limiti (100,000 AZN)');
+        }
+        
+        // ===== VALIDATION END =====
+        
+        logger.info('[UserStore] Adding bonus:', { amount, oldBalance: bonusBalance, newBalance });
+        set({ bonusBalance: newBalance });
       },
       spendFromWallet: (amount) => {
         const { walletBalance } = get();
