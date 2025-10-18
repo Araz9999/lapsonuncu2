@@ -122,8 +122,17 @@ export const useListingStore = create<ListingState>((set, get) => ({
     // Apply search filter
     if (searchQuery && searchQuery.trim()) {
       const normalizedQuery = searchQuery.toLowerCase().trim();
+      
+      // ✅ Validate and sanitize search query
+      if (normalizedQuery.length > 200) {
+        logger.warn('[ListingStore] Search query too long, truncating');
+        // Don't filter if query is invalid
+        set({ filteredListings: [] });
+        return;
+      }
+      
       filtered = filtered.filter(listing => {
-        // BUG FIX: Safe property access with null checks
+        // ✅ Safe property access with null checks
         const titleAz = listing.title?.az?.toLowerCase() || '';
         const titleRu = listing.title?.ru?.toLowerCase() || '';
         const descAz = listing.description?.az?.toLowerCase() || '';
@@ -148,11 +157,35 @@ export const useListingStore = create<ListingState>((set, get) => ({
     
     // Apply price range filter
     if (priceRange.min !== null) {
-      filtered = filtered.filter(listing => listing.price >= (priceRange.min || 0));
+      // ✅ Validate min is a valid number
+      const minPrice = typeof priceRange.min === 'number' && isFinite(priceRange.min) && priceRange.min >= 0 
+        ? priceRange.min 
+        : 0;
+      
+      filtered = filtered.filter(listing => {
+        // ✅ Validate listing price is a valid number
+        const listingPrice = typeof listing.price === 'number' && isFinite(listing.price) 
+          ? listing.price 
+          : 0;
+        
+        return listingPrice >= minPrice;
+      });
     }
     
     if (priceRange.max !== null) {
-      filtered = filtered.filter(listing => listing.price <= (priceRange.max || Infinity));
+      // ✅ Validate max is a valid number
+      const maxPrice = typeof priceRange.max === 'number' && isFinite(priceRange.max) && priceRange.max >= 0
+        ? priceRange.max 
+        : Infinity;
+      
+      filtered = filtered.filter(listing => {
+        // ✅ Validate listing price is a valid number
+        const listingPrice = typeof listing.price === 'number' && isFinite(listing.price) 
+          ? listing.price 
+          : 0;
+        
+        return listingPrice <= maxPrice;
+      });
     }
     
     // Apply sorting with featured listings priority
@@ -176,17 +209,43 @@ export const useListingStore = create<ListingState>((set, get) => ({
       // Apply user-selected sorting for same-tier listings
       if (sortBy) {
         switch (sortBy) {
-          case 'date':
-            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-          case 'price-asc':
-            return a.price - b.price;
-          case 'price-desc':
-            return b.price - a.price;
+          case 'date': {
+            // ✅ Validate dates before comparison
+            const dateA = new Date(a.createdAt).getTime();
+            const dateB = new Date(b.createdAt).getTime();
+            
+            // ✅ Handle invalid dates
+            if (isNaN(dateA) && isNaN(dateB)) return 0;
+            if (isNaN(dateA)) return 1; // Invalid dates go to bottom
+            if (isNaN(dateB)) return -1;
+            
+            return dateB - dateA; // Newest first
+          }
+          case 'price-asc': {
+            // ✅ Validate prices before comparison
+            const priceA = typeof a.price === 'number' && isFinite(a.price) ? a.price : 0;
+            const priceB = typeof b.price === 'number' && isFinite(b.price) ? b.price : 0;
+            return priceA - priceB;
+          }
+          case 'price-desc': {
+            // ✅ Validate prices before comparison
+            const priceA = typeof a.price === 'number' && isFinite(a.price) ? a.price : 0;
+            const priceB = typeof b.price === 'number' && isFinite(b.price) ? b.price : 0;
+            return priceB - priceA;
+          }
         }
       }
       
       // Default: sort by date (newest first)
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      const dateA = new Date(a.createdAt).getTime();
+      const dateB = new Date(b.createdAt).getTime();
+      
+      // ✅ Handle invalid dates
+      if (isNaN(dateA) && isNaN(dateB)) return 0;
+      if (isNaN(dateA)) return 1; // Invalid dates go to bottom
+      if (isNaN(dateB)) return -1;
+      
+      return dateB - dateA; // Newest first
     });
     
     set({ filteredListings: filtered });
