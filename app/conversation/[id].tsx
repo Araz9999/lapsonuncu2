@@ -143,6 +143,7 @@ export default function ConversationScreen() {
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
   const [isDeletingMessage, setIsDeletingMessage] = useState<boolean>(false);
+  const [isUploadingFile, setIsUploadingFile] = useState<boolean>(false);
 
   
   const flatListRef = useRef<FlatList>(null);
@@ -365,7 +366,14 @@ export default function ConversationScreen() {
   };
 
   const pickImage = async () => {
+    // ✅ Check if already uploading
+    if (isUploadingFile) {
+      logger.warn('[pickImage] Upload already in progress');
+      return;
+    }
+
     try {
+      // ✅ Request permission
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert(
@@ -379,64 +387,289 @@ export default function ConversationScreen() {
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsMultipleSelection: true,
         quality: 0.8,
+        // ✅ Allow editing for single images
+        allowsEditing: false,
       });
 
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        // Send each image as a separate message
-        for (const asset of result.assets) {
-          const attachment: MessageAttachment = {
-            id: Date.now().toString() + Math.random().toString(),
-            type: 'image',
-            uri: asset.uri,
-            name: asset.fileName || 'image.jpg',
-            size: asset.fileSize || 0,
-            mimeType: 'image/jpeg',
-          };
-          
-          await sendMessage('', 'image', [attachment]);
-          // Small delay between messages to ensure proper ordering
-          await new Promise(resolve => setTimeout(resolve, 100));
+      // ✅ Validate result
+      if (result.canceled) {
+        logger.debug('[pickImage] User cancelled image selection');
+        setShowAttachmentModal(false);
+        return;
+      }
+
+      if (!result.assets || result.assets.length === 0) {
+        logger.warn('[pickImage] No assets in result');
+        setShowAttachmentModal(false);
+        return;
+      }
+
+      // ✅ Limit number of images
+      const MAX_IMAGES = 10;
+      if (result.assets.length > MAX_IMAGES) {
+        Alert.alert(
+          language === 'az' ? 'Xəbərdarlıq' : 'Предупреждение',
+          language === 'az' 
+            ? `Maksimum ${MAX_IMAGES} şəkil seçə bilərsiniz` 
+            : `Можно выбрать максимум ${MAX_IMAGES} изображений`
+        );
+        setShowAttachmentModal(false);
+        return;
+      }
+
+      // ✅ Set uploading state
+      setIsUploadingFile(true);
+      setShowAttachmentModal(false);
+
+      // ✅ Validate and send each image
+      for (let i = 0; i < result.assets.length; i++) {
+        const asset = result.assets[i];
+        
+        // ✅ Validate URI
+        if (!asset.uri || typeof asset.uri !== 'string' || asset.uri.trim().length === 0) {
+          logger.error('[pickImage] Invalid URI for image:', i);
+          continue;
+        }
+
+        // ✅ Validate file size (max 10MB per image)
+        const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+        const fileSize = asset.fileSize || 0;
+        
+        if (fileSize > MAX_SIZE) {
+          Alert.alert(
+            language === 'az' ? 'Xəta' : 'Ошибка',
+            language === 'az' 
+              ? `Şəkil ${i + 1} çox böyükdür (maksimum 10MB)` 
+              : `Изображение ${i + 1} слишком большое (максимум 10MB)`
+          );
+          continue;
+        }
+
+        // ✅ Validate image dimensions
+        if (asset.width && asset.height) {
+          const MAX_DIMENSION = 4096;
+          if (asset.width > MAX_DIMENSION || asset.height > MAX_DIMENSION) {
+            Alert.alert(
+              language === 'az' ? 'Xəta' : 'Ошибка',
+              language === 'az' 
+                ? `Şəkil ${i + 1} ölçüsü çox böyükdür (maksimum ${MAX_DIMENSION}x${MAX_DIMENSION})` 
+                : `Изображение ${i + 1} слишком большое (максимум ${MAX_DIMENSION}x${MAX_DIMENSION})`
+            );
+            continue;
+          }
+        }
+
+        // ✅ Create attachment with proper validation
+        const attachment: MessageAttachment = {
+          id: `${Date.now()}-${Math.random().toString(36).substring(2, 11)}-${i}`,
+          type: 'image',
+          uri: asset.uri.trim(),
+          name: asset.fileName || `image_${Date.now()}_${i}.jpg`,
+          size: fileSize,
+          mimeType: asset.mimeType || 'image/jpeg',
+          width: asset.width,
+          height: asset.height,
+        };
+
+        logger.debug('[pickImage] Sending image:', { 
+          name: attachment.name, 
+          size: attachment.size,
+          dimensions: `${attachment.width}x${attachment.height}` 
+        });
+        
+        await sendMessage('', 'image', [attachment]);
+        
+        // ✅ Small delay between messages to ensure proper ordering
+        if (i < result.assets.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 150));
         }
       }
+
+      logger.info('[pickImage] Successfully sent', result.assets.length, 'images');
     } catch (error) {
-      logger.debug('Image picker error:', error);
+      logger.error('[pickImage] Error picking/sending images:', error);
+      
+      // ✅ Provide specific error messages
+      let errorMessage = language === 'az' ? 'Şəkil seçilə bilmədi' : 'Не удалось выбрать изображение';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('permission')) {
+          errorMessage = language === 'az'
+            ? 'Şəkil seçmək üçün icazə lazımdır'
+            : 'Требуется разрешение для выбора изображений';
+        } else if (error.message.includes('network')) {
+          errorMessage = language === 'az'
+            ? 'Şəbəkə xətası. Yenidən cəhd edin.'
+            : 'Ошибка сети. Попробуйте снова.';
+        }
+      }
+      
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' ? 'Şəkil seçilə bilmədi' : 'Не удалось выбрать изображение'
+        errorMessage
       );
+    } finally {
+      // ✅ Always reset uploading state
+      setIsUploadingFile(false);
+      setShowAttachmentModal(false);
     }
-    setShowAttachmentModal(false);
   };
 
   const pickDocument = async () => {
+    // ✅ Check if already uploading
+    if (isUploadingFile) {
+      logger.warn('[pickDocument] Upload already in progress');
+      return;
+    }
+
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: '*/*',
         copyToCacheDirectory: true,
+        // ✅ Allow multiple files
+        multiple: false, // Can be changed to true if needed
       });
 
-      // BUG FIX: Check if assets array exists and has elements
-      if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0]) {
-        const asset = result.assets[0];
-        const attachment: MessageAttachment = {
-          id: Date.now().toString(),
-          type: 'file',
-          uri: asset.uri,
-          name: asset.name,
-          size: asset.size || 0,
-          mimeType: asset.mimeType || 'application/octet-stream',
-        };
-        
-        await sendMessage('', 'file', [attachment]);
+      // ✅ Validate result
+      if (result.canceled) {
+        logger.debug('[pickDocument] User cancelled document selection');
+        setShowAttachmentModal(false);
+        return;
       }
+
+      if (!result.assets || result.assets.length === 0) {
+        logger.warn('[pickDocument] No assets in result');
+        setShowAttachmentModal(false);
+        return;
+      }
+
+      // ✅ Set uploading state
+      setIsUploadingFile(true);
+      setShowAttachmentModal(false);
+
+      // ✅ Validate and send document
+      const asset = result.assets[0];
+      
+      // ✅ Validate URI
+      if (!asset.uri || typeof asset.uri !== 'string' || asset.uri.trim().length === 0) {
+        logger.error('[pickDocument] Invalid URI for document');
+        throw new Error('Invalid file URI');
+      }
+
+      // ✅ Validate file name
+      if (!asset.name || typeof asset.name !== 'string' || asset.name.trim().length === 0) {
+        logger.error('[pickDocument] Invalid file name');
+        throw new Error('Invalid file name');
+      }
+
+      // ✅ Validate file size (max 50MB for documents)
+      const MAX_SIZE = 50 * 1024 * 1024; // 50MB
+      const fileSize = asset.size || 0;
+      
+      if (fileSize === 0) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' 
+            ? 'Fayl ölçüsü müəyyən edilə bilmədi' 
+            : 'Не удалось определить размер файла'
+        );
+        return;
+      }
+
+      if (fileSize > MAX_SIZE) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' 
+            ? `Fayl çox böyükdür (maksimum 50MB). Seçilən: ${(fileSize / 1024 / 1024).toFixed(2)}MB` 
+            : `Файл слишком большой (максимум 50MB). Выбрано: ${(fileSize / 1024 / 1024).toFixed(2)}MB`
+        );
+        return;
+      }
+
+      // ✅ Validate file extension
+      const fileName = asset.name.toLowerCase();
+      const dangerousExtensions = ['.exe', '.bat', '.cmd', '.sh', '.app', '.dmg', '.jar', '.apk'];
+      
+      if (dangerousExtensions.some(ext => fileName.endsWith(ext))) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' 
+            ? 'Bu fayl növü təhlükəsizlik səbəbi ilə icazə verilmir' 
+            : 'Этот тип файла запрещен по соображениям безопасности'
+        );
+        return;
+      }
+
+      // ✅ Determine mime type if not provided
+      let mimeType = asset.mimeType || 'application/octet-stream';
+      
+      // ✅ Enhance mime type based on extension
+      if (mimeType === 'application/octet-stream') {
+        if (fileName.endsWith('.pdf')) {
+          mimeType = 'application/pdf';
+        } else if (fileName.endsWith('.doc') || fileName.endsWith('.docx')) {
+          mimeType = 'application/msword';
+        } else if (fileName.endsWith('.xls') || fileName.endsWith('.xlsx')) {
+          mimeType = 'application/vnd.ms-excel';
+        } else if (fileName.endsWith('.ppt') || fileName.endsWith('.pptx')) {
+          mimeType = 'application/vnd.ms-powerpoint';
+        } else if (fileName.endsWith('.txt')) {
+          mimeType = 'text/plain';
+        } else if (fileName.endsWith('.zip')) {
+          mimeType = 'application/zip';
+        }
+      }
+
+      // ✅ Create attachment with proper validation
+      const attachment: MessageAttachment = {
+        id: `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+        type: 'file',
+        uri: asset.uri.trim(),
+        name: asset.name.trim(),
+        size: fileSize,
+        mimeType: mimeType,
+      };
+
+      logger.debug('[pickDocument] Sending document:', { 
+        name: attachment.name, 
+        size: `${(attachment.size / 1024).toFixed(2)}KB`,
+        mimeType: attachment.mimeType 
+      });
+      
+      await sendMessage('', 'file', [attachment]);
+
+      logger.info('[pickDocument] Successfully sent document:', attachment.name);
     } catch (error) {
-      logger.debug('Document picker error:', error);
+      logger.error('[pickDocument] Error picking/sending document:', error);
+      
+      // ✅ Provide specific error messages
+      let errorMessage = language === 'az' ? 'Fayl seçilə bilmədi' : 'Не удалось выбрать файл';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('permission')) {
+          errorMessage = language === 'az'
+            ? 'Fayl seçmək üçün icazə lazımdır'
+            : 'Требуется разрешение для выбора файла';
+        } else if (error.message.includes('network')) {
+          errorMessage = language === 'az'
+            ? 'Şəbəkə xətası. Yenidən cəhd edin.'
+            : 'Ошибка сети. Попробуйте снова.';
+        } else if (error.message.includes('Invalid file')) {
+          errorMessage = language === 'az'
+            ? 'Yanlış fayl formatı'
+            : 'Неверный формат файла';
+        }
+      }
+      
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' ? 'Fayl seçilə bilmədi' : 'Не удалось выбрать файл'
+        errorMessage
       );
+    } finally {
+      // ✅ Always reset uploading state
+      setIsUploadingFile(false);
+      setShowAttachmentModal(false);
     }
-    setShowAttachmentModal(false);
   };
 
   const startRecording = async () => {
@@ -1085,17 +1318,52 @@ export default function ConversationScreen() {
             onPress={() => setShowAttachmentModal(false)}
           >
             <View style={styles.attachmentModal}>
-              <TouchableOpacity style={styles.attachmentOption} onPress={pickImage}>
-                <ImageIcon size={24} color={Colors.primary} />
-                <Text style={styles.attachmentOptionText}>
+              {isUploadingFile && (
+                <View style={styles.uploadingIndicator}>
+                  <ActivityIndicator size="small" color={Colors.primary} />
+                  <Text style={styles.uploadingText}>
+                    {language === 'az' ? 'Yüklənir...' : 'Загрузка...'}
+                  </Text>
+                </View>
+              )}
+              
+              <TouchableOpacity 
+                style={[
+                  styles.attachmentOption,
+                  isUploadingFile && styles.attachmentOptionDisabled
+                ]} 
+                onPress={pickImage}
+                disabled={isUploadingFile}
+              >
+                <ImageIcon size={24} color={isUploadingFile ? Colors.textSecondary : Colors.primary} />
+                <Text style={[
+                  styles.attachmentOptionText,
+                  isUploadingFile && styles.attachmentOptionTextDisabled
+                ]}>
                   {language === 'az' ? 'Şəkil' : 'Изображение'}
+                </Text>
+                <Text style={styles.attachmentOptionHint}>
+                  {language === 'az' ? 'Maks 10MB, 10 ədəd' : 'Макс 10MB, 10 шт'}
                 </Text>
               </TouchableOpacity>
               
-              <TouchableOpacity style={styles.attachmentOption} onPress={pickDocument}>
-                <File size={24} color={Colors.primary} />
-                <Text style={styles.attachmentOptionText}>
+              <TouchableOpacity 
+                style={[
+                  styles.attachmentOption,
+                  isUploadingFile && styles.attachmentOptionDisabled
+                ]} 
+                onPress={pickDocument}
+                disabled={isUploadingFile}
+              >
+                <File size={24} color={isUploadingFile ? Colors.textSecondary : Colors.primary} />
+                <Text style={[
+                  styles.attachmentOptionText,
+                  isUploadingFile && styles.attachmentOptionTextDisabled
+                ]}>
                   {language === 'az' ? 'Fayl' : 'Файл'}
+                </Text>
+                <Text style={styles.attachmentOptionHint}>
+                  {language === 'az' ? 'Maks 50MB' : 'Макс 50MB'}
                 </Text>
               </TouchableOpacity>
               
@@ -1207,31 +1475,76 @@ export default function ConversationScreen() {
           onPress={() => setShowAttachmentModal(false)}
         >
           <View style={styles.attachmentModal}>
-            <TouchableOpacity style={styles.attachmentOption} onPress={pickImage}>
-              <ImageIcon size={24} color={Colors.primary} />
-              <Text style={styles.attachmentOptionText}>
+            {isUploadingFile && (
+              <View style={styles.uploadingIndicator}>
+                <ActivityIndicator size="small" color={Colors.primary} />
+                <Text style={styles.uploadingText}>
+                  {language === 'az' ? 'Yüklənir...' : 'Загрузка...'}
+                </Text>
+              </View>
+            )}
+            
+            <TouchableOpacity 
+              style={[
+                styles.attachmentOption,
+                isUploadingFile && styles.attachmentOptionDisabled
+              ]} 
+              onPress={pickImage}
+              disabled={isUploadingFile}
+            >
+              <ImageIcon size={24} color={isUploadingFile ? Colors.textSecondary : Colors.primary} />
+              <Text style={[
+                styles.attachmentOptionText,
+                isUploadingFile && styles.attachmentOptionTextDisabled
+              ]}>
                 {language === 'az' ? 'Şəkil' : 'Изображение'}
+              </Text>
+              <Text style={styles.attachmentOptionHint}>
+                {language === 'az' ? 'Maks 10MB, 10 ədəd' : 'Макс 10MB, 10 шт'}
               </Text>
             </TouchableOpacity>
             
-            <TouchableOpacity style={styles.attachmentOption} onPress={pickDocument}>
-              <File size={24} color={Colors.primary} />
-              <Text style={styles.attachmentOptionText}>
+            <TouchableOpacity 
+              style={[
+                styles.attachmentOption,
+                isUploadingFile && styles.attachmentOptionDisabled
+              ]} 
+              onPress={pickDocument}
+              disabled={isUploadingFile}
+            >
+              <File size={24} color={isUploadingFile ? Colors.textSecondary : Colors.primary} />
+              <Text style={[
+                styles.attachmentOptionText,
+                isUploadingFile && styles.attachmentOptionTextDisabled
+              ]}>
                 {language === 'az' ? 'Fayl' : 'Файл'}
+              </Text>
+              <Text style={styles.attachmentOptionHint}>
+                {language === 'az' ? 'Maks 50MB' : 'Макс 50MB'}
               </Text>
             </TouchableOpacity>
             
             {Platform.OS !== 'web' && (
               <TouchableOpacity 
-                style={styles.attachmentOption} 
+                style={[
+                  styles.attachmentOption,
+                  (isUploadingFile || isRecording) && styles.attachmentOptionDisabled
+                ]} 
                 onPress={() => {
                   setShowAttachmentModal(false);
                   startRecording();
                 }}
+                disabled={isUploadingFile || isRecording}
               >
-                <Mic size={24} color={Colors.primary} />
-                <Text style={styles.attachmentOptionText}>
+                <Mic size={24} color={(isUploadingFile || isRecording) ? Colors.textSecondary : Colors.primary} />
+                <Text style={[
+                  styles.attachmentOptionText,
+                  (isUploadingFile || isRecording) && styles.attachmentOptionTextDisabled
+                ]}>
                   {language === 'az' ? 'Səs yazma' : 'Запись голоса'}
+                </Text>
+                <Text style={styles.attachmentOptionHint}>
+                  {language === 'az' ? 'Maks 5 dəqiqə' : 'Макс 5 минут'}
                 </Text>
               </TouchableOpacity>
             )}
@@ -1566,11 +1879,38 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
     marginBottom: 12,
   },
+  attachmentOptionDisabled: {
+    opacity: 0.5,
+  },
   attachmentOptionText: {
     marginLeft: 12,
     fontSize: 16,
     fontWeight: '500',
     color: Colors.text,
+    flex: 1,
+  },
+  attachmentOptionTextDisabled: {
+    color: Colors.textSecondary,
+  },
+  attachmentOptionHint: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    fontStyle: 'italic',
+  },
+  uploadingIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    backgroundColor: Colors.background,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  uploadingText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: Colors.primary,
+    fontWeight: '500',
   },
   imageModalOverlay: {
     flex: 1,
