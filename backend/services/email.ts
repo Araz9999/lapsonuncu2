@@ -35,12 +35,27 @@ class EmailService {
   }
 
   async sendEmail(options: EmailOptions): Promise<boolean> {
+    logger.info('[Email] Sending email:', { 
+      to: options.to,
+      subject: options.subject,
+      hasHtml: !!options.html,
+      hasText: !!options.text
+    });
+    
     if (!this.isConfigured()) {
-      logger.warn('[Email] Resend not configured, skipping email send');
+      logger.warn('[Email] Resend not configured, skipping email send', { 
+        to: options.to,
+        subject: options.subject
+      });
       return false;
     }
 
     try {
+      logger.info('[Email] Sending request to Resend API', { 
+        to: options.to,
+        from: `${this.fromName} <${this.fromEmail}>`
+      });
+      
       // BUG FIX: Add timeout to prevent hanging requests
       const response = await fetch('https://api.resend.com/emails', {
         method: 'POST',
@@ -66,11 +81,19 @@ class EmailService {
         } catch (parseError) {
           logger.error('[Email] Failed to parse error response:', parseError);
         }
-        logger.error('[Email] Resend API error:', errorText);
+        logger.error('[Email] Resend API error:', { 
+          to: options.to,
+          status: response.status,
+          statusText: response.statusText,
+          error: errorText
+        });
         return false;
       }
 
-      logger.info(`[Email] Successfully sent email to ${options.to}`);
+      logger.info(`[Email] Successfully sent email`, { 
+        to: options.to,
+        subject: options.subject
+      });
       return true;
     } catch (error) {
       // BUG FIX: More detailed error logging
@@ -83,6 +106,11 @@ class EmailService {
   }
 
   async sendVerificationEmail(email: string, data: VerificationEmailData): Promise<boolean> {
+    logger.info('[Email] Sending verification email:', { 
+      to: email,
+      name: data.name
+    });
+    
     const html = `
       <!DOCTYPE html>
       <html>
@@ -207,6 +235,11 @@ Telefon: +994504801313
   }
 
   async sendPasswordResetEmail(email: string, data: PasswordResetEmailData): Promise<boolean> {
+    logger.info('[Email] Sending password reset email:', { 
+      to: email,
+      name: data.name
+    });
+    
     const html = `
       <!DOCTYPE html>
       <html>
