@@ -39,9 +39,28 @@ export const useRatingStore = create<RatingStore>((set, get) => ({
     try {
       set({ isLoading: true, error: null });
       
+      // ✅ Input validation
+      if (!ratingData.userId || typeof ratingData.userId !== 'string') {
+        logger.error('[RatingStore] Invalid userId:', ratingData.userId);
+        throw new Error('Invalid user ID');
+      }
+      
+      if (!ratingData.targetId || typeof ratingData.targetId !== 'string') {
+        logger.error('[RatingStore] Invalid targetId:', ratingData.targetId);
+        throw new Error('Invalid target ID');
+      }
+      
+      if (typeof ratingData.rating !== 'number' || ratingData.rating < 1 || ratingData.rating > 5) {
+        logger.error('[RatingStore] Invalid rating value:', ratingData.rating);
+        throw new Error('Rating must be between 1 and 5');
+      }
+      
+      logger.info('[RatingStore] Adding rating:', { userId: ratingData.userId, targetId: ratingData.targetId, rating: ratingData.rating });
+      
       // Validate rating before adding
       const validation = get().validateRating(ratingData.userId, ratingData.targetId, ratingData.targetType);
       if (!validation.canRate) {
+        logger.warn('[RatingStore] Cannot add rating:', validation.reason);
         throw new Error(validation.reason || 'Cannot add rating');
       }
       
@@ -52,13 +71,14 @@ export const useRatingStore = create<RatingStore>((set, get) => ({
           const Device = await import('expo-device');
           deviceId = Device.osInternalBuildId || Device.modelId || 'unknown';
         } catch (error) {
-          logger.debug('Device info not available:', error);
+          logger.warn('[RatingStore] Device info not available:', error);
         }
       }
       
+      // ✅ Generate unique ID
       const newRating: Rating = {
         ...ratingData,
-        id: Date.now().toString(),
+        id: `rating-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         deviceId,
@@ -96,9 +116,9 @@ export const useRatingStore = create<RatingStore>((set, get) => ({
       await get().saveRatings();
       await get().saveRatingHistory();
       
-      logger.debug('Rating added successfully:', newRating);
+      logger.info('[RatingStore] Rating added successfully:', { ratingId: newRating.id, rating: newRating.rating });
     } catch (error) {
-      logger.error('Error adding rating:', error);
+      logger.error('[RatingStore] Error adding rating:', error);
       set({ error: error instanceof Error ? error.message : 'Failed to add rating' });
       throw error;
     } finally {
@@ -107,9 +127,16 @@ export const useRatingStore = create<RatingStore>((set, get) => ({
   },
 
   getRatingsForTarget: (targetId, targetType) => {
+    if (!targetId) {
+      logger.error('[RatingStore] No targetId provided to getRatingsForTarget');
+      return [];
+    }
+    
     const ratings = get().ratings.filter(
       rating => rating.targetId === targetId && rating.targetType === targetType
     );
+    
+    logger.info('[RatingStore] Retrieved ratings for target:', { targetId, targetType, count: ratings.length });
     
     // Mock user data - in real app this would come from user store or API
     const mockUsers = [
@@ -141,6 +168,17 @@ export const useRatingStore = create<RatingStore>((set, get) => ({
   },
 
   getRatingStats: (targetId, targetType) => {
+    if (!targetId) {
+      logger.error('[RatingStore] No targetId provided to getRatingStats');
+      return {
+        averageRating: 0,
+        totalRatings: 0,
+        verifiedRatings: 0,
+        ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+        verifiedRatingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
+      };
+    }
+    
     const ratings = get().ratings.filter(
       rating => rating.targetId === targetId && rating.targetType === targetType
     );
@@ -159,17 +197,28 @@ export const useRatingStore = create<RatingStore>((set, get) => ({
     
     // Calculate overall stats
     const totalRating = ratings.reduce((sum, rating) => sum + rating.rating, 0);
-    const averageRating = totalRating / ratings.length;
+    // ✅ Prevent division by zero (already checked above, but extra safety)
+    const averageRating = ratings.length > 0 ? totalRating / ratings.length : 0;
     
     const ratingDistribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
     ratings.forEach(rating => {
-      ratingDistribution[rating.rating as keyof typeof ratingDistribution]++;
+      // ✅ Validate rating value before using as key
+      if (rating.rating >= 1 && rating.rating <= 5) {
+        ratingDistribution[rating.rating as keyof typeof ratingDistribution]++;
+      } else {
+        logger.warn('[RatingStore] Invalid rating value in distribution:', rating.rating);
+      }
     });
     
     // Calculate verified stats
     const verifiedRatingDistribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
     verifiedRatings.forEach(rating => {
-      verifiedRatingDistribution[rating.rating as keyof typeof verifiedRatingDistribution]++;
+      // ✅ Validate rating value before using as key
+      if (rating.rating >= 1 && rating.rating <= 5) {
+        verifiedRatingDistribution[rating.rating as keyof typeof verifiedRatingDistribution]++;
+      } else {
+        logger.warn('[RatingStore] Invalid verified rating value:', rating.rating);
+      }
     });
     
     return {
@@ -182,6 +231,12 @@ export const useRatingStore = create<RatingStore>((set, get) => ({
   },
 
   validateRating: (userId, targetId, targetType) => {
+    // ✅ Input validation
+    if (!userId || !targetId) {
+      logger.error('[RatingStore] Missing userId or targetId for validation');
+      return { canRate: false, reason: 'Invalid input' };
+    }
+    
     const currentHistory = get().ratingHistory;
     const userHistory = currentHistory.find(
       h => h.userId === userId && h.targetId === targetId && h.targetType === targetType
@@ -198,6 +253,13 @@ export const useRatingStore = create<RatingStore>((set, get) => ({
     // Check cooldown period
     if (userHistory && userHistory.lastRatingAt) {
       const lastRatingTime = new Date(userHistory.lastRatingAt).getTime();
+      
+      // ✅ Validate date
+      if (isNaN(lastRatingTime)) {
+        logger.error('[RatingStore] Invalid lastRatingAt date:', userHistory.lastRatingAt);
+        return { canRate: true }; // Allow rating if date is invalid
+      }
+      
       const now = new Date().getTime();
       const hoursSinceLastRating = (now - lastRatingTime) / (1000 * 60 * 60);
       
@@ -244,14 +306,21 @@ export const useRatingStore = create<RatingStore>((set, get) => ({
         let ratings;
         try {
           ratings = JSON.parse(stored);
-        } catch {
-          ratings = {};
+          // ✅ Validate parsed data
+          if (!Array.isArray(ratings)) {
+            logger.error('[RatingStore] Invalid ratings data format, expected array');
+            ratings = [];
+          }
+        } catch (error) {
+          logger.error('[RatingStore] Error parsing ratings JSON:', error);
+          ratings = [];
         }
         set({ ratings });
+        logger.info('[RatingStore] Ratings loaded successfully:', { count: ratings.length });
       }
       await get().loadRatingHistory();
     } catch (error) {
-      logger.error('Error loading ratings:', error);
+      logger.error('[RatingStore] Error loading ratings:', error);
       set({ error: 'Failed to load ratings' });
     } finally {
       set({ isLoading: false });
@@ -262,8 +331,9 @@ export const useRatingStore = create<RatingStore>((set, get) => ({
     try {
       const ratings = get().ratings;
       await AsyncStorage.setItem(RATINGS_STORAGE_KEY, JSON.stringify(ratings));
+      logger.info('[RatingStore] Ratings saved successfully:', { count: ratings.length });
     } catch (error) {
-      logger.error('Error saving ratings:', error);
+      logger.error('[RatingStore] Error saving ratings:', error);
       set({ error: 'Failed to save ratings' });
     }
   },
@@ -275,13 +345,20 @@ export const useRatingStore = create<RatingStore>((set, get) => ({
         let ratingHistory;
         try {
           ratingHistory = JSON.parse(stored);
-        } catch {
-          ratingHistory = {};
+          // ✅ Validate parsed data
+          if (!Array.isArray(ratingHistory)) {
+            logger.error('[RatingStore] Invalid rating history format, expected array');
+            ratingHistory = [];
+          }
+        } catch (error) {
+          logger.error('[RatingStore] Error parsing rating history JSON:', error);
+          ratingHistory = [];
         }
         set({ ratingHistory });
+        logger.info('[RatingStore] Rating history loaded successfully:', { count: ratingHistory.length });
       }
     } catch (error) {
-      logger.error('Error loading rating history:', error);
+      logger.error('[RatingStore] Error loading rating history:', error);
     }
   },
 
@@ -289,8 +366,9 @@ export const useRatingStore = create<RatingStore>((set, get) => ({
     try {
       const ratingHistory = get().ratingHistory;
       await AsyncStorage.setItem(RATING_HISTORY_STORAGE_KEY, JSON.stringify(ratingHistory));
+      logger.info('[RatingStore] Rating history saved successfully:', { count: ratingHistory.length });
     } catch (error) {
-      logger.error('Error saving rating history:', error);
+      logger.error('[RatingStore] Error saving rating history:', error);
     }
   },
 }));
