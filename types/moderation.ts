@@ -88,13 +88,12 @@ export interface SupportTicket {
 }
 
 export type SupportCategory = 
-  | 'technical_issue'
-  | 'account_problem'
-  | 'payment_issue'
-  | 'listing_problem'
-  | 'store_issue'
-  | 'feature_request'
-  | 'bug_report'
+  | 'technical'
+  | 'billing'
+  | 'account'
+  | 'listing'
+  | 'store'
+  | 'report'
   | 'other';
 
 export type TicketStatus = 'open' | 'in_progress' | 'waiting_user' | 'resolved' | 'closed';

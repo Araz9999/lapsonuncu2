@@ -179,7 +179,7 @@ export default function CreateListingScreen() {
             language === 'az' ? 'Limit aşıldı' : 'Лимит превышен',
             language === 'az' 
               ? `Seçdiyiniz paket maksimum ${selectedPackageData?.features.photosCount} şəkil əlavə etməyə imkan verir` 
-              : `Выбранный пакет позволяет добавить максимум ${selectedPackageData?.features.photosCount} izображений`
+              : `Выбранный пакет позволяет добавить максимум ${selectedPackageData?.features.photosCount} изображений`
           );
           return;
         }
@@ -196,24 +196,104 @@ export default function CreateListingScreen() {
 
   const handleNextStep = () => {
     if (currentStep === 1) {
-      let hasRequiredFields = Boolean(
-        title && 
-        description && 
-        (!priceByAgreement ? price : true) && 
-        selectedLocation && 
-        selectedCategory && 
-        selectedSubcategory
-      );
-      
-      if (!hasRequiredFields) {
+      // Validation: Title
+      if (!title.trim()) {
         Alert.alert(
           language === 'az' ? 'Xəta' : 'Ошибка',
-          language === 'az' 
-            ? 'Bütün məlumatları doldurun' 
-            : 'Заполните все данные'
+          language === 'az' ? 'Elan başlığını daxil edin' : 'Введите заголовок объявления'
         );
         return;
       }
+      
+      if (title.trim().length < 5) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Başlıq ən azı 5 simvol olmalıdır' : 'Заголовок должен быть не менее 5 символов'
+        );
+        return;
+      }
+      
+      if (title.trim().length > 100) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Başlıq maksimum 100 simvol ola bilər' : 'Заголовок не должен превышать 100 символов'
+        );
+        return;
+      }
+      
+      // Validation: Description
+      if (!description.trim()) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Təsvir daxil edin' : 'Введите описание'
+        );
+        return;
+      }
+      
+      if (description.trim().length < 10) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Təsvir ən azı 10 simvol olmalıdır' : 'Описание должно быть не менее 10 символов'
+        );
+        return;
+      }
+      
+      // Validation: Price (if not by agreement)
+      if (!priceByAgreement) {
+        if (!price.trim()) {
+          Alert.alert(
+            language === 'az' ? 'Xəta' : 'Ошибка',
+            language === 'az' ? 'Qiymət daxil edin' : 'Введите цену'
+          );
+          return;
+        }
+        
+        const priceValue = parseFloat(price);
+        if (isNaN(priceValue) || priceValue <= 0) {
+          Alert.alert(
+            language === 'az' ? 'Xəta' : 'Ошибка',
+            language === 'az' ? 'Düzgün qiymət daxil edin' : 'Введите корректную цену'
+          );
+          return;
+        }
+        
+        if (priceValue > 1000000) {
+          Alert.alert(
+            language === 'az' ? 'Xəta' : 'Ошибка',
+            language === 'az' ? 'Qiymət maksimum 1,000,000 ola bilər' : 'Цена не должна превышать 1,000,000'
+          );
+          return;
+        }
+      }
+      
+      // Validation: Location
+      if (!selectedLocation) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Yerləşdiyiniz yeri seçin' : 'Выберите местоположение'
+        );
+        return;
+      }
+      
+      // Validation: Category
+      if (!selectedCategory) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Kateqoriya seçin' : 'Выберите категорию'
+        );
+        return;
+      }
+      
+      // Validation: Subcategory (yalnız əgər seçilmiş kateqoriyanın alt kateqoriyası varsa)
+      const selectedCategoryData = categories.find(c => c.id === selectedCategory);
+      if (selectedCategoryData?.subcategories && selectedCategoryData.subcategories.length > 0 && !selectedSubcategory) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Alt kateqoriya seçin' : 'Выберите подкатегорию'
+        );
+        return;
+      }
+      
       setCurrentStep(2);
     } else if (currentStep === 2) {
       // Check if adding to store with available slots (no payment required)
@@ -363,6 +443,7 @@ export default function CreateListingScreen() {
         images,
         categoryId: selectedCategory!,
         subcategoryId: selectedSubcategory || 0,
+        subSubcategoryId: selectedSubSubcategory || undefined,
         location: {
           az: selectedLocationData?.name.az || '',
           ru: selectedLocationData?.name.ru || '',
@@ -495,39 +576,46 @@ export default function CreateListingScreen() {
   // Category navigation functions
   const handleCategoryPress = (category: Category) => {
     if (currentCategoryLevel === 'main') {
-      setSelectedCategory(category.id);
+      // \u018fsas kateqoriya se\u00e7imi\n      setSelectedCategory(category.id);
       setSelectedSubcategory(null);
       setSelectedSubSubcategory(null);
       if (category.subcategories && category.subcategories.length > 0) {
-        setCategoryNavigationStack([category]);
+        // Alt kateqoriyalar var, naviqasiyan\u0131 davam etdir\n        setCategoryNavigationStack([category]);
         setCurrentCategoryLevel('sub');
       } else {
-        setShowCategoryModal(false);
+        // Alt kateqoriya yoxdur, modal-\u0131 ba\u011fla\n        setShowCategoryModal(false);
       }
     } else if (currentCategoryLevel === 'sub') {
-      setSelectedSubcategory(category.id);
+      // Alt kateqoriya se\u00e7imi\n      setSelectedSubcategory(category.id);
       setSelectedSubSubcategory(null);
       if (category.subcategories && category.subcategories.length > 0) {
-        setCategoryNavigationStack([...categoryNavigationStack, category]);
+        // Daha alt kateqoriyalar var, naviqasiyan\u0131 davam etdir\n        setCategoryNavigationStack([...categoryNavigationStack, category]);
         setCurrentCategoryLevel('subsub');
       } else {
-        setShowCategoryModal(false);
+        // Daha alt kateqoriya yoxdur, modal-\u0131 ba\u011fla\n        setShowCategoryModal(false);
       }
     } else if (currentCategoryLevel === 'subsub') {
-      setSelectedSubSubcategory(category.id);
+      // Daha alt kateqoriya se\u00e7imi (3-c\u00fc s\u0259viyy\u0259)\n      setSelectedSubSubcategory(category.id);
       setShowCategoryModal(false);
     }
   };
 
   const handleCategoryBack = () => {
     if (currentCategoryLevel === 'subsub') {
+      // Geri dön alt kateqoriyaya
       setCurrentCategoryLevel('sub');
       setCategoryNavigationStack(categoryNavigationStack.slice(0, -1));
+      // SubSubcategory-ni reset et, amma subcategory qalsın
+      setSelectedSubSubcategory(null);
     } else if (currentCategoryLevel === 'sub') {
+      // Geri dön əsas kateqoriyaya
       setCurrentCategoryLevel('main');
       setCategoryNavigationStack([]);
-      setSelectedCategory(null);
+      // Subcategory reset et, amma main category qalsın
       setSelectedSubcategory(null);
+      setSelectedSubSubcategory(null);
+      // Main category-ni SAXLA (reset etmə!)  
+      // setSelectedCategory(null); // BU XƏTA IDI!
     }
   };
 
@@ -554,6 +642,8 @@ export default function CreateListingScreen() {
         animationType="slide"
         transparent={true}
         onRequestClose={() => {
+          // Modal bağlananda yalnız navigation state-i reset et
+          // Seçilmiş kateqoriyaları saxla
           setShowCategoryModal(false);
           setCurrentCategoryLevel('main');
           setCategoryNavigationStack([]);
@@ -578,6 +668,7 @@ export default function CreateListingScreen() {
               <TouchableOpacity 
                 style={styles.modalCloseButton}
                 onPress={() => {
+                  // Close button - yalnız modal-ı bağla, seçimləri saxla
                   setShowCategoryModal(false);
                   setCurrentCategoryLevel('main');
                   setCategoryNavigationStack([]);
@@ -1312,9 +1403,12 @@ export default function CreateListingScreen() {
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
-      <ScrollView style={styles.scrollContainer}>
+      <ScrollView 
+        style={styles.scrollContainer}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.stepIndicator}>
           <View style={[styles.step, currentStep >= 1 && styles.activeStep]}>
             <Text style={[styles.stepText, currentStep >= 1 && styles.activeStepText]}>1</Text>

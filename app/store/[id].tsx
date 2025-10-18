@@ -6,7 +6,8 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
-  Linking
+  Linking,
+  Alert,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useLanguageStore } from '@/store/languageStore';
@@ -89,25 +90,80 @@ export default function StoreDetailScreen() {
   }, [loadRatings]);
   
   const handleFollowToggle = async () => {
-    if (!currentUser || !store) return;
+    if (!currentUser) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'İzləmək üçün daxil olun' : 'Войдите для подписки'
+      );
+      return;
+    }
     
-    if (isFollowing) {
-      await unfollowStore(currentUser.id, store.id);
-    } else {
-      await followStore(currentUser.id, store.id);
+    if (!store) return;
+    
+    try {
+      if (isFollowing) {
+        await unfollowStore(currentUser.id, store.id);
+      } else {
+        await followStore(currentUser.id, store.id);
+      }
+    } catch (error) {
+      storeLogger.error('Failed to toggle follow:', error);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Əməliyyat zamanı xəta baş verdi' : 'Ошибка при выполнении операции'
+      );
     }
   };
   
   const handleRatingSubmit = async (rating: number, comment?: string) => {
-    if (!currentUser || !store) return;
+    if (!currentUser) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Reyting vermək üçün daxil olun' : 'Войдите для оценки'
+      );
+      return;
+    }
     
-    await addRating({
-      userId: currentUser.id,
-      targetId: store.id,
-      targetType: 'store',
-      rating,
-      comment
-    });
+    if (!store) return;
+    
+    // Validation: Rating range
+    if (rating < 1 || rating > 5) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Reyting 1-5 arasında olmalıdır' : 'Оценка должна быть от 1 до 5'
+      );
+      return;
+    }
+    
+    // Validation: Comment length if provided
+    if (comment && comment.trim().length > 500) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Şərh maksimum 500 simvol ola bilər' : 'Комментарий не должен превышать 500 символов'
+      );
+      return;
+    }
+    
+    try {
+      await addRating({
+        userId: currentUser.id,
+        targetId: store.id,
+        targetType: 'store',
+        rating,
+        comment: comment?.trim()
+      });
+      
+      Alert.alert(
+        language === 'az' ? 'Uğurlu' : 'Успешно',
+        language === 'az' ? 'Reyting əlavə edildi' : 'Оценка добавлена'
+      );
+    } catch (error) {
+      storeLogger.error('Failed to submit rating:', error);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Reyting əlavə edilərkən xəta baş verdi' : 'Ошибка при добавлении оценки'
+      );
+    }
   };
   
   const handleUserPress = (userId: string) => {

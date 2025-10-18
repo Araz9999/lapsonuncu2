@@ -22,9 +22,17 @@ export default function ProfileScreen() {
   const { liveChats, getAvailableOperators } = useSupportStore();
   
   const [showLiveChat, setShowLiveChat] = React.useState<boolean>(false);
+  const [isDeletingAccount, setIsDeletingAccount] = React.useState<boolean>(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState<boolean>(false);
   
-  // Mock current user (first user in the list)
-  const currentUser = users[0];
+  // ✅ Get current user safely with validation
+  const currentUserFromStore = useUserStore.getState().currentUser;
+  const currentUser = currentUserFromStore || users[0]; // Fallback to mock user
+  
+  // ✅ Validate current user
+  if (!currentUser || !currentUser.id) {
+    logger.error('[ProfileScreen] Invalid current user');
+  }
   const userStore = getUserStore(currentUser.id);
   
   // Get user's active chats for live support
@@ -47,10 +55,41 @@ export default function ProfileScreen() {
   };
 
   const handleDeleteProfile = () => {
-    logger.debug('[handleDeleteProfile] Delete profile button pressed');
+    // ✅ Validate user is authenticated
+    if (!isAuthenticated || !currentUser) {
+      logger.error('[handleDeleteProfile] User not authenticated');
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Hesaba daxil olmamısınız' : 'Вы не авторизованы'
+      );
+      return;
+    }
+
+    // ✅ Check if deletion is already in progress
+    if (isDeletingAccount) {
+      logger.warn('[handleDeleteProfile] Deletion already in progress');
+      return;
+    }
+
+    // ✅ Gather user data for detailed confirmation
+    const activeListingsCount = userListings.filter(l => !l.deletedAt).length;
+    const totalBalance = (typeof walletBalance === 'number' && isFinite(walletBalance) ? walletBalance : 0);
+    const totalBonus = (typeof bonusBalance === 'number' && isFinite(bonusBalance) ? bonusBalance : 0);
+    
+    logger.debug('[handleDeleteProfile] Delete profile button pressed', {
+      userId: currentUser.id,
+      activeListings: activeListingsCount,
+      walletBalance: totalBalance,
+      bonusBalance: totalBonus,
+      hasStore: !!userStore,
+    });
+    
+    // ✅ First confirmation with actual user data
     Alert.alert(
       t('deleteProfile'),
-      t('cannotBeUndone'),
+      language === 'az' 
+        ? `Profilinizi silmək istədiyinizə əminsiniz? Bu əməliyyat geri qaytarıla bilməz.\n\nSilinəcək:\n• ${activeListingsCount} elanınız\n• Bütün mesajlarınız\n• ${totalBalance.toFixed(2)} AZN balans\n• ${totalBonus.toFixed(2)} AZN bonus\n• ${userStore ? '1 mağazanız' : 'Heç bir mağaza yoxdur'}\n• Bütün şəxsi məlumatlarınız`
+        : `Вы уверены, что хотите удалить свой профиль? Это действие нельзя отменить.\n\nБудет удалено:\n• ${activeListingsCount} объявлений\n• Все ваши сообщения\n• ${totalBalance.toFixed(2)} AZN баланс\n• ${totalBonus.toFixed(2)} AZN бонус\n• ${userStore ? '1 магазин' : 'Нет магазинов'}\n• Все личные данные`,
       [
         {
           text: t('cancel'),
@@ -62,10 +101,14 @@ export default function ProfileScreen() {
           style: 'destructive',
           onPress: () => {
             logger.debug('[handleDeleteProfile] First confirmation accepted, showing second confirmation');
+            
+            // ✅ Second confirmation with delay
             setTimeout(() => {
               Alert.alert(
                 t('confirmDelete'),
-                t('areYouSure'),
+                language === 'az'
+                  ? 'SON XƏBƏRDARLIQ!\n\nBu əməliyyatı geri qaytarmaq MÜMKÜN DEYİL!\n\nBütün məlumatlarınız DAİMİ OLARAQ silinəcək.'
+                  : 'ПОСЛЕДНЕЕ ПРЕДУПРЕЖДЕНИЕ!\n\nЭто действие НЕВОЗМОЖНО отменить!\n\nВсе ваши данные будут НАВСЕГДА удалены.',
                 [
                   {
                     text: t('cancel'),
@@ -73,23 +116,37 @@ export default function ProfileScreen() {
                     onPress: () => logger.debug('[handleDeleteProfile] Second confirmation cancelled')
                   },
                   {
-                    text: t('yes'),
+                    text: language === 'az' ? 'Bəli, profilimi sil' : 'Да, удалить мой профиль',
                     style: 'destructive',
                     onPress: async () => {
-                      logger.debug('[handleDeleteProfile] Profile deletion confirmed, calling API');
+                      logger.debug('[handleDeleteProfile] Profile deletion confirmed, starting deletion process');
+                      
+                      // ✅ Set loading state
+                      setIsDeletingAccount(true);
+                      
                       try {
+                        // ✅ Validate auth service availability
+                        if (!authService || typeof authService.deleteAccount !== 'function') {
+                          throw new Error('Auth service not available');
+                        }
+
+                        logger.debug('[handleDeleteProfile] Calling authService.deleteAccount()');
                         await authService.deleteAccount();
+                        
+                        logger.debug('[handleDeleteProfile] Account deleted, calling logout');
                         logout();
-                        logger.debug('[handleDeleteProfile] Account deleted and logged out, navigating to login');
+                        
+                        logger.debug('[handleDeleteProfile] Logout successful, showing success message');
+                        
                         Alert.alert(
                           t('success'),
-                          language === 'az' ? 'Profil uğurla silindi' : 'Профиль успешно удален',
+                          language === 'az' ? 'Profiliniz uğurla silindi. Sizi görməyə ümid edirik!' : 'Ваш профиль успешно удален. Надеемся увидеть вас снова!',
                           [
                             {
                               text: 'OK',
                               onPress: () => {
                                 logger.debug('[handleDeleteProfile] Navigating to login screen');
-                                router.push('/auth/login');
+                                router.replace('/auth/login');
                               }
                             }
                           ],
@@ -97,16 +154,37 @@ export default function ProfileScreen() {
                         );
                       } catch (error) {
                         logger.error('[handleDeleteProfile] Error during profile deletion:', error);
+                        
+                        // ✅ Provide specific error messages
+                        let errorMessage = language === 'az' 
+                          ? 'Profil silinərkən xəta baş verdi' 
+                          : 'Произошла ошибка при удалении профиля';
+
+                        if (error instanceof Error) {
+                          if (error.message.includes('authenticated')) {
+                            errorMessage = language === 'az'
+                              ? 'Sessiya bitib. Zəhmət olmasa yenidən daxil olun.'
+                              : 'Сессия истекла. Пожалуйста, войдите снова.';
+                          } else if (error.message.includes('network') || error.message.includes('fetch')) {
+                            errorMessage = language === 'az'
+                              ? 'Şəbəkə xətası. İnternet bağlantınızı yoxlayın.'
+                              : 'Ошибка сети. Проверьте подключение к интернету.';
+                          }
+                        }
+                        
                         Alert.alert(
                           t('error'),
-                          language === 'az' ? 'Profil silinərkən xəta baş verdi' : 'Произошла ошибка при удалении профиля'
+                          errorMessage
                         );
+                      } finally {
+                        // ✅ Always reset loading state
+                        setIsDeletingAccount(false);
                       }
                     },
                   },
                 ]
               );
-            }, 100);
+            }, 300);
           },
         },
       ]
@@ -114,13 +192,37 @@ export default function ProfileScreen() {
   };
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const month = date.toLocaleString(language === 'az' ? 'az-AZ' : 'ru-RU', { month: 'long' });
-    const year = date.getFullYear();
+    // ✅ Validate date string
+    if (!dateString || typeof dateString !== 'string') {
+      logger.warn('[formatDate] Invalid date string:', dateString);
+      return language === 'az' ? 'Tarix yoxdur' : 'Дата отсутствует';
+    }
     
-    return language === 'az' 
-      ? `${month} ${year}` 
-      : `${month} ${year}`;
+    try {
+      const date = new Date(dateString);
+      
+      // ✅ Check if date is valid
+      if (isNaN(date.getTime())) {
+        logger.warn('[formatDate] Invalid date:', dateString);
+        return language === 'az' ? 'Yanlış tarix' : 'Неверная дата';
+      }
+      
+      const month = date.toLocaleString(language === 'az' ? 'az-AZ' : 'ru-RU', { month: 'long' });
+      const year = date.getFullYear();
+      
+      // ✅ Validate year is reasonable
+      if (year < 2000 || year > 2100) {
+        logger.warn('[formatDate] Suspicious year:', year);
+        return language === 'az' ? 'Yanlış tarix' : 'Неверная дата';
+      }
+      
+      return language === 'az' 
+        ? `${month} ${year}` 
+        : `${month} ${year}`;
+    } catch (error) {
+      logger.error('[formatDate] Error formatting date:', error);
+      return language === 'az' ? 'Tarix xətası' : 'Ошибка даты';
+    }
   };
 
   if (!isAuthenticated) {
@@ -141,10 +243,54 @@ export default function ProfileScreen() {
     );
   }
 
+  const handleAvatarPress = async () => {
+    try {
+      Alert.alert(
+        language === 'az' ? 'Profil şəkli' : 'Фото профиля',
+        language === 'az' ? 'Profil şəklini dəyişdirmək istəyirsiniz?' : 'Хотите изменить фото профиля?',
+        [
+          { text: language === 'az' ? 'Ləğv et' : 'Отмена', style: 'cancel' },
+          { 
+            text: language === 'az' ? 'Kameradan çək' : 'Сделать фото', 
+            onPress: () => {
+              logger.info('[handleAvatarPress] Camera photo option selected');
+              Alert.alert(
+                language === 'az' ? 'Kamera' : 'Камера',
+                language === 'az' 
+                  ? 'Kamera funksiyası hazırlanır. Tezliklə əlavə olunacaq.' 
+                  : 'Функция камеры в разработке. Скоро будет добавлена.'
+              );
+            }
+          },
+          { 
+            text: language === 'az' ? 'Qalereyadan seç' : 'Выбрать из галереи', 
+            onPress: () => {
+              logger.info('[handleAvatarPress] Gallery photo option selected');
+              Alert.alert(
+                language === 'az' ? 'Qalereya' : 'Галерея',
+                language === 'az' 
+                  ? 'Qalereya funksiyası hazırlanır. Tezliklə əlavə olunacaq.' 
+                  : 'Функция галереи в разработке. Скоро будет добавлена.'
+              );
+            }
+          }
+        ]
+      );
+    } catch (error) {
+      logger.error('[handleAvatarPress] Error:', error);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Bir xəta baş verdi' : 'Произошла ошибка'
+      );
+    }
+  };
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <Image source={{ uri: currentUser.avatar }} style={styles.avatar} />
+        <TouchableOpacity onPress={handleAvatarPress} activeOpacity={0.7}>
+          <Image source={{ uri: currentUser.avatar }} style={styles.avatar} />
+        </TouchableOpacity>
         <View style={styles.userInfo}>
           <Text style={styles.userName}>{currentUser.name}</Text>
           <View style={styles.ratingContainer}>
@@ -193,7 +339,7 @@ export default function ProfileScreen() {
               {t('wallet')}
             </Text>
             <Text style={styles.walletBalance}>
-              {walletBalance.toFixed(2)} AZN + {bonusBalance.toFixed(2)} AZN bonus
+              {(typeof walletBalance === 'number' && isFinite(walletBalance) ? walletBalance : 0).toFixed(2)} AZN + {(typeof bonusBalance === 'number' && isFinite(bonusBalance) ? bonusBalance : 0).toFixed(2)} AZN bonus
             </Text>
           </View>
           <ChevronRight size={20} color={Colors.textSecondary} />
@@ -311,18 +457,30 @@ export default function ProfileScreen() {
         </TouchableOpacity>
         
         <TouchableOpacity 
-          style={[styles.menuItem, { borderBottomWidth: 0 }]}
+          style={[
+            styles.menuItem, 
+            { borderBottomWidth: 0 },
+            isDeletingAccount && styles.menuItemDisabled
+          ]}
           onPress={handleDeleteProfile}
           activeOpacity={0.7}
           testID="delete-profile-button"
+          disabled={isDeletingAccount}
         >
           <View style={[styles.menuIconContainer, { backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}>
-            <Trash2 size={20} color={Colors.error} />
+            {isDeletingAccount ? (
+              <ActivityIndicator size="small" color={Colors.error} />
+            ) : (
+              <Trash2 size={20} color={Colors.error} />
+            )}
           </View>
           <Text style={[styles.menuItemText, { color: Colors.error }]}>
-            {t('deleteProfile')}
+            {isDeletingAccount 
+              ? (language === 'az' ? 'Silinir...' : 'Удаление...')
+              : t('deleteProfile')
+            }
           </Text>
-          <ChevronRight size={20} color={Colors.error} />
+          {!isDeletingAccount && <ChevronRight size={20} color={Colors.error} />}
         </TouchableOpacity>
       </View>
       
@@ -487,6 +645,9 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: Colors.error,
     marginLeft: 8,
+  },
+  menuItemDisabled: {
+    opacity: 0.5,
   },
   authContainer: {
     flex: 1,

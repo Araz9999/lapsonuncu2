@@ -83,10 +83,80 @@ export default function CreateStoreScreen() {
     
     // Step 2: Store information validation
     if (currentStep === 2) {
-      if (!storeData.name.trim() || !storeData.categoryName.trim()) {
+      // Validation: Store name
+      if (!storeData.name.trim()) {
         Alert.alert(
-          language === 'az' ? 'Məlumatları Doldurun' : 'Заполните информацию',
-          language === 'az' ? 'Zəhmət olmasa bütün məcburi sahələri doldurun' : 'Пожалуйста, заполните все обязательные поля'
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Mağaza adı daxil edin' : 'Введите название магазина'
+        );
+        return;
+      }
+      
+      if (storeData.name.trim().length < 3) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Mağaza adı ən azı 3 simvol olmalıdır' : 'Название магазина должно быть не менее 3 символов'
+        );
+        return;
+      }
+      
+      if (storeData.name.trim().length > 50) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Mağaza adı maksimum 50 simvol ola bilər' : 'Название магазина не должно превышать 50 символов'
+        );
+        return;
+      }
+      
+      // Validation: Category name
+      if (!storeData.categoryName.trim()) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Kateqoriya adı daxil edin' : 'Введите название категории'
+        );
+        return;
+      }
+      
+      if (storeData.categoryName.trim().length < 3) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Kateqoriya adı ən azı 3 simvol olmalıdır' : 'Название категории должно быть не менее 3 символов'
+        );
+        return;
+      }
+      
+      // Validation: Address
+      if (storeData.address.trim() && storeData.address.trim().length < 5) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Ünvan ən azı 5 simvol olmalıdır' : 'Адрес должен быть не менее 5 символов'
+        );
+        return;
+      }
+      
+      // Validation: Email format if provided
+      if (storeData.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(storeData.email.trim())) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Düzgün email formatı daxil edin' : 'Введите корректный формат email'
+        );
+        return;
+      }
+      
+      // Validation: Phone number if provided
+      if (storeData.phone.trim() && storeData.phone.trim().length < 9) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Telefon nömrəsi ən azı 9 rəqəm olmalıdır' : 'Номер телефона должен содержать не менее 9 цифр'
+        );
+        return;
+      }
+      
+      // Validation: Website URL if provided
+      if (storeData.website.trim() && !storeData.website.trim().match(/^https?:\/\/.+/)) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Vebsayt http:// və ya https:// ilə başlamalıdır' : 'Веб-сайт должен начинаться с http:// или https://'
         );
         return;
       }

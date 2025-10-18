@@ -8,7 +8,10 @@ import {
   TextInput,
   Alert,
   Modal,
-  Switch
+  Switch,
+  Platform,
+  KeyboardAvoidingView,
+  Keyboard,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useLanguageStore } from '@/store/languageStore';
@@ -58,21 +61,42 @@ export default function StoreDiscountsScreen() {
   const [excludeListings, setExcludeListings] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   
-  const handleApplyDiscount = async () => {
-    if (!selectedListing || !store) return;
-    
-    const discount = parseFloat(discountPercentage);
-    if (isNaN(discount) || discount <= 0 || discount > 100) {
-      Alert.alert('Xəta', 'Endirim 0-100 arasında olmalıdır');
-      return;
+  // ✅ Helper: Validate discount percentage (removed duplicate)
+  const validateDiscountPercentage = (value: string): number | null => {
+    if (!value || typeof value !== 'string' || value.trim().length === 0) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Endirim faizini daxil edin' : 'Введите процент скидки'
+      );
+      return null;
     }
-    if (isNaN(discount) || discount <= 0 || discount >= 100) {
+    
+    const discount = parseFloat(value.trim());
+    
+    if (isNaN(discount) || !isFinite(discount)) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Düzgün endirim faizi daxil edin' : 'Введите корректный процент'
+      );
+      return null;
+    }
+    
+    if (discount < 1 || discount > 99) {
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Endirim faizi 1-99 arasında olmalıdır' : 'Процент скидки должен быть от 1 до 99'
       );
-      return;
+      return null;
     }
+    
+    return discount;
+  };
+  
+  const handleApplyDiscount = async () => {
+    if (!selectedListing || !store) return;
+    
+    const discount = validateDiscountPercentage(discountPercentage);
+    if (discount === null) return;
     
     const listing = storeListings.find(l => l.id === selectedListing);
     if (!listing) return;
@@ -159,14 +183,8 @@ export default function StoreDiscountsScreen() {
   const handleApplyStoreWideDiscount = async () => {
     if (!store) return;
     
-    const discount = parseFloat(storeWideDiscount);
-    if (isNaN(discount) || discount <= 0 || discount >= 100) {
-      Alert.alert(
-        language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' ? 'Endirim faizi 1-99 arasında olmalıdır' : 'Процент скидки должен быть от 1 до 99'
-      );
-      return;
-    }
+    const discount = validateDiscountPercentage(storeWideDiscount);
+    if (discount === null) return;
     
     const applicableListings = storeListings.filter(l => 
       !excludeListings.includes(l.id) && !l.priceByAgreement
@@ -307,18 +325,27 @@ export default function StoreDiscountsScreen() {
   const regularListings = storeListings.filter(l => !l.hasDiscount);
   
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft size={24} color={Colors.text} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>
-          {language === 'az' ? 'Endirim idarəetməsi' : 'Управление скидками'}
-        </Text>
-        <View style={styles.placeholder} />
-      </View>
-      
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+    <KeyboardAvoidingView
+      style={styles.flex}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+    >
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <ArrowLeft size={24} color={Colors.text} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>
+            {language === 'az' ? 'Endirim idarəetməsi' : 'Управление скидками'}
+          </Text>
+          <View style={styles.placeholder} />
+        </View>
+        
+        <ScrollView 
+          style={styles.content} 
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
         {/* Store-wide Discount Actions */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
@@ -486,10 +513,16 @@ export default function StoreDiscountsScreen() {
               <TextInput
                 style={styles.textInput}
                 value={discountPercentage}
-                onChangeText={setDiscountPercentage}
+                onChangeText={(text) => {
+                  const numericValue = text.replace(/[^0-9.]/g, '');
+                  setDiscountPercentage(numericValue);
+                }}
                 placeholder={language === 'az' ? 'Məsələn: 20' : 'Например: 20'}
                 placeholderTextColor={Colors.textSecondary}
-                keyboardType="numeric"
+                keyboardType="decimal-pad"
+                returnKeyType="done"
+                onSubmitEditing={Keyboard.dismiss}
+                maxLength={5}
               />
             </View>
             
@@ -548,10 +581,16 @@ export default function StoreDiscountsScreen() {
               <TextInput
                 style={styles.textInput}
                 value={storeWideDiscount}
-                onChangeText={setStoreWideDiscount}
+                onChangeText={(text) => {
+                  const numericValue = text.replace(/[^0-9.]/g, '');
+                  setStoreWideDiscount(numericValue);
+                }}
                 placeholder={language === 'az' ? 'Məsələn: 15' : 'Например: 15'}
                 placeholderTextColor={Colors.textSecondary}
-                keyboardType="numeric"
+                keyboardType="decimal-pad"
+                returnKeyType="done"
+                onSubmitEditing={Keyboard.dismiss}
+                maxLength={5}
               />
               
               {storeListings.length > 0 && (
@@ -614,10 +653,14 @@ export default function StoreDiscountsScreen() {
         </View>
       </Modal>
     </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     backgroundColor: Colors.background,
