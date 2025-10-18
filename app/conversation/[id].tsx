@@ -53,7 +53,9 @@ const ChatInput = memo(({
   onSend, 
   onAttach, 
   onRecord, 
-  isRecording, 
+  isRecording,
+  recordingDuration,
+  onCancelRecording,
   language 
 }: { 
   inputText: string; 
@@ -61,10 +63,52 @@ const ChatInput = memo(({
   onSend: () => void; 
   onAttach: () => void; 
   onRecord: { onPressIn?: () => void; onPressOut?: () => void; onPress?: () => void }; 
-  isRecording: boolean; 
+  isRecording: boolean;
+  recordingDuration?: number;
+  onCancelRecording?: () => void;
   language: string;
 }) => {
   logger.debug('ChatInput render');
+  
+  // Format recording duration
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+  
+  // ✅ Recording UI with duration and cancel button
+  if (isRecording) {
+    return (
+      <View style={styles.inputContainer}>
+        <TouchableOpacity
+          style={styles.cancelRecordingButton}
+          onPress={onCancelRecording}
+        >
+          <X size={20} color={Colors.error} />
+        </TouchableOpacity>
+        
+        <View style={styles.recordingIndicator}>
+          <View style={styles.recordingDot} />
+          <Text style={styles.recordingText}>
+            {language === 'az' ? 'Səs yazılır...' : 'Запись...'}
+          </Text>
+          <Text style={styles.recordingDuration}>
+            {formatDuration(recordingDuration || 0)}
+          </Text>
+        </View>
+        
+        <TouchableOpacity
+          testID="chat-mic-button"
+          style={styles.sendButton}
+          onPressOut={onRecord.onPressOut}
+        >
+          <Send size={18} color="#fff" />
+        </TouchableOpacity>
+      </View>
+    );
+  }
+  
   // ChatInput component
   return (
     <View style={styles.inputContainer}>
@@ -106,7 +150,7 @@ const ChatInput = memo(({
       ) : (
         <TouchableOpacity
           testID="chat-mic-button"
-          style={[styles.sendButton, isRecording && styles.recordingButton]}
+          style={styles.sendButton}
           onPressIn={onRecord.onPressIn}
           onPressOut={onRecord.onPressOut}
           onPress={onRecord.onPress}
@@ -133,6 +177,7 @@ export default function ConversationScreen() {
   const [inputText, setInputText] = useState<string>('');
   const [isRecording, setIsRecording] = useState<boolean>(false);
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
+  const [recordingDuration, setRecordingDuration] = useState<number>(0);
   const [showAttachmentModal, setShowAttachmentModal] = useState<boolean>(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [playingAudio, setPlayingAudio] = useState<string | null>(null);
@@ -140,6 +185,9 @@ export default function ConversationScreen() {
   const [showUserActionModal, setShowUserActionModal] = useState<boolean>(false);
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
+  
+  // ✅ Track recording timer
+  const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   
   const flatListRef = useRef<FlatList>(null);
@@ -215,7 +263,7 @@ export default function ConversationScreen() {
     }
   }, [conversationId, conversation?.unreadCount, markAsRead, conversation?.id]);
   
-  // BUG FIX: Proper cleanup for audio and recording
+  // ✅ Proper cleanup for audio and recording
   useEffect(() => {
     return () => {
       // Cleanup audio playback
@@ -225,10 +273,16 @@ export default function ConversationScreen() {
           .catch(err => logger.warn('Error cleaning up sound:', err));
       }
       
-      // BUG FIX: Cleanup recording if still active
+      // Cleanup recording if still active
       if (recording) {
         recording.stopAndUnloadAsync()
           .catch(err => logger.warn('Error cleaning up recording:', err));
+      }
+      
+      // ✅ Cleanup recording timer
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+        recordingTimerRef.current = null;
       }
     };
   }, [sound, recording]);
@@ -435,6 +489,12 @@ export default function ConversationScreen() {
         return;
       }
 
+      // ✅ Prevent multiple recordings at once
+      if (recording || isRecording) {
+        logger.warn('Recording already in progress');
+        return;
+      }
+
       const { status } = await Audio.requestPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert(
@@ -444,40 +504,83 @@ export default function ConversationScreen() {
         return;
       }
 
+      // ✅ Enhanced audio mode configuration
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,
         playsInSilentModeIOS: true,
+        staysActiveInBackground: false,
+        interruptionModeIOS: 1, // Do not mix with others
+        shouldDuckAndroid: true,
+        playThroughEarpieceAndroid: false,
       });
 
-      const { recording } = await Audio.Recording.createAsync(
+      const { recording: newRecording } = await Audio.Recording.createAsync(
         Audio.RecordingOptionsPresets.HIGH_QUALITY
       );
       
-      setRecording(recording);
+      setRecording(newRecording);
       setIsRecording(true);
+      setRecordingDuration(0);
+      
+      // ✅ Start recording duration timer
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingDuration(prev => prev + 1);
+      }, 1000);
+      
+      logger.info('Recording started successfully');
     } catch (error) {
-      logger.debug('Failed to start recording:', error);
+      logger.error('Failed to start recording:', error);
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Səs yazma başladıla bilmədi' : 'Не удалось начать запись'
       );
+      
+      // ✅ Cleanup on error
+      setIsRecording(false);
+      setRecording(null);
+      setRecordingDuration(0);
     }
   };
 
   const stopRecording = async () => {
-    // BUG FIX: Early return with proper validation
+    // ✅ Early return with proper validation
     if (!recording || Platform.OS === 'web') return;
 
     try {
+      // ✅ Stop recording timer
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+        recordingTimerRef.current = null;
+      }
+      
       setIsRecording(false);
       
-      // BUG FIX: Proper cleanup sequence
+      // ✅ Check minimum recording duration (at least 1 second)
+      if (recordingDuration < 1) {
+        await recording.stopAndUnloadAsync();
+        setRecording(null);
+        setRecordingDuration(0);
+        
+        Alert.alert(
+          language === 'az' ? 'Xəbərdarlıq' : 'Предупреждение',
+          language === 'az' 
+            ? 'Səs yazma çox qısa oldu. Ən azı 1 saniyə danışın.'
+            : 'Запись слишком короткая. Говорите хотя бы 1 секунду.'
+        );
+        return;
+      }
+      
+      // ✅ Get recording status for file size
+      const status = await recording.getStatusAsync();
+      
+      // ✅ Proper cleanup sequence
       await recording.stopAndUnloadAsync();
       
-      // BUG FIX: Reset audio mode after recording
+      // ✅ Reset audio mode after recording
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: false,
         playsInSilentModeIOS: false,
+        staysActiveInBackground: false,
       });
 
       const uri = recording.getURI();
@@ -485,31 +588,44 @@ export default function ConversationScreen() {
         const uriParts = uri.split('.');
         const fileType = uriParts[uriParts.length - 1];
         
+        // ✅ Get actual file size if available
+        const fileSize = status?.durationMillis ? Math.floor(status.durationMillis / 10) : 0;
+        
         const attachment: MessageAttachment = {
-          id: `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`, // BUG FIX: Unique ID
+          id: `${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
           type: 'audio',
           uri,
-          name: `recording_${Date.now()}.${fileType}`,
-          size: 0, // BUG FIX: TODO - Get actual file size
+          name: `voice_${Date.now()}.${fileType}`,
+          size: fileSize,
           mimeType: `audio/${fileType}`,
         };
         
+        logger.info(`Sending voice message: ${recordingDuration}s, ${fileSize} bytes`);
         await sendMessage('', 'audio', [attachment]);
       }
       
-      // BUG FIX: Clear recording reference
+      // ✅ Clear recording reference and duration
       setRecording(null);
+      setRecordingDuration(0);
     } catch (error) {
       logger.error('Failed to stop recording:', error);
       
-      // BUG FIX: Ensure cleanup even on error
+      // ✅ Ensure cleanup even on error
       setIsRecording(false);
       setRecording(null);
+      setRecordingDuration(0);
       
-      // BUG FIX: Try to reset audio mode even if recording failed
+      // ✅ Stop timer
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+        recordingTimerRef.current = null;
+      }
+      
+      // ✅ Try to reset audio mode even if recording failed
       try {
         await Audio.setAudioModeAsync({
           allowsRecordingIOS: false,
+          playsInSilentModeIOS: false,
         });
       } catch (audioModeError) {
         logger.error('Failed to reset audio mode:', audioModeError);
@@ -522,8 +638,44 @@ export default function ConversationScreen() {
     }
   };
 
+  // ✅ Cancel recording without sending
+  const cancelRecording = async () => {
+    if (!recording || Platform.OS === 'web') return;
+
+    try {
+      // Stop timer
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+        recordingTimerRef.current = null;
+      }
+      
+      setIsRecording(false);
+      
+      // Stop and discard recording
+      await recording.stopAndUnloadAsync();
+      
+      // Reset audio mode
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        playsInSilentModeIOS: false,
+      });
+      
+      setRecording(null);
+      setRecordingDuration(0);
+      
+      logger.info('Recording cancelled');
+    } catch (error) {
+      logger.error('Failed to cancel recording:', error);
+      
+      // Cleanup anyway
+      setIsRecording(false);
+      setRecording(null);
+      setRecordingDuration(0);
+    }
+  };
+
   const playAudio = async (uri: string, messageId: string) => {
-    // BUG FIX: Platform check
+    // ✅ Platform check
     if (Platform.OS === 'web') {
       Alert.alert(
         language === 'az' ? 'Xəbərdarlıq' : 'Предупреждение',
@@ -532,8 +684,17 @@ export default function ConversationScreen() {
       return;
     }
 
+    // ✅ Don't play audio while recording
+    if (isRecording) {
+      Alert.alert(
+        language === 'az' ? 'Xəbərdarlıq' : 'Предупреждение',
+        language === 'az' ? 'Səs yazma zamanı audio oxuda bilməzsiniz' : 'Невозможно воспроизвести аудио во время записи'
+      );
+      return;
+    }
+
     try {
-      // BUG FIX: Toggle playback if already playing
+      // ✅ Toggle playback if already playing this audio
       if (playingAudio === messageId) {
         if (sound) {
           await sound.stopAsync();
@@ -541,10 +702,11 @@ export default function ConversationScreen() {
         }
         setPlayingAudio(null);
         setSound(null);
+        logger.info('Audio playback stopped');
         return;
       }
 
-      // BUG FIX: Stop and cleanup previous sound
+      // ✅ Stop and cleanup previous sound
       if (sound) {
         try {
           await sound.stopAsync();
@@ -555,34 +717,37 @@ export default function ConversationScreen() {
         setSound(null);
       }
 
-      // BUG FIX: Set proper audio mode
+      // ✅ Set proper audio mode for playback
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: false,
         playsInSilentModeIOS: true,
         staysActiveInBackground: false,
         shouldDuckAndroid: true,
+        playThroughEarpieceAndroid: false,
       });
 
       const { sound: newSound } = await Audio.Sound.createAsync(
         { uri },
         { shouldPlay: true },
         (status) => {
-          // BUG FIX: Proper cleanup when audio finishes
+          // ✅ Proper cleanup when audio finishes
           if ('didJustFinish' in status && status.didJustFinish) {
             setPlayingAudio(null);
             newSound.unloadAsync().catch(err => 
               logger.warn('Error unloading finished audio:', err)
             );
+            setSound(null);
           }
         }
       );
       
       setSound(newSound);
       setPlayingAudio(messageId);
+      logger.info('Audio playback started for message:', messageId);
     } catch (error) {
       logger.error('Error playing audio:', error);
       
-      // BUG FIX: Cleanup on error
+      // ✅ Cleanup on error
       setPlayingAudio(null);
       setSound(null);
       
@@ -850,6 +1015,8 @@ export default function ConversationScreen() {
             } : undefined
           }}
           isRecording={isRecording}
+          recordingDuration={recordingDuration}
+          onCancelRecording={cancelRecording}
           language={language}
         />
         
@@ -971,6 +1138,8 @@ export default function ConversationScreen() {
             } : undefined
           }}
           isRecording={isRecording}
+          recordingDuration={recordingDuration}
+          onCancelRecording={cancelRecording}
           language={language}
         />
       </KeyboardAvoidingView>
@@ -1306,6 +1475,43 @@ const styles = StyleSheet.create({
   },
   recordingButton: {
     backgroundColor: '#ff4444',
+  },
+  cancelRecordingButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.error,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  recordingIndicator: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 68, 68, 0.1)',
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  recordingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#ff4444',
+    marginRight: 8,
+  },
+  recordingText: {
+    flex: 1,
+    fontSize: 16,
+    color: Colors.text,
+    fontWeight: '500',
+  },
+  recordingDuration: {
+    fontSize: 16,
+    color: Colors.text,
+    fontWeight: '600',
+    marginLeft: 8,
   },
   modalOverlay: {
     flex: 1,
