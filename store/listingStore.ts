@@ -396,54 +396,199 @@ export const useListingStore = create<ListingState>((set, get) => ({
   },
   
   promoteListing: async (id, type, duration) => {
-    // Simulate payment processing
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const promotionEndDate = new Date();
-    promotionEndDate.setDate(promotionEndDate.getDate() + duration);
-    
-    // Add grace period for non-store paid listings (2 days)
-    const gracePeriodEndDate = new Date(promotionEndDate);
-    gracePeriodEndDate.setDate(gracePeriodEndDate.getDate() + 2);
-    
-    set(state => ({
-      listings: state.listings.map(listing => 
-        listing.id === id 
-          ? { 
-              ...listing, 
-              isPremium: type === 'premium' || type === 'vip',
-              isFeatured: type === 'featured' || type === 'vip',
-              isVip: type === 'vip',
-              adType: type,
-              // Add promotion end date for future reference
-              promotionEndDate: promotionEndDate.toISOString(),
-              // Add grace period for non-store paid listings
-              gracePeriodEndDate: gracePeriodEndDate.toISOString()
-            } 
-          : listing
-      )
-    }));
-    get().applyFilters();
+    try {
+      // ✅ VALIDATION START
+      
+      // 1. Validate ID
+      if (!id || typeof id !== 'string' || id.trim().length === 0) {
+        logger.error('[promoteListing] Invalid listing ID:', id);
+        throw new Error('Invalid listing ID');
+      }
+      
+      // 2. Validate type
+      const validTypes = ['premium', 'vip', 'featured'];
+      if (!type || !validTypes.includes(type)) {
+        logger.error('[promoteListing] Invalid promotion type:', type);
+        throw new Error('Invalid promotion type. Must be: premium, vip, or featured');
+      }
+      
+      // 3. Validate duration
+      if (typeof duration !== 'number' || !isFinite(duration) || duration <= 0) {
+        logger.error('[promoteListing] Invalid duration:', duration);
+        throw new Error('Duration must be a positive number');
+      }
+      
+      if (duration > 365) {
+        logger.error('[promoteListing] Duration too long:', duration);
+        throw new Error('Duration cannot exceed 365 days');
+      }
+      
+      // 4. Find listing
+      const { listings } = get();
+      const listing = listings.find(l => l.id === id);
+      
+      if (!listing) {
+        logger.error('[promoteListing] Listing not found:', id);
+        throw new Error('Listing not found');
+      }
+      
+      // 5. Check if listing is deleted
+      if (listing.deletedAt) {
+        logger.error('[promoteListing] Cannot promote deleted listing:', id);
+        throw new Error('Cannot promote a deleted listing');
+      }
+      
+      // 6. Check if listing is expired
+      const now = new Date();
+      const expiryDate = new Date(listing.expiresAt);
+      if (expiryDate < now) {
+        logger.error('[promoteListing] Cannot promote expired listing:', id);
+        throw new Error('Cannot promote an expired listing');
+      }
+      
+      // 7. Check for existing active promotion
+      if (listing.promotionEndDate) {
+        const currentPromotionEnd = new Date(listing.promotionEndDate);
+        if (currentPromotionEnd > now) {
+          logger.warn('[promoteListing] Listing already has active promotion:', {
+            id,
+            currentEnd: currentPromotionEnd.toISOString()
+          });
+          // We'll extend it instead of throwing error
+        }
+      }
+      
+      // ✅ VALIDATION END
+      
+      logger.info('[promoteListing] Promoting listing:', { id, type, duration });
+      
+      // Simulate payment processing
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Calculate promotion end date
+      const promotionEndDate = new Date();
+      promotionEndDate.setDate(promotionEndDate.getDate() + duration);
+      
+      // Add grace period for non-store paid listings (2 days)
+      const gracePeriodEndDate = new Date(promotionEndDate);
+      gracePeriodEndDate.setDate(gracePeriodEndDate.getDate() + 2);
+      
+      set(state => ({
+        listings: state.listings.map(listing => 
+          listing.id === id 
+            ? { 
+                ...listing, 
+                isPremium: type === 'premium' || type === 'vip',
+                isFeatured: type === 'featured' || type === 'vip',
+                isVip: type === 'vip',
+                adType: type,
+                // Add promotion end date for future reference
+                promotionEndDate: promotionEndDate.toISOString(),
+                // Add grace period for non-store paid listings
+                gracePeriodEndDate: gracePeriodEndDate.toISOString()
+              } 
+            : listing
+        )
+      }));
+      
+      get().applyFilters();
+      
+      logger.info('[promoteListing] Promotion successful:', {
+        id,
+        type,
+        endsAt: promotionEndDate.toISOString()
+      });
+    } catch (error) {
+      logger.error('[promoteListing] Error:', error);
+      throw error; // Re-throw for UI handling
+    }
   },
 
   promoteListingInStore: async (id, type, price) => {
-    // Simulate payment processing
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    set(state => ({
-      listings: state.listings.map(listing => 
-        listing.id === id 
-          ? { 
-              ...listing, 
-              isPremium: type === 'premium' || type === 'vip',
-              isFeatured: type === 'featured' || type === 'vip',
-              isVip: type === 'vip',
-              adType: type
-            } 
-          : listing
-      )
-    }));
-    get().applyFilters();
+    try {
+      // ✅ VALIDATION START
+      
+      // 1. Validate ID
+      if (!id || typeof id !== 'string' || id.trim().length === 0) {
+        logger.error('[promoteListingInStore] Invalid listing ID:', id);
+        throw new Error('Invalid listing ID');
+      }
+      
+      // 2. Validate type
+      const validTypes = ['premium', 'vip', 'featured'];
+      if (!type || !validTypes.includes(type)) {
+        logger.error('[promoteListingInStore] Invalid promotion type:', type);
+        throw new Error('Invalid promotion type. Must be: premium, vip, or featured');
+      }
+      
+      // 3. Validate price
+      if (typeof price !== 'number' || !isFinite(price) || price < 0) {
+        logger.error('[promoteListingInStore] Invalid price:', price);
+        throw new Error('Price must be a non-negative number');
+      }
+      
+      if (price > 1000) {
+        logger.error('[promoteListingInStore] Price too high:', price);
+        throw new Error('Price cannot exceed 1000 AZN');
+      }
+      
+      // 4. Find listing
+      const { listings } = get();
+      const listing = listings.find(l => l.id === id);
+      
+      if (!listing) {
+        logger.error('[promoteListingInStore] Listing not found:', id);
+        throw new Error('Listing not found');
+      }
+      
+      // 5. Check if listing is deleted
+      if (listing.deletedAt) {
+        logger.error('[promoteListingInStore] Cannot promote deleted listing:', id);
+        throw new Error('Cannot promote a deleted listing');
+      }
+      
+      // 6. Check if listing belongs to a store
+      if (!listing.storeId) {
+        logger.error('[promoteListingInStore] Listing does not belong to a store:', id);
+        throw new Error('This listing does not belong to a store');
+      }
+      
+      // 7. Check if listing is expired
+      const now = new Date();
+      const expiryDate = new Date(listing.expiresAt);
+      if (expiryDate < now) {
+        logger.error('[promoteListingInStore] Cannot promote expired listing:', id);
+        throw new Error('Cannot promote an expired listing');
+      }
+      
+      // ✅ VALIDATION END
+      
+      logger.info('[promoteListingInStore] Promoting store listing:', { id, type, price });
+      
+      // Simulate payment processing
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      set(state => ({
+        listings: state.listings.map(listing => 
+          listing.id === id 
+            ? { 
+                ...listing, 
+                isPremium: type === 'premium' || type === 'vip',
+                isFeatured: type === 'featured' || type === 'vip',
+                isVip: type === 'vip',
+                adType: type
+              } 
+            : listing
+        )
+      }));
+      
+      get().applyFilters();
+      
+      logger.info('[promoteListingInStore] Store promotion successful:', { id, type });
+    } catch (error) {
+      logger.error('[promoteListingInStore] Error:', error);
+      throw error; // Re-throw for UI handling
+    }
   },
 
   incrementViewCount: (id) => {
