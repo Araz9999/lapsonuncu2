@@ -105,8 +105,17 @@ class NotificationService {
       // Check if we can get push token (only in development builds, not Expo Go)
       if (Notifications.getExpoPushTokenAsync) {
         logger.debug('Attempting to get push token...');
+        
+        // \u2705 Use projectId from config instead of hardcoded value
+        const projectId = config.EXPO_PROJECT_ID || process.env.EXPO_PUBLIC_PROJECT_ID;
+        
+        if (!projectId || projectId.includes('your-')) {
+          logger.debug('Expo project ID not configured');
+          return null;
+        }
+        
         const token = await Notifications.getExpoPushTokenAsync({
-          projectId: 'your-expo-project-id',
+          projectId,
         });
         logger.debug('Push token obtained');
         return token.data;
@@ -125,39 +134,161 @@ class NotificationService {
     to: string,
     notification: PushNotification
   ): Promise<boolean> {
-    try {
-      const response = await fetch('https://exp.host/--/api/v2/push/send', {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Accept-encoding': 'gzip, deflate',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          to,
-          title: notification.title,
-          body: notification.body,
-          data: notification.data,
-          sound: notification.sound ? 'default' : undefined,
-          badge: notification.badge,
-        }),
-      });
-
-      const result = await response.json();
-      return result.data?.[0]?.status === 'ok';
-    } catch (error) {
-      logger.error('Failed to send push notification:', error);
+    // ===== VALIDATION START =====
+    
+    // 1. Validate 'to' parameter
+    if (!to || typeof to !== 'string' || to.trim().length === 0) {
+      logger.error('Invalid push token: empty or not a string');
       return false;
     }
+    
+    // 2. Validate notification object
+    if (!notification || typeof notification !== 'object') {
+      logger.error('Invalid notification object');
+      return false;
+    }
+    
+    // 3. Validate title
+    if (!notification.title || typeof notification.title !== 'string' || notification.title.trim().length === 0) {
+      logger.error('Invalid notification title');
+      return false;
+    }
+    
+    if (notification.title.trim().length > 100) {
+      logger.error('Notification title too long (max 100 chars)');
+      return false;
+    }
+    
+    // 4. Validate body
+    if (!notification.body || typeof notification.body !== 'string' || notification.body.trim().length === 0) {
+      logger.error('Invalid notification body');
+      return false;
+    }
+    
+    if (notification.body.trim().length > 500) {
+      logger.error('Notification body too long (max 500 chars)');
+      return false;
+    }
+    
+    // 5. Validate badge (if provided)
+    if (notification.badge !== undefined) {
+      if (typeof notification.badge !== 'number' || notification.badge < 0 || !Number.isInteger(notification.badge)) {
+        logger.error('Invalid badge value');
+        return false;
+      }
+    }
+    
+    // ===== VALIDATION END =====
+    
+    // \u2705 Implement retry logic with exponential backoff
+    const MAX_RETRIES = 3;
+    const TIMEOUT = 15000; // 15 seconds
+    
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), TIMEOUT);
+        
+        const response = await fetch('https://exp.host/--/api/v2/push/send', {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Accept-encoding': 'gzip, deflate',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            to: to.trim(),
+            title: notification.title.trim(),
+            body: notification.body.trim(),
+            data: notification.data,
+            sound: notification.sound ? 'default' : undefined,
+            badge: notification.badge,
+          }),
+          signal: controller.signal,
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          logger.error(`Push notification failed with status ${response.status}`);
+          
+          // \u2705 Retry on 5xx errors
+          if (response.status >= 500 && attempt < MAX_RETRIES) {
+            const delay = Math.pow(2, attempt) * 1000; // Exponential backoff
+            logger.debug(`Retrying in ${delay}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            continue;
+          }
+          
+          return false;
+        }
+
+        const result = await response.json();
+        const success = result.data?.[0]?.status === 'ok';
+        
+        if (!success) {
+          logger.error('Push notification rejected by server:', result.data?.[0]);
+        }
+        
+        return success;
+      } catch (error) {
+        logger.error(`Push notification attempt ${attempt} failed:`, error);
+        
+        // \u2705 Retry on network errors
+        if (attempt < MAX_RETRIES) {
+          const delay = Math.pow(2, attempt) * 1000;
+          logger.debug(`Retrying in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        }
+        
+        return false;
+      }
+    }
+    
+    return false;
   }
 
   async sendLocalNotification(notification: PushNotification): Promise<void> {
+    // ===== VALIDATION START =====
+    
+    if (!notification || typeof notification !== 'object') {
+      logger.error('Invalid notification object');
+      return;
+    }
+    
+    if (!notification.title || typeof notification.title !== 'string' || notification.title.trim().length === 0) {
+      logger.error('Invalid notification title');
+      return;
+    }
+    
+    if (notification.title.trim().length > 100) {
+      logger.error('Notification title too long (max 100 chars)');
+      return;
+    }
+    
+    if (!notification.body || typeof notification.body !== 'string' || notification.body.trim().length === 0) {
+      logger.error('Invalid notification body');
+      return;
+    }
+    
+    if (notification.body.trim().length > 500) {
+      logger.error('Notification body too long (max 500 chars)');
+      return;
+    }
+    
+    // ===== VALIDATION END =====
+    
     try {
       if (Platform.OS === 'web') {
         if ('Notification' in window && Notification.permission === 'granted') {
-          new Notification(notification.title, {
-            body: notification.body,
+          new Notification(notification.title.trim(), {
+            body: notification.body.trim(),
             icon: '/assets/images/icon.png',
+            badge: '/assets/images/badge.png',
+            data: notification.data,
+            requireInteraction: false,
+            silent: !notification.sound,
           });
           logger.debug('Web notification sent');
         } else {
@@ -172,8 +303,8 @@ class NotificationService {
         try {
           await Notifications.scheduleNotificationAsync({
             content: {
-              title: notification.title,
-              body: notification.body,
+              title: notification.title.trim(),
+              body: notification.body.trim(),
               data: notification.data,
               sound: notification.sound ? 'default' : false,
               badge: notification.badge,
