@@ -259,8 +259,21 @@ export default function MyStoreScreen() {
     // ✅ Get wallet functions
     const { walletBalance, spendFromWallet } = useUserStore.getState();
     
+    logger.info('[MyStore] Store renewal initiated:', { 
+      storeId: userStore.id,
+      storeName: userStore.name,
+      planId: selectedPlanId,
+      planName: selectedPlan.name.az,
+      price: selectedPlan.price,
+      canReactivate
+    });
+    
     // ✅ Check balance first
     if (walletBalance < selectedPlan.price) {
+      logger.warn('[MyStore] Insufficient balance for renewal:', { 
+        required: selectedPlan.price,
+        available: walletBalance
+      });
       Alert.alert(
         language === 'az' ? '💰 Kifayət qədər balans yoxdur' : '💰 Недостаточно средств',
         language === 'az' 
@@ -270,6 +283,8 @@ export default function MyStoreScreen() {
       return;
     }
     
+    logger.info('[MyStore] Showing renewal confirmation');
+    
     Alert.alert(
       language === 'az' ? 'Mağazanı yenilə' : 'Обновить магазин',
       language === 'az' 
@@ -278,15 +293,18 @@ export default function MyStoreScreen() {
       [
         {
           text: language === 'az' ? 'Ləğv et' : 'Отмена',
-          style: 'cancel'
+          style: 'cancel',
+          onPress: () => logger.info('[MyStore] Renewal cancelled by user')
         },
         {
           text: language === 'az' ? 'Ödə' : 'Оплатить',
           onPress: async () => {
             try {
               // ✅ Process payment first
+              logger.info('[MyStore] Processing renewal payment:', { price: selectedPlan.price });
               const paymentSuccess = spendFromWallet(selectedPlan.price);
               if (!paymentSuccess) {
+                logger.error('[MyStore] Renewal payment failed');
                 Alert.alert(
                   language === 'az' ? 'Ödəniş Xətası' : 'Ошибка оплаты',
                   language === 'az' ? 'Ödəniş zamanı xəta baş verdi' : 'Произошла ошибка при оплате'
@@ -294,11 +312,17 @@ export default function MyStoreScreen() {
                 return;
               }
               
+              logger.info('[MyStore] Payment successful, proceeding with renewal');
+              
               // ✅ Then renew/reactivate
               if (canReactivate) {
+                logger.info('[MyStore] Reactivating store:', { storeId: userStore.id });
                 await reactivateStore(userStore.id, selectedPlanId);
+                logger.info('[MyStore] Store reactivated successfully');
               } else {
+                logger.info('[MyStore] Renewing store:', { storeId: userStore.id });
                 await renewStore(userStore.id, selectedPlanId);
+                logger.info('[MyStore] Store renewed successfully');
               }
               setShowRenewModal(false);
               Alert.alert(
@@ -306,6 +330,7 @@ export default function MyStoreScreen() {
                 language === 'az' ? 'Mağaza yeniləndi' : 'Магазин обновлен'
               );
             } catch (error) {
+              logger.error('[MyStore] Store renewal/reactivation failed:', error);
               Alert.alert(
                 language === 'az' ? 'Xəta' : 'Ошибка',
                 language === 'az' ? 'Ödəniş zamanı xəta baş verdi' : 'Ошибка при оплате'

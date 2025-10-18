@@ -291,8 +291,16 @@ export const useStoreStore = create<StoreState>((set, get) => ({
   },
 
   unfollowStore: async (userId, storeId) => {
+    logger.info('[StoreStore] Unfollow store initiated:', { userId, storeId });
     set({ isLoading: true, error: null });
     try {
+      const store = get().stores.find(s => s.id === storeId);
+      const wasFollowing = get().followers.some(f => f.userId === userId && f.storeId === storeId);
+      
+      if (!wasFollowing) {
+        logger.warn('[StoreStore] User was not following store:', { userId, storeId });
+      }
+      
       set(state => ({
         followers: state.followers.filter(f => !(f.userId === userId && f.storeId === storeId)),
         stores: state.stores.map(store => 
@@ -302,7 +310,15 @@ export const useStoreStore = create<StoreState>((set, get) => ({
         ),
         isLoading: false
       }));
-    } catch {
+      
+      logger.info('[StoreStore] Store unfollowed successfully:', { 
+        userId, 
+        storeId,
+        storeName: store?.name,
+        followersCount: store ? store.followers.length - 1 : 0
+      });
+    } catch (error) {
+      logger.error('[StoreStore] Unfollow store failed:', error);
       set({ error: 'Failed to unfollow store', isLoading: false });
     }
   },
@@ -483,6 +499,19 @@ export const useStoreStore = create<StoreState>((set, get) => ({
   },
 
   deleteListingEarly: async (storeId, listingId) => {
+    logger.info('[StoreStore] Delete listing early:', { storeId, listingId });
+    
+    const store = get().stores.find(s => s.id === storeId);
+    if (!store) {
+      logger.error('[StoreStore] Store not found for listing deletion:', { storeId });
+      throw new Error('Store not found');
+    }
+    
+    if (store.deletedListings.includes(listingId)) {
+      logger.warn('[StoreStore] Listing already deleted:', { storeId, listingId });
+      return;
+    }
+    
     set(state => ({
       stores: state.stores.map(s => 
         s.id === storeId 
@@ -493,6 +522,12 @@ export const useStoreStore = create<StoreState>((set, get) => ({
           : s
       )
     }));
+    
+    logger.info('[StoreStore] Listing deleted early successfully:', { 
+      storeId, 
+      listingId,
+      totalDeleted: store.deletedListings.length + 1
+    });
   },
 
   getStoreUsage: (storeId) => {
@@ -543,6 +578,11 @@ export const useStoreStore = create<StoreState>((set, get) => ({
         ),
         isLoading: false
       }));
+      
+      logger.info('[StoreStore] Store edited successfully:', { 
+        storeId,
+        updatedFields: Object.keys(updates)
+      });
     } catch (error) {
       logger.error('[StoreStore] Failed to edit store:', error);
       set({ error: error instanceof Error ? error.message : 'Failed to edit store', isLoading: false });

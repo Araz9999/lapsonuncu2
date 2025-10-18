@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -57,6 +57,17 @@ export default function CreateStoreScreen() {
   const isFirstStore = userStores.length === 0;
   const discount = isFirstStore ? 0 : 0.25;
   
+  // ✅ Log screen access
+  useEffect(() => {
+    storeLogger.info('[CreateStore] Screen opened:', { 
+      hasExistingStore: !!userStore,
+      storeId: userStore?.id,
+      storeName: userStore?.name,
+      currentStep,
+      isFirstStore
+    });
+  }, []);
+  
   const getPlanPrice = (planId: string) => {
     const plan = plans.find(p => p.id === planId);
     if (!plan) return 100;
@@ -66,11 +77,16 @@ export default function CreateStoreScreen() {
   const selectedPlanPrice = selectedPlan ? getPlanPrice(selectedPlan) : 0;
 
   const handleNext = () => {
-    storeLogger.debug('handleNext called, currentStep:', currentStep, 'selectedPlan:', selectedPlan);
+    storeLogger.info('[CreateStore] Navigation to next step:', { 
+      currentStep, 
+      selectedPlan,
+      selectedPayment
+    });
     
     // Step 1: Package selection validation - CRITICAL CHECK
     if (currentStep === 1) {
       if (!selectedPlan || selectedPlan === '') {
+        storeLogger.warn('[CreateStore] Step 1 validation failed: No plan selected');
         Alert.alert(
           language === 'az' ? '❌ Paket Seçilməyib!' : '❌ Пакет не выбран!',
           language === 'az' 
@@ -79,12 +95,23 @@ export default function CreateStoreScreen() {
         );
         return;
       }
-      storeLogger.debug('✅ Package validation passed:', selectedPlan, 'Price:', getPlanPrice(selectedPlan));
+      storeLogger.info('[CreateStore] Step 1 validation passed:', { 
+        selectedPlan, 
+        price: getPlanPrice(selectedPlan)
+      });
     }
     
     // Step 2: Store information validation
     if (currentStep === 2) {
+      storeLogger.info('[CreateStore] Validating step 2 (store info):', {
+        hasName: !!storeData.name.trim(),
+        hasCategory: !!storeData.categoryName.trim(),
+        hasLogo: !!storeData.logo,
+        hasCoverImage: !!storeData.coverImage
+      });
+      
       if (!storeData.name.trim() || !storeData.categoryName.trim()) {
+        storeLogger.warn('[CreateStore] Step 2 validation failed: Missing required fields');
         Alert.alert(
           language === 'az' ? 'Məlumatları Doldurun' : 'Заполните информацию',
           language === 'az' ? 'Zəhmət olmasa bütün məcburi sahələri doldurun' : 'Пожалуйста, заполните все обязательные поля'
@@ -94,6 +121,7 @@ export default function CreateStoreScreen() {
       
       // ✅ Validate email if provided
       if (storeData.contactInfo.email && !validateEmail(storeData.contactInfo.email)) {
+        storeLogger.warn('[CreateStore] Invalid email:', { email: storeData.contactInfo.email });
         Alert.alert(
           language === 'az' ? 'Email düzgün deyil' : 'Неверный email',
           language === 'az' ? 'Zəhmət olmasa düzgün email daxil edin' : 'Пожалуйста, введите корректный email'
@@ -103,6 +131,7 @@ export default function CreateStoreScreen() {
       
       // ✅ Validate website if provided
       if (storeData.contactInfo.website && !validateWebsiteURL(storeData.contactInfo.website)) {
+        storeLogger.warn('[CreateStore] Invalid website:', { website: storeData.contactInfo.website });
         Alert.alert(
           language === 'az' ? 'Veb sayt düzgün deyil' : 'Неверный веб-сайт',
           language === 'az' ? 'Zəhmət olmasa düzgün URL daxil edin (https://example.com)' : 'Пожалуйста, введите корректный URL (https://example.com)'
@@ -112,6 +141,7 @@ export default function CreateStoreScreen() {
       
       // ✅ Validate phone if provided
       if (storeData.contactInfo.phone && !validateAzerbaijanPhone(storeData.contactInfo.phone, false)) {
+        storeLogger.warn('[CreateStore] Invalid phone:', { phone: storeData.contactInfo.phone });
         Alert.alert(
           language === 'az' ? 'Telefon nömrəsi düzgün deyil' : 'Неверный номер телефона',
           language === 'az' ? 'Zəhmət olmasa Azərbaycan telefon nömrəsi daxil edin (+994...)' : 'Пожалуйста, введите азербайджанский номер телефона (+994...)'
@@ -121,18 +151,21 @@ export default function CreateStoreScreen() {
       
       // ✅ Validate WhatsApp if provided
       if (storeData.contactInfo.whatsapp && !validateAzerbaijanPhone(storeData.contactInfo.whatsapp, false)) {
+        storeLogger.warn('[CreateStore] Invalid WhatsApp:', { whatsapp: storeData.contactInfo.whatsapp });
         Alert.alert(
           language === 'az' ? 'WhatsApp nömrəsi düzgün deyil' : 'Неверный номер WhatsApp',
           language === 'az' ? 'Zəhmət olmasa Azərbaycan telefon nömrəsi daxil edin (+994...)' : 'Пожалуйста, введите азербайджанский номер телефона (+994...)'
         );
         return;
       }
+      
+      storeLogger.info('[CreateStore] Step 2 validation passed');
     }
     
     // Skip payment validation - no payment required
     
     // IMPORTANT: Only move to next step, NO PAYMENT HERE
-    storeLogger.debug('✅ Moving to next step, no payment processing');
+    storeLogger.info('[CreateStore] Moving to next step:', { from: currentStep, to: currentStep + 1 });
     setCurrentStep(prev => prev + 1);
   };
 
@@ -355,8 +388,14 @@ export default function CreateStoreScreen() {
             selectedPlan === plan.id && styles.planCardSelected
           ]}
           onPress={() => {
+            storeLogger.info('[CreateStore] Plan selected:', { 
+              planId: plan.id, 
+              planName: plan.name.az,
+              price: getPlanPrice(plan.id),
+              maxAds: plan.maxAds,
+              isFirstStore
+            });
             setSelectedPlan(plan.id);
-            storeLogger.debug('Package selected:', plan.id, 'Price:', getPlanPrice(plan.id));
           }}
         >
           <View style={styles.planHeader}>
