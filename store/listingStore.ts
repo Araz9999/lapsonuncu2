@@ -447,24 +447,54 @@ export const useListingStore = create<ListingState>((set, get) => ({
   },
 
   incrementViewCount: (id) => {
+    // ✅ Validate ID
+    if (!id || typeof id !== 'string') {
+      logger.error('[incrementViewCount] Invalid ID:', id);
+      return;
+    }
+    
     set(state => ({
       listings: state.listings.map(listing => {
         if (listing.id === id) {
-          const newViews = listing.views + 1;
+          // ✅ Validate current views count
+          const currentViews = typeof listing.views === 'number' && isFinite(listing.views) 
+            ? listing.views 
+            : 0;
+          
+          const newViews = currentViews + 1;
+          
+          // ✅ Sanity check: prevent unreasonably high view counts
+          if (newViews > 10000000) { // 10 million max
+            logger.warn('[incrementViewCount] View count too high, not incrementing:', { id, newViews });
+            return listing;
+          }
+          
           const updatedListing = { ...listing, views: newViews };
           
           // Check if we should remove from featured based on purchased views
-          if (listing.targetViewsForFeatured && newViews >= listing.targetViewsForFeatured) {
+          if (listing.targetViewsForFeatured && 
+              typeof listing.targetViewsForFeatured === 'number' &&
+              newViews >= listing.targetViewsForFeatured) {
             updatedListing.isFeatured = false;
             updatedListing.targetViewsForFeatured = undefined;
             
             // Send notification that featured period ended
             setTimeout(() => {
-              const { sendNotification } = useThemeStore.getState();
-              sendNotification(
-                'Ön sıra müddəti bitdi',
-                `"${listing.title.az}" elanınız alınan baxış sayına çatdığı üçün ön sıralardan çıxarıldı.`
-              );
+              try {
+                const { sendNotification } = useThemeStore.getState();
+                if (sendNotification && typeof sendNotification === 'function') {
+                  const title = listing.title && typeof listing.title === 'object' 
+                    ? (listing.title.az || listing.title.en || listing.title.ru || 'Elanınız')
+                    : 'Elanınız';
+                  
+                  sendNotification(
+                    'Ön sıra müddəti bitdi',
+                    `"${title}" elanınız alınan baxış sayına çatdığı üçün ön sıralardan çıxarıldı.`
+                  );
+                }
+              } catch (error) {
+                logger.error('[incrementViewCount] Failed to send notification:', error);
+              }
             }, 100);
           }
           
@@ -585,35 +615,78 @@ export const useListingStore = create<ListingState>((set, get) => ({
   },
 
   purchaseViews: async (id: string, viewCount: number) => {
-    // BUG FIX: Validate viewCount
+    // ===== VALIDATION START =====
+    
+    // ✅ 1. Validate viewCount
     if (!viewCount || viewCount <= 0 || !Number.isInteger(viewCount)) {
       logger.error('[ListingStore] Invalid view count:', viewCount);
       throw new Error('Baxış sayı müsbət tam ədəd olmalıdır');
     }
     
-    // BUG FIX: Set reasonable maximum
+    // ✅ 2. Check minimum (10 views)
+    if (viewCount < 10) {
+      logger.error('[ListingStore] View count too low:', viewCount);
+      throw new Error('Minimum 10 baxış satın ala bilərsiniz');
+    }
+    
+    // ✅ 3. Set reasonable maximum
     if (viewCount > 100000) {
       logger.error('[ListingStore] View count too high:', viewCount);
       throw new Error('Maksimum 100,000 baxış satın ala bilərsiniz');
     }
     
-    // Simulate payment processing
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // ✅ 4. Calculate cost
+    const cost = viewCount * 0.01;
+    if (!isFinite(cost) || cost <= 0) {
+      logger.error('[ListingStore] Invalid cost calculation:', cost);
+      throw new Error('Məbləğ hesablana bilmədi');
+    }
+    
+    // ✅ 5. Check balance
+    const { walletBalance, bonusBalance } = useUserStore.getState();
+    const totalBalance = (typeof walletBalance === 'number' && isFinite(walletBalance) ? walletBalance : 0) + 
+                         (typeof bonusBalance === 'number' && isFinite(bonusBalance) ? bonusBalance : 0);
+    
+    if (cost > totalBalance) {
+      logger.error('[ListingStore] Insufficient balance:', { cost, totalBalance });
+      throw new Error(`Kifayət qədər balans yoxdur. Lazım: ${cost.toFixed(2)} AZN, Balans: ${totalBalance.toFixed(2)} AZN`);
+    }
     
     const state = get();
     const listing = state.listings.find(l => l.id === id);
     
-    // BUG FIX: Validate listing exists
+    // ✅ 6. Validate listing exists
     if (!listing) {
       logger.error('[ListingStore] Listing not found for view purchase:', id);
       throw new Error('Elan tapılmadı');
     }
     
-    // BUG FIX: Check if listing is already deleted
+    // ✅ 7. Check if listing is already deleted
     if (listing.deletedAt) {
       logger.error('[ListingStore] Cannot purchase views for deleted listing:', id);
       throw new Error('Silinmiş elan üçün baxış satın ala bilməzsiniz');
     }
+    
+    // ===== VALIDATION END =====
+    
+    // ✅ 8. Deduct from balance
+    const { spendFromWallet, spendFromBonus } = useUserStore.getState();
+    let remainingCost = cost;
+    
+    // Spend from bonus first
+    if (bonusBalance > 0 && remainingCost > 0) {
+      const bonusToSpend = Math.min(bonusBalance, remainingCost);
+      spendFromBonus(bonusToSpend);
+      remainingCost -= bonusToSpend;
+    }
+    
+    // Then spend from wallet
+    if (remainingCost > 0) {
+      spendFromWallet(remainingCost);
+    }
+    
+    // Simulate payment processing
+    await new Promise(resolve => setTimeout(resolve, 1000));
     
     // Calculate the target view count (current views + purchased views)
     const currentViews = listing.views;
