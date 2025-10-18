@@ -272,13 +272,75 @@ export default function RegisterScreen() {
   };
   
   const handleSocialLogin = async (provider: 'google' | 'facebook' | 'vk') => {
+    logger.info('[Register] Social login initiated:', { provider });
     setLoadingSocial(provider);
+    
     try {
-      await initiateSocialLogin(provider);
-    } catch (error: any) {
-      showSocialLoginError(error, language, provider);
-    } finally {
+      // ✅ Check if provider is configured
+      const baseUrl = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://1r36dhx42va8pxqbqz5ja.rork.app';
+      const statusResponse = await fetch(`${baseUrl}/api/auth/status`);
+      
+      if (statusResponse.ok) {
+        const statusData = await statusResponse.json();
+        if (!statusData.configured[provider]) {
+          setLoadingSocial(null);
+          logger.warn('[Register] Provider not configured:', { provider });
+          showSocialLoginError(provider, `${provider.charAt(0).toUpperCase() + provider.slice(1)} login is not configured yet. Please contact support.`);
+          return;
+        }
+      }
+      
+      await initiateSocialLogin(
+        provider,
+        (result) => {
+          setLoadingSocial(null);
+          if (result.success && result.user) {
+            logger.info(`[Register] Social login successful (${provider}):`, { 
+              userId: result.user.id,
+              email: result.user.email
+            });
+            
+            // ✅ Create complete user object
+            const userObject = {
+              id: result.user.id as string,
+              name: result.user.name as string,
+              email: result.user.email as string,
+              phone: '',
+              avatar: result.user.avatar as string || '',
+              verified: true,
+              rating: 0,
+              totalRatings: 0,
+              memberSince: new Date().toISOString(),
+              location: { az: '', ru: '', en: '' },
+              privacySettings: {
+                hidePhoneNumber: false,
+                allowDirectContact: true,
+                onlyAppMessaging: false,
+              },
+              analytics: {
+                lastOnline: new Date().toISOString(),
+                messageResponseRate: 0,
+                averageResponseTime: 0,
+                totalMessages: 0,
+                totalResponses: 0,
+                isOnline: true,
+              },
+            };
+            
+            login(userObject);
+            router.replace('/(tabs)');
+          }
+        },
+        (error) => {
+          setLoadingSocial(null);
+          logger.error(`[Register] Social login error (${provider}):`, error);
+          showSocialLoginError(provider, error);
+        }
+      );
+    } catch (error) {
       setLoadingSocial(null);
+      logger.error(`[Register] Social login initiation error (${provider}):`, error);
+      showSocialLoginError(provider, 'Failed to initiate login. Please try again.');
     }
   };
 
