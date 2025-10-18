@@ -75,6 +75,35 @@ export const useModerationStore = create<ModerationState>()(
         moderatorStats: {},
       },
 
+      // ===== PERMISSION HELPERS =====
+      
+      hasPermission: (moderatorId, permission) => {
+        // ✅ Admin always has all permissions
+        const moderator = get().moderators.find(m => m.id === moderatorId);
+        
+        if (!moderator) {
+          return false;
+        }
+        
+        // ✅ Admin role has all permissions
+        if (moderator.role === 'admin') {
+          return true;
+        }
+        
+        // ✅ Check if moderator has the specific permission
+        if (moderator.role === 'moderator' && moderator.moderatorInfo) {
+          return moderator.moderatorInfo.permissions.includes(permission);
+        }
+        
+        return false;
+      },
+      
+      checkPermission: (moderatorId, permission) => {
+        if (!get().hasPermission(moderatorId, permission)) {
+          throw new Error(`İcazə yoxdur: ${permission}`);
+        }
+      },
+
       createReport: (reportData) => {
         // ===== VALIDATION START =====
         
@@ -87,21 +116,42 @@ export const useModerationStore = create<ModerationState>()(
           throw new Error('Şikayət edən istifadəçi ID-si tələb olunur');
         }
         
-        if (!reportData.targetId || typeof reportData.targetId !== 'string') {
-          throw new Error('Hədəf ID-si tələb olunur');
+        // ✅ 2. Validate at least one target (user/listing/store)
+        const hasTarget = !!(
+          reportData.reportedUserId || 
+          reportData.reportedListingId || 
+          reportData.reportedStoreId
+        );
+        
+        if (!hasTarget) {
+          throw new Error('Ən azı bir hədəf (istifadəçi, elan və ya mağaza) tələb olunur');
         }
         
+        // ✅ 3. Validate target IDs if provided
+        if (reportData.reportedUserId && typeof reportData.reportedUserId !== 'string') {
+          throw new Error('İstifadəçi ID-si düzgün deyil');
+        }
+        
+        if (reportData.reportedListingId && typeof reportData.reportedListingId !== 'string') {
+          throw new Error('Elan ID-si düzgün deyil');
+        }
+        
+        if (reportData.reportedStoreId && typeof reportData.reportedStoreId !== 'string') {
+          throw new Error('Mağaza ID-si düzgün deyil');
+        }
+        
+        // ✅ 4. Validate type
         if (!reportData.type || typeof reportData.type !== 'string') {
           throw new Error('Şikayət növü tələb olunur');
         }
         
-        // ✅ 2. Validate type enum
+        // ✅ 5. Validate type enum
         const validTypes: ReportType[] = ['spam', 'inappropriate_content', 'fake_listing', 'harassment', 'fraud', 'copyright', 'other'];
         if (!validTypes.includes(reportData.type as ReportType)) {
           throw new Error('Şikayət növü yanlışdır');
         }
         
-        // ✅ 3. Validate reason
+        // ✅ 6. Validate reason
         if (!reportData.reason || typeof reportData.reason !== 'string') {
           throw new Error('Səbəb tələb olunur');
         }
@@ -114,7 +164,19 @@ export const useModerationStore = create<ModerationState>()(
           throw new Error('Səbəb maksimum 1000 simvol ola bilər');
         }
         
-        // ✅ 4. Validate priority
+        // ✅ 7. Validate description if provided
+        if (reportData.description) {
+          if (typeof reportData.description !== 'string') {
+            throw new Error('Təsvir mətn olmalıdır');
+          }
+          
+          const trimmedDesc = reportData.description.trim();
+          if (trimmedDesc.length > 2000) {
+            throw new Error('Təsvir maksimum 2000 simvol ola bilər');
+          }
+        }
+        
+        // ✅ 8. Validate priority
         if (reportData.priority) {
           const validPriorities: ReportPriority[] = ['low', 'medium', 'high', 'urgent'];
           if (!validPriorities.includes(reportData.priority as ReportPriority)) {
@@ -172,6 +234,9 @@ export const useModerationStore = create<ModerationState>()(
           if (!moderator) {
             throw new Error('Moderator tapılmadı');
           }
+          
+          // ✅ Check permission
+          get().checkPermission(moderatorId, 'manage_reports');
         }
         
         // ✅ 5. Validate notes if provided
@@ -284,6 +349,9 @@ export const useModerationStore = create<ModerationState>()(
           throw new Error('Moderator tapılmadı');
         }
         
+        // ✅ 6. Check permission
+        get().checkPermission(moderatorId, 'manage_reports');
+        
         // ===== VALIDATION END =====
         
         set((state) => ({
@@ -340,6 +408,9 @@ export const useModerationStore = create<ModerationState>()(
         if (!moderator) {
           throw new Error('Moderator tapılmadı');
         }
+        
+        // ✅ 6. Check permission
+        get().checkPermission(moderatorId, 'manage_reports');
         
         // ===== VALIDATION END =====
         
@@ -461,7 +532,7 @@ export const useModerationStore = create<ModerationState>()(
         }
         
         // ✅ 3. Validate status
-        const validStatuses: TicketStatus[] = ['open', 'in_progress', 'resolved', 'closed'];
+        const validStatuses: TicketStatus[] = ['open', 'in_progress', 'waiting_user', 'resolved', 'closed'];
         if (!validStatuses.includes(status)) {
           throw new Error('Status yanlışdır');
         }
@@ -505,6 +576,9 @@ export const useModerationStore = create<ModerationState>()(
         if (!moderator) {
           throw new Error('Moderator tapılmadı');
         }
+        
+        // ✅ 5. Check permission
+        get().checkPermission(moderatorId, 'manage_tickets');
         
         // ===== VALIDATION END =====
         
@@ -555,6 +629,11 @@ export const useModerationStore = create<ModerationState>()(
         
         if (!responseData.responderId || typeof responseData.responderId !== 'string') {
           throw new Error('Cavab verən ID-si tələb olunur');
+        }
+        
+        // ✅ 4. Check permission if responder is a moderator
+        if (responseData.responderRole === 'moderator' || responseData.responderRole === 'admin') {
+          get().checkPermission(responseData.responderId, 'manage_tickets');
         }
         
         // ===== VALIDATION END =====
@@ -806,16 +885,55 @@ export const useModerationStore = create<ModerationState>()(
         }
         
         // ✅ Calculate moderator stats
-        const moderatorStats: Record<string, { handledReports: number; averageResponseTime: number }> = {};
+        const moderatorStats: Record<string, { handledReports: number; averageResponseTime: number; resolutionRate: number }> = {};
         
         for (const moderator of moderators || []) {
           if (!moderator?.id) continue;
           
-          const handledReports = reports.filter(r => r.assignedModeratorId === moderator.id && r.status === 'resolved');
+          // Get all reports assigned to this moderator
+          const assignedReports = reports.filter(r => r.assignedModeratorId === moderator.id);
+          const handledReports = assignedReports.filter(r => r.status === 'resolved');
+          
+          // ✅ Calculate resolution rate
+          const totalAssigned = assignedReports.length;
+          const totalResolved = handledReports.length;
+          const resolutionRate = totalAssigned > 0 
+            ? Math.round((totalResolved / totalAssigned) * 100 * 10) / 10 // Round to 1 decimal
+            : 0;
+          
+          // ✅ Calculate average response time for this moderator
+          let avgResponseTime = 0;
+          if (handledReports.length > 0) {
+            const totalResponseTime = handledReports.reduce((sum, report) => {
+              const created = new Date(report.createdAt).getTime();
+              const updated = new Date(report.updatedAt).getTime();
+              
+              // ✅ Validate dates
+              if (isNaN(created) || isNaN(updated)) {
+                return sum;
+              }
+              
+              const responseTime = updated - created;
+              
+              // ✅ Validate response time is positive
+              if (responseTime < 0 || !isFinite(responseTime)) {
+                return sum;
+              }
+              
+              return sum + responseTime;
+            }, 0);
+            
+            // ✅ Prevent division by zero
+            avgResponseTime = totalResponseTime / Math.max(handledReports.length, 1);
+            
+            // ✅ Convert to hours and round
+            avgResponseTime = Math.round((avgResponseTime / (1000 * 60 * 60)) * 10) / 10;
+          }
           
           moderatorStats[moderator.id] = {
-            handledReports: handledReports.length,
-            averageResponseTime: 0, // TODO: Calculate based on response times
+            handledReports: totalResolved,
+            averageResponseTime: avgResponseTime,
+            resolutionRate: resolutionRate,
           };
         }
         
