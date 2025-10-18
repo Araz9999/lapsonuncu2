@@ -57,24 +57,24 @@ export default function StoreDetailScreen() {
   const [activeTab, setActiveTab] = useState<'listings' | 'ratings'>('listings');
   
   const store = stores.find(s => s.id === id);
-  const storeListings = listings
-    .filter((listing) => {
-      const byStoreId = listing.storeId && store ? listing.storeId === store.id : false;
-      const byOwnerFallback = !listing.storeId && store ? listing.userId === store.userId : false;
-      const notDeleted = !listing.deletedAt;
-      const match = (byStoreId || byOwnerFallback) && notDeleted;
-      if (__DEV__) {
-        storeLogger.debug('[StoreDetail] Filter listing', {
-          listingId: listing.id,
-          listingStoreId: listing.storeId,
-          listingUserId: listing.userId,
-          storeId: store?.id,
-          storeUserId: store?.userId,
-          match,
-        });
-      }
-      return match;
+  
+  // ✅ Simplified filter logic
+  const storeListings = listings.filter((listing) => {
+    if (listing.deletedAt) return false;
+    if (!store) return false;
+    
+    // Match by storeId or by owner (fallback for listings without store)
+    return listing.storeId === store.id || 
+           (!listing.storeId && listing.userId === store.userId);
+  });
+  
+  // ✅ Log only if needed
+  if (__DEV__ && storeListings.length === 0 && listings.length > 0) {
+    storeLogger.warn('[StoreDetail] No listings found for store', {
+      storeId: store?.id,
+      totalListings: listings.length
     });
+  }
   const isFollowing = currentUser && store ? isFollowingStore(currentUser.id, store.id) : false;
   const isOwner = currentUser && store ? currentUser.id === store.userId : false;
   const storeUsage = store ? getStoreUsage(store.id) : { used: 0, max: 0, remaining: 0, deleted: 0 };
@@ -124,7 +124,12 @@ export default function StoreDetailScreen() {
     );
   }
   
-  const handleContact = (type: 'phone' | 'email' | 'whatsapp', value: string) => {
+  const handleContact = async (type: 'phone' | 'email' | 'whatsapp', value: string) => {
+    // ✅ Validate value
+    if (!value || !value.trim()) {
+      return; // Silently ignore if no value
+    }
+    
     let url = '';
     switch (type) {
       case 'phone':
@@ -134,10 +139,21 @@ export default function StoreDetailScreen() {
         url = `mailto:${value}`;
         break;
       case 'whatsapp':
-        url = `whatsapp://send?phone=${value}`;
+        url = `whatsapp://send?phone=${value.replace(/\s/g, '')}`;
         break;
     }
-    Linking.openURL(url);
+    
+    try {
+      // ✅ Check if URL can be opened
+      const canOpen = await Linking.canOpenURL(url);
+      if (!canOpen) {
+        return; // Silently ignore if app not available
+      }
+      
+      await Linking.openURL(url);
+    } catch (error) {
+      storeLogger.error('[StoreDetail] Failed to open contact', { type, error });
+    }
   };
   
   return (

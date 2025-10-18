@@ -48,10 +48,23 @@ export default function StoresScreen() {
   const handleFollowToggle = async (storeId: string) => {
     if (!currentUser) return;
     
+    // ✅ Get store
+    const store = stores.find(s => s.id === storeId);
+    if (!store) return;
+    
     const isFollowing = isFollowingStore(currentUser.id, storeId);
     if (isFollowing) {
       await unfollowStore(currentUser.id, storeId);
     } else {
+      // ✅ Check if active
+      if (!store.isActive) {
+        Alert.alert(
+          language === 'az' ? 'Mağaza aktiv deyil' : 'Магазин неактивен',
+          language === 'az' ? 'Bu mağaza hal-hazırda aktiv deyil' : 'Этот магазин в данный момент неактивен'
+        );
+        return;
+      }
+      
       await followStore(currentUser.id, storeId);
     }
   };
