@@ -316,11 +316,32 @@ export const useMessageStore = create<MessageStore>((set, get) => ({
   
   getFilteredConversations: () => {
     const { conversations } = get();
-    const { isUserBlocked } = useUserStore.getState();
+    
+    // ✅ Validate conversations array
+    if (!Array.isArray(conversations)) {
+      logger.error('[MessageStore] Invalid conversations array');
+      return [];
+    }
+    
+    const { isUserBlocked, currentUser } = useUserStore.getState();
+    
+    // ✅ Validate current user
+    if (!currentUser || !currentUser.id) {
+      logger.warn('[MessageStore] No current user for filtering conversations');
+      return conversations;
+    }
     
     return conversations.filter(conversation => {
-      const currentUserId = useUserStore.getState().currentUser?.id || 'user1';
+      // ✅ Validate conversation
+      if (!conversation || !Array.isArray(conversation.participants)) {
+        logger.warn('[MessageStore] Invalid conversation in filter');
+        return false;
+      }
+      
+      const currentUserId = currentUser.id;
       const otherUserId = conversation.participants.find(id => id !== currentUserId);
+      
+      // ✅ Filter out conversations with blocked users
       return otherUserId ? !isUserBlocked(otherUserId) : true;
     });
   },

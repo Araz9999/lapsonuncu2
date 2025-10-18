@@ -16,6 +16,11 @@ export default function MessagesScreen() {
   const { isAuthenticated, currentUser } = useUserStore();
   const { conversations, simulateIncomingMessage, getFilteredConversations, deleteAllMessagesFromUser } = useMessageStore();
   
+  // ✅ Use filtered conversations to hide blocked users
+  const displayConversations = useMemo(() => {
+    return getFilteredConversations();
+  }, [conversations, getFilteredConversations]);
+  
   logger.debug('MessagesScreen - isAuthenticated:', isAuthenticated);
   logger.debug('MessagesScreen - currentUser:', currentUser?.name);
   logger.debug('MessagesScreen - conversations count:', conversations.length);
