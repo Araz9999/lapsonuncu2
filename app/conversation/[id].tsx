@@ -13,6 +13,7 @@ import {
   Pressable,
   Dimensions,
   KeyboardAvoidingView,
+  ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, Stack, router } from 'expo-router';
 import { useLanguageStore } from '@/store/languageStore';
@@ -141,6 +142,7 @@ export default function ConversationScreen() {
   const [showUserActionModal, setShowUserActionModal] = useState<boolean>(false);
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
+  const [isDeletingMessage, setIsDeletingMessage] = useState<boolean>(false);
 
   
   const flatListRef = useRef<FlatList>(null);
@@ -740,25 +742,107 @@ export default function ConversationScreen() {
   };
 
   const handleDeleteMessage = (messageId: string) => {
+    // ✅ Validate message ID
+    if (!messageId || typeof messageId !== 'string' || messageId.trim().length === 0) {
+      logger.error('[handleDeleteMessage] Invalid message ID');
+      return;
+    }
+    
+    // ✅ Check if already deleting
+    if (isDeletingMessage) {
+      logger.warn('[handleDeleteMessage] Deletion already in progress');
+      return;
+    }
+    
+    // ✅ Validate message exists and belongs to current user
+    const message = messages.find(m => m.id === messageId);
+    if (!message) {
+      logger.error('[handleDeleteMessage] Message not found:', messageId);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Mesaj tapılmadı' : 'Сообщение не найдено'
+      );
+      return;
+    }
+    
+    // ✅ Check if message belongs to current user
+    if (message.senderId !== currentUser?.id) {
+      logger.error('[handleDeleteMessage] Cannot delete other user\'s message');
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Yalnız öz mesajlarınızı silə bilərsiniz' : 'Вы можете удалить только свои сообщения'
+      );
+      return;
+    }
+    
+    logger.debug('[handleDeleteMessage] Opening delete modal for message:', messageId);
     setSelectedMessageId(messageId);
     setShowDeleteModal(true);
   };
 
-  const confirmDeleteMessage = () => {
-    if (selectedMessageId && conversationId) {
+  const confirmDeleteMessage = async () => {
+    // ✅ Validate parameters
+    if (!selectedMessageId || !conversationId) {
+      logger.error('[confirmDeleteMessage] Missing required parameters');
+      setShowDeleteModal(false);
+      setSelectedMessageId(null);
+      return;
+    }
+    
+    // ✅ Set loading state
+    setIsDeletingMessage(true);
+    
+    try {
+      logger.debug('[confirmDeleteMessage] Deleting message:', selectedMessageId);
+      
+      // ✅ Delete message from store
       deleteMessage(conversationId, selectedMessageId);
       
-      // Update local conversation state
+      // ✅ Update local conversation state
       const updatedConversation = getConversation(conversationId);
       if (updatedConversation) {
         setConversation({
           ...updatedConversation,
           messages: [...updatedConversation.messages]
         });
+        logger.debug('[confirmDeleteMessage] Conversation updated, messages count:', updatedConversation.messages.length);
+      } else {
+        logger.warn('[confirmDeleteMessage] Updated conversation not found');
       }
+      
+      // ✅ Show success feedback
+      Alert.alert(
+        language === 'az' ? 'Uğurlu' : 'Успешно',
+        language === 'az' ? 'Mesaj silindi' : 'Сообщение удалено',
+        [{ text: 'OK' }],
+        { cancelable: true }
+      );
+    } catch (error) {
+      logger.error('[confirmDeleteMessage] Error deleting message:', error);
+      
+      // ✅ Show specific error message
+      let errorMessage = language === 'az' 
+        ? 'Mesaj silinərkən xəta baş verdi' 
+        : 'Произошла ошибка при удалении сообщения';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('not found')) {
+          errorMessage = language === 'az'
+            ? 'Mesaj artıq silinib və ya tapılmadı'
+            : 'Сообщение уже удалено или не найдено';
+        }
+      }
+      
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        errorMessage
+      );
+    } finally {
+      // ✅ Always reset loading state and close modal
+      setIsDeletingMessage(false);
+      setShowDeleteModal(false);
+      setSelectedMessageId(null);
     }
-    setShowDeleteModal(false);
-    setSelectedMessageId(null);
   };
 
   const renderMessage = ({ item }: { item: Message }) => {
@@ -1183,11 +1267,11 @@ export default function ConversationScreen() {
         visible={showDeleteModal}
         transparent
         animationType="fade"
-        onRequestClose={() => setShowDeleteModal(false)}
+        onRequestClose={() => !isDeletingMessage && setShowDeleteModal(false)}
       >
         <Pressable 
           style={styles.modalOverlay}
-          onPress={() => setShowDeleteModal(false)}
+          onPress={() => !isDeletingMessage && setShowDeleteModal(false)}
         >
           <View style={styles.deleteModal}>
             <Text style={styles.deleteModalTitle}>
@@ -1195,25 +1279,45 @@ export default function ConversationScreen() {
             </Text>
             <Text style={styles.deleteModalText}>
               {language === 'az' 
-                ? 'Bu mesajı silmək istədiyinizə əminsinizmi?' 
-                : 'Вы уверены, что хотите удалить это сообщение?'
+                ? 'Bu mesajı silmək istədiyinizə əminsinizmi?\n\nBu əməliyyat geri qaytarıla bilməz.' 
+                : 'Вы уверены, что хотите удалить это сообщение?\n\nЭто действие нельзя отменить.'
               }
             </Text>
+            {isDeletingMessage && (
+              <ActivityIndicator 
+                size="small" 
+                color={Colors.primary} 
+                style={{ marginVertical: 12 }} 
+              />
+            )}
             <View style={styles.deleteModalButtons}>
               <TouchableOpacity
-                style={[styles.deleteModalButton, styles.cancelButton]}
+                style={[
+                  styles.deleteModalButton, 
+                  styles.cancelButton,
+                  isDeletingMessage && styles.disabledButton
+                ]}
                 onPress={() => setShowDeleteModal(false)}
+                disabled={isDeletingMessage}
               >
                 <Text style={styles.cancelButtonText}>
                   {language === 'az' ? 'Ləğv et' : 'Отмена'}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.deleteModalButton, styles.confirmButton]}
+                style={[
+                  styles.deleteModalButton, 
+                  styles.confirmButton,
+                  isDeletingMessage && styles.disabledButton
+                ]}
                 onPress={confirmDeleteMessage}
+                disabled={isDeletingMessage}
               >
                 <Text style={styles.confirmButtonText}>
-                  {language === 'az' ? 'Sil' : 'Удалить'}
+                  {isDeletingMessage 
+                    ? (language === 'az' ? 'Silinir...' : 'Удаление...')
+                    : (language === 'az' ? 'Sil' : 'Удалить')
+                  }
                 </Text>
               </TouchableOpacity>
             </View>
@@ -1562,5 +1666,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
     color: '#fff',
+  },
+  disabledButton: {
+    opacity: 0.5,
+  },
+  activityIndicator: {
+    marginVertical: 12,
   },
 });
