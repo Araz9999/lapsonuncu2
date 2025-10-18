@@ -11,6 +11,11 @@ interface SupportStore {
   notifications: ChatNotification[];
   isLoading: boolean;
   
+  // ✅ Timeout tracking for cleanup
+  ticketTimeouts: Map<string, NodeJS.Timeout>;
+  chatTimeouts: Map<string, NodeJS.Timeout>;
+  messageTimeouts: Map<string, NodeJS.Timeout>;
+  
   // Ticket Actions
   createTicket: (ticket: Omit<SupportTicket, 'id' | 'createdAt' | 'updatedAt' | 'responses'>) => void;
   addResponse: (ticketId: string, response: Omit<SupportResponse, 'id' | 'createdAt'>) => void;
@@ -30,6 +35,9 @@ interface SupportStore {
   getAvailableOperators: () => Operator[];
   addNotification: (notification: Omit<ChatNotification, 'id' | 'timestamp' | 'isRead'>) => void;
   markNotificationAsRead: (notificationId: string) => void;
+  
+  // ✅ Cleanup
+  cleanupTimeouts: () => void;
 }
 
 const supportCategories: SupportCategory[] = [
@@ -125,11 +133,19 @@ export const useSupportStore = create<SupportStore>((set, get) => ({
   operators: mockOperators,
   notifications: [],
   isLoading: false,
+  
+  // ✅ Initialize timeout maps
+  ticketTimeouts: new Map(),
+  chatTimeouts: new Map(),
+  messageTimeouts: new Map(),
 
   createTicket: (ticketData) => {
+    // ✅ Generate unique ticket ID
+    const ticketId = `ticket_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    
     const newTicket: SupportTicket = {
       ...ticketData,
-      id: Date.now().toString(),
+      id: ticketId,
       createdAt: new Date(),
       updatedAt: new Date(),
       responses: [],
@@ -153,15 +169,26 @@ export const useSupportStore = create<SupportStore>((set, get) => ({
       logger.debug('Notification store not available:', error);
     }
 
-    // Simulate admin auto-response after 2 seconds
-    setTimeout(() => {
+    // ✅ Simulate admin auto-response after 2 seconds (with tracking)
+    const timeout = setTimeout(() => {
       const store = get();
+      
+      // ✅ Check if ticket still exists
+      const ticket = store.tickets.find(t => t.id === ticketId);
+      if (!ticket || ticket.status === 'closed') {
+        // Cleanup timeout from map
+        const newTimeouts = new Map(get().ticketTimeouts);
+        newTimeouts.delete(ticketId);
+        set({ ticketTimeouts: newTimeouts });
+        return;
+      }
+      
       const responseMessage = ticketData.category === '1' 
         ? 'Texniki problemlə bağlı müraciətiniz qəbul edildi. Tezliklə cavab veriləcək.'
         : 'Müraciətiniz qəbul edildi və araşdırılır. 24 saat ərzində cavab veriləcək.';
       
-      store.addResponse(newTicket.id, {
-        ticketId: newTicket.id,
+      store.addResponse(ticketId, {
+        ticketId: ticketId,
         userId: 'admin',
         message: responseMessage,
         isAdmin: true
@@ -175,18 +202,29 @@ export const useSupportStore = create<SupportStore>((set, get) => ({
           title: 'Dəstək Cavabı',
           message: responseMessage.substring(0, 50) + '...',
           fromUserName: 'Dəstək Komandası',
-          data: { ticketId: newTicket.id, type: 'support_response' }
+          data: { ticketId: ticketId, type: 'support_response' }
         });
       } catch (error) {
         logger.debug('Notification store not available:', error);
       }
+      
+      // ✅ Remove from timeout map
+      const newTimeouts = new Map(get().ticketTimeouts);
+      newTimeouts.delete(ticketId);
+      set({ ticketTimeouts: newTimeouts });
     }, 2000);
+    
+    // ✅ Store timeout for cleanup
+    set((state) => ({
+      ticketTimeouts: new Map(state.ticketTimeouts).set(ticketId, timeout)
+    }));
   },
 
   addResponse: (ticketId, responseData) => {
+    // ✅ Generate unique response ID
     const newResponse: SupportResponse = {
       ...responseData,
-      id: Date.now().toString(),
+      id: `response_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
       createdAt: new Date()
     };
 
@@ -259,8 +297,18 @@ export const useSupportStore = create<SupportStore>((set, get) => ({
       liveChats: [newChat, ...state.liveChats]
     }));
 
-    // Auto-assign available operator after 3 seconds
-    setTimeout(() => {
+    // ✅ Auto-assign available operator after 3 seconds (with tracking)
+    const assignTimeout = setTimeout(() => {
+      // ✅ Check if chat still exists and is waiting
+      const chat = get().liveChats.find(c => c.id === chatId);
+      if (!chat || chat.status !== 'waiting') {
+        // Cleanup timeout from map
+        const newTimeouts = new Map(get().chatTimeouts);
+        newTimeouts.delete(`assign_${chatId}`);
+        set({ chatTimeouts: newTimeouts });
+        return;
+      }
+      
       const availableOperators = get().getAvailableOperators();
       if (availableOperators.length > 0) {
         const bestOperator = availableOperators.reduce((best, current) => 
@@ -268,7 +316,17 @@ export const useSupportStore = create<SupportStore>((set, get) => ({
         );
         get().assignOperator(chatId, bestOperator.id);
       }
+      
+      // ✅ Remove from timeout map
+      const newTimeouts = new Map(get().chatTimeouts);
+      newTimeouts.delete(`assign_${chatId}`);
+      set({ chatTimeouts: newTimeouts });
     }, 3000);
+    
+    // ✅ Store timeout for cleanup
+    set((state) => ({
+      chatTimeouts: new Map(state.chatTimeouts).set(`assign_${chatId}`, assignTimeout)
+    }));
 
     // Add notification to main notification system
     try {
@@ -351,11 +409,21 @@ export const useSupportStore = create<SupportStore>((set, get) => ({
       });
     }
 
-    // Simulate operator response for demo
+    // ✅ Simulate operator response for demo (with tracking)
     if (senderType === 'user') {
       const chat = get().liveChats.find(c => c.id === chatId);
       if (chat?.operatorId) {
-        setTimeout(() => {
+        const responseTimeout = setTimeout(() => {
+          // ✅ Validate chat still exists and is active
+          const currentChat = get().liveChats.find(c => c.id === chatId);
+          if (!currentChat || currentChat.status === 'closed') {
+            // Cleanup timeout from map
+            const newTimeouts = new Map(get().messageTimeouts);
+            newTimeouts.delete(`response_${chatId}_${newMessage.id}`);
+            set({ messageTimeouts: newTimeouts });
+            return;
+          }
+          
           const responses = [
             'Anladım, probleminizlə bağlı araşdırma aparıram.',
             'Bu məsələni həll etmək üçün bir neçə dəqiqə vaxt lazımdır.',
@@ -363,8 +431,18 @@ export const useSupportStore = create<SupportStore>((set, get) => ({
             'Probleminizi həll etməyə çalışıram, zəhmət olmasa gözləyin.'
           ];
           const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-          get().sendMessage(chatId, chat.operatorId!, 'operator', randomResponse);
+          get().sendMessage(chatId, currentChat.operatorId!, 'operator', randomResponse);
+          
+          // ✅ Remove from timeout map
+          const newTimeouts = new Map(get().messageTimeouts);
+          newTimeouts.delete(`response_${chatId}_${newMessage.id}`);
+          set({ messageTimeouts: newTimeouts });
         }, 2000 + Math.random() * 3000);
+        
+        // ✅ Store timeout for cleanup
+        set((state) => ({
+          messageTimeouts: new Map(state.messageTimeouts).set(`response_${chatId}_${newMessage.id}`, responseTimeout)
+        }));
       }
     }
 
@@ -425,6 +503,32 @@ export const useSupportStore = create<SupportStore>((set, get) => ({
   closeLiveChat: (chatId) => {
     const chat = get().liveChats.find(c => c.id === chatId);
     
+    // ✅ Clear any pending timeouts for this chat
+    const chatTimeouts = get().chatTimeouts;
+    const messageTimeouts = get().messageTimeouts;
+    
+    // Clear assignment timeout
+    const assignTimeout = chatTimeouts.get(`assign_${chatId}`);
+    if (assignTimeout) {
+      clearTimeout(assignTimeout);
+    }
+    
+    // Clear all message response timeouts for this chat
+    const timeoutsToDelete: string[] = [];
+    messageTimeouts.forEach((_, key) => {
+      if (key.startsWith(`response_${chatId}_`)) {
+        clearTimeout(messageTimeouts.get(key)!);
+        timeoutsToDelete.push(key);
+      }
+    });
+    
+    // Update timeout maps
+    const newChatTimeouts = new Map(chatTimeouts);
+    newChatTimeouts.delete(`assign_${chatId}`);
+    
+    const newMessageTimeouts = new Map(messageTimeouts);
+    timeoutsToDelete.forEach(key => newMessageTimeouts.delete(key));
+    
     set((state) => ({
       liveChats: state.liveChats.map(c =>
         c.id === chatId
@@ -437,7 +541,9 @@ export const useSupportStore = create<SupportStore>((set, get) => ({
               ? { ...op, activeChats: Math.max(0, op.activeChats - 1) }
               : op
           )
-        : state.operators
+        : state.operators,
+      chatTimeouts: newChatTimeouts,
+      messageTimeouts: newMessageTimeouts
     }));
 
     // Send closing message
