@@ -831,11 +831,29 @@ export default function SettingsScreen() {
                     return;
                   }
                   
-                  logger.info('[Settings] Updating hidePhoneNumber:', { value, userId: currentUser.id });
+                  logger.info('[Settings] Updating hidePhoneNumber:', { 
+                    from: currentUser.privacySettings?.hidePhoneNumber ?? false,
+                    to: value, 
+                    userId: currentUser.id 
+                  });
                   
                   try {
                     updatePrivacySettings({ hidePhoneNumber: value });
-                    logger.info('[Settings] hidePhoneNumber updated successfully');
+                    logger.info('[Settings] hidePhoneNumber updated successfully:', { 
+                      hidePhoneNumber: value 
+                    });
+                    
+                    Alert.alert(
+                      language === 'az' ? 'Məxfilik tənzimləməsi' : 'Настройки конфиденциальности',
+                      language === 'az' 
+                        ? value 
+                          ? 'Telefon nömrəniz artıq gizli. Digər istifadəçilər yalnız tətbiq üzərindən sizinlə əlaqə saxlaya biləcəklər.' 
+                          : 'Telefon nömrəniz artıq görünən. Digər istifadəçilər sizə birbaşa zəng edə biləcəklər.'
+                        : value
+                          ? 'Ваш номер телефона скрыт. Другие пользователи могут связаться с вами только через приложение.'
+                          : 'Ваш номер телефона виден. Другие пользователи могут звонить вам напрямую.',
+                      [{ text: language === 'az' ? 'Başa düşdüm' : 'Понятно' }]
+                    );
                   } catch (error) {
                     logger.error('[Settings] Failed to update hidePhoneNumber:', error);
                     Alert.alert(
@@ -872,7 +890,11 @@ export default function SettingsScreen() {
                     return;
                   }
                   
-                  logger.info('[Settings] Updating onlyAppMessaging:', { value, userId: currentUser.id });
+                  logger.info('[Settings] Updating onlyAppMessaging:', { 
+                    from: currentUser.privacySettings?.onlyAppMessaging ?? false,
+                    to: value, 
+                    userId: currentUser.id 
+                  });
                   
                   try {
                     updatePrivacySettings({ 
@@ -883,6 +905,18 @@ export default function SettingsScreen() {
                       onlyAppMessaging: value,
                       allowDirectContact: !value
                     });
+                    
+                    Alert.alert(
+                      language === 'az' ? 'Əlaqə tənzimləməsi' : 'Настройки связи',
+                      language === 'az' 
+                        ? value 
+                          ? 'Yalnız tətbiq üzərindən əlaqə aktivdir. Birbaşa zənglər və ya mesajlar mümkün olmayacaq.' 
+                          : 'Birbaşa əlaqə aktivdir. İstifadəçilər sizinlə həm tətbiq, həm də birbaşa əlaqə saxlaya bilərlər.'
+                        : value
+                          ? 'Только связь через приложение активна. Прямые звонки или сообщения невозможны.'
+                          : 'Прямой контакт активен. Пользователи могут связаться с вами как через приложение, так и напрямую.',
+                      [{ text: language === 'az' ? 'Başa düşdüm' : 'Понятно' }]
+                    );
                   } catch (error) {
                     logger.error('[Settings] Failed to update onlyAppMessaging:', error);
                     Alert.alert(
@@ -919,7 +953,11 @@ export default function SettingsScreen() {
                     return;
                   }
                   
-                  logger.info('[Settings] Updating allowDirectContact:', { value, userId: currentUser.id });
+                  logger.info('[Settings] Updating allowDirectContact:', { 
+                    from: currentUser.privacySettings?.allowDirectContact ?? false,
+                    to: value, 
+                    userId: currentUser.id 
+                  });
                   
                   try {
                     updatePrivacySettings({ 
@@ -930,6 +968,18 @@ export default function SettingsScreen() {
                       allowDirectContact: value,
                       onlyAppMessaging: !value
                     });
+                    
+                    Alert.alert(
+                      language === 'az' ? 'Birbaşa əlaqə tənzimləməsi' : 'Настройки прямого контакта',
+                      language === 'az' 
+                        ? value 
+                          ? 'Birbaşa əlaqə aktivdir. İstifadəçilər sizə telefon nömrəniz vasitəsilə birbaşa zəng edə biləcəklər.' 
+                          : 'Birbaşa əlaqə deaktivdir. İstifadəçilər yalnız tətbiq vasitəsilə əlaqə saxlaya biləcəklər.'
+                        : value
+                          ? 'Прямой контакт активен. Пользователи смогут звонить вам напрямую через ваш номер телефона.'
+                          : 'Прямой контакт отключен. Пользователи смогут связаться только через приложение.',
+                      [{ text: language === 'az' ? 'Başa düşdüm' : 'Понятно' }]
+                    );
                   } catch (error) {
                     logger.error('[Settings] Failed to update allowDirectContact:', error);
                     Alert.alert(

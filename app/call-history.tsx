@@ -35,9 +35,19 @@ export default function CallHistoryScreen() {
   const { currentUser } = useUserStore();
   const [swipedItemId, setSwipedItemId] = useState<string | null>(null);
 
+  logger.info('[CallHistory] Screen opened:', { 
+    userId: currentUser?.id,
+    totalCalls: calls.length 
+  });
+
   const userCalls = calls.filter(call => 
     call.callerId === currentUser?.id || call.receiverId === currentUser?.id
   );
+  
+  logger.info('[CallHistory] User calls filtered:', { 
+    totalCalls: calls.length,
+    userCalls: userCalls.length 
+  });
 
   const formatDuration = (seconds?: number) => {
     if (!seconds) return '00:00';
@@ -138,14 +148,29 @@ export default function CallHistoryScreen() {
   };
 
   const handleCallPress = async (call: Call) => {
+    logger.info('[CallHistory] Call item pressed:', { 
+      callId: call.id, 
+      type: call.type,
+      status: call.status,
+      isRead: call.isRead
+    });
+    
     if (!call.isRead) {
+      logger.info('[CallHistory] Marking call as read:', { callId: call.id });
       markCallAsRead(call.id);
     }
 
     const otherUserId = call.callerId === currentUser?.id ? call.receiverId : call.callerId;
     const otherUser = users.find(u => u.id === otherUserId);
     
+    logger.info('[CallHistory] Other user found:', { 
+      otherUserId, 
+      hasPrivacySettings: !!otherUser?.privacySettings,
+      hidePhoneNumber: otherUser?.privacySettings?.hidePhoneNumber 
+    });
+    
     if (otherUser?.privacySettings.hidePhoneNumber) {
+      logger.info('[CallHistory] Phone number hidden, initiating app call');
       // Initiate app call with same type as previous call
       try {
         if (!currentUser?.id) {
@@ -157,6 +182,7 @@ export default function CallHistoryScreen() {
           return;
         }
         const callId = await initiateCall(currentUser.id, otherUserId, call.listingId, call.type);
+        logger.info('[CallHistory] Call initiated successfully:', { callId, type: call.type });
         router.push(`/call/${callId}`);
       } catch (error) {
         logger.error('Failed to initiate call:', error);
@@ -169,9 +195,26 @@ export default function CallHistoryScreen() {
   };
 
   const handleDeleteCall = (callId: string) => {
+    logger.info('[CallHistory] Delete call requested:', { callId });
+    
     const callToDelete = calls.find(call => call.id === callId);
+    if (!callToDelete) {
+      logger.error('[CallHistory] Call not found for deletion:', { callId });
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Zəng tapılmadı' : 'Звонок не найден'
+      );
+      return;
+    }
+    
     const otherUserId = callToDelete?.callerId === currentUser?.id ? callToDelete?.receiverId : callToDelete?.callerId;
     const otherUser = users.find(u => u.id === otherUserId);
+    
+    logger.info('[CallHistory] Showing delete confirmation:', { 
+      callId, 
+      otherUserId,
+      otherUserName: otherUser?.name 
+    });
     
     Alert.alert(
       language === 'az' ? 'Zəngi sil' : 'Удалить звонок',
@@ -182,13 +225,18 @@ export default function CallHistoryScreen() {
         {
           text: language === 'az' ? 'Ləğv et' : 'Отмена',
           style: 'cancel',
+          onPress: () => {
+            logger.info('[CallHistory] Delete call cancelled:', { callId });
+          }
         },
         {
           text: language === 'az' ? 'Sil' : 'Удалить',
           style: 'destructive',
           onPress: () => {
+            logger.info('[CallHistory] Deleting call:', { callId });
             deleteCall(callId);
             setSwipedItemId(null);
+            logger.info('[CallHistory] Call deleted successfully:', { callId });
           },
         },
       ]
@@ -196,6 +244,8 @@ export default function CallHistoryScreen() {
   };
 
   const handleClearAllHistory = () => {
+    logger.info('[CallHistory] Clear all history requested:', { totalCalls: userCalls.length });
+    
     Alert.alert(
       language === 'az' ? 'Bütün tarixçəni sil' : 'Очистить всю историю',
       language === 'az' 
@@ -205,11 +255,18 @@ export default function CallHistoryScreen() {
         {
           text: language === 'az' ? 'Ləğv et' : 'Отмена',
           style: 'cancel',
+          onPress: () => {
+            logger.info('[CallHistory] Clear all history cancelled');
+          }
         },
         {
           text: language === 'az' ? 'Sil' : 'Удалить',
           style: 'destructive',
-          onPress: () => clearAllCallHistory(),
+          onPress: () => {
+            logger.info('[CallHistory] Clearing all history:', { count: userCalls.length });
+            clearAllCallHistory();
+            logger.info('[CallHistory] All history cleared successfully');
+          },
         },
       ]
     );
