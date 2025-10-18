@@ -52,6 +52,30 @@ export default function EditStoreScreen() {
     }
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  
+  // ✅ Warn on back if unsaved changes
+  const handleBack = () => {
+    if (hasUnsavedChanges) {
+      Alert.alert(
+        language === 'az' ? 'Yadda saxlanılmamış dəyişikliklər' : 'Несохраненные изменения',
+        language === 'az' 
+          ? 'Dəyişiklikləriniz yadda saxlanılmayıb. Geri qayıtmaq istədiyinizə əminsinizmi?' 
+          : 'Ваши изменения не сохранены. Вы уверены, что хотите вернуться?',
+        [
+          { text: language === 'az' ? 'Ləğv et' : 'Отмена', style: 'cancel' },
+          { 
+            text: language === 'az' ? 'Geri qayıt' : 'Вернуться', 
+            style: 'destructive',
+            onPress: () => router.back() 
+          }
+        ]
+      );
+    } else {
+      router.back();
+    }
+  };
   
   useEffect(() => {
     try {
@@ -81,6 +105,10 @@ export default function EditStoreScreen() {
             whatsapp: contactInfo.whatsapp || ''
           }
         });
+        
+        // ✅ Reset unsaved changes flag
+        setHasUnsavedChanges(false);
+        setValidationErrors({});
         
         logger.debug('[EditStoreScreen] Store data loaded:', store.id);
       }
@@ -369,7 +397,7 @@ export default function EditStoreScreen() {
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
           <ArrowLeft size={24} color={Colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>
@@ -406,15 +434,37 @@ export default function EditStoreScreen() {
               {language === 'az' ? 'Mağaza adı' : 'Название магазина'} *
             </Text>
             <TextInput
-              style={styles.textInput}
+              style={[
+                styles.textInput,
+                validationErrors.name && styles.textInputError
+              ]}
               value={formData.name}
-              onChangeText={(text) => setFormData(prev => ({ ...prev, name: text }))}
+              onChangeText={(text) => {
+                setFormData(prev => ({ ...prev, name: text }));
+                setHasUnsavedChanges(true);
+                
+                // ✅ Real-time validation
+                if (text.trim().length > 0 && text.trim().length < 3) {
+                  setValidationErrors(prev => ({ 
+                    ...prev, 
+                    name: language === 'az' ? 'Minimum 3 simvol' : 'Минимум 3 символа' 
+                  }));
+                } else {
+                  setValidationErrors(prev => {
+                    const { name, ...rest } = prev;
+                    return rest;
+                  });
+                }
+              }}
               placeholder={language === 'az' ? 'Mağaza adını daxil edin' : 'Введите название магазина'}
               placeholderTextColor={Colors.textSecondary}
               maxLength={50}
               returnKeyType="next"
               blurOnSubmit={false}
             />
+            {validationErrors.name && (
+              <Text style={styles.errorText}>{validationErrors.name}</Text>
+            )}
           </View>
           
           <View style={styles.inputGroup}>
@@ -424,7 +474,10 @@ export default function EditStoreScreen() {
             <TextInput
               style={styles.textInput}
               value={formData.categoryName}
-              onChangeText={(text) => setFormData(prev => ({ ...prev, categoryName: text }))}
+              onChangeText={(text) => {
+                setFormData(prev => ({ ...prev, categoryName: text }));
+                setHasUnsavedChanges(true);
+              }}
               placeholder={language === 'az' ? 'Kateqoriya adını daxil edin' : 'Введите название категории'}
               placeholderTextColor={Colors.textSecondary}
               maxLength={50}
@@ -440,9 +493,29 @@ export default function EditStoreScreen() {
             <View style={styles.inputWithIcon}>
               <MapPin size={20} color={Colors.textSecondary} style={styles.inputIcon} />
               <TextInput
-                style={[styles.textInput, styles.textInputWithIcon]}
+                style={[
+                  styles.textInput, 
+                  styles.textInputWithIcon,
+                  validationErrors.address && styles.textInputError
+                ]}
                 value={formData.address}
-                onChangeText={(text) => setFormData(prev => ({ ...prev, address: text }))}
+                onChangeText={(text) => {
+                  setFormData(prev => ({ ...prev, address: text }));
+                  setHasUnsavedChanges(true);
+                  
+                  // ✅ Real-time validation
+                  if (text.trim().length > 0 && text.trim().length < 5) {
+                    setValidationErrors(prev => ({ 
+                      ...prev, 
+                      address: language === 'az' ? 'Minimum 5 simvol' : 'Минимум 5 символов' 
+                    }));
+                  } else {
+                    setValidationErrors(prev => {
+                      const { address, ...rest } = prev;
+                      return rest;
+                    });
+                  }
+                }}
                 placeholder={language === 'az' ? 'Mağaza ünvanını daxil edin' : 'Введите адрес магазина'}
                 placeholderTextColor={Colors.textSecondary}
                 multiline
@@ -450,6 +523,10 @@ export default function EditStoreScreen() {
                 returnKeyType="next"
                 blurOnSubmit={false}
               />
+            </View>
+            {validationErrors.address && (
+              <Text style={styles.errorText}>{validationErrors.address}</Text>
+            )}"}
             </View>
           </View>
           
@@ -460,7 +537,10 @@ export default function EditStoreScreen() {
             <TextInput
               style={[styles.textInput, styles.textArea]}
               value={formData.description}
-              onChangeText={(text) => setFormData(prev => ({ ...prev, description: text }))}
+              onChangeText={(text) => {
+                setFormData(prev => ({ ...prev, description: text }));
+                setHasUnsavedChanges(true);
+              }}
               placeholder={language === 'az' ? 'Mağaza haqqında məlumat' : 'Информация о магазине'}
               placeholderTextColor={Colors.textSecondary}
               multiline
@@ -469,6 +549,9 @@ export default function EditStoreScreen() {
               returnKeyType="next"
               blurOnSubmit={false}
             />
+            <Text style={styles.charCount}>
+              {formData.description.length}/1000 {language === 'az' ? 'simvol' : 'символов'}
+            </Text>
           </View>
         </View>
         
@@ -485,7 +568,11 @@ export default function EditStoreScreen() {
             <View style={styles.inputWithIcon}>
               <Phone size={20} color={Colors.textSecondary} style={styles.inputIcon} />
               <TextInput
-                style={[styles.textInput, styles.textInputWithIcon]}
+                style={[
+                  styles.textInput, 
+                  styles.textInputWithIcon,
+                  validationErrors.phone && styles.textInputError
+                ]}
                 value={formData.contactInfo.phone}
                 onChangeText={(text) => {
                   // ✅ Filter to allow only digits, +, -, (, ), space
@@ -494,6 +581,28 @@ export default function EditStoreScreen() {
                     ...prev,
                     contactInfo: { ...prev.contactInfo, phone: filtered }
                   }));
+                  setHasUnsavedChanges(true);
+                  
+                  // ✅ Real-time phone validation
+                  if (filtered.trim().length > 0) {
+                    const phoneDigits = filtered.replace(/\D/g, '');
+                    if (phoneDigits.length < 9) {
+                      setValidationErrors(prev => ({ 
+                        ...prev, 
+                        phone: language === 'az' ? 'Minimum 9 rəqəm' : 'Минимум 9 цифр' 
+                      }));
+                    } else {
+                      setValidationErrors(prev => {
+                        const { phone, ...rest } = prev;
+                        return rest;
+                      });
+                    }
+                  } else {
+                    setValidationErrors(prev => {
+                      const { phone, ...rest } = prev;
+                      return rest;
+                    });
+                  }
                 }}
                 placeholder={language === 'az' ? 'Telefon nömrəsi' : 'Номер телефона'}
                 placeholderTextColor={Colors.textSecondary}
@@ -502,6 +611,10 @@ export default function EditStoreScreen() {
                 returnKeyType="next"
                 blurOnSubmit={false}
               />
+            </View>
+            {validationErrors.phone && (
+              <Text style={styles.errorText}>{validationErrors.phone}</Text>
+            )}"}, {"old_string": "      logger.info('[EditStoreScreen] Store updated successfully:', store.id);\n      \n      Alert.alert(\n        language === 'az' ? 'Uğurlu!' : 'Успешно!',\n        language === 'az' \n          ? `\"${formData.name.trim()}\" mağazası yeniləndi` \n          : `Магазин \"${formData.name.trim()}\" обновлен`,\n        [{\n          text: 'OK',\n          onPress: () => router.back()\n        }],\n        { cancelable: false }\n      );", "new_string": "      logger.info('[EditStoreScreen] Store updated successfully:', store.id);\n      \n      // ✅ Reset unsaved changes flag\n      setHasUnsavedChanges(false);\n      \n      Alert.alert(\n        language === 'az' ? 'Uğurlu!' : 'Успешно!',\n        language === 'az' \n          ? `\"${formData.name.trim()}\" mağazası yeniləndi` \n          : `Магазин \"${formData.name.trim()}\" обновлен`,\n        [{\n          text: 'OK',\n          onPress: () => router.back()\n        }],\n        { cancelable: false }\n      );"}]
             </View>
           </View>
           
@@ -512,12 +625,40 @@ export default function EditStoreScreen() {
             <View style={styles.inputWithIcon}>
               <Mail size={20} color={Colors.textSecondary} style={styles.inputIcon} />
               <TextInput
-                style={[styles.textInput, styles.textInputWithIcon]}
+                style={[
+                  styles.textInput, 
+                  styles.textInputWithIcon,
+                  validationErrors.email && styles.textInputError
+                ]}
                 value={formData.contactInfo.email}
-                onChangeText={(text) => setFormData(prev => ({
-                  ...prev,
-                  contactInfo: { ...prev.contactInfo, email: text }
-                }))}
+                onChangeText={(text) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    contactInfo: { ...prev.contactInfo, email: text }
+                  }));
+                  setHasUnsavedChanges(true);
+                  
+                  // ✅ Real-time email validation
+                  if (text.trim().length > 0) {
+                    const emailRegex = /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+                    if (!emailRegex.test(text.trim())) {
+                      setValidationErrors(prev => ({ 
+                        ...prev, 
+                        email: language === 'az' ? 'Düzgün email formatı' : 'Корректный формат email' 
+                      }));
+                    } else {
+                      setValidationErrors(prev => {
+                        const { email, ...rest } = prev;
+                        return rest;
+                      });
+                    }
+                  } else {
+                    setValidationErrors(prev => {
+                      const { email, ...rest } = prev;
+                      return rest;
+                    });
+                  }
+                }}
                 placeholder={language === 'az' ? 'E-poçt ünvanı' : 'Email адрес'}
                 placeholderTextColor={Colors.textSecondary}
                 keyboardType="email-address"
@@ -528,6 +669,10 @@ export default function EditStoreScreen() {
                 blurOnSubmit={false}
               />
             </View>
+            {validationErrors.email && (
+              <Text style={styles.errorText}>{validationErrors.email}</Text>
+            )}"}
+            </View>
           </View>
           
           <View style={styles.inputGroup}>
@@ -537,12 +682,39 @@ export default function EditStoreScreen() {
             <View style={styles.inputWithIcon}>
               <Globe size={20} color={Colors.textSecondary} style={styles.inputIcon} />
               <TextInput
-                style={[styles.textInput, styles.textInputWithIcon]}
+                style={[
+                  styles.textInput, 
+                  styles.textInputWithIcon,
+                  validationErrors.website && styles.textInputError
+                ]}
                 value={formData.contactInfo.website}
-                onChangeText={(text) => setFormData(prev => ({
-                  ...prev,
-                  contactInfo: { ...prev.contactInfo, website: text }
-                }))}
+                onChangeText={(text) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    contactInfo: { ...prev.contactInfo, website: text }
+                  }));
+                  setHasUnsavedChanges(true);
+                  
+                  // ✅ Real-time website validation
+                  if (text.trim().length > 0) {
+                    if (!text.trim().match(/^https?:\/\/.+/)) {
+                      setValidationErrors(prev => ({ 
+                        ...prev, 
+                        website: language === 'az' ? 'http:// və ya https:// ilə başlamalıdır' : 'Должен начинаться с http:// или https://' 
+                      }));
+                    } else {
+                      setValidationErrors(prev => {
+                        const { website, ...rest } = prev;
+                        return rest;
+                      });
+                    }
+                  } else {
+                    setValidationErrors(prev => {
+                      const { website, ...rest } = prev;
+                      return rest;
+                    });
+                  }
+                }}
                 placeholder={language === 'az' ? 'Veb sayt ünvanı' : 'Адрес веб-сайта'}
                 placeholderTextColor={Colors.textSecondary}
                 keyboardType="url"
@@ -553,6 +725,10 @@ export default function EditStoreScreen() {
                 blurOnSubmit={false}
               />
             </View>
+            {validationErrors.website && (
+              <Text style={styles.errorText}>{validationErrors.website}</Text>
+            )}"}
+            </View>
           </View>
           
           <View style={styles.inputGroup}>
@@ -562,7 +738,11 @@ export default function EditStoreScreen() {
             <View style={styles.inputWithIcon}>
               <MessageCircle size={20} color={Colors.textSecondary} style={styles.inputIcon} />
               <TextInput
-                style={[styles.textInput, styles.textInputWithIcon]}
+                style={[
+                  styles.textInput, 
+                  styles.textInputWithIcon,
+                  validationErrors.whatsapp && styles.textInputError
+                ]}
                 value={formData.contactInfo.whatsapp}
                 onChangeText={(text) => {
                   // ✅ Filter to allow only digits, +, -, (, ), space
@@ -571,6 +751,28 @@ export default function EditStoreScreen() {
                     ...prev,
                     contactInfo: { ...prev.contactInfo, whatsapp: filtered }
                   }));
+                  setHasUnsavedChanges(true);
+                  
+                  // ✅ Real-time WhatsApp validation
+                  if (filtered.trim().length > 0) {
+                    const whatsappDigits = filtered.replace(/\D/g, '');
+                    if (whatsappDigits.length < 9) {
+                      setValidationErrors(prev => ({ 
+                        ...prev, 
+                        whatsapp: language === 'az' ? 'Minimum 9 rəqəm' : 'Минимум 9 цифр' 
+                      }));
+                    } else {
+                      setValidationErrors(prev => {
+                        const { whatsapp, ...rest } = prev;
+                        return rest;
+                      });
+                    }
+                  } else {
+                    setValidationErrors(prev => {
+                      const { whatsapp, ...rest } = prev;
+                      return rest;
+                    });
+                  }
                 }}
                 placeholder={language === 'az' ? 'WhatsApp nömrəsi' : 'Номер WhatsApp'}
                 placeholderTextColor={Colors.textSecondary}
@@ -580,15 +782,23 @@ export default function EditStoreScreen() {
                 onSubmitEditing={Keyboard.dismiss}
               />
             </View>
+            {validationErrors.whatsapp && (
+              <Text style={styles.errorText}>{validationErrors.whatsapp}</Text>
+            )}"}
+            </View>
           </View>
         </View>
         
         {/* Save Button */}
         <View style={styles.section}>
           <TouchableOpacity 
-            style={[styles.saveButtonLarge, isLoading && styles.saveButtonDisabled]}
+            style={[
+              styles.saveButtonLarge, 
+              isLoading && styles.saveButtonDisabled,
+              !hasUnsavedChanges && styles.saveButtonDisabled
+            ]}
             onPress={handleSave}
-            disabled={isLoading}
+            disabled={isLoading || !hasUnsavedChanges || Object.keys(validationErrors).length > 0}
           >
             {isLoading ? (
               <ActivityIndicator size="small" color="white" />
@@ -598,7 +808,9 @@ export default function EditStoreScreen() {
             <Text style={styles.saveButtonText}>
               {isLoading 
                 ? (language === 'az' ? 'Yadda saxlanılır...' : 'Сохранение...')
-                : (language === 'az' ? 'Dəyişiklikləri yadda saxla' : 'Сохранить изменения')
+                : !hasUnsavedChanges
+                  ? (language === 'az' ? 'Dəyişiklik yoxdur' : 'Нет изменений')
+                  : (language === 'az' ? 'Dəyişiklikləri yadda saxla' : 'Сохранить изменения')
               }
             </Text>
           </TouchableOpacity>
@@ -731,5 +943,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
+  },
+  textInputError: {
+    borderColor: '#FF3B30',
+    borderWidth: 2,
+  },
+  errorText: {
+    fontSize: 12,
+    color: '#FF3B30',
+    marginTop: 4,
+    marginLeft: 4,
+  },
+  charCount: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginTop: 4,
+    textAlign: 'right',
   },
 });

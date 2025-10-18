@@ -505,14 +505,113 @@ export const useStoreStore = create<StoreState>((set, get) => ({
   editStore: async (storeId, updates) => {
     set({ isLoading: true, error: null });
     try {
+      // ✅ Validate storeId
+      if (!storeId || typeof storeId !== 'string' || storeId.trim().length === 0) {
+        logger.error('[StoreStore] Invalid storeId for editStore');
+        throw new Error('Invalid store ID');
+      }
+      
+      // ✅ Validate updates object
+      if (!updates || typeof updates !== 'object' || Object.keys(updates).length === 0) {
+        logger.error('[StoreStore] No updates provided');
+        throw new Error('No updates provided');
+      }
+      
+      // ✅ Find store
+      const { stores } = get();
+      const store = stores.find(s => s.id === storeId);
+      
+      if (!store) {
+        logger.error('[StoreStore] Store not found:', storeId);
+        throw new Error('Store not found');
+      }
+      
+      // ✅ Validate name if provided
+      if ('name' in updates) {
+        if (!updates.name || typeof updates.name !== 'string' || updates.name.trim().length < 3 || updates.name.trim().length > 50) {
+          logger.error('[StoreStore] Invalid store name');
+          throw new Error('Store name must be 3-50 characters');
+        }
+      }
+      
+      // ✅ Validate address if provided
+      if ('address' in updates) {
+        if (!updates.address || typeof updates.address !== 'string' || updates.address.trim().length < 5 || updates.address.trim().length > 200) {
+          logger.error('[StoreStore] Invalid store address');
+          throw new Error('Store address must be 5-200 characters');
+        }
+      }
+      
+      // ✅ Validate description if provided
+      if ('description' in updates && updates.description) {
+        if (typeof updates.description !== 'string' || updates.description.trim().length > 1000) {
+          logger.error('[StoreStore] Invalid store description');
+          throw new Error('Store description must not exceed 1000 characters');
+        }
+      }
+      
+      // ✅ Validate contactInfo if provided
+      if ('contactInfo' in updates && updates.contactInfo) {
+        const contactInfo = updates.contactInfo as any;
+        
+        // Email validation
+        if (contactInfo.email) {
+          const emailRegex = /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+          if (!emailRegex.test(contactInfo.email) || contactInfo.email.length > 255) {
+            logger.error('[StoreStore] Invalid email format');
+            throw new Error('Invalid email format');
+          }
+        }
+        
+        // Phone validation
+        if (contactInfo.phone) {
+          const phoneDigits = contactInfo.phone.replace(/\D/g, '');
+          if (phoneDigits.length < 9 || phoneDigits.length > 15) {
+            logger.error('[StoreStore] Invalid phone number');
+            throw new Error('Phone number must be 9-15 digits');
+          }
+        }
+        
+        // WhatsApp validation
+        if (contactInfo.whatsapp) {
+          const whatsappDigits = contactInfo.whatsapp.replace(/\D/g, '');
+          if (whatsappDigits.length < 9 || whatsappDigits.length > 15) {
+            logger.error('[StoreStore] Invalid WhatsApp number');
+            throw new Error('WhatsApp number must be 9-15 digits');
+          }
+        }
+        
+        // Website validation
+        if (contactInfo.website) {
+          try {
+            const url = new URL(contactInfo.website);
+            if (!['http:', 'https:'].includes(url.protocol)) {
+              throw new Error('Invalid protocol');
+            }
+            if (contactInfo.website.length > 2083) {
+              throw new Error('URL too long');
+            }
+          } catch (error) {
+            logger.error('[StoreStore] Invalid website URL:', error);
+            throw new Error('Invalid website URL');
+          }
+        }
+      }
+      
+      logger.info('[StoreStore] Updating store:', storeId);
+      
       set(state => ({
         stores: state.stores.map(store => 
           store.id === storeId ? { ...store, ...updates } : store
         ),
         isLoading: false
       }));
-    } catch {
+      
+      logger.info('[StoreStore] Store updated successfully:', storeId);
+    } catch (error) {
+      logger.error('[StoreStore] Failed to edit store:', error);
       set({ error: 'Failed to edit store', isLoading: false });
+      throw error;
     }
   },
 
