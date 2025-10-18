@@ -67,12 +67,20 @@ export default function LiveChatScreen() {
   // Check if user has an active chat
   useEffect(() => {
     if (currentUser) {
+      logger.info('[LiveChat] Checking for active chats:', { userId: currentUser.id });
       const userActiveChat = liveChats.find(chat => 
         chat.userId === currentUser.id && chat.status !== 'closed'
       );
       if (userActiveChat) {
+        logger.info('[LiveChat] Active chat found:', { 
+          chatId: userActiveChat.id, 
+          status: userActiveChat.status,
+          messagesCount: userActiveChat.messages.length
+        });
         setCurrentChatId(userActiveChat.id);
         setShowStartForm(false);
+      } else {
+        logger.info('[LiveChat] No active chats found');
       }
     }
   }, [currentUser, liveChats]);
@@ -108,62 +116,105 @@ export default function LiveChatScreen() {
 
   const handleStartChat = () => {
     if (!currentUser) {
-      logger.debug('[LiveChat] Cannot start chat: user not logged in');
-      // Cannot start chat: user not logged in
+      logger.error('[LiveChat] Cannot start chat: user not logged in');
       return;
     }
-    if (!selectedCategory || !subject.trim()) return;
-
-    const newChatId = startLiveChat(
-      currentUser.id,
-      subject.trim(),
-      selectedCategory,
-      priority
-    );
     
-    setCurrentChatId(newChatId);
-    setShowStartForm(false);
-    setSelectedCategory('');
-    setSubject('');
-    setPriority('medium');
+    if (!selectedCategory || !subject.trim()) {
+      logger.warn('[LiveChat] Start chat validation failed:', {
+        hasCategory: !!selectedCategory,
+        hasSubject: !!subject.trim()
+      });
+      return;
+    }
+
+    logger.info('[LiveChat] Starting new chat:', {
+      userId: currentUser.id,
+      category: selectedCategory,
+      priority,
+      subjectLength: subject.trim().length
+    });
+
+    try {
+      const newChatId = startLiveChat(
+        currentUser.id,
+        subject.trim(),
+        selectedCategory,
+        priority
+      );
+      
+      logger.info('[LiveChat] Chat started successfully:', { chatId: newChatId });
+      
+      setCurrentChatId(newChatId);
+      setShowStartForm(false);
+      setSelectedCategory('');
+      setSubject('');
+      setPriority('medium');
+    } catch (error) {
+      logger.error('[LiveChat] Start chat error:', error);
+    }
   };
 
   const handleSendMessage = () => {
-    if ((!message.trim() && attachments.length === 0) || !currentChatId || !currentUser) return;
+    if ((!message.trim() && attachments.length === 0) || !currentChatId || !currentUser) {
+      logger.warn('[LiveChat] Cannot send message:', {
+        hasMessage: !!message.trim(),
+        hasAttachments: attachments.length > 0,
+        hasChatId: !!currentChatId,
+        hasUser: !!currentUser
+      });
+      return;
+    }
 
-    const attachmentUrls = attachments.map(att => att.uri);
-    const messageText = message.trim() || (attachments.length > 0 ? `📎 ${attachments.length} fayl göndərildi` : '');
-    
-    sendMessage(
-      currentChatId, 
-      currentUser.id, 
-      'user', 
-      messageText, 
-      attachmentUrls.length > 0 ? attachmentUrls : undefined
-    );
-    
-    setMessage('');
-    setAttachments([]);
-    setShowAttachments(false);
-    setShouldScrollToEnd(true);
-    
-    if (scrollTimeoutRef.current) {
-      clearTimeout(scrollTimeoutRef.current);
+    logger.info('[LiveChat] Sending message:', {
+      chatId: currentChatId,
+      userId: currentUser.id,
+      messageLength: message.trim().length,
+      attachmentsCount: attachments.length
+    });
+
+    try {
+      const attachmentUrls = attachments.map(att => att.uri);
+      const messageText = message.trim() || (attachments.length > 0 ? `📎 ${attachments.length} fayl göndərildi` : '');
+      
+      sendMessage(
+        currentChatId, 
+        currentUser.id, 
+        'user', 
+        messageText, 
+        attachmentUrls.length > 0 ? attachmentUrls : undefined
+      );
+      
+      logger.info('[LiveChat] Message sent successfully:', { chatId: currentChatId });
+      
+      setMessage('');
+      setAttachments([]);
+      setShowAttachments(false);
+      setShouldScrollToEnd(true);
+      
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+      scrollTimeoutRef.current = setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: false });
+      }, 100);
+      
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      setTyping(currentChatId, 'user', false);
+    } catch (error) {
+      logger.error('[LiveChat] Send message error:', error);
     }
-    scrollTimeoutRef.current = setTimeout(() => {
-      scrollViewRef.current?.scrollToEnd({ animated: false });
-    }, 100);
-    
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
-    setTyping(currentChatId, 'user', false);
   };
 
   const handleTyping = (text: string) => {
     setMessage(text);
     
-    if (!currentChatId) return;
+    if (!currentChatId) {
+      logger.warn('[LiveChat] No current chat for typing indicator');
+      return;
+    }
     
     setTyping(currentChatId, 'user', true);
     
@@ -363,17 +414,20 @@ export default function LiveChatScreen() {
         />
       </View>
 
-      <TouchableOpacity
-        style={[
-          styles.startButton,
-          {
-            backgroundColor: colors.primary,
-            opacity: (!selectedCategory || !subject.trim()) ? 0.5 : 1
-          }
-        ]}
-        onPress={handleStartChat}
-        disabled={!selectedCategory || !subject.trim()}
-      >
+              <TouchableOpacity
+                style={[
+                  styles.startButton,
+                  {
+                    backgroundColor: colors.primary,
+                    opacity: (!selectedCategory || !subject.trim()) ? 0.5 : 1
+                  }
+                ]}
+                onPress={() => {
+                  logger.info('[LiveChat] Start chat button clicked');
+                  handleStartChat();
+                }}
+                disabled={!selectedCategory || !subject.trim()}
+              >
         <Text style={styles.startButtonText}>
           {language === 'az' ? 'Söhbət Başlat' : 'Начать чат'}
         </Text>
@@ -382,6 +436,7 @@ export default function LiveChatScreen() {
   );
 
   if (!currentUser) {
+    logger.warn('[LiveChat] Access denied: user not logged in');
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <Stack.Screen 
@@ -399,6 +454,12 @@ export default function LiveChatScreen() {
       </SafeAreaView>
     );
   }
+  
+  logger.info('[LiveChat] Screen accessed:', { 
+    userId: currentUser.id,
+    hasChatId: !!currentChatId,
+    showStartForm
+  });
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
@@ -484,16 +545,19 @@ export default function LiveChatScreen() {
                   backgroundColor: colors.background
                 }
               ]}>
-                <TouchableOpacity
-                  style={[
-                    styles.attachButton,
-                    {
-                      backgroundColor: showAttachments ? colors.primary : colors.card,
-                      borderColor: colors.border
-                    }
-                  ]}
-                  onPress={() => setShowAttachments(!showAttachments)}
-                >
+              <TouchableOpacity
+                style={[
+                  styles.attachButton,
+                  {
+                    backgroundColor: showAttachments ? colors.primary : colors.card,
+                    borderColor: colors.border
+                  }
+                ]}
+                onPress={() => {
+                  logger.info('[LiveChat] Toggling attachments:', { showAttachments: !showAttachments });
+                  setShowAttachments(!showAttachments);
+                }}
+              >
                   <Paperclip size={18} color={showAttachments ? '#fff' : colors.textSecondary} />
                 </TouchableOpacity>
                 
@@ -553,7 +617,10 @@ export default function LiveChatScreen() {
               </Text>
               <TouchableOpacity
                 style={[styles.reopenButton, { backgroundColor: colors.primary }]}
-                onPress={() => router.back()}
+                onPress={() => {
+                  logger.info('[LiveChat] Closing closed chat and going back');
+                  router.back();
+                }}
               >
                 <RefreshCw size={16} color="#fff" />
                 <Text style={styles.reopenButtonText}>

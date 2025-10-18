@@ -38,6 +38,7 @@ import {
 import FileAttachmentPicker, { FileAttachment } from '@/components/FileAttachmentPicker';
 import { useRouter } from 'expo-router';
 import { SupportCategory, SupportTicket } from '@/types/support';
+import { logger } from '@/utils/logger';
 
 const { width } = Dimensions.get('window');
 
@@ -58,8 +59,15 @@ export default function SupportScreen() {
   const [attachments, setAttachments] = useState<FileAttachment[]>([]);
   const [showLiveChat, setShowLiveChat] = useState<boolean>(false);
   const [activeChatId, setActiveChatId] = useState<string | undefined>(undefined);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   React.useEffect(() => {
+    logger.info('[Support] Support screen opened', { 
+      userId: currentUser?.id,
+      userTicketsCount: userTickets.length,
+      userChatsCount: userChats.length 
+    });
+    
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 800,
@@ -112,8 +120,14 @@ export default function SupportScreen() {
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    // ✅ Validate all required fields
     if (!selectedCategory || !subject.trim() || !message.trim()) {
+      logger.warn('[Support] Submit validation failed:', {
+        hasCategory: !!selectedCategory,
+        hasSubject: !!subject.trim(),
+        hasMessage: !!message.trim()
+      });
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Bütün sahələri doldurun' : 'Заполните все поля'
@@ -121,7 +135,9 @@ export default function SupportScreen() {
       return;
     }
 
+    // ✅ Validate user
     if (!currentUser) {
+      logger.error('[Support] No current user for ticket submission');
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Daxil olun' : 'Войдите в систему'
@@ -129,44 +145,86 @@ export default function SupportScreen() {
       return;
     }
 
-    // Convert FileAttachment to string array for storage
-    const attachmentUris = attachments.map(att => att.uri);
+    // ✅ Prevent double submissions
+    if (isSubmitting) {
+      logger.warn('[Support] Ticket submission already in progress');
+      return;
+    }
 
-    createTicket({
+    // ✅ Validate attachments
+    if (attachments.length > 5) {
+      logger.warn('[Support] Too many attachments:', { count: attachments.length });
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Maksimum 5 fayl əlavə edə bilərsiniz' : 'Можно добавить максимум 5 файлов'
+      );
+      return;
+    }
+
+    logger.info('[Support] Submitting ticket:', {
       userId: currentUser.id,
-      subject: subject.trim(),
-      message: message.trim(),
       category: selectedCategory,
       priority,
-      status: 'open',
-      attachments: attachmentUris
+      subjectLength: subject.trim().length,
+      messageLength: message.trim().length,
+      attachmentsCount: attachments.length
     });
 
-    const attachmentText = attachments.length > 0 
-      ? (language === 'az' 
-          ? ` ${attachments.length} fayl əlavə edildi.`
-          : ` Добавлено ${attachments.length} файлов.`)
-      : '';
+    setIsSubmitting(true);
+    try {
+      // Convert FileAttachment to string array for storage
+      const attachmentUris = attachments.map(att => att.uri);
 
-    Alert.alert(
-      language === 'az' ? 'Uğurlu' : 'Успешно',
-      (language === 'az' 
-        ? 'Müraciətiniz göndərildi. Tezliklə cavab veriləcək.'
-        : 'Ваше обращение отправлено. Скоро мы ответим.') + attachmentText,
-      [
-        {
-          text: 'OK',
-          onPress: () => {
-            setShowForm(false);
-            setSelectedCategory('');
-            setSubject('');
-            setMessage('');
-            setPriority('medium');
-            setAttachments([]);
+      createTicket({
+        userId: currentUser.id,
+        subject: subject.trim(),
+        message: message.trim(),
+        category: selectedCategory,
+        priority,
+        status: 'open',
+        attachments: attachmentUris
+      });
+
+      logger.info('[Support] Ticket created successfully', {
+        userId: currentUser.id,
+        category: selectedCategory,
+        priority
+      });
+
+      const attachmentText = attachments.length > 0 
+        ? (language === 'az' 
+            ? ` ${attachments.length} fayl əlavə edildi.`
+            : ` Добавлено ${attachments.length} файлов.`)
+        : '';
+
+      Alert.alert(
+        language === 'az' ? 'Uğurlu' : 'Успешно',
+        (language === 'az' 
+          ? 'Müraciətiniz göndərildi. Tezliklə cavab veriləcək.'
+          : 'Ваше обращение отправлено. Скоро мы ответим.') + attachmentText,
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              setShowForm(false);
+              setSelectedCategory('');
+              setSubject('');
+              setMessage('');
+              setPriority('medium');
+              setAttachments([]);
+            }
           }
-        }
-      ]
-    );
+        ]
+      );
+    } catch (error) {
+      logger.error('[Support] Ticket submission error:', error);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Müraciət göndərilmədi. Yenidən cəhd edin.' : 'Не удалось отправить обращение. Попробуйте снова.'
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const CategoryCard = ({ category }: { category: SupportCategory }) => {
@@ -203,6 +261,11 @@ export default function SupportScreen() {
       <TouchableOpacity
         style={[styles.ticketCard, { backgroundColor: colors.card }]}
         onPress={() => {
+          logger.info('[Support] Ticket card clicked:', {
+            ticketId: ticket.id,
+            status: ticket.status,
+            responsesCount: ticket.responses.length
+          });
           Alert.alert(
             language === 'az' ? 'Müraciət detalları' : 'Детали обращения',
             `${language === 'az' ? 'Mövzu' : 'Тема'}: ${ticket.subject}\n\n${ticket.message}\n\n${language === 'az' ? 'Cavablar' : 'Ответы'}: ${ticket.responses.length}`,
@@ -214,21 +277,38 @@ export default function SupportScreen() {
               {
                 text: language === 'az' ? 'Cavab yaz' : 'Написать ответ',
                 onPress: async () => {
-                  const text = await prompt(
-                    language === 'az' ? 'Cavabınızı yazın' : 'Напишите ваш ответ',
-                    language === 'az' ? 'Cavab yazın' : 'Напишите ответ'
-                  );
-                  if (text && text.trim() && currentUser) {
-                    const { addResponse } = useSupportStore.getState();
-                    addResponse(ticket.id, {
-                      ticketId: ticket.id,
-                      userId: currentUser.id,
-                      message: text.trim(),
-                      isAdmin: false
-                    });
+                  try {
+                    logger.info('[Support] Opening response prompt for ticket:', { ticketId: ticket.id });
+                    const text = await prompt(
+                      language === 'az' ? 'Cavabınızı yazın' : 'Напишите ваш ответ',
+                      language === 'az' ? 'Cavab yazın' : 'Напишите ответ'
+                    );
+                    if (text && text.trim() && currentUser) {
+                      logger.info('[Support] Adding response to ticket:', {
+                        ticketId: ticket.id,
+                        userId: currentUser.id,
+                        responseLength: text.trim().length
+                      });
+                      const { addResponse } = useSupportStore.getState();
+                      addResponse(ticket.id, {
+                        ticketId: ticket.id,
+                        userId: currentUser.id,
+                        message: text.trim(),
+                        isAdmin: false
+                      });
+                      logger.info('[Support] Response added successfully:', { ticketId: ticket.id });
+                      Alert.alert(
+                        language === 'az' ? 'Uğurlu' : 'Успешно',
+                        language === 'az' ? 'Cavabınız göndərildi' : 'Ваш ответ отправлен'
+                      );
+                    } else if (!text || !text.trim()) {
+                      logger.warn('[Support] Response cancelled or empty');
+                    }
+                  } catch (error) {
+                    logger.error('[Support] Response error:', error);
                     Alert.alert(
-                      language === 'az' ? 'Uğurlu' : 'Успешно',
-                      language === 'az' ? 'Cavabınız göndərildi' : 'Ваш ответ отправлен'
+                      language === 'az' ? 'Xəta' : 'Ошибка',
+                      language === 'az' ? 'Cavab göndərilmədi' : 'Не удалось отправить ответ'
                     );
                   }
                 }
@@ -355,12 +435,14 @@ export default function SupportScreen() {
                 style={[styles.quickAction, { backgroundColor: colors.card }]}
                 onPress={() => {
                   if (!currentUser) {
+                    logger.warn('[Support] Live chat access denied: user not logged in');
                     Alert.alert(
                       language === 'az' ? 'Xəta' : 'Ошибка',
                       language === 'az' ? 'Daxil olun' : 'Войдите в систему'
                     );
                     return;
                   }
+                  logger.info('[Support] Opening live chat:', { userId: currentUser.id });
                   router.push('/live-chat');
                 }}
               >
@@ -389,7 +471,10 @@ export default function SupportScreen() {
               {/* Traditional Ticket */}
               <TouchableOpacity
                 style={[styles.quickAction, { backgroundColor: colors.card }]}
-                onPress={() => setShowForm(true)}
+                onPress={() => {
+                  logger.info('[Support] Opening new ticket form');
+                  setShowForm(true);
+                }}
               >
                 <View style={[styles.quickActionIcon, { backgroundColor: `${colors.primary}15` }]}>
                   <MessageSquare size={20} color={colors.primary} />
@@ -419,6 +504,11 @@ export default function SupportScreen() {
                       key={chat.id}
                       style={[styles.chatCard, { backgroundColor: colors.card }]}
                       onPress={() => {
+                        logger.info('[Support] Opening active chat:', { 
+                          chatId: chat.id, 
+                          status: chat.status,
+                          messagesCount: chat.messages.length
+                        });
                         setActiveChatId(chat.id);
                         setShowLiveChat(true);
                       }}
@@ -488,6 +578,7 @@ export default function SupportScreen() {
                   <TouchableOpacity
                     style={[styles.viewAllButton, { backgroundColor: colors.card }]}
                     onPress={() => {
+                      logger.info('[Support] View all tickets clicked:', { totalTickets: userTickets.length });
                       Alert.alert(
                         language === 'az' ? 'Bütün müraciətlər' : 'Все обращения',
                         userTickets.map(t => `${t.subject} - ${t.status}`).join('\n')
@@ -512,6 +603,7 @@ export default function SupportScreen() {
               <TouchableOpacity
                 style={[styles.faqItem, { backgroundColor: colors.card }]}
                 onPress={() => {
+                  logger.info('[Support] FAQ item clicked:', { question: 'how_to_post_listing' });
                   Alert.alert(
                     language === 'az' ? 'Elan necə yerləşdirilir?' : 'Как разместить объявление?',
                     language === 'az' 
@@ -529,6 +621,7 @@ export default function SupportScreen() {
               <TouchableOpacity
                 style={[styles.faqItem, { backgroundColor: colors.card }]}
                 onPress={() => {
+                  logger.info('[Support] FAQ item clicked:', { question: 'how_to_pay' });
                   Alert.alert(
                     language === 'az' ? 'Ödəniş necə edilir?' : 'Как произвести оплату?',
                     language === 'az' 
@@ -551,6 +644,7 @@ export default function SupportScreen() {
               <TouchableOpacity
                 style={styles.backButton}
                 onPress={() => {
+                  logger.info('[Support] Closing ticket form');
                   setShowForm(false);
                   setSelectedCategory('');
                   setSubject('');
@@ -686,16 +780,19 @@ export default function SupportScreen() {
                 styles.submitButton,
                 { 
                   backgroundColor: colors.primary,
-                  opacity: (!selectedCategory || !subject.trim() || !message.trim()) ? 0.5 : 1
+                  opacity: (!selectedCategory || !subject.trim() || !message.trim() || isSubmitting) ? 0.5 : 1
                 }
               ]}
               onPress={handleSubmit}
-              disabled={!selectedCategory || !subject.trim() || !message.trim()}
+              disabled={!selectedCategory || !subject.trim() || !message.trim() || isSubmitting}
             >
               <Send size={20} color="#fff" />
               <Text style={styles.submitButtonText}>
-                {language === 'az' ? 'Göndər' : 'Отправить'}
-                {attachments.length > 0 && ` (${attachments.length} fayl)`}
+                {isSubmitting 
+                  ? (language === 'az' ? 'Göndərilir...' : 'Отправка...')
+                  : (language === 'az' ? 'Göndər' : 'Отправить')
+                }
+                {!isSubmitting && attachments.length > 0 && ` (${attachments.length} fayl)`}
               </Text>
             </TouchableOpacity>
           </ScrollView>
