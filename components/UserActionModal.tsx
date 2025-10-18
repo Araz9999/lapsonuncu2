@@ -379,11 +379,17 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
       return;
     }
     
+    // ✅ Prevent opening report input if loading
+    if (isLoading) {
+      logger.warn('[UserActionModal] Cannot open report input while operation in progress');
+      return;
+    }
+    
     logger.info('[UserActionModal] Opening report input:', { userId: user.id, userName: user.name });
     setShowReportInput(true);
   };
 
-  const handleSubmitReport = () => {
+  const handleSubmitReport = async () => {
     // ✅ Validate input
     if (!reportText.trim()) {
       Alert.alert(
@@ -402,6 +408,13 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
       return;
     }
 
+    // ✅ Prevent double submissions
+    if (isLoading) {
+      logger.warn('[UserActionModal] Report submission already in progress');
+      return;
+    }
+
+    setIsLoading(true);
     try {
       logger.info('[UserActionModal] Submitting report:', { userId: user.id, reasonLength: reportText.trim().length });
       reportUser(user.id, reportText.trim());
@@ -416,10 +429,12 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Şikayət göndərilmədi' : 'Не удалось отправить жалобу'
       );
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleFollow = () => {
+  const handleFollow = async () => {
     // ✅ Validate user data
     if (!user?.id) {
       logger.error('[UserActionModal] No user for follow/unfollow');
@@ -430,6 +445,13 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
       return;
     }
 
+    // ✅ Prevent double clicks
+    if (isLoading) {
+      logger.warn('[UserActionModal] Follow operation already in progress');
+      return;
+    }
+
+    setIsLoading(true);
     try {
       if (isFollowed) {
         logger.info('[UserActionModal] Unfollowing user:', { userId: user.id, userName: user.name });
@@ -448,10 +470,12 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'İzləmə əməliyyatı uğursuz oldu' : 'Не удалось выполнить операцию подписки'
       );
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleFavorite = () => {
+  const handleFavorite = async () => {
     // ✅ Validate user data
     if (!user?.id) {
       logger.error('[UserActionModal] No user for favorite/unfavorite');
@@ -462,6 +486,13 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
       return;
     }
 
+    // ✅ Prevent double clicks
+    if (isLoading) {
+      logger.warn('[UserActionModal] Favorite operation already in progress');
+      return;
+    }
+
+    setIsLoading(true);
     try {
       if (isFavorite) {
         logger.info('[UserActionModal] Removing from favorites:', { userId: user.id, userName: user.name });
@@ -480,10 +511,12 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Sevimlilər əməliyyatı uğursuz oldu' : 'Не удалось выполнить операцию избранного'
       );
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleMute = () => {
+  const handleMute = async () => {
     // ✅ Validate user data
     if (!user?.id) {
       logger.error('[UserActionModal] No user for mute/unmute');
@@ -494,6 +527,13 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
       return;
     }
 
+    // ✅ Prevent double clicks
+    if (isLoading) {
+      logger.warn('[UserActionModal] Mute operation already in progress');
+      return;
+    }
+
+    setIsLoading(true);
     try {
       if (isMuted) {
         logger.info('[UserActionModal] Unmuting user:', { userId: user.id, userName: user.name });
@@ -512,6 +552,8 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Səssizə alma əməliyyatı uğursuz oldu' : 'Не удалось выполнить операцию отключения звука'
       );
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -547,7 +589,7 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
     }
   };
 
-  const handleTrust = () => {
+  const handleTrust = async () => {
     // ✅ Validate user data
     if (!user?.id) {
       logger.error('[UserActionModal] No user for trust/untrust');
@@ -558,6 +600,13 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
       return;
     }
 
+    // ✅ Prevent double clicks
+    if (isLoading) {
+      logger.warn('[UserActionModal] Trust operation already in progress');
+      return;
+    }
+
+    setIsLoading(true);
     try {
       if (isTrusted) {
         logger.info('[UserActionModal] Untrusting user:', { userId: user.id, userName: user.name });
@@ -576,6 +625,8 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Etibar əməliyyatı uğursuz oldu' : 'Не удалось выполнить операцию доверия'
       );
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -625,6 +676,12 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
       return;
     }
 
+    // ✅ Prevent opening note input if loading
+    if (isLoading) {
+      logger.warn('[UserActionModal] Cannot open note input while operation in progress');
+      return;
+    }
+
     logger.info('[UserActionModal] Opening note input:', { userId: user.id, hasExistingNote: !!userNote });
     
     if (userNote) {
@@ -635,7 +692,7 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
     setShowNoteInput(true);
   };
 
-  const handleSaveNote = () => {
+  const handleSaveNote = async () => {
     // ✅ Validate user data
     if (!user?.id) {
       logger.error('[UserActionModal] No user for save note');
@@ -646,6 +703,13 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
       return;
     }
 
+    // ✅ Prevent double saves
+    if (isLoading) {
+      logger.warn('[UserActionModal] Note save already in progress');
+      return;
+    }
+
+    setIsLoading(true);
     try {
       if (noteText.trim()) {
         logger.info('[UserActionModal] Saving user note:', { userId: user.id, noteLength: noteText.trim().length });
@@ -666,6 +730,8 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Qeyd yadda saxlanmadı' : 'Не удалось сохранить заметку'
       );
+    } finally {
+      setIsLoading(false);
     }
   };
 
