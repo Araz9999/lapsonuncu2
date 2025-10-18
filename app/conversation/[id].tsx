@@ -38,7 +38,9 @@ import {
   EyeOff,
   MoreVertical,
   Trash2,
+  Mail,
 } from 'lucide-react-native';
+import { Linking } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { Audio } from 'expo-av';
@@ -300,17 +302,36 @@ export default function ConversationScreen() {
   }
 
   const sendMessage = async (text: string, type: MessageType = 'text', attachments?: MessageAttachment[]) => {
-    logger.debug('sendMessage called with:', { text: text || '[empty]', type, attachments: attachments?.length || 0 });
+    logger.info('[Conversation] sendMessage called:', { 
+      text: text ? `${text.substring(0, 20)}...` : '[empty]', 
+      type, 
+      attachmentsCount: attachments?.length || 0 
+    });
     
     // Strict validation - don't send empty messages
     const trimmedText = text?.trim() || '';
     if (!trimmedText && (!attachments || attachments.length === 0)) {
-      logger.debug('Preventing empty message send - no text and no attachments');
+      logger.warn('[Conversation] Preventing empty message send - no text and no attachments');
       return;
     }
     
     if (!otherUser || !currentUser) {
-      logger.debug('No other user or current user, returning');
+      logger.error('[Conversation] Cannot send message - missing user data:', {
+        hasOtherUser: !!otherUser,
+        hasCurrentUser: !!currentUser
+      });
+      return;
+    }
+    
+    // ✅ Check if other user allows messaging
+    if (otherUser.privacySettings?.onlyAppMessaging === false && otherUser.privacySettings?.allowDirectContact === false) {
+      logger.warn('[Conversation] User has disabled messaging:', otherUser.id);
+      Alert.alert(
+        language === 'az' ? 'Mesaj göndərilə bilməz' : 'Невозможно отправить сообщение',
+        language === 'az' 
+          ? 'Bu istifadəçi mesajları qəbul etmir' 
+          : 'Этот пользователь не принимает сообщения'
+      );
       return;
     }
 
@@ -888,10 +909,22 @@ export default function ConversationScreen() {
   };
 
   const renderContactInfo = () => {
-    if (!otherUser) return null;
+    if (!otherUser) {
+      logger.warn('[Conversation] No other user for contact info');
+      return null;
+    }
     
-    const hidePhone = otherUser.privacySettings.hidePhoneNumber;
-    const onlyAppMessaging = otherUser.privacySettings.onlyAppMessaging;
+    // ✅ Get privacy settings with safe defaults
+    const hidePhone = otherUser.privacySettings?.hidePhoneNumber ?? false;
+    const onlyAppMessaging = otherUser.privacySettings?.onlyAppMessaging ?? false;
+    const allowDirectContact = otherUser.privacySettings?.allowDirectContact ?? true;
+    
+    logger.info('[Conversation] Rendering contact info:', {
+      otherUserId: otherUser.id,
+      hidePhone,
+      onlyAppMessaging,
+      allowDirectContact
+    });
     
     return (
       <View style={styles.contactInfo}>
@@ -899,6 +932,7 @@ export default function ConversationScreen() {
           {language === 'az' ? 'Əlaqə məlumatları' : 'Контактная информация'}
         </Text>
         
+        {/* ✅ Phone/Contact Section */}
         {hidePhone ? (
           <View>
             <View style={styles.privacyNotice}>
@@ -915,17 +949,29 @@ export default function ConversationScreen() {
               onPress={async () => {
                 try {
                   if (!currentUser?.id) {
-                    logger.error('No current user for call initiation');
+                    logger.error('[Conversation] No current user for call initiation');
                     Alert.alert(
                       language === 'az' ? 'Xəta' : 'Ошибка',
                       language === 'az' ? 'Zəng etmək üçün daxil olun' : 'Войдите для совершения звонка'
                     );
                     return;
                   }
+                  
+                  logger.info('[Conversation] Initiating in-app call:', {
+                    from: currentUser.id,
+                    to: otherUser.id,
+                    listingId: conversation?.listingId
+                  });
+                  
                   const callId = await initiateCall(currentUser.id, otherUser.id, conversation?.listingId || '', 'voice');
+                  logger.info('[Conversation] Call initiated, navigating to call screen:', callId);
                   router.push(`/call/${callId}`);
                 } catch (error) {
-                  logger.error('Failed to initiate call:', error);
+                  logger.error('[Conversation] Failed to initiate call:', error);
+                  Alert.alert(
+                    language === 'az' ? 'Xəta' : 'Ошибка',
+                    language === 'az' ? 'Zəng edilə bilmədi' : 'Не удалось позвонить'
+                  );
                 }
               }}
             >
@@ -936,10 +982,34 @@ export default function ConversationScreen() {
             </TouchableOpacity>
           </View>
         ) : (
-          <TouchableOpacity style={styles.contactButton}>
-            <Phone size={16} color={Colors.primary} />
-            <Text style={styles.contactButtonText}>{otherUser.phone}</Text>
-          </TouchableOpacity>
+          <View>
+            {/* ✅ Show phone number */}
+            {otherUser.phone && (
+              <TouchableOpacity 
+                style={styles.contactButton}
+                onPress={() => {
+                  logger.info('[Conversation] Opening phone dialer:', otherUser.phone);
+                  Linking.openURL(`tel:${otherUser.phone}`);
+                }}
+              >
+                <Phone size={16} color={Colors.primary} />
+                <Text style={styles.contactButtonText}>{otherUser.phone}</Text>
+              </TouchableOpacity>
+            )}
+            
+            {/* ✅ Show email if available */}
+            {otherUser.email && (
+              <TouchableOpacity 
+                style={styles.contactButton}
+                onPress={() => {
+                  logger.info('[Conversation] Opening email client:', otherUser.email);
+                  Linking.openURL(`mailto:${otherUser.email}`);
+                }}
+              >
+                <Text style={styles.contactButtonText}>{otherUser.email}</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         )}
         
         {onlyAppMessaging && (

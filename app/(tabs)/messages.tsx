@@ -16,9 +16,11 @@ export default function MessagesScreen() {
   const { isAuthenticated, currentUser } = useUserStore();
   const { conversations, simulateIncomingMessage, getFilteredConversations, deleteAllMessagesFromUser } = useMessageStore();
   
-  logger.debug('MessagesScreen - isAuthenticated:', isAuthenticated);
-  logger.debug('MessagesScreen - currentUser:', currentUser?.name);
-  logger.debug('MessagesScreen - conversations count:', conversations.length);
+  logger.info('[Messages] Screen rendered:', {
+    isAuthenticated,
+    userId: currentUser?.id,
+    conversationsCount: conversations.length
+  });
 
   if (!isAuthenticated) {
     return (
@@ -100,24 +102,50 @@ export default function MessagesScreen() {
     if (!otherUser || !listing) return null;
     
     const handlePress = () => {
-      logger.debug('Navigating to conversation:', item.id);
-      logger.debug('Other user:', otherUser?.name);
-      logger.debug('Listing:', listing?.title);
-      const conversationId = item.id;
-      if (conversationId && typeof conversationId === 'string') {
-        logger.debug('Pushing to conversation route:', `/conversation/${conversationId}`);
-        try {
-          router.push(`/conversation/${conversationId}`);
-        } catch (error) {
-          logger.error('Navigation error:', error);
-        }
-      } else {
-        logger.error('Invalid conversation ID:', conversationId);
+      // ✅ Validate conversation ID before navigation
+      if (!item.id || typeof item.id !== 'string') {
+        logger.error('[Messages] Invalid conversation ID:', item.id);
+        return;
+      }
+      
+      // ✅ Validate other user exists
+      if (!otherUser) {
+        logger.error('[Messages] No other user found for conversation:', item.id);
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'İstifadəçi məlumatları tapılmadı' : 'Информация о пользователе не найдена'
+        );
+        return;
+      }
+      
+      logger.info('[Messages] Navigating to conversation:', {
+        conversationId: item.id,
+        otherUserId: otherUser.id,
+        otherUserName: otherUser.name,
+        listingId: listing?.id
+      });
+      
+      try {
+        router.push(`/conversation/${item.id}`);
+      } catch (error) {
+        logger.error('[Messages] Navigation error:', error);
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Söhbət açıla bilmədi' : 'Не удалось открыть беседу'
+        );
       }
     };
     
     const handleLongPress = () => {
-      if (!otherUser) return;
+      if (!otherUser) {
+        logger.warn('[Messages] No other user for long press action');
+        return;
+      }
+      
+      logger.info('[Messages] Long press on conversation:', {
+        conversationId: item.id,
+        otherUserId: otherUser.id
+      });
       
       const title = language === 'az' ? 'Mesaj əməliyyatları' : 'Операции с сообщениями';
       const deleteAllMessage = language === 'az' 
@@ -133,13 +161,15 @@ export default function MessagesScreen() {
           {
             text: cancelButton,
             style: 'cancel',
+            onPress: () => logger.info('[Messages] Delete cancelled')
           },
           {
             text: deleteAllButton,
             style: 'destructive',
             onPress: () => {
-              logger.debug('Deleting all messages from user:', otherUser.id);
+              logger.info('[Messages] Deleting all messages from user:', otherUser.id);
               deleteAllMessagesFromUser(otherUser.id);
+              logger.info('[Messages] All messages deleted successfully');
             },
           },
         ]
