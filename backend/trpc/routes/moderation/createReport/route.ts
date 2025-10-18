@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { protectedProcedure } from '../../../create-context';
 import { moderationDb } from '../../../../db/moderation';
 import { Report } from '@/types/moderation';
+import { logger } from '../../../../utils/logger';
 
 export const createReportProcedure = protectedProcedure
   .input(z.object({
@@ -15,6 +16,11 @@ export const createReportProcedure = protectedProcedure
     evidence: z.array(z.string()).optional(),
   }))
   .mutation(({ input, ctx }) => {
+    logger.info('[Moderation] Report created:', {
+      reporterId: ctx.user.userId,
+      type: input.type,
+      priority: input.priority || 'medium'
+    });
     const report: Report = {
       id: `report_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
       reporterId: ctx.user.userId,
