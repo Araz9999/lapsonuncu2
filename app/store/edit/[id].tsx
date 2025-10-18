@@ -252,7 +252,10 @@ export default function EditStoreScreen() {
     setIsLoading(true);
     
     try {
-      await editStore(store.id, {
+      logger.debug('[EditStoreScreen] Saving store:', store.id);
+      
+      // ✅ Prepare update data
+      const updateData = {
         name: formData.name.trim(),
         categoryName: formData.categoryName.trim(),
         address: formData.address.trim(),
@@ -263,20 +266,49 @@ export default function EditStoreScreen() {
           website: formData.contactInfo.website.trim() || undefined,
           whatsapp: formData.contactInfo.whatsapp.trim() || undefined
         }
-      });
+      };
+      
+      await editStore(store.id, updateData);
+      
+      logger.info('[EditStoreScreen] Store updated successfully:', store.id);
       
       Alert.alert(
         language === 'az' ? 'Uğurlu!' : 'Успешно!',
-        language === 'az' ? 'Mağaza məlumatları yeniləndi' : 'Информация о магазине обновлена',
+        language === 'az' 
+          ? `"${formData.name.trim()}" mağazası yeniləndi` 
+          : `Магазин "${formData.name.trim()}" обновлен`,
         [{
           text: 'OK',
           onPress: () => router.back()
-        }]
+        }],
+        { cancelable: false }
       );
     } catch (error) {
+      logger.error('[EditStoreScreen] Error updating store:', error);
+      
+      let errorMessage = language === 'az' 
+        ? 'Mağaza yenilənərkən xəta baş verdi' 
+        : 'Ошибка при обновлении магазина';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('not found') || error.message.includes('tapılmadı')) {
+          errorMessage = language === 'az'
+            ? 'Mağaza tapılmadı'
+            : 'Магазин не найден';
+        } else if (error.message.includes('permission') || error.message.includes('icazə')) {
+          errorMessage = language === 'az'
+            ? 'Bu əməliyyat üçün icazəniz yoxdur'
+            : 'У вас нет прав для этой операции';
+        } else if (error.message.includes('network') || error.message.includes('şəbəkə')) {
+          errorMessage = language === 'az'
+            ? 'Şəbəkə xətası. Yenidən cəhd edin'
+            : 'Ошибка сети. Попробуйте снова';
+        }
+      }
+      
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' ? 'Mağaza yenilənərkən xəta baş verdi' : 'Ошибка при обновлении магазина'
+        errorMessage
       );
     } finally {
       setIsLoading(false);
@@ -333,8 +365,10 @@ export default function EditStoreScreen() {
   return (
     <KeyboardAvoidingView 
       style={styles.container} 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <ArrowLeft size={24} color={Colors.text} />
@@ -523,6 +557,7 @@ export default function EditStoreScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+    </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
   );
 }

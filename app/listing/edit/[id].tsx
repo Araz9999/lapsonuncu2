@@ -10,12 +10,17 @@ import {
   Image,
   Modal,
   FlatList,
-  Platform
+  Platform,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Keyboard,
+  TouchableWithoutFeedback
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useLanguageStore } from '@/store/languageStore';
 import { useListingStore } from '@/store/listingStore';
+import { useUserStore } from '@/store/userStore';
 import { categories } from '@/constants/categories';
 import { locations } from '@/constants/locations';
 import Colors from '@/constants/colors';
@@ -56,6 +61,7 @@ export default function EditListingScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { language } = useLanguageStore();
   const { listings, updateListing } = useListingStore();
+  const { currentUser, isAuthenticated } = useUserStore();
   
   const listing = listings.find(l => l.id === id);
   
@@ -84,27 +90,58 @@ export default function EditListingScreen() {
   const currencies = ['AZN', 'USD', 'EUR', 'TRY', 'RUB'];
   
   useEffect(() => {
-    if (listing) {
-      const selectedLocation = locations.find(loc => 
-        loc.name.az === listing.location.az || loc.name.ru === listing.location.ru
+    try {
+      if (listing) {
+        // ✅ Validate listing data
+        if (!listing.title || !listing.description || typeof listing.price !== 'number') {
+          logger.error('[EditListingScreen] Invalid listing data');
+          Alert.alert(
+            language === 'az' ? 'Xəta' : 'Ошибка',
+            language === 'az' ? 'Elan məlumatları düzgün deyil' : 'Данные объявления неверны'
+          );
+          return;
+        }
+        
+        // ✅ Validate ownership
+        if (listing.userId !== currentUser?.id) {
+          logger.error('[EditListingScreen] User is not owner');
+          Alert.alert(
+            language === 'az' ? 'Xəta' : 'Ошибка',
+            language === 'az' ? 'Bu elanı redaktə etmək icazəniz yoxdur' : 'У вас нет прав для редактирования этого объявления',
+            [{ text: 'OK', onPress: () => router.back() }]
+          );
+          return;
+        }
+        
+        const selectedLocation = locations.find(loc => 
+          loc.name.az === listing.location.az || loc.name.ru === listing.location.ru
+        );
+        
+        setFormData({
+          title: listing.title || { az: '', ru: '', en: '' },
+          description: listing.description || { az: '', ru: '', en: '' },
+          price: listing.price.toString(),
+          currency: listing.currency || 'AZN',
+          categoryId: listing.categoryId || 0,
+          subcategoryId: listing.subcategoryId || 0,
+          subSubcategoryId: listing.subSubcategoryId || 0,
+          location: listing.location || { az: '', ru: '', en: '' },
+          locationId: selectedLocation?.id || '',
+          images: Array.isArray(listing.images) ? listing.images : [],
+          condition: listing.condition || '',
+          deliveryAvailable: listing.deliveryAvailable || false
+        });
+        
+        logger.debug('[EditListingScreen] Listing data loaded:', listing.id);
+      }
+    } catch (error) {
+      logger.error('[EditListingScreen] Error loading listing data:', error);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Elan məlumatlarını yükləyərkən xəta' : 'Ошибка при загрузке данных объявления'
       );
-      
-      setFormData({
-        title: listing.title,
-        description: listing.description,
-        price: listing.price.toString(),
-        currency: 'AZN',
-        categoryId: listing.categoryId,
-        subcategoryId: listing.subcategoryId,
-        subSubcategoryId: listing.subSubcategoryId || 0,
-        location: listing.location,
-        locationId: selectedLocation?.id || '',
-        images: listing.images,
-        condition: listing.condition || '',
-        deliveryAvailable: listing.deliveryAvailable || false
-      });
     }
-  }, [listing]);
+  }, [listing, language, currentUser]);
   
   if (!listing) {
     return (
@@ -291,47 +328,193 @@ export default function EditListingScreen() {
   };
   
   const handleSave = async () => {
-    if (!formData.title.az || !formData.title.ru || !formData.title.en || !formData.description.az || !formData.description.ru || !formData.description.en || !formData.price) {
+    // ✅ Validate authentication
+    if (!isAuthenticated || !currentUser) {
+      logger.error('[EditListingScreen] User not authenticated');
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' ? 'Bütün sahələri doldurun' : 'Заполните все поля'
+        language === 'az' ? 'Hesaba daxil olmalısınız' : 'Вы должны войти в систему'
+      );
+      return;
+    }
+    
+    // ✅ Validate listing
+    if (!listing || !listing.id) {
+      logger.error('[EditListingScreen] Invalid listing');
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Elan tapılmadı' : 'Объявление не найдено'
+      );
+      return;
+    }
+    
+    // ✅ Check if already saving
+    if (isLoading) {
+      logger.warn('[EditListingScreen] Save already in progress');
+      return;
+    }
+    
+    // ✅ Validate title (all languages)
+    if (!formData.title.az?.trim() || !formData.title.ru?.trim() || !formData.title.en?.trim()) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Bütün dillərdə başlıq daxil edin' : 'Введите заголовок на всех языках'
+      );
+      return;
+    }
+    
+    // ✅ Validate title length
+    if (formData.title.az.trim().length < 3 || formData.title.az.trim().length > 100) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Başlıq 3-100 simvol arasında olmalıdır' : 'Заголовок должен быть от 3 до 100 символов'
+      );
+      return;
+    }
+    
+    // ✅ Validate description (all languages)
+    if (!formData.description.az?.trim() || !formData.description.ru?.trim() || !formData.description.en?.trim()) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Bütün dillərdə təsvir daxil edin' : 'Введите описание на всех языках'
+      );
+      return;
+    }
+    
+    // ✅ Validate description length
+    if (formData.description.az.trim().length < 10 || formData.description.az.trim().length > 2000) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Təsvir 10-2000 simvol arasında olmalıdır' : 'Описание должно быть от 10 до 2000 символов'
+      );
+      return;
+    }
+    
+    // ✅ Validate price
+    if (!formData.price.trim()) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Qiymət daxil edin' : 'Введите цену'
+      );
+      return;
+    }
+    
+    const priceValue = parseFloat(formData.price);
+    if (isNaN(priceValue) || !isFinite(priceValue) || priceValue < 0 || priceValue > 1000000) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Düzgün qiymət daxil edin (0-1,000,000)' : 'Введите корректную цену (0-1,000,000)'
+      );
+      return;
+    }
+    
+    // ✅ Validate category
+    if (!formData.categoryId || formData.categoryId === 0) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Kateqoriya seçin' : 'Выберите категорию'
+      );
+      return;
+    }
+    
+    // ✅ Validate location
+    if (!formData.locationId || !formData.locationId.trim()) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Yer seçin' : 'Выберите местоположение'
+      );
+      return;
+    }
+    
+    // ✅ Validate images
+    if (!Array.isArray(formData.images) || formData.images.length === 0) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Ən azı 1 şəkil əlavə edin' : 'Добавьте хотя бы 1 фото'
+      );
+      return;
+    }
+    
+    if (formData.images.length > 10) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Maksimum 10 şəkil əlavə edə bilərsiniz' : 'Максимум 10 фото'
       );
       return;
     }
     
     setIsLoading(true);
     try {
+      logger.debug('[EditListingScreen] Saving listing:', listing.id);
+      
+      // ✅ Prepare update data
       const updatedListing = {
         ...listing,
-        title: formData.title,
-        description: formData.description,
+        title: {
+          az: formData.title.az.trim(),
+          ru: formData.title.ru.trim(),
+          en: formData.title.en.trim()
+        },
+        description: {
+          az: formData.description.az.trim(),
+          ru: formData.description.ru.trim(),
+          en: formData.description.en.trim()
+        },
         price: parseFloat(formData.price),
         currency: formData.currency,
         categoryId: formData.categoryId,
         subcategoryId: formData.subcategoryId,
-        subSubcategoryId: formData.subSubcategoryId,
+        subSubcategoryId: formData.subSubcategoryId || undefined,
         location: formData.location,
         images: formData.images,
-        condition: formData.condition,
-        deliveryAvailable: formData.deliveryAvailable
+        condition: formData.condition.trim(),
+        deliveryAvailable: formData.deliveryAvailable,
+        updatedAt: new Date().toISOString()
       };
       
       updateListing(listing.id, updatedListing);
       
+      logger.info('[EditListingScreen] Listing updated successfully:', listing.id);
+      
       Alert.alert(
         language === 'az' ? 'Uğurlu!' : 'Успешно!',
-        language === 'az' ? 'Elan yeniləndi' : 'Объявление обновлено',
+        language === 'az' 
+          ? `"${formData.title.az.trim()}" elanı yeniləndi` 
+          : `Объявление "${formData.title.ru.trim()}" обновлено`,
         [
           {
             text: 'OK',
             onPress: () => router.back()
           }
-        ]
+        ],
+        { cancelable: false }
       );
     } catch (error) {
+      logger.error('[EditListingScreen] Error updating listing:', error);
+      
+      let errorMessage = language === 'az' 
+        ? 'Elan yenilənərkən xəta baş verdi' 
+        : 'Произошла ошибка при обновлении объявления';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('not found') || error.message.includes('tapılmadı')) {
+          errorMessage = language === 'az'
+            ? 'Elan tapılmadı'
+            : 'Объявление не найдено';
+        } else if (error.message.includes('permission') || error.message.includes('icazə')) {
+          errorMessage = language === 'az'
+            ? 'Bu əməliyyat üçün icazəniz yoxdur'
+            : 'У вас нет прав для этой операции';
+        } else if (error.message.includes('network') || error.message.includes('şəbəkə')) {
+          errorMessage = language === 'az'
+            ? 'Şəbəkə xətası. Yenidən cəhd edin'
+            : 'Ошибка сети. Попробуйте снова';
+        }
+      }
+      
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' ? 'Elan yenilənərkən xəta baş verdi' : 'Произошла ошибка при обновлении объявления'
+        errorMessage
       );
     } finally {
       setIsLoading(false);
@@ -339,7 +522,13 @@ export default function EditListingScreen() {
   };
   
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView 
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+    >
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+    <View style={styles.flex}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <ArrowLeft size={24} color={Colors.text} />
@@ -352,7 +541,11 @@ export default function EditListingScreen() {
         </TouchableOpacity>
       </View>
       
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.content} 
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         {/* Images */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
@@ -596,6 +789,7 @@ export default function EditListingScreen() {
           onPress={handleSave}
           disabled={isLoading}
         >
+          {isLoading && <ActivityIndicator size="small" color="white" style={{ marginRight: 8 }} />}
           <Text style={styles.saveButtonText}>
             {isLoading
               ? (language === 'az' ? 'Yadda saxlanılır...' : 'Сохранение...')
@@ -735,6 +929,8 @@ export default function EditListingScreen() {
         </View>
       </Modal>
     </View>
+    </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -742,6 +938,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
+  },
+  flex: {
+    flex: 1,
   },
   header: {
     flexDirection: 'row',
