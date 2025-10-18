@@ -133,9 +133,7 @@ export default function SettingsScreen() {
     return () => pulseLoop.stop();
   }, []);
 
-  const themeModes: { key: ThemeMode; label: string; labelRu: string; icon: React.ComponentType<any> }[] = [
   const themeModes: { key: ThemeMode; label: string; labelRu: string; icon: LucideIcon }[] = [
->main
     { key: 'light', label: 'İşıqlı', labelRu: 'Светлая', icon: Sun },
     { key: 'dark', label: 'Qaranlıq', labelRu: 'Темная', icon: Moon },
     { key: 'auto', label: 'Avtomatik', labelRu: 'Автоматическая', icon: RefreshCw },
@@ -1367,4 +1365,26 @@ const styles = StyleSheet.create({
   bottomSpacing: {
     height: 40,
   },
+});
+
+    marginTop: 4,
+    lineHeight: 20,
+  },
+  colorPreview: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  colorDot: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    marginRight: 12,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  bottomSpacing: {
+    height: 40,
+  },
+});
+},
 });
