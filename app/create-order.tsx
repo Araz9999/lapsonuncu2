@@ -60,6 +60,7 @@ export default function CreateOrderScreen() {
   });
 
   const handleCreateOrder = () => {
+    // Amount validation
     if (!amount.trim()) {
       Alert.alert('Error', 'Please enter amount');
       return;
@@ -72,11 +73,17 @@ export default function CreateOrderScreen() {
       return;
     }
 
+    if (amountNum < 0.01) {
+      Alert.alert('Error', 'Minimum order amount is 0.01 AZN');
+      return;
+    }
+
     if (amountNum > 50000) {
       Alert.alert('Error', 'Maximum order amount is 50,000 AZN');
       return;
     }
 
+    // Description validation
     if (!description.trim()) {
       Alert.alert('Error', 'Please enter a description');
       return;
@@ -84,6 +91,11 @@ export default function CreateOrderScreen() {
 
     if (description.trim().length < 5) {
       Alert.alert('Error', 'Description must be at least 5 characters');
+      return;
+    }
+
+    if (description.trim().length > 250) {
+      Alert.alert('Error', 'Description must not exceed 250 characters');
       return;
     }
 

@@ -41,36 +41,89 @@ export default function SearchScreen() {
   };
 
   const handleCategorySelect = (categoryId: number) => {
-    setSelectedCategory(categoryId);
+    // ✅ Toggle category - if already selected, deselect it
+    if (selectedCategory === categoryId) {
+      setSelectedCategory(null);
+      setSelectedSubcategory(null); // ✅ Also clear subcategory
+    } else {
+      setSelectedCategory(categoryId);
+      setSelectedSubcategory(null); // ✅ Clear subcategory when changing category
+    }
   };
 
   const handleSubcategorySelect = (subcategoryId: number) => {
-    setSelectedSubcategory(subcategoryId);
+    // ✅ Toggle subcategory - if already selected, deselect it
+    if (selectedSubcategory === subcategoryId) {
+      setSelectedSubcategory(null);
+    } else {
+      setSelectedSubcategory(subcategoryId);
+    }
   };
 
   const handlePriceRangeApply = () => {
-    // BUG FIX: Validate price range
-    const minVal = minPrice ? Number(minPrice) : null;
-    const maxVal = maxPrice ? Number(maxPrice) : null;
+    // ✅ Trim whitespace from inputs
+    const trimmedMin = minPrice?.trim() || '';
+    const trimmedMax = maxPrice?.trim() || '';
     
-    // BUG FIX: Check for invalid values
-    if (minVal !== null && (isNaN(minVal) || minVal < 0)) {
-      Alert.alert(
-        language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' ? 'Minimum qiymət düzgün deyil' : 'Минимальная цена некорректна'
-      );
-      return;
+    // ✅ Parse and validate
+    const minVal = trimmedMin ? parseFloat(trimmedMin) : null;
+    const maxVal = trimmedMax ? parseFloat(trimmedMax) : null;
+    
+    // ✅ Validate min price
+    if (minVal !== null) {
+      if (isNaN(minVal) || !isFinite(minVal)) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Minimum qiymət düzgün deyil' : 'Минимальная цена некорректна'
+        );
+        return;
+      }
+      
+      if (minVal < 0) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Minimum qiymət mənfi ola bilməz' : 'Минимальная цена не может быть отрицательной'
+        );
+        return;
+      }
+      
+      if (minVal > 1000000) { // ✅ Max 1 million AZN
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Minimum qiymət çox yüksəkdir (max 1,000,000 AZN)' : 'Минимальная цена слишком высока (макс 1,000,000 AZN)'
+        );
+        return;
+      }
     }
     
-    if (maxVal !== null && (isNaN(maxVal) || maxVal < 0)) {
-      Alert.alert(
-        language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' ? 'Maksimum qiymət düzgün deyil' : 'Максимальная цена некорректна'
-      );
-      return;
+    // ✅ Validate max price
+    if (maxVal !== null) {
+      if (isNaN(maxVal) || !isFinite(maxVal)) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Maksimum qiymət düzgün deyil' : 'Максимальная цена некорректна'
+        );
+        return;
+      }
+      
+      if (maxVal < 0) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Maksimum qiymət mənfi ola bilməz' : 'Максимальная цена не может быть отрицательной'
+        );
+        return;
+      }
+      
+      if (maxVal > 1000000) { // ✅ Max 1 million AZN
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Maksimum qiymət çox yüksəkdir (max 1,000,000 AZN)' : 'Максимальная цена слишком высока (макс 1,000,000 AZN)'
+        );
+        return;
+      }
     }
     
-    // BUG FIX: Validate min is not greater than max
+    // ✅ Validate min is not greater than max
     if (minVal !== null && maxVal !== null && minVal > maxVal) {
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
@@ -181,7 +234,8 @@ export default function SearchScreen() {
         quality: 1,
       });
 
-      if (!result.canceled) {
+      // ✅ Validate assets array exists and has elements
+      if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0]) {
         setSearchImage(result.assets[0].uri);
         // In a real app, we would send this image to a backend for processing
         Alert.alert(

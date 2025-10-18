@@ -5,7 +5,8 @@ import { useTranslation } from '@/constants/translations';
 import { useUserStore } from '@/store/userStore';
 import { users } from '@/mocks/users';
 import Colors from '@/constants/colors';
-import { X, Eye, EyeOff, Facebook, Chrome, MessageCircle } from 'lucide-react-native';
+import { X, Eye, EyeOff, Facebook, Chrome, MessageCircle, Alert as AlertIcon } from 'lucide-react-native';
+import { Alert } from 'react-native';
 import { initiateSocialLogin, showSocialLoginError } from '@/utils/socialAuth';
 
 export default function LoginScreen() {
@@ -19,16 +20,90 @@ export default function LoginScreen() {
 
   const [loadingSocial, setLoadingSocial] = useState<string | null>(null);
 
-  const handleLogin = () => {
-    if (!email || !password) {
+  const handleLogin = async () => {
+    // ===== VALIDATION START =====
+    
+    // 1. Email validation
+    if (!email || typeof email !== 'string' || email.trim().length === 0) {
+      Alert.alert(
+        t('error'),
+        t('emailRequired') || 'Email tələb olunur'
+      );
       return;
     }
     
-    login(users[0]);
-    if (router.canGoBack()) {
-      router.back();
-    } else {
-      router.replace('/');
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      Alert.alert(
+        t('error'),
+        t('invalidEmail') || 'Düzgün email daxil edin'
+      );
+      return;
+    }
+    
+    if (email.length > 255) {
+      Alert.alert(
+        t('error'),
+        'Email çox uzundur (maks 255 simvol)'
+      );
+      return;
+    }
+    
+    // 2. Password validation
+    if (!password || typeof password !== 'string' || password.length === 0) {
+      Alert.alert(
+        t('error'),
+        t('passwordRequired') || 'Şifrə tələb olunur'
+      );
+      return;
+    }
+    
+    if (password.length < 6) {
+      Alert.alert(
+        t('error'),
+        'Şifrə ən azı 6 simvol olmalıdır'
+      );
+      return;
+    }
+    
+    if (password.length > 128) {
+      Alert.alert(
+        t('error'),
+        'Şifrə çox uzundur (maks 128 simvol)'
+      );
+      return;
+    }
+    
+    // ===== VALIDATION END =====
+    
+    try {
+      // TODO: Real authentication API call
+      // const result = await authService.login(email.trim().toLowerCase(), password);
+      
+      // Mock authentication
+      const mockUser = users.find(u => u.email.toLowerCase() === email.trim().toLowerCase());
+      
+      if (!mockUser) {
+        Alert.alert(
+          t('error'),
+          'Email və ya şifrə səhvdir'
+        );
+        return;
+      }
+      
+      login(mockUser);
+      
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace('/');
+      }
+    } catch (error) {
+      logger.error('Login error:', error);
+      Alert.alert(
+        t('error'),
+        'Giriş zamanı xəta baş verdi. Yenidən cəhd edin.'
+      );
     }
   };
   
@@ -94,9 +169,12 @@ export default function LoginScreen() {
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.header}>
           <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
             <X size={24} color={Colors.text} />
@@ -127,6 +205,8 @@ export default function LoginScreen() {
               placeholderTextColor={Colors.placeholder}
               keyboardType="email-address"
               autoCapitalize="none"
+              returnKeyType="next"
+              blurOnSubmit={false}
             />
           </View>
           
@@ -142,6 +222,8 @@ export default function LoginScreen() {
                 placeholder={t('yourPassword')}
                 placeholderTextColor={Colors.placeholder}
                 secureTextEntry={!showPassword}
+                returnKeyType="go"
+                onSubmitEditing={handleLogin}
               />
               <TouchableOpacity 
                 style={styles.eyeButton}

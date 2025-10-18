@@ -54,7 +54,6 @@ export type ModeratorPermission =
   | 'manage_users'
   | 'manage_listings'
   | 'manage_stores'
-  | 'send_warnings'
-  | 'temporary_ban'
-  | 'permanent_ban'
-  | 'view_analytics';
+  | 'manage_tickets'
+  | 'view_analytics'
+  | 'manage_moderators';

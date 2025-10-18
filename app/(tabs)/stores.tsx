@@ -7,8 +7,11 @@ import {
   TouchableOpacity,
   Image,
   TextInput,
-  Dimensions
+  Dimensions,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
+import { logger } from '@/utils/logger';
 import { useRouter } from 'expo-router';
 import { useLanguageStore } from '@/store/languageStore';
 import { useStoreStore } from '@/store/storeStore';
@@ -32,25 +35,87 @@ export default function StoresTabScreen() {
   const { stores, followStore, unfollowStore, isFollowingStore } = useStoreStore();
   const { currentUser } = useUserStore();
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   
-  const activeStores = stores.filter(store => store.isActive);
-  const filteredStores = activeStores.filter(store => 
-    store.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    store.categoryName.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // ✅ Filter active stores with validation
+  const activeStores = stores.filter(store => {
+    // Validate store has required fields
+    if (!store || typeof store.isActive !== 'boolean') {
+      logger.warn('[StoresTab] Invalid store object:', store?.id);
+      return false;
+    }
+    return store.isActive;
+  });
+  
+  // ✅ Safe search with validation and sanitization
+  const filteredStores = activeStores.filter(store => {
+    // Validate required fields
+    if (!store.name || !store.categoryName) {
+      logger.warn('[StoresTab] Store missing name or category:', store.id);
+      return false;
+    }
+    
+    // ✅ Sanitize and limit search query length
+    const sanitizedQuery = searchQuery
+      .trim()
+      .toLowerCase()
+      .substring(0, 200); // Max 200 chars
+    
+    if (!sanitizedQuery) return true; // Show all if empty
+    
+    const storeName = (store.name || '').toLowerCase();
+    const categoryName = (store.categoryName || '').toLowerCase();
+    
+    return storeName.includes(sanitizedQuery) || categoryName.includes(sanitizedQuery);
+  });
   
   const handleStorePress = (storeId: string) => {
     router.push(`/store/${storeId}`);
   };
   
   const handleFollowToggle = async (storeId: string) => {
-    if (!currentUser) return;
+    // ✅ Validate storeId
+    if (!storeId || typeof storeId !== 'string') {
+      logger.error('[handleFollowToggle] Invalid storeId:', storeId);
+      return;
+    }
+
+    if (!currentUser) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'İzləmək üçün daxil olun' : 'Войдите для подписки'
+      );
+      return;
+    }
     
-    const isFollowing = isFollowingStore(currentUser.id, storeId);
-    if (isFollowing) {
-      await unfollowStore(currentUser.id, storeId);
-    } else {
-      await followStore(currentUser.id, storeId);
+    // ✅ Set loading state
+    setIsLoading(true);
+    
+    try {
+      const isFollowing = isFollowingStore(currentUser.id, storeId);
+      
+      logger.debug('[handleFollowToggle] Toggling follow:', { 
+        userId: currentUser.id, 
+        storeId, 
+        isFollowing 
+      });
+      
+      if (isFollowing) {
+        await unfollowStore(currentUser.id, storeId);
+        logger.debug('[handleFollowToggle] Unfollowed successfully');
+      } else {
+        await followStore(currentUser.id, storeId);
+        logger.debug('[handleFollowToggle] Followed successfully');
+      }
+    } catch (error) {
+      logger.error('[handleFollowToggle] Failed to toggle follow:', error);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Əməliyyat zamanı xəta baş verdi' : 'Ошибка при выполнении операции'
+      );
+    } finally {
+      // ✅ Always reset loading state
+      setIsLoading(false);
     }
   };
   
@@ -64,17 +129,34 @@ export default function StoresTabScreen() {
             placeholder={language === 'az' ? 'Mağaza axtar...' : 'Поиск магазинов...'}
             placeholderTextColor={Colors.textSecondary}
             value={searchQuery}
-            onChangeText={setSearchQuery}
+            onChangeText={(text) => {
+              // ✅ Sanitize input
+              const sanitized = text.replace(/[<>'"]/g, '').substring(0, 200);
+              setSearchQuery(sanitized);
+            }}
+            maxLength={200}
+            returnKeyType="search"
           />
         </View>
       </View>
       
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* ✅ Loading indicator */}
+        {isLoading && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="small" color={Colors.primary} />
+          </View>
+        )}
+        
         {filteredStores.length > 0 ? (
-          <View style={styles.storesGrid}>
+          <View style={[styles.storesGrid, isLoading && styles.gridDisabled]}>
             {filteredStores.map((store) => {
               const isFollowing = currentUser ? isFollowingStore(currentUser.id, store.id) : false;
-              const averageRating = store.totalRatings > 0 ? store.rating / store.totalRatings : 0;
+              
+              // ✅ Safe rating calculation with validation
+              const averageRating = (typeof store.rating === 'number' && typeof store.totalRatings === 'number' && store.totalRatings > 0)
+                ? store.rating / Math.max(store.totalRatings, 1)
+                : 0;
               
               return (
                 <View key={store.id} style={styles.storeCard}>
@@ -94,26 +176,30 @@ export default function StoresTabScreen() {
                     
                     <View style={styles.storeInfo}>
                       <Text style={styles.storeName} numberOfLines={2}>
-                        {store.name}
+                        {store.name || language === 'az' ? 'Mağaza' : 'Магазин'}
                       </Text>
                       <Text style={styles.storeCategory} numberOfLines={1}>
-                        {store.categoryName}
+                        {store.categoryName || language === 'az' ? 'Kateqoriya yoxdur' : 'Нет категории'}
                       </Text>
                       
                       <View style={styles.storeStats}>
                         <View style={styles.statItem}>
                           <Star size={12} color={Colors.secondary} fill={Colors.secondary} />
-                          <Text style={styles.statText}>{averageRating.toFixed(1)}</Text>
+                          <Text style={styles.statText}>
+                            {(isFinite(averageRating) ? averageRating : 0).toFixed(1)}
+                          </Text>
                         </View>
                         <Text style={styles.statDivider}>•</Text>
                         <View style={styles.statItem}>
                           <Users size={12} color={Colors.textSecondary} />
-                          <Text style={styles.statText}>{store.followers.length}</Text>
+                          <Text style={styles.statText}>
+                            {Array.isArray(store.followers) ? store.followers.length : 0}
+                          </Text>
                         </View>
                       </View>
                       
                       <Text style={styles.adsCount}>
-                        {store.adsUsed} {language === 'az' ? 'elan' : 'объявлений'}
+                        {typeof store.adsUsed === 'number' ? store.adsUsed : 0} {language === 'az' ? 'elan' : 'объявлений'}
                       </Text>
                     </View>
                   </TouchableOpacity>
@@ -122,6 +208,7 @@ export default function StoresTabScreen() {
                     <TouchableOpacity
                       style={styles.followButton}
                       onPress={() => handleFollowToggle(store.id)}
+                      disabled={isLoading}
                     >
                       {isFollowing ? (
                         <Heart size={16} color={Colors.error} fill={Colors.error} />
@@ -172,6 +259,14 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.card,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
+  },
+  loadingContainer: {
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  gridDisabled: {
+    opacity: 0.6,
   },
   searchBar: {
     flexDirection: 'row',

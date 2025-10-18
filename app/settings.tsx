@@ -132,9 +132,7 @@ export default function SettingsScreen() {
     return () => pulseLoop.stop();
   }, []);
 
-  const themeModes: { key: ThemeMode; label: string; labelRu: string; icon: React.ComponentType<any> }[] = [
   const themeModes: { key: ThemeMode; label: string; labelRu: string; icon: LucideIcon }[] = [
->main
     { key: 'light', label: 'İşıqlı', labelRu: 'Светлая', icon: Sun },
     { key: 'dark', label: 'Qaranlıq', labelRu: 'Темная', icon: Moon },
     { key: 'auto', label: 'Avtomatik', labelRu: 'Автоматическая', icon: RefreshCw },
@@ -793,8 +791,25 @@ export default function SettingsScreen() {
               <Switch
                 value={currentUser?.privacySettings?.hidePhoneNumber ?? false}
                 onValueChange={(value) => {
-                  if (currentUser) {
+                  // ✅ Validate current user
+                  if (!currentUser) {
+                    logger.warn('[Settings] No current user');
+                    Alert.alert(
+                      language === 'az' ? 'Xəta' : 'Ошибка',
+                      language === 'az' ? 'İstifadəçi daxil olmayıb' : 'Пользователь не вошел 'в систему'
+                    );
+                    return;
+                  }
+                  
+                  try {
                     updatePrivacySettings({ hidePhoneNumber: value });
+                    logger.info('[Settings] Phone visibility updated:', value);
+                  } catch (error) {
+                    logger.error('[Settings] Error updating phone visibility:', error);
+                    Alert.alert(
+                      language === 'az' ? 'Xəta' : 'Ошибка',
+                      language === 'az' ? 'Tənzimləmə yadda saxlanılmadı' : 'Не удалось сохранить настройку'
+                    );
                   }
                 }}
                 trackColor={{ false: colors.border, true: colors.primary }}
@@ -814,11 +829,29 @@ export default function SettingsScreen() {
               <Switch
                 value={currentUser?.privacySettings?.onlyAppMessaging ?? false}
                 onValueChange={(value) => {
-                  if (currentUser) {
+                  // ✅ Validate current user
+                  if (!currentUser) {
+                    logger.warn('[Settings] No current user');
+                    Alert.alert(
+                      language === 'az' ? 'Xəta' : 'Ошибка',
+                      language === 'az' ? 'İstifadəçi daxil olmayıb' : 'Пользователь не вошел в систему'
+                    );
+                    return;
+                  }
+                  
+                  try {
+                    // ✅ Conflict resolution: onlyAppMessaging and allowDirectContact are mutually exclusive
                     updatePrivacySettings({ 
                       onlyAppMessaging: value,
                       allowDirectContact: !value
                     });
+                    logger.info('[Settings] App messaging preference updated:', value);
+                  } catch (error) {
+                    logger.error('[Settings] Error updating messaging preference:', error);
+                    Alert.alert(
+                      language === 'az' ? 'Xəta' : 'Ошибка',
+                      language === 'az' ? 'Tənzimləmə yadda saxlanılmadı' : 'Не удалось сохранить настройку'
+                    );
                   }
                 }}
                 trackColor={{ false: colors.border, true: colors.primary }}
@@ -838,11 +871,29 @@ export default function SettingsScreen() {
               <Switch
                 value={currentUser?.privacySettings?.allowDirectContact ?? false}
                 onValueChange={(value) => {
-                  if (currentUser) {
+                  // ✅ Validate current user
+                  if (!currentUser) {
+                    logger.warn('[Settings] No current user');
+                    Alert.alert(
+                      language === 'az' ? 'Xəta' : 'Ошибка',
+                      language === 'az' ? 'İstifadəçi daxil olmayıb' : 'Пользователь не вошел в систему'
+                    );
+                    return;
+                  }
+                  
+                  try {
+                    // ✅ Conflict resolution: allowDirectContact and onlyAppMessaging are mutually exclusive
                     updatePrivacySettings({ 
                       allowDirectContact: value,
                       onlyAppMessaging: !value
                     });
+                    logger.info('[Settings] Direct contact preference updated:', value);
+                  } catch (error) {
+                    logger.error('[Settings] Error updating direct contact:', error);
+                    Alert.alert(
+                      language === 'az' ? 'Xəta' : 'Ошибка',
+                      language === 'az' ? 'Tənzimləmə yadda saxlanılmadı' : 'Не удалось сохранить настройку'
+                    );
                   }
                 }}
                 trackColor={{ false: colors.border, true: colors.primary }}

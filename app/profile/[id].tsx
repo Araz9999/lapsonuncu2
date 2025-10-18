@@ -49,20 +49,61 @@ export default function UserProfileScreen() {
   const userListings = listings.filter(listing => listing.userId === user.id);
   const isCurrentUser = currentUser?.id === user.id;
   
-  // Get ratings data from store
-  const userRatings = getRatingsForTarget(user.id, 'user');
-  const ratingStats = getRatingStats(user.id, 'user');
+  // Get ratings data from store with null safety
+  const userRatings = getRatingsForTarget(user.id, 'user') || [];
+  const ratingStats = getRatingStats(user.id, 'user') || { 
+    averageRating: 0, 
+    totalRatings: 0, 
+    distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } 
+  };
   
   const handleRatingSubmit = async (rating: number, comment?: string) => {
-    if (!currentUser) return;
+    if (!currentUser) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Reyting vermək üçün daxil olun' : 'Войдите для оценки'
+      );
+      return;
+    }
     
-    await addRating({
-      userId: currentUser.id,
-      targetId: user.id,
-      targetType: 'user',
-      rating,
-      comment
-    });
+    // Validation: Rating range
+    if (rating < 1 || rating > 5) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Reyting 1-5 arasında olmalıdır' : 'Оценка должна быть от 1 до 5'
+      );
+      return;
+    }
+    
+    // Validation: Comment length if provided
+    if (comment && comment.trim().length > 500) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Şərh maksimum 500 simvol ola bilər' : 'Комментарий не должен превышать 500 символов'
+      );
+      return;
+    }
+    
+    try {
+      await addRating({
+        userId: currentUser.id,
+        targetId: user.id,
+        targetType: 'user',
+        rating,
+        comment: comment?.trim()
+      });
+      
+      Alert.alert(
+        language === 'az' ? 'Uğurlu' : 'Успешно',
+        language === 'az' ? 'Reyting əlavə edildi' : 'Оценка добавлена'
+      );
+    } catch (error) {
+      logger.error('Failed to submit rating:', error);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Reyting əlavə edilərkən xəta baş verdi' : 'Ошибка при добавлении оценки'
+      );
+    }
   };
   
   const handleUserPress = (userId: string) => {

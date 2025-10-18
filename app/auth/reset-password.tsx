@@ -13,6 +13,7 @@ import {
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { trpc } from '@/lib/trpc';
 import { Lock, Eye, EyeOff } from 'lucide-react-native';
+import { logger } from '@/utils/logger';
 
 export default function ResetPasswordScreen() {
   const { token } = useLocalSearchParams<{ token: string }>();
@@ -24,30 +25,77 @@ export default function ResetPasswordScreen() {
   const resetMutation = trpc.auth.resetPassword.useMutation();
 
   const handleResetPassword = async () => {
-    if (!password || !confirmPassword) {
-      Alert.alert('Xəta', 'Bütün xanaları doldurun');
+    // ===== VALIDATION START =====
+    
+    // 1. Token validation
+    if (!token || typeof token !== 'string' || token.trim().length === 0) {
+      Alert.alert(
+        'Xəta',
+        'Reset token yoxdur və ya etibarsızdır. Yenidən forgot password səhifəsinə kedin.'
+      );
       return;
     }
-
-    if (password.length < 6) {
-      Alert.alert('Xəta', 'Şifrə ən azı 6 simvoldan ibarət olmalıdır');
+    
+    // 2. Password required
+    if (!password || typeof password !== 'string' || password.trim().length === 0) {
+      Alert.alert('Xəta', 'Şifrə daxil edin');
       return;
     }
-
+    
+    // 3. Confirm password required
+    if (!confirmPassword || typeof confirmPassword !== 'string' || confirmPassword.trim().length === 0) {
+      Alert.alert('Xəta', 'Şifrəni təsdiqləyin');
+      return;
+    }
+    
+    // 4. Minimum length
+    if (password.length < 8) {
+      Alert.alert('Xəta', 'Şifrə ən azı 8 simvoldan ibarət olmalıdır');
+      return;
+    }
+    
+    // 5. Maximum length
+    if (password.length > 128) {
+      Alert.alert('Xəta', 'Şifrə çox uzundur (maks 128 simvol)');
+      return;
+    }
+    
+    // 6. Password strength
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+    
+    if (!hasUpperCase || !hasLowerCase || !hasNumber) {
+      Alert.alert(
+        'Xəta',
+        'Şifrə ən azı 1 böyük hərf, 1 kiçik hərf və 1 rəqəm ehtiva etməlidir'
+      );
+      return;
+    }
+    
+    // 7. Password match
     if (password !== confirmPassword) {
       Alert.alert('Xəta', 'Şifrələr uyğun gəlmir');
       return;
     }
+    
+    // 8. No whitespace
+    if (/\s/.test(password)) {
+      Alert.alert('Xəta', 'Şifrədə boşluq ola bilməz');
+      return;
+    }
+    
+    // ===== VALIDATION END =====
 
     try {
       await resetMutation.mutateAsync({
-        token: token as string,
-        password,
+        token: token.trim(),
+        password: password,
       });
 
       Alert.alert(
         'Uğurlu!',
-        'Şifrəniz uğurla dəyişdirildi',
+        'Şifrəniz uğurla dəyişdirildi. İndi yeni şifrənizlə daxil ola bilərsiniz.',
         [
           {
             text: 'Giriş et',
@@ -56,8 +104,24 @@ export default function ResetPasswordScreen() {
         ]
       );
     } catch (error: any) {
-      Alert.alert('Xəta', error.message || 'Şifrə dəyişdirilə bilmədi');
+      logger.error('Password reset error:', error);
+      
+      // User-friendly error messages
+      let errorMessage = 'Şifrə dəyişdirilə bilmədi';
+      
+      if (error.message) {
+        if (error.message.includes('token')) {
+          errorMessage = 'Reset linki etibarsızdır və ya müddəti bitib. Yenidən forgot password səhifəsinə kedin.';
+        } else if (error.message.includes('expired')) {
+          errorMessage = 'Reset linkinin müddəti bitib. Yeni link tələb edin.';
+        } else if (error.message.includes('network')) {
+          errorMessage = 'Şəbəkə xətası. İnternet əlaqənizi yoxlayın.';
+        }
+      }
+      
+      Alert.alert('Xəta', errorMessage);
     }
+  };
   };
 
   return (
@@ -66,8 +130,12 @@ export default function ResetPasswordScreen() {
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
           <View style={styles.header}>
             <View style={styles.iconContainer}>
               <Lock size={48} color="#007AFF" />

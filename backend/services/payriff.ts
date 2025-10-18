@@ -59,9 +59,51 @@ class PayriffService {
 
   async createPayment(data: PayriffPaymentData): Promise<PayriffPaymentResponse> {
     try {
+      // ===== BACKEND VALIDATION START =====
+      
+      // 1. Check credentials
       if (!this.merchantId || !this.secretKey) {
         throw new Error('Payriff credentials not configured');
       }
+      
+      // 2. Amount validation (backend double-check)
+      if (!data.amount || typeof data.amount !== 'number' || isNaN(data.amount) || !isFinite(data.amount)) {
+        throw new Error('Invalid amount');
+      }
+      
+      if (data.amount <= 0) {
+        throw new Error('Amount must be positive');
+      }
+      
+      if (data.amount > 100000) {
+        throw new Error('Amount exceeds maximum limit');
+      }
+      
+      // 3. OrderId validation
+      if (!data.orderId || typeof data.orderId !== 'string' || data.orderId.trim().length === 0) {
+        throw new Error('Invalid orderId');
+      }
+      
+      if (data.orderId.length > 255) {
+        throw new Error('OrderId too long');
+      }
+      
+      // 4. Description validation
+      if (!data.description || typeof data.description !== 'string' || data.description.trim().length === 0) {
+        throw new Error('Invalid description');
+      }
+      
+      if (data.description.length > 500) {
+        throw new Error('Description too long');
+      }
+      
+      // 5. Language validation
+      const validLanguages = ['az', 'en', 'ru'];
+      if (data.language && !validLanguages.includes(data.language)) {
+        throw new Error('Invalid language');
+      }
+      
+      // ===== BACKEND VALIDATION END =====
 
       const amountInQepik = Math.round(data.amount * 100);
       const signString = `${this.merchantId}${data.orderId}${amountInQepik}${this.secretKey}`;
