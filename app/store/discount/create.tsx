@@ -8,6 +8,9 @@ import {
   TextInput,
   Alert,
   Switch,
+  Platform,
+  KeyboardAvoidingView,
+  Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
@@ -61,6 +64,7 @@ export default function CreateDiscountScreen() {
   const storeListings = listings.filter(l => l.storeId === currentStore.id && !l.deletedAt);
   
   const handleSubmit = () => {
+<<<<<<< HEAD
     try {
       logger.info('[CreateDiscount] Validating discount form...');
       
@@ -228,6 +232,133 @@ export default function CreateDiscountScreen() {
       logger.error('[CreateDiscount] Error creating discount:', error);
       Alert.alert('Xəta', 'Endirim yaradılarkən xəta baş verdi');
     }
+=======
+    // Validation: Title
+    if (!formData.title.trim()) {
+      Alert.alert('Xəta', 'Endirim başlığı daxil edin');
+      return;
+    }
+    
+    if (formData.title.trim().length < 3) {
+      Alert.alert('Xəta', 'Endirim başlığı ən azı 3 simvol olmalıdır');
+      return;
+    }
+    
+    if (formData.title.trim().length > 100) {
+      Alert.alert('Xəta', 'Endirim başlığı maksimum 100 simvol ola bilər');
+      return;
+    }
+    
+    // Validation: Value
+    if (!formData.value.trim()) {
+      Alert.alert('Xəta', 'Endirim dəyəri daxil edin');
+      return;
+    }
+    
+    const value = parseFloat(formData.value);
+    if (isNaN(value) || value <= 0) {
+      Alert.alert('Xəta', 'Düzgün endirim dəyəri daxil edin');
+      return;
+    }
+    
+    if (formData.type === 'percentage' && (value < 1 || value > 99)) {
+      Alert.alert('Xəta', 'Faiz endirimi 1-99 arasında olmalıdır');
+      return;
+    }
+    
+    if (formData.type === 'fixed_amount' && value > 10000) {
+      Alert.alert('Xəta', 'Sabit məbləğ endirimi maksimum 10,000 AZN ola bilər');
+      return;
+    }
+    
+    // Validation: Listings
+    if (selectedListings.length === 0) {
+      Alert.alert('Xəta', 'Ən azı bir məhsul seçin');
+      return;
+    }
+    
+    // Validation: Optional fields
+    if (formData.minPurchaseAmount.trim()) {
+      const minAmount = parseFloat(formData.minPurchaseAmount);
+      if (isNaN(minAmount) || minAmount < 0) {
+        Alert.alert('Xəta', 'Düzgün minimum alış məbləği daxil edin');
+        return;
+      }
+    }
+    
+    if (formData.maxDiscountAmount.trim()) {
+      const maxAmount = parseFloat(formData.maxDiscountAmount);
+      if (isNaN(maxAmount) || maxAmount <= 0) {
+        Alert.alert('Xəta', 'Düzgün maksimum endirim məbləği daxil edin');
+        return;
+      }
+    }
+    
+    if (formData.usageLimit.trim()) {
+      const limit = parseInt(formData.usageLimit, 10);
+      if (isNaN(limit) || limit <= 0) {
+        Alert.alert('Xəta', 'Düzgün istifadə limiti daxil edin');
+        return;
+      }
+    }
+    
+    // Validation: Description
+    if (formData.description.trim().length > 500) {
+      Alert.alert('Xəta', 'Təsvir maksimum 500 simvol ola bilər');
+      return;
+    }
+    
+    // Validation: Date range
+    if (formData.startDate >= formData.endDate) {
+      Alert.alert('Xəta', 'Başlama tarixi bitmə tarixindən əvvəl olmalıdır');
+      return;
+    }
+    
+    const maxDuration = 365 * 24 * 60 * 60 * 1000; // 1 year
+    if (formData.endDate.getTime() - formData.startDate.getTime() > maxDuration) {
+      Alert.alert('Xəta', 'Endirim müddəti maksimum 1 il ola bilər');
+      return;
+    }
+    
+    // Validation: Countdown timer
+    if (formData.hasCountdown && !formData.countdownTitle.trim()) {
+      Alert.alert('Xəta', 'Geri sayım başlığını daxil edin');
+      return;
+    }
+    
+    if (formData.hasCountdown && formData.countdownTitle.trim().length > 50) {
+      Alert.alert('Xəta', 'Geri sayım başlığı maksimum 50 simvol ola bilər');
+      return;
+    }
+    
+    if (formData.hasCountdown && formData.countdownEndDate <= new Date()) {
+      Alert.alert('Xəta', 'Geri sayım tarixi gələcəkdə olmalıdır');
+      return;
+    }
+    
+    addDiscount({
+      storeId: currentStore.id,
+      title: formData.title.trim(),
+      description: formData.description.trim(),
+      type: formData.type,
+      value,
+      minPurchaseAmount: formData.minPurchaseAmount ? parseFloat(formData.minPurchaseAmount) : undefined,
+      maxDiscountAmount: formData.maxDiscountAmount ? parseFloat(formData.maxDiscountAmount) : undefined,
+      applicableListings: selectedListings,
+      startDate: formData.startDate,
+      endDate: formData.endDate,
+      usageLimit: formData.usageLimit ? (parseInt(formData.usageLimit, 10) || undefined) : undefined,
+      usedCount: 0,
+      isActive: formData.isActive,
+      hasCountdown: formData.hasCountdown,
+      countdownEndDate: formData.hasCountdown ? formData.countdownEndDate : undefined,
+      countdownTitle: formData.hasCountdown ? formData.countdownTitle : undefined,
+    });
+    
+    Alert.alert('Uğurlu', 'Endirim yaradıldı', [
+      { text: 'OK', onPress: () => router.back() }
+    ]);
+>>>>>>> origin/main
   };
   
   const toggleListingSelection = (listingId: string) => {
@@ -247,11 +378,16 @@ export default function CreateDiscountScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <Stack.Screen 
-        options={{ 
-          title: 'Endirim Yarat',
-          headerRight: () => (
+    <SafeAreaView style={styles.flex}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      >
+        <Stack.Screen 
+          options={{ 
+            title: 'Endirim Yarat',
+            headerRight: () => (
             <TouchableOpacity style={styles.saveButton} onPress={handleSubmit}>
               <Text style={styles.saveButtonText}>Yadda saxla</Text>
             </TouchableOpacity>
@@ -259,7 +395,11 @@ export default function CreateDiscountScreen() {
         }} 
       />
       
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.content} 
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Əsas Məlumatlar</Text>
           
@@ -271,6 +411,8 @@ export default function CreateDiscountScreen() {
               onChangeText={(text) => setFormData(prev => ({ ...prev, title: text }))}
               placeholder="Məsələn: Yay Endirimi"
               placeholderTextColor="#9CA3AF"
+              maxLength={100}
+              returnKeyType="next"
             />
           </View>
           
@@ -284,6 +426,8 @@ export default function CreateDiscountScreen() {
               placeholderTextColor="#9CA3AF"
               multiline
               numberOfLines={3}
+              maxLength={500}
+              returnKeyType="done"
             />
           </View>
         </View>
@@ -332,10 +476,15 @@ export default function CreateDiscountScreen() {
             <TextInput
               style={styles.input}
               value={formData.value}
-              onChangeText={(text) => setFormData(prev => ({ ...prev, value: text }))}
+              onChangeText={(text) => {
+                const numericValue = text.replace(/[^0-9.]/g, '');
+                setFormData(prev => ({ ...prev, value: numericValue }));
+              }}
               placeholder={formData.type === 'percentage' ? '20' : formData.type === 'fixed_amount' ? '10' : '2'}
               placeholderTextColor="#9CA3AF"
-              keyboardType="numeric"
+              keyboardType="decimal-pad"
+              returnKeyType="done"
+              onSubmitEditing={Keyboard.dismiss}
             />
           </View>
           
@@ -345,10 +494,14 @@ export default function CreateDiscountScreen() {
               <TextInput
                 style={styles.input}
                 value={formData.maxDiscountAmount}
-                onChangeText={(text) => setFormData(prev => ({ ...prev, maxDiscountAmount: text }))}
+                onChangeText={(text) => {
+                  const numericValue = text.replace(/[^0-9.]/g, '');
+                  setFormData(prev => ({ ...prev, maxDiscountAmount: numericValue }));
+                }}
                 placeholder="50"
                 placeholderTextColor="#9CA3AF"
-                keyboardType="numeric"
+                keyboardType="decimal-pad"
+                returnKeyType="next"
               />
             </View>
           )}
@@ -358,10 +511,14 @@ export default function CreateDiscountScreen() {
             <TextInput
               style={styles.input}
               value={formData.minPurchaseAmount}
-              onChangeText={(text) => setFormData(prev => ({ ...prev, minPurchaseAmount: text }))}
+              onChangeText={(text) => {
+                const numericValue = text.replace(/[^0-9.]/g, '');
+                setFormData(prev => ({ ...prev, minPurchaseAmount: numericValue }));
+              }}
               placeholder="100"
               placeholderTextColor="#9CA3AF"
-              keyboardType="numeric"
+              keyboardType="decimal-pad"
+              returnKeyType="next"
             />
           </View>
         </View>
@@ -416,6 +573,8 @@ export default function CreateDiscountScreen() {
                 onChangeText={(text) => setFormData(prev => ({ ...prev, countdownTitle: text }))}
                 placeholder="Məsələn: Məhdud Vaxt Təklifi!"
                 placeholderTextColor="#9CA3AF"
+                maxLength={50}
+                returnKeyType="done"
               />
               
               <Text style={styles.label}>Timer Vaxtı</Text>
@@ -444,10 +603,15 @@ export default function CreateDiscountScreen() {
             <TextInput
               style={styles.input}
               value={formData.usageLimit}
-              onChangeText={(text) => setFormData(prev => ({ ...prev, usageLimit: text }))}
+              onChangeText={(text) => {
+                const numericValue = text.replace(/[^0-9]/g, '');
+                setFormData(prev => ({ ...prev, usageLimit: numericValue }));
+              }}
               placeholder="100"
               placeholderTextColor="#9CA3AF"
               keyboardType="numeric"
+              returnKeyType="done"
+              onSubmitEditing={Keyboard.dismiss}
             />
             <Text style={styles.helperText}>Boş buraxsanız, limitsiz olacaq</Text>
           </View>
@@ -463,11 +627,15 @@ export default function CreateDiscountScreen() {
           </View>
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     backgroundColor: '#F9FAFB',

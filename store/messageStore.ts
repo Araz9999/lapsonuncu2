@@ -223,19 +223,27 @@ export const useMessageStore = create<MessageStore>((set, get) => ({
   },
   
   createConversation: (participants: string[], listingId: string) => {
-    // BUG FIX: Validate input parameters
+    // ✅ Validate input parameters
     if (!participants || !Array.isArray(participants) || participants.length < 2) {
       logger.error('[MessageStore] Invalid participants for conversation');
       throw new Error('Conversation must have at least 2 participants');
     }
     
-    if (!listingId) {
+    // ✅ Validate each participant ID
+    for (const participantId of participants) {
+      if (!participantId || typeof participantId !== 'string' || participantId.trim().length === 0) {
+        logger.error('[MessageStore] Invalid participant ID:', participantId);
+        throw new Error('All participants must have valid IDs');
+      }
+    }
+    
+    if (!listingId || typeof listingId !== 'string' || listingId.trim().length === 0) {
       logger.error('[MessageStore] Invalid listingId for conversation');
       throw new Error('ListingId is required');
     }
     
     // BUG FIX: Generate unique ID with random component to prevent conflicts
-    const conversationId = `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+    const conversationId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     
     const newConversation: Conversation = {
       id: conversationId,
@@ -308,11 +316,32 @@ export const useMessageStore = create<MessageStore>((set, get) => ({
   
   getFilteredConversations: () => {
     const { conversations } = get();
-    const { isUserBlocked } = useUserStore.getState();
+    
+    // ✅ Validate conversations array
+    if (!Array.isArray(conversations)) {
+      logger.error('[MessageStore] Invalid conversations array');
+      return [];
+    }
+    
+    const { isUserBlocked, currentUser } = useUserStore.getState();
+    
+    // ✅ Validate current user
+    if (!currentUser || !currentUser.id) {
+      logger.warn('[MessageStore] No current user for filtering conversations');
+      return conversations;
+    }
     
     return conversations.filter(conversation => {
-      const currentUserId = useUserStore.getState().currentUser?.id || 'user1';
+      // ✅ Validate conversation
+      if (!conversation || !Array.isArray(conversation.participants)) {
+        logger.warn('[MessageStore] Invalid conversation in filter');
+        return false;
+      }
+      
+      const currentUserId = currentUser.id;
       const otherUserId = conversation.participants.find(id => id !== currentUserId);
+      
+      // ✅ Filter out conversations with blocked users
       return otherUserId ? !isUserBlocked(otherUserId) : true;
     });
   },
@@ -320,32 +349,52 @@ export const useMessageStore = create<MessageStore>((set, get) => ({
   deleteMessage: (conversationId: string, messageId: string) => {
     logger.debug('MessageStore - deleteMessage called:', { conversationId, messageId });
     
-    // BUG FIX: Validate input parameters
-    if (!conversationId || !messageId) {
-      logger.error('[MessageStore] Invalid parameters for deleteMessage');
-      return;
+    // ✅ Comprehensive input validation
+    if (!conversationId || typeof conversationId !== 'string' || conversationId.trim().length === 0) {
+      logger.error('[MessageStore] Invalid conversationId for deleteMessage');
+      throw new Error('Valid conversationId is required');
+    }
+    
+    if (!messageId || typeof messageId !== 'string' || messageId.trim().length === 0) {
+      logger.error('[MessageStore] Invalid messageId for deleteMessage');
+      throw new Error('Valid messageId is required');
     }
     
     set((state) => {
       const conversationIndex = state.conversations.findIndex(conv => conv.id === conversationId);
       
       if (conversationIndex === -1) {
-        logger.warn('MessageStore - Conversation not found for deletion:', conversationId);
-        return state;
+        logger.error('[MessageStore] Conversation not found for deletion:', conversationId);
+        throw new Error('Conversation not found');
       }
       
       const conversation = state.conversations[conversationIndex];
       
-      // BUG FIX: Check if message exists before deleting
-      const messageExists = conversation.messages.some(msg => msg.id === messageId);
-      if (!messageExists) {
-        logger.warn('MessageStore - Message not found for deletion:', messageId);
-        return state;
+      // ✅ Validate conversation has messages
+      if (!conversation.messages || !Array.isArray(conversation.messages)) {
+        logger.error('[MessageStore] Invalid messages array in conversation');
+        throw new Error('Invalid conversation data');
       }
       
+      // ✅ Find the message to delete
+      const messageIndex = conversation.messages.findIndex(msg => msg.id === messageId);
+      if (messageIndex === -1) {
+        logger.error('[MessageStore] Message not found for deletion:', messageId);
+        throw new Error('Message not found');
+      }
+      
+      // ✅ Store deleted message for potential undo (optional)
+      const deletedMessage = conversation.messages[messageIndex];
+      logger.debug('[MessageStore] Deleting message:', { 
+        id: deletedMessage.id, 
+        senderId: deletedMessage.senderId,
+        type: deletedMessage.type 
+      });
+      
+      // ✅ Filter out the deleted message
       const updatedMessages = conversation.messages.filter(msg => msg.id !== messageId);
       
-      // Update last message if the deleted message was the last one
+      // ✅ Update last message if the deleted message was the last one
       let lastMessage = conversation.lastMessage;
       let lastMessageDate = conversation.lastMessageDate;
       
@@ -363,17 +412,25 @@ export const useMessageStore = create<MessageStore>((set, get) => ({
         lastMessageDate = undefined;
       }
       
+      // ✅ Decrease unread count if the deleted message was unread
+      let updatedUnreadCount = conversation.unreadCount;
+      if (!deletedMessage.isRead && deletedMessage.senderId !== useUserStore.getState().currentUser?.id) {
+        updatedUnreadCount = Math.max(0, updatedUnreadCount - 1);
+        logger.debug('[MessageStore] Decreased unread count:', updatedUnreadCount);
+      }
+      
       const updatedConversation = {
         ...conversation,
         messages: updatedMessages,
         lastMessage,
         lastMessageDate,
+        unreadCount: updatedUnreadCount,
       };
       
       const updatedConversations = [...state.conversations];
       updatedConversations[conversationIndex] = updatedConversation;
       
-      logger.debug('MessageStore - Message deleted, remaining messages:', updatedMessages.length);
+      logger.debug('[MessageStore] Message deleted successfully, remaining messages:', updatedMessages.length);
       
       return { 
         conversations: updatedConversations.map(conv => ({ ...conv })) 
@@ -384,17 +441,35 @@ export const useMessageStore = create<MessageStore>((set, get) => ({
   deleteAllMessagesFromUser: (userId: string) => {
     logger.debug('MessageStore - deleteAllMessagesFromUser called:', userId);
     
+    // ✅ Validate userId
+    if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
+      logger.error('[MessageStore] Invalid userId for deleteAllMessagesFromUser');
+      throw new Error('Valid userId is required');
+    }
+    
     set((state) => {
+      let totalDeleted = 0;
+      
       const updatedConversations = state.conversations.map(conversation => {
-        // Check if this conversation involves the specified user
+        // ✅ Check if this conversation involves the specified user
         if (!conversation.participants.includes(userId)) {
           return conversation;
         }
         
-        // Remove all messages from this user
+        // ✅ Validate messages array
+        if (!conversation.messages || !Array.isArray(conversation.messages)) {
+          logger.warn('[MessageStore] Invalid messages array in conversation:', conversation.id);
+          return conversation;
+        }
+        
+        // ✅ Count messages to be deleted
+        const messagesFromUser = conversation.messages.filter(msg => msg.senderId === userId);
+        totalDeleted += messagesFromUser.length;
+        
+        // ✅ Remove all messages from this user
         const updatedMessages = conversation.messages.filter(msg => msg.senderId !== userId);
         
-        // Update last message and date
+        // ✅ Update last message and date
         let lastMessage = conversation.lastMessage;
         let lastMessageDate = conversation.lastMessageDate;
         
@@ -421,7 +496,7 @@ export const useMessageStore = create<MessageStore>((set, get) => ({
         };
       });
       
-      logger.debug('MessageStore - All messages from user deleted:', userId);
+      logger.debug('[MessageStore] All messages from user deleted:', userId, 'Total messages deleted:', totalDeleted);
       
       return { 
         conversations: updatedConversations.map(conv => ({ ...conv })) 

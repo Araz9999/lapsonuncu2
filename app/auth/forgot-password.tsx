@@ -47,7 +47,10 @@ export default function ForgotPasswordScreen() {
   };
   
   const handleSendResetCode = async () => {
-    if (!contactInfo) {
+    // ===== VALIDATION START =====
+    
+    // 1. Contact info required
+    if (!contactInfo || typeof contactInfo !== 'string' || contactInfo.trim().length === 0) {
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         contactType === 'email' 
@@ -57,19 +60,28 @@ export default function ForgotPasswordScreen() {
       return;
     }
     
-    // Auto-detect and validate format
-    const detectedType = detectContactType(contactInfo);
+    // 2. Auto-detect contact type
+    const detectedType = detectContactType(contactInfo.trim());
     setContactType(detectedType);
     
+    // 3. Validate based on detected type
     if (detectedType === 'email') {
+<<<<<<< HEAD
       // ✅ Use centralized validation
       if (!validateEmail(contactInfo)) {
+=======
+      const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+      const trimmedEmail = contactInfo.trim();
+      
+      if (!emailRegex.test(trimmedEmail)) {
+>>>>>>> origin/main
         Alert.alert(
           language === 'az' ? 'Xəta' : 'Ошибка',
           language === 'az' ? 'Düzgün e-poçt ünvanı daxil edin' : 'Введите правильный адрес электронной почты'
         );
         return;
       }
+<<<<<<< HEAD
     } else {
       // ✅ Phone reset not implemented yet - show message
       Alert.alert(
@@ -79,11 +91,43 @@ export default function ForgotPasswordScreen() {
           : 'Восстановление пароля через телефон пока не активно. Пожалуйста, используйте email.'
       );
       return;
+=======
+      
+      if (trimmedEmail.length > 255) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Email çox uzundur' : 'Email слишком длинный'
+        );
+        return;
+      }
+    } else {
+      const phoneRegex = /^[+]?[0-9]{10,15}$/;
+      const cleanedPhone = contactInfo.replace(/[\s\-\(\)]/g, '');
+      
+      if (!phoneRegex.test(cleanedPhone)) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Düzgün mobil nömrə daxil edin (10-15 rəqəm)' : 'Введите правильный номер телефона (10-15 цифр)'
+        );
+        return;
+      }
+      
+      if (cleanedPhone.length < 10) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Telefon nömrəsi çox qısadır' : 'Номер телефона слишком короткий'
+        );
+        return;
+      }
+>>>>>>> origin/main
     }
+    
+    // ===== VALIDATION END =====
     
     setIsLoading(true);
     
     try {
+<<<<<<< HEAD
       // ✅ Use real backend API
       await forgotPasswordMutation.mutateAsync({
         email: contactInfo.trim().toLowerCase(),
@@ -101,6 +145,25 @@ export default function ForgotPasswordScreen() {
       );
     } finally {
       setIsLoading(false);
+=======
+      // TODO: Real API call
+      // await authService.sendPasswordResetCode(contactInfo.trim(), detectedType);
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      setIsLoading(false);
+      setIsCodeSent(true);
+    } catch (error) {
+      logger.error('Password reset error:', error);
+      setIsLoading(false);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' 
+          ? 'Kod göndərilərkən xəta baş verdi. Yenidən cəhd edin.'
+          : 'Ошибка при отправке кода. Попробуйте снова.'
+      );
+>>>>>>> origin/main
     }
   };
   
@@ -120,9 +183,9 @@ export default function ForgotPasswordScreen() {
     }
   };
   
-  const handleResendCode = () => {
+  const handleResendCode = async () => {
     setIsCodeSent(false);
-    handleSendResetCode();
+    await handleSendResetCode();
   };
   
   if (isCodeSent) {
@@ -177,9 +240,12 @@ export default function ForgotPasswordScreen() {
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={handleClose}>
             <ArrowLeft size={24} color={Colors.text} />

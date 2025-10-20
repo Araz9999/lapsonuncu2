@@ -34,6 +34,7 @@ interface UserState {
   getTotalBalance: () => number;
   canAfford: (amount: number) => boolean;
   updateUserBalance: (userId: string, amount: number) => Promise<void>;
+  updateUserProfile: (updates: Partial<Pick<User, 'name' | 'email' | 'phone' | 'avatar'>>) => void;
   updatePrivacySettings: (settings: Partial<User['privacySettings']>) => void;
   blockUser: (userId: string) => void;
   unblockUser: (userId: string) => void;
@@ -60,6 +61,7 @@ interface UserState {
   addUserNote: (userId: string, note: string) => void;
   removeUserNote: (userId: string) => void;
   getUserNote: (userId: string) => string | null;
+  deleteUserAccount: () => Promise<void>;
 }
 
 export const useUserStore = create<UserState>()(
@@ -142,35 +144,74 @@ export const useUserStore = create<UserState>()(
         });
       },
       addToWallet: (amount) => {
-        // ✅ Validate amount
-        if (typeof amount !== 'number' || isNaN(amount)) {
+        // ===== VALIDATION START =====
+        
+        // 1. Check if amount is a number
+        if (typeof amount !== 'number' || isNaN(amount) || !isFinite(amount)) {
           logger.error('[UserStore] Invalid amount for addToWallet:', amount);
-          return;
+          throw new Error('Məbləğ düzgün deyil');
         }
         
-        const { walletBalance } = get();
-        const newBalance = Math.max(0, walletBalance + amount);
-        set({ walletBalance: newBalance });
+        // 2. Check if amount is positive
+        if (amount <= 0) {
+          logger.error('[UserStore] Amount must be positive:', amount);
+          throw new Error('Məbləğ müsbət olmalıdır');
+        }
         
-        logger.info('[UserStore] Wallet balance updated:', { old: walletBalance, new: newBalance, delta: amount });
+        // 3. Check maximum single transaction (100,000 AZN)
+        if (amount > 100000) {
+          logger.error('[UserStore] Amount too large:', amount);
+          throw new Error('Məbləğ çox böyükdür (maks 100,000 AZN)');
+        }
+        
+        // 4. Check resulting balance won't overflow
+        const { walletBalance } = get();
+        const newBalance = walletBalance + amount;
+        
+        if (!isFinite(newBalance) || newBalance > 1000000) {
+          logger.error('[UserStore] New balance would be too large:', newBalance);
+          throw new Error('Maksimum balans limiti (1,000,000 AZN)');
+        }
+        
+        // ===== VALIDATION END =====
+        
+        logger.info('[UserStore] Adding to wallet:', { amount, oldBalance: walletBalance, newBalance });
+        set({ walletBalance: newBalance });
       },
       addBonus: (amount) => {
-        // ✅ Validate amount
-        if (typeof amount !== 'number' || isNaN(amount)) {
+        // ===== VALIDATION START =====
+        
+        // 1. Check if amount is a number
+        if (typeof amount !== 'number' || isNaN(amount) || !isFinite(amount)) {
           logger.error('[UserStore] Invalid amount for addBonus:', amount);
-          return;
+          throw new Error('Bonus məbləği düzgün deyil');
         }
         
-        if (amount < 0) {
-          logger.error('[UserStore] Cannot add negative bonus:', amount);
-          return;
+        // 2. Check if amount is positive
+        if (amount <= 0) {
+          logger.error('[UserStore] Bonus amount must be positive:', amount);
+          throw new Error('Bonus məbləği müsbət olmalıdır');
         }
         
+        // 3. Check maximum single bonus (10,000 AZN)
+        if (amount > 10000) {
+          logger.error('[UserStore] Bonus amount too large:', amount);
+          throw new Error('Bonus məbləği çox böyükdür (maks 10,000 AZN)');
+        }
+        
+        // 4. Check resulting balance won't overflow
         const { bonusBalance } = get();
         const newBalance = bonusBalance + amount;
-        set({ bonusBalance: newBalance });
         
-        logger.info('[UserStore] Bonus balance updated:', { old: bonusBalance, new: newBalance, delta: amount });
+        if (!isFinite(newBalance) || newBalance > 100000) {
+          logger.error('[UserStore] New bonus balance would be too large:', newBalance);
+          throw new Error('Maksimum bonus limiti (100,000 AZN)');
+        }
+        
+        // ===== VALIDATION END =====
+        
+        logger.info('[UserStore] Adding bonus:', { amount, oldBalance: bonusBalance, newBalance });
+        set({ bonusBalance: newBalance });
       },
       spendFromWallet: (amount) => {
         const { walletBalance } = get();
@@ -263,53 +304,248 @@ export const useUserStore = create<UserState>()(
           });
         }
       },
-      updatePrivacySettings: (settings) => {
-        const { currentUser } = get();
-        if (currentUser) {
-          set({
-            currentUser: {
-              ...currentUser,
-              privacySettings: {
-                ...currentUser.privacySettings,
-                ...settings
-              }
-            }
-          });
+      updateUserProfile: (updates) => {
+        // ===== VALIDATION START =====
+        
+        // ✅ 1. Check if updates is an object
+        if (!updates || typeof updates !== 'object' || Array.isArray(updates)) {
+          logger.error('[UserStore] Invalid updates object');
+          throw new Error('Yeniləmələr düzgün deyil');
         }
+        
+        // ✅ 2. Validate allowed keys only
+        const allowedKeys = ['name', 'email', 'phone', 'avatar'];
+        const invalidKeys = Object.keys(updates).filter(key => !allowedKeys.includes(key));
+        
+        if (invalidKeys.length > 0) {
+          logger.warn('[UserStore] Invalid profile update keys:', invalidKeys);
+          throw new Error(`Yanlış sahə: ${invalidKeys.join(', ')}`);
+        }
+        
+        // ✅ 3. Validate name
+        if ('name' in updates) {
+          const name = updates.name;
+          if (typeof name !== 'string') {
+            throw new Error('Ad mətn olmalıdır');
+          }
+          
+          const trimmedName = name.trim();
+          if (trimmedName.length < 2) {
+            throw new Error('Ad ən azı 2 simvol olmalıdır');
+          }
+          if (trimmedName.length > 100) {
+            throw new Error('Ad maksimum 100 simvol ola bilər');
+          }
+          
+          updates.name = trimmedName;
+        }
+        
+        // ✅ 4. Validate email
+        if ('email' in updates) {
+          const email = updates.email;
+          if (typeof email !== 'string') {
+            throw new Error('Email mətn olmalıdır');
+          }
+          
+          const trimmedEmail = email.trim().toLowerCase();
+          const emailRegex = /^[a-zA-Z0-9._+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+          
+          if (!emailRegex.test(trimmedEmail)) {
+            throw new Error('Email formatı düzgün deyil');
+          }
+          if (trimmedEmail.length > 255) {
+            throw new Error('Email maksimum 255 simvol ola bilər');
+          }
+          
+          updates.email = trimmedEmail;
+        }
+        
+        // ✅ 5. Validate phone
+        if ('phone' in updates) {
+          const phone = updates.phone;
+          if (typeof phone !== 'string') {
+            throw new Error('Telefon mətn olmalıdır');
+          }
+          
+          const cleanedPhone = phone.replace(/[^\d+]/g, '');
+          if (cleanedPhone.length < 10 || cleanedPhone.length > 15) {
+            throw new Error('Telefon nömrəsi 10-15 rəqəm olmalıdır');
+          }
+          
+          updates.phone = cleanedPhone;
+        }
+        
+        // ✅ 6. Validate avatar
+        if ('avatar' in updates) {
+          const avatar = updates.avatar;
+          if (typeof avatar !== 'string') {
+            throw new Error('Avatar URL mətn olmalıdır');
+          }
+          
+          const trimmedAvatar = avatar.trim();
+          if (trimmedAvatar.length > 500) {
+            throw new Error('Avatar URL çox uzundur');
+          }
+          
+          // Basic URL validation
+          try {
+            new URL(trimmedAvatar);
+          } catch {
+            throw new Error('Avatar URL düzgün deyil');
+          }
+          
+          updates.avatar = trimmedAvatar;
+        }
+        
+        // ✅ 7. Check if user is logged in
+        const { currentUser } = get();
+        if (!currentUser) {
+          logger.error('[UserStore] No user logged in');
+          throw new Error('İstifadəçi daxil olmayıb');
+        }
+        
+        // ===== VALIDATION END =====
+        
+        logger.info('[UserStore] Updating user profile:', Object.keys(updates));
+        
+        set({
+          currentUser: {
+            ...currentUser,
+            ...updates
+          }
+        });
+      },
+      updatePrivacySettings: (settings) => {
+        // ===== VALIDATION START =====
+        
+        // ✅ 1. Check if settings is an object
+        if (!settings || typeof settings !== 'object' || Array.isArray(settings)) {
+          logger.error('[UserStore] Invalid settings object');
+          throw new Error('Tənzimləmələr düzgün deyil');
+        }
+        
+        // ✅ 2. Validate allowed keys only
+        const allowedKeys = ['hidePhoneNumber', 'allowDirectContact', 'onlyAppMessaging'];
+        const invalidKeys = Object.keys(settings).filter(key => !allowedKeys.includes(key));
+        
+        if (invalidKeys.length > 0) {
+          logger.warn('[UserStore] Invalid privacy settings keys:', invalidKeys);
+          // Remove invalid keys
+          invalidKeys.forEach(key => delete (settings as any)[key]);
+        }
+        
+        // ✅ 3. Validate values are booleans
+        for (const key of Object.keys(settings)) {
+          const value = (settings as any)[key];
+          if (typeof value !== 'boolean') {
+            logger.error('[UserStore] Privacy setting value must be boolean:', key, value);
+            throw new Error(`Tənzimləmə dəyəri yanlışdır: ${key}`);
+          }
+        }
+        
+        // ✅ 4. Check conflicting settings
+        if ('onlyAppMessaging' in settings && 'allowDirectContact' in settings) {
+          if (settings.onlyAppMessaging === true && settings.allowDirectContact === true) {
+            logger.warn('[UserStore] Conflicting privacy settings: both onlyAppMessaging and allowDirectContact are true');
+            // Resolve conflict: onlyAppMessaging takes precedence
+            settings.allowDirectContact = false;
+          }
+        }
+        
+        // ✅ 5. Check if user is logged in
+        const { currentUser } = get();
+        if (!currentUser) {
+          logger.error('[UserStore] No user logged in');
+          throw new Error('İstifadəçi daxil olmayıb');
+        }
+        
+        // ===== VALIDATION END =====
+        
+        logger.info('[UserStore] Updating privacy settings:', settings);
+        
+        set({
+          currentUser: {
+            ...currentUser,
+            privacySettings: {
+              ...currentUser.privacySettings,
+              ...settings
+            }
+          }
+        });
       },
       blockUser: (userId) => {
-        // BUG FIX: Validate userId
-        if (!userId || typeof userId !== 'string') {
+        // ✅ Comprehensive validation
+        if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
           logger.error('[UserStore] Invalid userId for blocking');
-          return;
+          throw new Error('İstifadəçi ID-si yanlışdır');
         }
         
-        // BUG FIX: Don't allow blocking yourself
+        // ✅ Check if user is authenticated
         const { currentUser } = get();
-        if (currentUser && currentUser.id === userId) {
-          logger.warn('[UserStore] Cannot block yourself');
-          return;
+        if (!currentUser || !currentUser.id) {
+          logger.error('[UserStore] User not authenticated');
+          throw new Error('Hesaba daxil olmamısınız');
+        }
+        
+        // ✅ Don't allow blocking yourself
+        if (currentUser.id === userId) {
+          logger.error('[UserStore] Cannot block yourself');
+          throw new Error('Özünüzü blok edə bilməzsiniz');
         }
         
         const { blockedUsers } = get();
-        if (!blockedUsers.includes(userId)) {
-          set({ blockedUsers: [...blockedUsers, userId] });
-          logger.info('[UserStore] User blocked:', userId);
+        
+        // ✅ Check if already blocked
+        if (blockedUsers.includes(userId)) {
+          logger.warn('[UserStore] User already blocked:', userId);
+          throw new Error('İstifadəçi artıq blok edilib');
         }
+        
+        // ✅ Add to blocked users
+        set({ blockedUsers: [...blockedUsers, userId] });
+        logger.info('[UserStore] User blocked:', userId);
       },
       unblockUser: (userId) => {
-        // BUG FIX: Validate userId
-        if (!userId || typeof userId !== 'string') {
+        // ✅ Comprehensive validation
+        if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
           logger.error('[UserStore] Invalid userId for unblocking');
-          return;
+          throw new Error('İstifadəçi ID-si yanlışdır');
+        }
+        
+        // ✅ Check if user is authenticated
+        const { currentUser } = get();
+        if (!currentUser || !currentUser.id) {
+          logger.error('[UserStore] User not authenticated');
+          throw new Error('Hesaba daxil olmamısınız');
         }
         
         const { blockedUsers } = get();
+        
+        // ✅ Check if user is actually blocked
+        if (!blockedUsers.includes(userId)) {
+          logger.warn('[UserStore] User is not blocked:', userId);
+          throw new Error('İstifadəçi blok edilməyib');
+        }
+        
+        // ✅ Remove from blocked users
         set({ blockedUsers: blockedUsers.filter(id => id !== userId) });
         logger.info('[UserStore] User unblocked:', userId);
       },
       isUserBlocked: (userId) => {
+        // ✅ Validate userId
+        if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
+          logger.error('[UserStore] Invalid userId for isUserBlocked check');
+          return false;
+        }
+        
         const { blockedUsers } = get();
+        
+        // ✅ Validate blockedUsers array
+        if (!Array.isArray(blockedUsers)) {
+          logger.error('[UserStore] Invalid blockedUsers array');
+          return false;
+        }
+        
         return blockedUsers.includes(userId);
       },
       canNudgeUser: (userId) => {
@@ -613,6 +849,44 @@ export const useUserStore = create<UserState>()(
         
         const { userNotes } = get();
         return userNotes[userId] || null;
+      },
+      deleteUserAccount: async () => {
+        // ✅ Validate current user exists
+        const { currentUser, isAuthenticated } = get();
+        
+        if (!isAuthenticated || !currentUser) {
+          logger.error('[deleteUserAccount] User not authenticated');
+          throw new Error('User not authenticated');
+        }
+
+        logger.debug('[deleteUserAccount] Deleting user account:', currentUser.id);
+
+        try {
+          // ✅ Clear all user data from store
+          set({
+            currentUser: null,
+            isAuthenticated: false,
+            favorites: [],
+            freeAdsThisMonth: 0,
+            lastFreeAdDate: null,
+            walletBalance: 0,
+            bonusBalance: 0,
+            blockedUsers: [],
+            nudgeHistory: {},
+            mutedUsers: [],
+            followedUsers: [],
+            favoriteUsers: [],
+            trustedUsers: [],
+            reportedUsers: [],
+            subscribedUsers: [],
+            userNotes: {},
+          });
+
+          logger.debug('[deleteUserAccount] User data cleared from store');
+        } catch (error) {
+          logger.error('[deleteUserAccount] Error clearing user data:', error);
+          throw error;
+        }
       },
     }),
     {

@@ -101,7 +101,7 @@ export const useCallStore = create<CallStore>((set, get) => ({
     const callId = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
     const newCall: Call = {
       id: callId,
-      callerId: currentUserId, // ✅ Use actual current user ID
+      callerId: 'user1', // Current user
       receiverId,
       listingId,
       type,

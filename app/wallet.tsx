@@ -1,5 +1,10 @@
+<<<<<<< HEAD
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, TextInput, ActivityIndicator, RefreshControl, Linking, Platform } from 'react-native';
+=======
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, TextInput, ActivityIndicator, RefreshControl, Linking, Platform, KeyboardAvoidingView, Keyboard, TouchableWithoutFeedback } from 'react-native';
+>>>>>>> origin/main
 import { Stack } from 'expo-router';
 import { useLanguageStore } from '@/store/languageStore';
 import { useUserStore } from '@/store/userStore';
@@ -13,12 +18,17 @@ import { sanitizeNumericInput } from '@/utils/inputValidation';
 
 export default function WalletScreen() {
   const { language } = useLanguageStore();
+<<<<<<< HEAD
   const { currentUser, walletBalance, bonusBalance, addToWallet, addBonus } = useUserStore();
+=======
+  const { walletBalance, bonusBalance, addToWallet, addBonus, currentUser } = useUserStore();
+>>>>>>> origin/main
   
   const [showTopUp, setShowTopUp] = useState(false);
   const [topUpAmount, setTopUpAmount] = useState('');
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [amountError, setAmountError] = useState<string | null>(null);
 
   const walletQuery = trpc.payriff.getWallet.useQuery(undefined, {
     refetchOnMount: true,
@@ -67,19 +77,72 @@ export default function WalletScreen() {
     { id: 'card', name: 'Bank kartı', icon: CreditCard, color: '#4CAF50' },
   ];
 
+  // Real-time amount validation
+  const validateAmount = (value: string) => {
+    if (!value || value.trim().length === 0) {
+      setAmountError(null);
+      return;
+    }
+    
+    const amount = parseFloat(value.trim());
+    
+    if (isNaN(amount) || !isFinite(amount)) {
+      setAmountError(language === 'az' ? 'Düzgün məbləğ daxil edin' : 'Введите корректную сумму');
+      return;
+    }
+    
+    if (amount < 1) {
+      setAmountError(language === 'az' ? 'Min: 1 AZN' : 'Мин: 1 AZN');
+      return;
+    }
+    
+    if (amount > 10000) {
+      setAmountError(language === 'az' ? 'Maks: 10,000 AZN' : 'Макс: 10,000 AZN');
+      return;
+    }
+    
+    const decimalPlaces = (value.split('.')[1] || '').length;
+    if (decimalPlaces > 2) {
+      setAmountError(language === 'az' ? 'Maks 2 onluq rəqəm' : 'Макс 2 десятичных знака');
+      return;
+    }
+    
+    setAmountError(null);
+  };
+  
+  const handleAmountChange = (value: string) => {
+    setTopUpAmount(value);
+    validateAmount(value);
+  };
+
   const handleTopUp = async () => {
+<<<<<<< HEAD
     // ✅ Validate current user
     if (!currentUser) {
       logger.error('[Wallet] No current user for top-up');
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'İstifadəçi məlumatları tapılmadı' : 'Информация о пользователе не найдена'
+=======
+    // ===== VALIDATION START =====
+    
+    // 0. Check if user is authenticated
+    if (!currentUser) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Daxil olmamısınız' : 'Вы не вошли в систему'
+>>>>>>> origin/main
       );
       return;
     }
     
+<<<<<<< HEAD
     // ✅ Validate amount
     if (!topUpAmount || topUpAmount.trim() === '') {
+=======
+    // 1. Check if amount is entered
+    if (!topUpAmount || typeof topUpAmount !== 'string' || topUpAmount.trim().length === 0) {
+>>>>>>> origin/main
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Məbləğ daxil edin' : 'Введите сумму'
@@ -87,9 +150,17 @@ export default function WalletScreen() {
       return;
     }
     
+<<<<<<< HEAD
     const amount = parseFloat(topUpAmount);
     
     if (isNaN(amount) || amount <= 0) {
+=======
+    // 2. Parse amount
+    const amount = parseFloat(topUpAmount.trim());
+    
+    // 3. Check if amount is a valid number
+    if (isNaN(amount) || !isFinite(amount)) {
+>>>>>>> origin/main
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Düzgün məbləğ daxil edin' : 'Введите корректную сумму'
@@ -97,15 +168,33 @@ export default function WalletScreen() {
       return;
     }
     
+<<<<<<< HEAD
     // ✅ Add minimum amount check
     if (amount < 1) {
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Minimum məbləğ 1 AZN olmalıdır' : 'Минимальная сумма должна быть 1 AZN'
+=======
+    // 4. Check if amount is positive
+    if (amount <= 0) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Məbləğ 0-dan böyük olmalıdır' : 'Сумма должна быть больше 0'
       );
       return;
     }
     
+    // 5. Check minimum amount (1 AZN)
+    if (amount < 1) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Minimum məbləğ 1 AZN olmalıdır' : 'Минимальная сумма 1 AZN'
+>>>>>>> origin/main
+      );
+      return;
+    }
+    
+<<<<<<< HEAD
     // ✅ Add maximum amount check
     if (amount > 10000) {
       Alert.alert(
@@ -116,6 +205,29 @@ export default function WalletScreen() {
     }
 
     if (!selectedPaymentMethod) {
+=======
+    // 6. Check maximum amount (10,000 AZN)
+    if (amount > 10000) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Maksimum məbləğ 10,000 AZN olmalıdır' : 'Максимальная сумма 10,000 AZN'
+      );
+      return;
+    }
+    
+    // 7. Check decimal places (max 2)
+    const decimalPlaces = (topUpAmount.split('.')[1] || '').length;
+    if (decimalPlaces > 2) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Məbləğ maksimum 2 onluq rəqəm ola bilər' : 'Сумма может иметь максимум 2 десятичных знака'
+      );
+      return;
+    }
+    
+    // 8. Check payment method selected
+    if (!selectedPaymentMethod || typeof selectedPaymentMethod !== 'string') {
+>>>>>>> origin/main
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Ödəniş üsulunu seçin' : 'Выберите способ оплаты'
@@ -123,7 +235,11 @@ export default function WalletScreen() {
       return;
     }
     
+<<<<<<< HEAD
     logger.info('[Wallet] Initiating top-up:', { amount, userId: currentUser.id });
+=======
+    // ===== VALIDATION END =====
+>>>>>>> origin/main
     
     try {
       setIsProcessing(true);
@@ -138,8 +254,14 @@ export default function WalletScreen() {
         operation: 'PURCHASE',
         metadata: {
           type: 'wallet_topup',
+<<<<<<< HEAD
           userId: currentUser.id,
           amount: amount.toFixed(2),
+=======
+          userId: useUserStore.getState().currentUser?.id || 'guest',
+          amount: amount.toFixed(2),
+          timestamp: new Date().toISOString(),
+>>>>>>> origin/main
         },
       });
 
@@ -179,15 +301,44 @@ export default function WalletScreen() {
         );
       }
     } catch (error) {
+<<<<<<< HEAD
       logger.error('[Wallet] Top-up error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error('Error details:', errorMessage);
+=======
+      logger.error('[WalletTopUp] Error:', error);
+      
+      // User-friendly error messages
+      let errorMessage = language === 'az' 
+        ? 'Ödəniş zamanı xəta baş verdi' 
+        : 'Произошла ошибка при оплате';
+      
+      if (error instanceof Error) {
+        logger.error('[WalletTopUp] Error message:', error.message);
+        
+        if (error.message.includes('amount') || error.message.includes('məbləğ')) {
+          errorMessage = language === 'az' 
+            ? 'Məbləğ düzgün deyil' 
+            : 'Некорректная сумма';
+        } else if (error.message.includes('network') || error.message.includes('timeout')) {
+          errorMessage = language === 'az' 
+            ? 'Şəbəkə xətası. İnternet əlaqənizi yoxlayın.' 
+            : 'Ошибка сети. Проверьте интернет-соединение.';
+        } else if (error.message.includes('payment') || error.message.includes('ödəniş')) {
+          errorMessage = language === 'az' 
+            ? 'Ödəniş linki yaradıla bilmədi' 
+            : 'Не удалось создать платежную ссылку';
+        } else if (error.message.includes('user') || error.message.includes('auth')) {
+          errorMessage = language === 'az' 
+            ? 'Daxil olmamısınız. Yenidən daxil olun.' 
+            : 'Вы не авторизованы. Войдите снова.';
+        }
+      }
+>>>>>>> origin/main
       
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' 
-          ? `Ödəniş zamanı xəta baş verdi: ${errorMessage}`
-          : `Произошла ошибка при оплате: ${errorMessage}`
+        errorMessage
       );
     } finally {
       setIsProcessing(false);
@@ -243,7 +394,11 @@ export default function WalletScreen() {
   const totalBalance = walletQuery.data?.payload?.totalBalance || 0;
 
   return (
-    <>
+    <KeyboardAvoidingView
+      style={styles.flex}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+    >
       <Stack.Screen 
         options={{ 
           title: language === 'az' ? 'Pul kisəsi' : 'Кошелек',
@@ -252,12 +407,15 @@ export default function WalletScreen() {
         }} 
       />
       
-      <ScrollView 
-        style={styles.container}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={styles.flex}>
+          <ScrollView 
+            style={styles.container}
+            keyboardShouldPersistTaps="handled"
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }
+          >
         {/* Total Balance Card */}
         <View style={styles.balanceSection}>
           {walletQuery.isLoading ? (
@@ -349,14 +507,81 @@ export default function WalletScreen() {
                 {language === 'az' ? 'Məbləğ (AZN)' : 'Сумма (AZN)'}
               </Text>
               <TextInput
-                style={styles.input}
+                style={[
+                  styles.input,
+                  amountError && styles.inputError
+                ]}
                 value={topUpAmount}
+<<<<<<< HEAD
                 onChangeText={(text) => setTopUpAmount(sanitizeNumericInput(text))}
                 placeholder="0.00"
                 keyboardType="decimal-pad"
                 maxLength={10}
+=======
+                onChangeText={handleAmountChange}
+                placeholder="0.00"
+                keyboardType="decimal-pad"
+                returnKeyType="done"
+                onSubmitEditing={Keyboard.dismiss}
+>>>>>>> origin/main
                 placeholderTextColor={Colors.placeholder}
               />
+              
+              {/* Validation Error */}
+              {amountError && (
+                <Text style={styles.errorText}>{amountError}</Text>
+              )}
+              
+              {/* Min/Max Info */}
+              {!amountError && !topUpAmount && (
+                <Text style={styles.hintText}>
+                  {language === 'az' 
+                    ? 'Minimum: 1 AZN • Maksimum: 10,000 AZN'
+                    : 'Минимум: 1 AZN • Максимум: 10,000 AZN'
+                  }
+                </Text>
+              )}
+              
+              {/* Quick Amount Buttons */}
+              <View style={styles.quickAmounts}>
+                {[10, 20, 50, 100, 200, 500].map((quickAmount) => (
+                  <TouchableOpacity
+                    key={quickAmount}
+                    style={[
+                      styles.quickAmountButton,
+                      topUpAmount === quickAmount.toString() && styles.selectedQuickAmount
+                    ]}
+                    onPress={() => setTopUpAmount(quickAmount.toString())}
+                  >
+                    <Text style={[
+                      styles.quickAmountText,
+                      topUpAmount === quickAmount.toString() && styles.selectedQuickAmountText
+                    ]}>
+                      {quickAmount} ₼
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              
+              {/* Amount Info */}
+              {topUpAmount && parseFloat(topUpAmount) > 0 && !isNaN(parseFloat(topUpAmount)) && (
+                <View style={styles.amountInfo}>
+                  <Text style={styles.amountInfoText}>
+                    {language === 'az' 
+                      ? `✓ ${parseFloat(topUpAmount).toFixed(2)} AZN balansınıza əlavə ediləcək`
+                      : `✓ ${parseFloat(topUpAmount).toFixed(2)} AZN будет добавлено на ваш баланс`
+                    }
+                  </Text>
+                  {parseFloat(topUpAmount) >= 100 && (
+                    <Text style={styles.bonusInfoText}>
+                      🎁 {language === 'az' 
+                        ? `+ ${(parseFloat(topUpAmount) * 0.05).toFixed(2)} AZN bonus (5%)`
+                        : `+ ${(parseFloat(topUpAmount) * 0.05).toFixed(2)} AZN бонус (5%)`
+                      }
+                    </Text>
+                  )}
+                </View>
+              )}
             </View>
 
             <View style={styles.inputGroup}>
@@ -398,9 +623,12 @@ export default function WalletScreen() {
               </TouchableOpacity>
               
               <TouchableOpacity 
-                style={[styles.confirmButton, isProcessing && styles.disabledButton]}
+                style={[
+                  styles.confirmButton, 
+                  (isProcessing || !!amountError || !topUpAmount || !selectedPaymentMethod) && styles.disabledButton
+                ]}
                 onPress={handleTopUp}
-                disabled={isProcessing}
+                disabled={isProcessing || !!amountError || !topUpAmount || !selectedPaymentMethod}
               >
                 {isProcessing ? (
                   <ActivityIndicator size="small" color="white" />
@@ -484,11 +712,16 @@ export default function WalletScreen() {
           )}
         </View>
       </ScrollView>
-    </>
+        </View>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     backgroundColor: Colors.background,
@@ -759,5 +992,64 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     opacity: 0.6,
+  },
+  quickAmounts: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 12,
+  },
+  quickAmountButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.background,
+  },
+  selectedQuickAmount: {
+    borderColor: Colors.primary,
+    backgroundColor: 'rgba(14, 116, 144, 0.1)',
+  },
+  quickAmountText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.text,
+  },
+  selectedQuickAmountText: {
+    color: Colors.primary,
+  },
+  amountInfo: {
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: 'rgba(76, 175, 80, 0.1)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(76, 175, 80, 0.3)',
+  },
+  amountInfoText: {
+    fontSize: 14,
+    color: Colors.success,
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  bonusInfoText: {
+    fontSize: 13,
+    color: Colors.secondary,
+    fontWeight: '600',
+  },
+  inputError: {
+    borderColor: Colors.error,
+    borderWidth: 2,
+  },
+  errorText: {
+    fontSize: 12,
+    color: Colors.error,
+    marginTop: 4,
+  },
+  hintText: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginTop: 4,
   },
 });

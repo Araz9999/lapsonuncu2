@@ -113,11 +113,46 @@ class AnalyticsService {
   track(event: AnalyticsEvent): void {
     if (!this.isEnabled) return;
     
+<<<<<<< HEAD
     // ✅ Input validation
     if (!event || !event.name || typeof event.name !== 'string') {
       logger.error('[AnalyticsService] Invalid event:', event);
       return;
     }
+=======
+    // ===== VALIDATION START =====
+    
+    // 1. Validate event object
+    if (!event || typeof event !== 'object') {
+      logger.error('[Analytics] Invalid event object');
+      return;
+    }
+    
+    // 2. Validate event name
+    if (!event.name || typeof event.name !== 'string' || event.name.trim().length === 0) {
+      logger.error('[Analytics] Invalid event name');
+      return;
+    }
+    
+    if (event.name.trim().length > 100) {
+      logger.error('[Analytics] Event name too long (max 100 chars)');
+      return;
+    }
+    
+    // 3. Validate properties (if provided)
+    if (event.properties !== undefined && typeof event.properties !== 'object') {
+      logger.error('[Analytics] Invalid properties object');
+      return;
+    }
+    
+    // 4. Validate userId (if provided)
+    if (event.userId !== undefined && typeof event.userId !== 'string') {
+      logger.error('[Analytics] Invalid userId');
+      return;
+    }
+    
+    // ===== VALIDATION END =====
+>>>>>>> origin/main
 
     logger.info('[AnalyticsService] Tracking event:', { name: event.name, userId: event.userId });
 
@@ -179,25 +214,56 @@ class AnalyticsService {
   identify(userProperties: UserProperties): void {
     if (!this.isEnabled) return;
     
+<<<<<<< HEAD
     // ✅ Input validation
     if (!userProperties || !userProperties.userId) {
       logger.error('[AnalyticsService] Invalid user properties:', userProperties);
       return;
     }
+=======
+    // ===== VALIDATION START =====
+    
+    if (!userProperties || typeof userProperties !== 'object') {
+      logger.error('[Analytics] Invalid userProperties object');
+      return;
+    }
+    
+    if (!userProperties.userId || typeof userProperties.userId !== 'string' || userProperties.userId.trim().length === 0) {
+      logger.error('[Analytics] Invalid userId in userProperties');
+      return;
+    }
+    
+    // ===== VALIDATION END =====
+>>>>>>> origin/main
 
     logger.info('[AnalyticsService] Identifying user:', { userId: userProperties.userId });
 
-    if (Platform.OS === 'web') {
-      if ((window as any).gtag) {
-        (window as any).gtag('config', this.googleAnalyticsId, {
-          user_id: userProperties.userId,
-        });
-      }
+    try {
+      if (Platform.OS === 'web') {
+        interface WindowWithAnalytics extends Window {
+          gtag?: (...args: unknown[]) => void;
+          mixpanel?: {
+            identify: (userId: string) => void;
+            people: {
+              set: (properties: Record<string, unknown>) => void;
+            };
+          };
+        }
+        const windowWithAnalytics = window as unknown as WindowWithAnalytics;
+        
+        if (windowWithAnalytics.gtag) {
+          windowWithAnalytics.gtag('config', this.googleAnalyticsId, {
+            user_id: userProperties.userId,
+          });
+        }
 
-      if ((window as any).mixpanel) {
-        (window as any).mixpanel.identify(userProperties.userId);
-        (window as any).mixpanel.people.set(userProperties);
+        if (windowWithAnalytics.mixpanel) {
+          windowWithAnalytics.mixpanel.identify(userProperties.userId);
+          windowWithAnalytics.mixpanel.people.set(userProperties);
+        }
       }
+    } catch (error) {
+      logger.error('[Analytics] Error in identify:', error);
     }
   }
 
@@ -217,27 +283,40 @@ class AnalyticsService {
     }
   }
 
-  trackPageView(pageName: string, properties?: Record<string, any>): void {
+  trackPageView(pageName: string, properties?: Record<string, unknown>): void {
+    // \u2705 Validate pageName
+    if (!pageName || typeof pageName !== 'string' || pageName.trim().length === 0) {
+      logger.error('[Analytics] Invalid pageName');
+      return;
+    }
+    
     this.track({
       name: 'page_view',
       properties: {
-        page_name: pageName,
+        page_name: pageName.trim(),
         ...properties,
       },
     });
   }
 
-  trackUserAction(action: string, properties?: Record<string, any>): void {
+  trackUserAction(action: string, properties?: Record<string, unknown>): void {
+    // \u2705 Validate action
+    if (!action || typeof action !== 'string' || action.trim().length === 0) {
+      logger.error('[Analytics] Invalid action');
+      return;
+    }
+    
     this.track({
       name: 'user_action',
       properties: {
-        action,
+        action: action.trim(),
         ...properties,
       },
     });
   }
 
   trackPurchase(amount: number, currency: string, itemId?: string): void {
+<<<<<<< HEAD
     // ✅ Input validation
     if (typeof amount !== 'number' || isNaN(amount) || amount < 0) {
       logger.error('[AnalyticsService] Invalid purchase amount:', amount);
@@ -250,12 +329,51 @@ class AnalyticsService {
     }
     
     logger.info('[AnalyticsService] Tracking purchase:', { amount, currency, itemId });
+=======
+    // ===== VALIDATION START =====
+    
+    // 1. Validate amount
+    if (typeof amount !== 'number' || isNaN(amount) || !isFinite(amount)) {
+      logger.error('[Analytics] Invalid purchase amount');
+      return;
+    }
+    
+    if (amount < 0) {
+      logger.error('[Analytics] Purchase amount cannot be negative');
+      return;
+    }
+    
+    if (amount > 1000000) {
+      logger.error('[Analytics] Purchase amount exceeds maximum (1,000,000)');
+      return;
+    }
+    
+    // 2. Validate currency
+    if (!currency || typeof currency !== 'string' || currency.trim().length === 0) {
+      logger.error('[Analytics] Invalid currency');
+      return;
+    }
+    
+    const validCurrencies = ['AZN', 'USD', 'EUR', 'GBP', 'RUB', 'TRY'];
+    if (!validCurrencies.includes(currency.toUpperCase())) {
+      logger.error(`[Analytics] Invalid currency: ${currency}`);
+      return;
+    }
+    
+    // 3. Validate itemId (if provided)
+    if (itemId !== undefined && typeof itemId !== 'string') {
+      logger.error('[Analytics] Invalid itemId');
+      return;
+    }
+    
+    // ===== VALIDATION END =====
+>>>>>>> origin/main
     
     this.track({
       name: 'purchase',
       properties: {
-        amount,
-        currency,
+        amount: parseFloat(amount.toFixed(2)),
+        currency: currency.toUpperCase(),
         item_id: itemId,
       },
     });
