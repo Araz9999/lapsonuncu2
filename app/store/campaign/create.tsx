@@ -53,13 +53,43 @@ export default function CreateCampaignScreen() {
   const storeListings = listings.filter(l => l.storeId === currentStore.id && !l.deletedAt);
   
   const handleSubmit = () => {
+    // Validation: Title
     if (!formData.title.trim()) {
       Alert.alert('Xəta', 'Kampaniya başlığı daxil edin');
       return;
     }
     
+    if (formData.title.trim().length < 3) {
+      Alert.alert('Xəta', 'Kampaniya başlığı ən azı 3 simvol olmalıdır');
+      return;
+    }
+    
+    if (formData.title.trim().length > 100) {
+      Alert.alert('Xəta', 'Kampaniya başlığı maksimum 100 simvol ola bilər');
+      return;
+    }
+    
+    // Validation: Description (optional but if provided)
+    if (formData.description.trim() && formData.description.trim().length < 10) {
+      Alert.alert('Xəta', 'Açıqlama ən azı 10 simvol olmalıdır');
+      return;
+    }
+    
+    // Validation: Listings
     if (selectedListings.length === 0) {
       Alert.alert('Xəta', 'Ən azı bir məhsul seçin');
+      return;
+    }
+    
+    // Validation: Date range
+    if (formData.startDate >= formData.endDate) {
+      Alert.alert('Xəta', 'Başlama tarixi bitmə tarixindən əvvəl olmalıdır');
+      return;
+    }
+    
+    // Validation: Priority
+    if (formData.priority < 1 || formData.priority > 10) {
+      Alert.alert('Xəta', 'Prioritet 1-10 arasında olmalıdır');
       return;
     }
     
@@ -245,8 +275,12 @@ export default function CreateCampaignScreen() {
               value={formData.priority.toString()}
               onChangeText={(text) => {
                 const parsed = parseInt(text, 10);
-                const priority = isNaN(parsed) ? 1 : Math.max(1, Math.min(5, parsed));
-                setFormData(prev => ({ ...prev, priority: Math.min(10, Math.max(1, priority)) }));
+                if (isNaN(parsed) || text === '') {
+                  setFormData(prev => ({ ...prev, priority: 1 }));
+                } else {
+                  const clampedPriority = Math.min(10, Math.max(1, parsed));
+                  setFormData(prev => ({ ...prev, priority: clampedPriority }));
+                }
               }}
               placeholder="1"
               placeholderTextColor="#9CA3AF"

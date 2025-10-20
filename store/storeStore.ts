@@ -17,7 +17,7 @@ interface StoreState {
   createStore: (storeData: Omit<Store, 'id' | 'createdAt' | 'expiresAt' | 'adsUsed' | 'deletedListings' | 'isActive' | 'status' | 'gracePeriodEndsAt' | 'deactivatedAt' | 'archivedAt' | 'lastPaymentReminder' | 'followers' | 'rating' | 'totalRatings'>) => Promise<void>;
   checkStoreStatus: (storeId: string) => StoreStatus;
   updateStoreStatus: (storeId: string) => Promise<void>;
-  renewStore: (storeId: string, planId: string) => Promise<void>;
+  renewStore: (storeId: string, planId: string, applyDiscount?: boolean) => Promise<void>;
   sendPaymentReminder: (storeId: string) => Promise<void>;
   getStoresByStatus: (status: StoreStatus) => Store[];
   canStoreBeReactivated: (storeId: string) => boolean;
@@ -151,34 +151,115 @@ export const useStoreStore = create<StoreState>((set, get) => ({
   deleteStore: async (storeId) => {
     set({ isLoading: true, error: null });
     try {
-      // BUG FIX: Validate storeId
-      if (!storeId) {
-        throw new Error('Invalid storeId');
+      // ✅ VALIDATION START
+      
+      // 1. Validate storeId
+      if (!storeId || typeof storeId !== 'string' || storeId.trim().length === 0) {
+        logger.error('[deleteStore] Invalid storeId:', storeId);
+        throw new Error('Invalid store ID');
       }
       
-      // BUG FIX: Check if store exists
-      const store = get().stores.find(s => s.id === storeId);
+      // 2. Check if store exists
+      const { stores } = get();
+      const store = stores.find(s => s.id === storeId);
+      
       if (!store) {
-        logger.warn('[StoreStore] Store not found for deletion:', storeId);
-        set({ isLoading: false });
-        return;
+        logger.error('[deleteStore] Store not found:', storeId);
+        throw new Error('Store not found');
       }
       
-      // BUG FIX: Use soft delete instead of hard delete
+      // 3. Check if store is already deleted/archived
+      if (store.status === 'archived' || store.archivedAt) {
+        logger.warn('[deleteStore] Store already archived:', storeId);
+        throw new Error('Store is already deleted');
+      }
+      
+      // 4. Check for active listings
+      const { useListingStore } = await import('@/store/listingStore');
+      const { listings } = useListingStore.getState();
+      
+      const activeStoreListings = listings.filter(l => 
+        l.storeId === storeId && 
+        !l.deletedAt &&
+        !store.deletedListings.includes(l.id)
+      );
+      
+      if (activeStoreListings.length > 0) {
+        logger.warn('[deleteStore] Store has active listings:', {
+          storeId,
+          activeListingsCount: activeStoreListings.length
+        });
+        throw new Error(`Store has ${activeStoreListings.length} active listings. Please delete all listings first.`);
+      }
+      
+      // 5. Validate store data for notification
+      const followerCount = Array.isArray(store.followers) ? store.followers.length : 0;
+      const deletedListingsCount = Array.isArray(store.deletedListings) ? store.deletedListings.length : 0;
+      
+      logger.info('[deleteStore] Deleting store:', {
+        storeId,
+        name: store.name,
+        followers: followerCount,
+        deletedListings: deletedListingsCount,
+        status: store.status
+      });
+      
+      // ✅ VALIDATION END
+      
+      // Soft delete - archive the store
       const now = new Date().toISOString();
+      
       set(state => ({
         stores: state.stores.map(s => 
           s.id === storeId 
-            ? { ...s, status: 'archived' as StoreStatus, archivedAt: now }
+            ? { 
+                ...s, 
+                status: 'archived' as StoreStatus, 
+                archivedAt: now,
+                isActive: false  // ✅ Also set isActive to false
+              }
             : s
         ),
         isLoading: false
       }));
       
-      logger.info('[StoreStore] Store archived:', storeId);
+      logger.info('[deleteStore] Store archived successfully:', storeId);
+      
+      // ✅ Notify followers (async, don't wait)
+      if (followerCount > 0 && Array.isArray(store.followers)) {
+        setTimeout(async () => {
+          try {
+            const { useNotificationStore } = await import('@/store/notificationStore');
+            const { addNotification } = useNotificationStore.getState();
+            
+            for (const followerId of store.followers) {
+              if (followerId && typeof followerId === 'string') {
+                addNotification({
+                  id: `store-deleted-${storeId}-${followerId}-${Date.now()}`,
+                  type: 'store',
+                  title: store.name || 'Mağaza',
+                  message: 'Mağaza silindi',
+                  fromUserId: store.userId || '',
+                  fromUserName: store.name || 'Mağaza',
+                  fromUserAvatar: '',
+                  timestamp: Date.now(),
+                  isRead: false
+                });
+              }
+            }
+            
+            logger.info('[deleteStore] Notified followers:', followerCount);
+          } catch (notifError) {
+            logger.error('[deleteStore] Failed to notify followers:', notifError);
+            // Don't throw - notification failure shouldn't fail deletion
+          }
+        }, 100);
+      }
+      
     } catch (error) {
-      logger.error('[StoreStore] Failed to delete store:', error);
+      logger.error('[deleteStore] Failed to delete store:', error);
       set({ error: 'Failed to delete store', isLoading: false });
+      throw error; // ✅ Re-throw for UI handling
     }
   },
 
@@ -547,30 +628,99 @@ export const useStoreStore = create<StoreState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       // ✅ Validate storeId
-      if (!storeId) {
-        throw new Error('Invalid storeId');
+      if (!storeId || typeof storeId !== 'string' || storeId.trim().length === 0) {
+        logger.error('[StoreStore] Invalid storeId for editStore');
+        throw new Error('Invalid store ID');
       }
       
-      // ✅ Validate updates
-      if (updates.name !== undefined && (!updates.name || !updates.name.trim())) {
-        throw new Error('Store name cannot be empty');
+      // ✅ Validate updates object
+      if (!updates || typeof updates !== 'object' || Object.keys(updates).length === 0) {
+        logger.error('[StoreStore] No updates provided');
+        throw new Error('No updates provided');
       }
       
-      // ✅ Validate email if provided
-      if (updates.contactInfo?.email) {
-        const { validateEmail } = await import('@/utils/inputValidation');
-        if (!validateEmail(updates.contactInfo.email)) {
-          throw new Error('Invalid email format');
+      // ✅ Find store
+      const { stores } = get();
+      const store = stores.find(s => s.id === storeId);
+      
+      if (!store) {
+        logger.error('[StoreStore] Store not found:', storeId);
+        throw new Error('Store not found');
+      }
+      
+      // ✅ Validate name if provided
+      if ('name' in updates) {
+        if (!updates.name || typeof updates.name !== 'string' || updates.name.trim().length < 3 || updates.name.trim().length > 50) {
+          logger.error('[StoreStore] Invalid store name');
+          throw new Error('Store name must be 3-50 characters');
         }
       }
       
-      // ✅ Validate website if provided
-      if (updates.contactInfo?.website) {
-        const { validateWebsiteURL } = await import('@/utils/inputValidation');
-        if (!validateWebsiteURL(updates.contactInfo.website)) {
-          throw new Error('Invalid website URL');
+      // ✅ Validate address if provided
+      if ('address' in updates) {
+        if (!updates.address || typeof updates.address !== 'string' || updates.address.trim().length < 5 || updates.address.trim().length > 200) {
+          logger.error('[StoreStore] Invalid store address');
+          throw new Error('Store address must be 5-200 characters');
         }
       }
+      
+      // ✅ Validate description if provided
+      if ('description' in updates && updates.description) {
+        if (typeof updates.description !== 'string' || updates.description.trim().length > 1000) {
+          logger.error('[StoreStore] Invalid store description');
+          throw new Error('Store description must not exceed 1000 characters');
+        }
+      }
+      
+      // ✅ Validate contactInfo if provided
+      if ('contactInfo' in updates && updates.contactInfo) {
+        const contactInfo = updates.contactInfo as any;
+        
+        // Email validation
+        if (contactInfo.email) {
+          const emailRegex = /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+          if (!emailRegex.test(contactInfo.email) || contactInfo.email.length > 255) {
+            logger.error('[StoreStore] Invalid email format');
+            throw new Error('Invalid email format');
+          }
+        }
+        
+        // Phone validation
+        if (contactInfo.phone) {
+          const phoneDigits = contactInfo.phone.replace(/\D/g, '');
+          if (phoneDigits.length < 9 || phoneDigits.length > 15) {
+            logger.error('[StoreStore] Invalid phone number');
+            throw new Error('Phone number must be 9-15 digits');
+          }
+        }
+        
+        // WhatsApp validation
+        if (contactInfo.whatsapp) {
+          const whatsappDigits = contactInfo.whatsapp.replace(/\D/g, '');
+          if (whatsappDigits.length < 9 || whatsappDigits.length > 15) {
+            logger.error('[StoreStore] Invalid WhatsApp number');
+            throw new Error('WhatsApp number must be 9-15 digits');
+          }
+        }
+        
+        // Website validation
+        if (contactInfo.website) {
+          try {
+            const url = new URL(contactInfo.website);
+            if (!['http:', 'https:'].includes(url.protocol)) {
+              throw new Error('Invalid protocol');
+            }
+            if (contactInfo.website.length > 2083) {
+              throw new Error('URL too long');
+            }
+          } catch (error) {
+            logger.error('[StoreStore] Invalid website URL:', error);
+            throw new Error('Invalid website URL');
+          }
+        }
+      }
+      
+      logger.info('[StoreStore] Updating store:', storeId);
       
       set(state => ({
         stores: state.stores.map(store => 
@@ -579,13 +729,11 @@ export const useStoreStore = create<StoreState>((set, get) => ({
         isLoading: false
       }));
       
-      logger.info('[StoreStore] Store edited successfully:', { 
-        storeId,
-        updatedFields: Object.keys(updates)
-      });
+      logger.info('[StoreStore] Store updated successfully:', storeId);
     } catch (error) {
       logger.error('[StoreStore] Failed to edit store:', error);
-      set({ error: error instanceof Error ? error.message : 'Failed to edit store', isLoading: false });
+      set({ error: 'Failed to edit store', isLoading: false });
+      throw error;
     }
   },
 
@@ -861,9 +1009,25 @@ export const useStoreStore = create<StoreState>((set, get) => ({
     const gracePeriodEndsAt = store.gracePeriodEndsAt ? new Date(store.gracePeriodEndsAt) : null;
     const deactivatedAt = store.deactivatedAt ? new Date(store.deactivatedAt) : null;
     
-    // Check if store should be archived (90 days after deactivation)
-    if (deactivatedAt && now.getTime() - deactivatedAt.getTime() > 90 * 24 * 60 * 60 * 1000) {
-      return 'archived';
+    // AUTO-ARCHIVE: Check if store should be archived (90 days after deactivation)
+    if (deactivatedAt) {
+      const daysSinceDeactivation = (now.getTime() - deactivatedAt.getTime()) / (1000 * 60 * 60 * 24);
+      
+      if (daysSinceDeactivation >= 90) {
+        // Auto-archive the store
+        logger.info('[StoreStore] Auto-archiving store after 90 days:', { storeId, daysSinceDeactivation });
+        
+        // Update store status to archived
+        set(state => ({
+          stores: state.stores.map(s => 
+            s.id === storeId 
+              ? { ...s, status: 'archived' as StoreStatus, archivedAt: now.toISOString() }
+              : s
+          )
+        }));
+        
+        return 'archived';
+      }
     }
     
     // Check if store is in grace period
@@ -1060,8 +1224,47 @@ export const useStoreStore = create<StoreState>((set, get) => ({
     }
     
     const daysUntilExpiration = Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-    const daysInGracePeriod = gracePeriodEndsAt ? Math.max(0, Math.ceil((gracePeriodEndsAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))) : 0;
-    const daysSinceDeactivation = deactivatedAt ? Math.max(0, Math.ceil((now.getTime() - deactivatedAt.getTime()) / (1000 * 60 * 60 * 24))) : 0;
+    const daysInGracePeriod = gracePeriodEndsAt ? Math.ceil((gracePeriodEndsAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : 0;
+    const daysSinceDeactivation = deactivatedAt ? Math.ceil((now.getTime() - deactivatedAt.getTime()) / (1000 * 60 * 60 * 24)) : 0;
+    
+    // AUTO-SEND NOTIFICATIONS at 7, 3, 1 days before expiration
+    if (store.status === 'active') {
+      // Send notification 7 days before
+      if (daysUntilExpiration === 7) {
+        sendExpirationNotification(storeId, 'warning').catch(err => 
+          logger.error('[getExpirationInfo] Failed to send 7-day notification:', err)
+        );
+      }
+      // Send notification 3 days before
+      else if (daysUntilExpiration === 3) {
+        sendExpirationNotification(storeId, 'warning').catch(err => 
+          logger.error('[getExpirationInfo] Failed to send 3-day notification:', err)
+        );
+      }
+      // Send notification 1 day before
+      else if (daysUntilExpiration === 1) {
+        sendExpirationNotification(storeId, 'warning').catch(err => 
+          logger.error('[getExpirationInfo] Failed to send 1-day notification:', err)
+        );
+      }
+    }
+    
+    // Send grace period notification
+    if (store.status === 'grace_period' && daysInGracePeriod > 0 && daysInGracePeriod <= 7) {
+      // Send on first day of grace period
+      if (daysInGracePeriod === 7) {
+        sendExpirationNotification(storeId, 'grace_period').catch(err => 
+          logger.error('[getExpirationInfo] Failed to send grace period notification:', err)
+        );
+      }
+    }
+    
+    // Send deactivation notification
+    if (store.status === 'deactivated' && daysSinceDeactivation === 0) {
+      sendExpirationNotification(storeId, 'deactivated').catch(err => 
+        logger.error('[getExpirationInfo] Failed to send deactivation notification:', err)
+      );
+    }
     
     let nextAction = '';
     let nextActionDate = '';
@@ -1120,16 +1323,77 @@ export const useStoreStore = create<StoreState>((set, get) => ({
       return;
     }
     
-    // In a real app, this would send push notifications or emails
-    logger.info(`[StoreStore] 📧 Expiration notification sent for store ${store.name}:`, type);
+    // Validation: Check notification type
+    if (!['warning', 'grace_period', 'deactivated'].includes(type)) {
+      logger.error('[StoreStore] Invalid notification type:', type);
+      return;
+    }
     
-    // Update last notification time
-    const now = new Date().toISOString();
+    // Check if notification was already sent recently (prevent spam)
+    if (store.lastPaymentReminder) {
+      const lastNotification = new Date(store.lastPaymentReminder);
+      const now = new Date();
+      const hoursSinceLastNotification = (now.getTime() - lastNotification.getTime()) / (1000 * 60 * 60);
+      
+      // Don't send same notification within 12 hours
+      if (hoursSinceLastNotification < 12) {
+        logger.debug('[StoreStore] Notification already sent recently:', { storeId, type, hoursSinceLastNotification });
+        return;
+      }
+    }
+    
+    // Create notification message
+    let messageAz = '';
+    let messageRu = '';
+    let messageEn = '';
+    
+    switch (type) {
+      case 'warning':
+        messageAz = `${store.name} mağazanızın müddəti tezliklə bitir. Xidməti davam etdirmək üçün yeniləyin.`;
+        messageRu = `Срок действия вашего магазина ${store.name} скоро истекает. Обновите для продолжения работы.`;
+        messageEn = `Your store ${store.name} is expiring soon. Renew to continue service.`;
+        break;
+      case 'grace_period':
+        messageAz = `${store.name} mağazanızın müddəti bitdi. 7 günlük güzəşt müddətiniz var. Yeniləyin və ya mağaza deaktiv ediləcək.`;
+        messageRu = `Срок действия вашего магазина ${store.name} истек. У вас есть 7-дневный льготный период. Обновите или магазин будет деактивирован.`;
+        messageEn = `Your store ${store.name} has expired. You have a 7-day grace period. Renew or the store will be deactivated.`;
+        break;
+      case 'deactivated':
+        messageAz = `${store.name} mağazanız deaktiv edildi. Reaktiv etmək üçün ödəniş edin.`;
+        messageRu = `Ваш магазин ${store.name} деактивирован. Оплатите для реактивации.`;
+        messageEn = `Your store ${store.name} has been deactivated. Pay to reactivate.`;
+        break;
+    }
+    
+    // Create notification object
+    const notification: StoreNotification = {
+      id: `notif-exp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      storeId,
+      userId: store.userId,
+      listingId: undefined, // No specific listing
+      message: {
+        az: messageAz,
+        ru: messageRu,
+        en: messageEn
+      },
+      createdAt: new Date().toISOString(),
+      read: false,
+      type: 'expiration' // Add notification type
+    };
+    
+    // Add notification to store
     set(state => ({
+      notifications: [...state.notifications, notification],
       stores: state.stores.map(s => 
-        s.id === storeId ? { ...s, lastPaymentReminder: now } : s
+        s.id === storeId ? { ...s, lastPaymentReminder: new Date().toISOString() } : s
       )
     }));
+    
+    logger.info('[StoreStore] Expiration notification sent:', { storeId, type, userId: store.userId });
+    
+    // TODO: In production, send push notification and email
+    // await pushNotificationService.send(store.userId, notification);
+    // await emailService.send(store.contactInfo.email, notification);
   },
 
   getExpiredStoreActions: (storeId) => {
@@ -1224,18 +1488,102 @@ export const useStoreStore = create<StoreState>((set, get) => ({
   },
 
   updateUserStoreSettings: async (userId, storeId, settings) => {
-    set(state => ({
-      userStoreSettings: {
-        ...state.userStoreSettings,
-        [userId]: {
-          ...state.userStoreSettings[userId],
-          [storeId]: {
-            ...state.userStoreSettings[userId]?.[storeId],
-            ...settings
-          }
+    try {
+      // ✅ VALIDATION START
+      
+      // 1. Validate userId
+      if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
+        logger.error('[updateUserStoreSettings] Invalid userId:', userId);
+        throw new Error('Invalid user ID');
+      }
+      
+      // 2. Validate storeId
+      if (!storeId || typeof storeId !== 'string' || storeId.trim().length === 0) {
+        logger.error('[updateUserStoreSettings] Invalid storeId:', storeId);
+        throw new Error('Invalid store ID');
+      }
+      
+      // 3. Validate settings object
+      if (!settings || typeof settings !== 'object' || Array.isArray(settings)) {
+        logger.error('[updateUserStoreSettings] Invalid settings:', settings);
+        throw new Error('Invalid settings object');
+      }
+      
+      if (Object.keys(settings).length === 0) {
+        logger.error('[updateUserStoreSettings] Empty settings object');
+        throw new Error('No settings provided');
+      }
+      
+      // 4. Check if store exists
+      const { stores } = get();
+      const store = stores.find(s => s.id === storeId);
+      
+      if (!store) {
+        logger.error('[updateUserStoreSettings] Store not found:', storeId);
+        throw new Error('Store not found');
+      }
+      
+      // 5. Check ownership
+      if (store.userId !== userId) {
+        logger.error('[updateUserStoreSettings] User does not own store:', { userId, storeId, ownerId: store.userId });
+        throw new Error('You do not have permission to update settings for this store');
+      }
+      
+      // 6. Validate individual settings
+      const validSettingKeys = [
+        'notifications',
+        'autoRenewal',
+        'publicProfile',
+        'showContact',
+        'allowMessages',
+        'showRating',
+        'analyticsSharing',
+        'promotionalEmails',
+        'smsNotifications',
+        'weeklyReports',
+        'listingExpirationNotifications',
+        'autoArchiveExpired'
+      ];
+      
+      for (const [key, value] of Object.entries(settings)) {
+        if (!validSettingKeys.includes(key)) {
+          logger.warn('[updateUserStoreSettings] Unknown setting key:', key);
+          // Don't throw - just warn and ignore unknown keys
+          continue;
+        }
+        
+        if (typeof value !== 'boolean') {
+          logger.error('[updateUserStoreSettings] Invalid value type for key:', { key, value, type: typeof value });
+          throw new Error(`Setting '${key}' must be a boolean value`);
         }
       }
-    }));
+      
+      // ✅ VALIDATION END
+      
+      logger.info('[updateUserStoreSettings] Updating settings:', {
+        userId,
+        storeId,
+        settingsKeys: Object.keys(settings)
+      });
+      
+      set(state => ({
+        userStoreSettings: {
+          ...state.userStoreSettings,
+          [userId]: {
+            ...state.userStoreSettings[userId],
+            [storeId]: {
+              ...state.userStoreSettings[userId]?.[storeId],
+              ...settings
+            }
+          }
+        }
+      }));
+      
+      logger.info('[updateUserStoreSettings] Settings updated successfully');
+    } catch (error) {
+      logger.error('[updateUserStoreSettings] Failed to update settings:', error);
+      throw error; // ✅ Re-throw for UI handling
+    }
   },
 
   canUserCreateNewStore: (userId) => {

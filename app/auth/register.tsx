@@ -13,7 +13,7 @@ import { validateEmail, validateAzerbaijanPhone, sanitizeTextInput } from '@/uti
 
 export default function RegisterScreen() {
   const router = useRouter();
-  const { t, language } = useTranslation();
+  const { t } = useTranslation();
   const { login } = useUserStore();
   
   const [name, setName] = useState('');
@@ -257,8 +257,44 @@ export default function RegisterScreen() {
     } catch (error) {
       logger.error('Camera error:', error);
       Alert.alert(
+<<<<<<< HEAD
         t('error') || (language === 'az' ? 'Xəta' : 'Ошибка'),
         language === 'az' ? 'Foto çəkilə bilmədi' : 'Не удалось сделать фото'
+=======
+        t('error'),
+        language === 'az' ? 'Kamera açıla bilmədi' : 'Не удалось открыть камеру'
+      );
+    }
+  };
+
+  const pickImage = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (status !== 'granted') {
+        Alert.alert(
+          t('permissionRequired'),
+          language === 'az' ? 'Qalereya icazəsi tələb olunur' : 'Требуется разрешение галереи'
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0]) {
+        setProfileImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      logger.error('Image picker error:', error);
+      Alert.alert(
+        t('error'),
+        language === 'az' ? 'Şəkil seçilə bilmədi' : 'Не удалось выбрать изображение'
+>>>>>>> origin/main
       );
     }
   };
@@ -270,6 +306,7 @@ export default function RegisterScreen() {
       router.replace('/');
     }
   };
+<<<<<<< HEAD
   
   const handleSocialLogin = async (provider: 'google' | 'facebook' | 'vk') => {
     logger.info('[Register] Social login initiated:', { provider });
@@ -278,13 +315,28 @@ export default function RegisterScreen() {
     try {
       // ✅ Check if provider is configured
       const baseUrl = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://1r36dhx42va8pxqbqz5ja.rork.app';
+=======
+
+  const handleLogin = () => {
+    router.push('/auth/login');
+  };
+
+  const handleSocialLogin = async (provider: 'google' | 'facebook' | 'vk') => {
+    try {
+      setLoadingSocial(provider);
+      
+      const baseUrl = 'https://1r36dhx42va8pxqbqz5ja.rork.app';
+>>>>>>> origin/main
       const statusResponse = await fetch(`${baseUrl}/api/auth/status`);
       
       if (statusResponse.ok) {
         const statusData = await statusResponse.json();
         if (!statusData.configured[provider]) {
           setLoadingSocial(null);
+<<<<<<< HEAD
           logger.warn('[Register] Provider not configured:', { provider });
+=======
+>>>>>>> origin/main
           showSocialLoginError(provider, `${provider.charAt(0).toUpperCase() + provider.slice(1)} login is not configured yet. Please contact support.`);
           return;
         }
@@ -295,6 +347,7 @@ export default function RegisterScreen() {
         (result) => {
           setLoadingSocial(null);
           if (result.success && result.user) {
+<<<<<<< HEAD
             logger.info(`[Register] Social login successful (${provider}):`, { 
               userId: result.user.id,
               email: result.user.email
@@ -308,6 +361,14 @@ export default function RegisterScreen() {
               phone: '',
               avatar: result.user.avatar as string || '',
               verified: true,
+=======
+            login({
+              id: result.user.id as string,
+              name: result.user.name as string,
+              email: result.user.email as string,
+              avatar: result.user.avatar as string,
+              phone: '',
+>>>>>>> origin/main
               rating: 0,
               totalRatings: 0,
               memberSince: new Date().toISOString(),
@@ -325,26 +386,40 @@ export default function RegisterScreen() {
                 totalResponses: 0,
                 isOnline: true,
               },
+<<<<<<< HEAD
             };
             
             login(userObject);
+=======
+            });
+>>>>>>> origin/main
             router.replace('/(tabs)');
           }
         },
         (error) => {
           setLoadingSocial(null);
+<<<<<<< HEAD
           logger.error(`[Register] Social login error (${provider}):`, error);
+=======
+>>>>>>> origin/main
           showSocialLoginError(provider, error);
         }
       );
     } catch (error) {
       setLoadingSocial(null);
+<<<<<<< HEAD
       logger.error(`[Register] Social login initiation error (${provider}):`, error);
       showSocialLoginError(provider, 'Failed to initiate login. Please try again.');
+=======
+      showSocialLoginError(provider, 'Failed to initiate registration. Please try again.');
+    } finally {
+      setIsLoading(false);
+>>>>>>> origin/main
     }
   };
 
   return (
+<<<<<<< HEAD
     <KeyboardAvoidingView 
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -571,10 +646,23 @@ export default function RegisterScreen() {
             </Text>
           </TouchableOpacity>
         </View>
+=======
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+    >
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Text>Register Screen - TODO: Complete UI</Text>
+>>>>>>> origin/main
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
+<<<<<<< HEAD
 
 const styles = StyleSheet.create({
   container: {
@@ -764,3 +852,5 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
+=======
+>>>>>>> origin/main

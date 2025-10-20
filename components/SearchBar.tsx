@@ -17,6 +17,7 @@ function SearchBar() {
     // ✅ Trim and validate search query
     const trimmedQuery = localQuery.trim();
     
+<<<<<<< HEAD
     // ✅ If empty, clear existing search
     if (trimmedQuery.length === 0) {
       if (searchQuery.length > 0) {
@@ -27,6 +28,27 @@ function SearchBar() {
     
     // ✅ Only set query if not empty
     setSearchQuery(trimmedQuery);
+=======
+    // ✅ Prevent searching with only whitespace
+    if (trimmedQuery.length === 0 && searchQuery.length > 0) {
+      handleClear();
+      return;
+    }
+    
+    // ✅ Validate max length (200 characters)
+    if (trimmedQuery.length > 200) {
+      setLocalQuery(trimmedQuery.substring(0, 200));
+      return;
+    }
+    
+    // ✅ Basic sanitization - remove potentially dangerous characters
+    const sanitized = trimmedQuery
+      .replace(/<script[^>]*>.*?<\/script>/gi, '') // Remove script tags
+      .replace(/<[^>]+>/g, '') // Remove HTML tags
+      .replace(/[<>"']/g, ''); // Remove dangerous chars
+    
+    setSearchQuery(sanitized);
+>>>>>>> origin/main
     applyFilters();
   };
 
@@ -49,9 +71,15 @@ function SearchBar() {
           placeholder={placeholder}
           placeholderTextColor={colors.textSecondary}
           value={localQuery}
-          onChangeText={setLocalQuery}
+          onChangeText={(text) => {
+            // ✅ Enforce max length on input
+            if (text.length <= 200) {
+              setLocalQuery(text);
+            }
+          }}
           onSubmitEditing={handleSearch}
           returnKeyType="search"
+          maxLength={200}
         />
         {localQuery.length > 0 && (
           <TouchableOpacity onPress={handleClear} style={styles.clearButton}>

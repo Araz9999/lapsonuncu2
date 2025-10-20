@@ -100,17 +100,31 @@ export default function StoreExpirationManager({ storeId, showCompact = false }:
     logger.info('[StoreExpiration] Renewing store:', { storeId, planId: selectedPlanId, canReactivate: storeActions.canReactivate });
     
     try {
+      // Check if 20% discount should be applied (grace period)
+      const applyDiscount = expirationInfo?.status === 'grace_period';
+      
       if (storeActions.canReactivate) {
         await reactivateStore(storeId, selectedPlanId);
         logger.info('[StoreExpiration] Store reactivated successfully');
       } else {
+<<<<<<< HEAD
         await renewStore(storeId, selectedPlanId);
         logger.info('[StoreExpiration] Store renewed successfully');
+=======
+        await renewStore(storeId, selectedPlanId, applyDiscount);
+>>>>>>> origin/main
       }
       setShowRenewModal(false);
+      
+      const discountMessage = applyDiscount 
+        ? (language === 'az' 
+            ? ' 20% endirim tətbiq edildi!' 
+            : ' Применена скидка 20%!')
+        : '';
+      
       Alert.alert(
         language === 'az' ? 'Uğurlu!' : 'Успешно!',
-        language === 'az' ? 'Mağaza yeniləndi' : 'Магазин обновлен'
+        (language === 'az' ? 'Mağaza yeniləndi' : 'Магазин обновлен') + discountMessage
       );
     } catch (error) {
       logger.error('[StoreExpiration] Store renewal failed:', error);
@@ -511,32 +525,64 @@ export default function StoreExpirationManager({ storeId, showCompact = false }:
               }
             </Text>
             
+            {/* Show 20% discount badge if in grace period */}
+            {expirationInfo?.status === 'grace_period' && (
+              <View style={styles.discountBanner}>
+                <Text style={styles.discountBannerText}>
+                  🎉 {language === 'az' 
+                    ? '20% ENDİRİM! Güzəşt müddəti ərzində yenilədikdə' 
+                    : 'СКИДКА 20%! При продлении в льготный период'}
+                </Text>
+              </View>
+            )}
+            
             <View style={styles.planOptions}>
-              {storePlans.map((plan) => (
-                <TouchableOpacity 
-                  key={plan.id}
-                  style={[
-                    styles.planOption,
-                    selectedPlanId === plan.id && styles.selectedPlanOption
-                  ]}
-                  onPress={() => setSelectedPlanId(plan.id)}
-                >
-                  <View style={styles.planOptionInfo}>
-                    <Text style={[
-                      styles.planOptionTitle,
-                      selectedPlanId === plan.id && styles.selectedPlanOptionText
-                    ]}>{plan.name[language]}</Text>
-                    <Text style={[
-                      styles.planOptionPrice,
-                      selectedPlanId === plan.id && styles.selectedPlanOptionText
-                    ]}>{plan.price} AZN</Text>
-                    <Text style={[
-                      styles.planOptionFeatures,
-                      selectedPlanId === plan.id && styles.selectedPlanOptionText
-                    ]}>{plan.maxAds} elan, {plan.duration} gün</Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
+              {storePlans.map((plan) => {
+                const isDiscounted = expirationInfo?.status === 'grace_period';
+                const originalPrice = plan.price;
+                const discountedPrice = isDiscounted ? plan.price * 0.8 : plan.price;
+                
+                return (
+                  <TouchableOpacity 
+                    key={plan.id}
+                    style={[
+                      styles.planOption,
+                      selectedPlanId === plan.id && styles.selectedPlanOption
+                    ]}
+                    onPress={() => setSelectedPlanId(plan.id)}
+                  >
+                    <View style={styles.planOptionInfo}>
+                      <Text style={[
+                        styles.planOptionTitle,
+                        selectedPlanId === plan.id && styles.selectedPlanOptionText
+                      ]}>{plan.name[language]}</Text>
+                      
+                      {isDiscounted ? (
+                        <View style={styles.priceContainer}>
+                          <Text style={[
+                            styles.planOptionPriceOld,
+                            selectedPlanId === plan.id && styles.selectedPlanOptionText
+                          ]}>{originalPrice} AZN</Text>
+                          <Text style={[
+                            styles.planOptionPriceDiscounted,
+                            selectedPlanId === plan.id && styles.selectedPlanOptionTextBold
+                          ]}>{discountedPrice.toFixed(2)} AZN</Text>
+                        </View>
+                      ) : (
+                        <Text style={[
+                          styles.planOptionPrice,
+                          selectedPlanId === plan.id && styles.selectedPlanOptionText
+                        ]}>{plan.price} AZN</Text>
+                      )}
+                      
+                      <Text style={[
+                        styles.planOptionFeatures,
+                        selectedPlanId === plan.id && styles.selectedPlanOptionText
+                      ]}>{plan.maxAds} elan, {plan.duration} gün</Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
             
             <View style={styles.modalActions}>
@@ -933,5 +979,38 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontStyle: 'italic',
     marginTop: 4,
+  },
+  discountBanner: {
+    backgroundColor: 'rgba(52, 199, 89, 0.1)',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(52, 199, 89, 0.3)',
+  },
+  discountBannerText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#34C759',
+    textAlign: 'center',
+  },
+  priceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  planOptionPriceOld: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    textDecorationLine: 'line-through',
+  },
+  planOptionPriceDiscounted: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#34C759',
+  },
+  selectedPlanOptionTextBold: {
+    color: 'white',
+    fontWeight: '700',
   },
 });

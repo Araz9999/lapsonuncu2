@@ -13,6 +13,7 @@ import {
   Pressable,
   Dimensions,
   KeyboardAvoidingView,
+  ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, Stack, router } from 'expo-router';
 import { useLanguageStore } from '@/store/languageStore';
@@ -179,7 +180,11 @@ export default function ConversationScreen() {
   const [inputText, setInputText] = useState<string>('');
   const [isRecording, setIsRecording] = useState<boolean>(false);
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
+<<<<<<< HEAD
   const [recordingDuration, setRecordingDuration] = useState<number>(0);
+=======
+  const [recordingTimer, setRecordingTimer] = useState<NodeJS.Timeout | null>(null); // ✅ Max duration timer
+>>>>>>> origin/main
   const [showAttachmentModal, setShowAttachmentModal] = useState<boolean>(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [playingAudio, setPlayingAudio] = useState<string | null>(null);
@@ -187,9 +192,14 @@ export default function ConversationScreen() {
   const [showUserActionModal, setShowUserActionModal] = useState<boolean>(false);
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
+<<<<<<< HEAD
   
   // ✅ Track recording timer
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
+=======
+  const [isDeletingMessage, setIsDeletingMessage] = useState<boolean>(false);
+  const [isUploadingFile, setIsUploadingFile] = useState<boolean>(false);
+>>>>>>> origin/main
 
   
   const flatListRef = useRef<FlatList>(null);
@@ -268,26 +278,43 @@ export default function ConversationScreen() {
   // ✅ Proper cleanup for audio and recording
   useEffect(() => {
     return () => {
-      // Cleanup audio playback
+      // ✅ Cleanup audio playback
       if (sound) {
         sound.stopAsync()
           .then(() => sound.unloadAsync())
           .catch(err => logger.warn('Error cleaning up sound:', err));
       }
       
+<<<<<<< HEAD
       // Cleanup recording if still active
+=======
+      // ✅ Cleanup recording if still active
+>>>>>>> origin/main
       if (recording) {
         recording.stopAndUnloadAsync()
           .catch(err => logger.warn('Error cleaning up recording:', err));
       }
       
+<<<<<<< HEAD
       // ✅ Cleanup recording timer
       if (recordingTimerRef.current) {
         clearInterval(recordingTimerRef.current);
         recordingTimerRef.current = null;
       }
+=======
+      // ✅ Clear recording timer
+      if (recordingTimer) {
+        clearTimeout(recordingTimer);
+      }
+      
+      // ✅ Reset audio mode on unmount
+      Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        playsInSilentModeIOS: false,
+      }).catch(err => logger.warn('Error resetting audio mode on unmount:', err));
+>>>>>>> origin/main
     };
-  }, [sound, recording]);
+  }, [sound, recording, recordingTimer]);
   
   // Early return after all hooks are called
   if (!conversationId || typeof conversationId !== 'string') {
@@ -360,7 +387,11 @@ export default function ConversationScreen() {
       }
 
       const newMessage: Message = {
+<<<<<<< HEAD
         id: `${Date.now()}_${Math.random().toString(36).substring(2, 11)}`, // ✅ Consistent ID format
+=======
+        id: `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`, // ✅ Use substring()
+>>>>>>> origin/main
         senderId: currentUser.id,
         receiverId: otherUser.id,
         listingId: currentConversation.listingId,
@@ -426,7 +457,14 @@ export default function ConversationScreen() {
   };
 
   const pickImage = async () => {
+    // ✅ Check if already uploading
+    if (isUploadingFile) {
+      logger.warn('[pickImage] Upload already in progress');
+      return;
+    }
+
     try {
+      // ✅ Request permission
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert(
@@ -440,8 +478,11 @@ export default function ConversationScreen() {
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsMultipleSelection: true,
         quality: 0.8,
+        // ✅ Allow editing for single images
+        allowsEditing: false,
       });
 
+<<<<<<< HEAD
       if (!result.canceled && result.assets && result.assets.length > 0) {
         // Send each image as a separate message
         for (const asset of result.assets) {
@@ -457,25 +498,148 @@ export default function ConversationScreen() {
           await sendMessage('', 'image', [attachment]);
           // Small delay between messages to ensure proper ordering
           await new Promise(resolve => setTimeout(resolve, 100));
+=======
+      // ✅ Validate result
+      if (result.canceled) {
+        logger.debug('[pickImage] User cancelled image selection');
+        setShowAttachmentModal(false);
+        return;
+      }
+
+      if (!result.assets || result.assets.length === 0) {
+        logger.warn('[pickImage] No assets in result');
+        setShowAttachmentModal(false);
+        return;
+      }
+
+      // ✅ Limit number of images
+      const MAX_IMAGES = 10;
+      if (result.assets.length > MAX_IMAGES) {
+        Alert.alert(
+          language === 'az' ? 'Xəbərdarlıq' : 'Предупреждение',
+          language === 'az' 
+            ? `Maksimum ${MAX_IMAGES} şəkil seçə bilərsiniz` 
+            : `Можно выбрать максимум ${MAX_IMAGES} изображений`
+        );
+        setShowAttachmentModal(false);
+        return;
+      }
+
+      // ✅ Set uploading state
+      setIsUploadingFile(true);
+      setShowAttachmentModal(false);
+
+      // ✅ Validate and send each image
+      for (let i = 0; i < result.assets.length; i++) {
+        const asset = result.assets[i];
+        
+        // ✅ Validate URI
+        if (!asset.uri || typeof asset.uri !== 'string' || asset.uri.trim().length === 0) {
+          logger.error('[pickImage] Invalid URI for image:', i);
+          continue;
+        }
+
+        // ✅ Validate file size (max 10MB per image)
+        const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+        const fileSize = asset.fileSize || 0;
+        
+        if (fileSize > MAX_SIZE) {
+          Alert.alert(
+            language === 'az' ? 'Xəta' : 'Ошибка',
+            language === 'az' 
+              ? `Şəkil ${i + 1} çox böyükdür (maksimum 10MB)` 
+              : `Изображение ${i + 1} слишком большое (максимум 10MB)`
+          );
+          continue;
+        }
+
+        // ✅ Validate image dimensions
+        if (asset.width && asset.height) {
+          const MAX_DIMENSION = 4096;
+          if (asset.width > MAX_DIMENSION || asset.height > MAX_DIMENSION) {
+            Alert.alert(
+              language === 'az' ? 'Xəta' : 'Ошибка',
+              language === 'az' 
+                ? `Şəkil ${i + 1} ölçüsü çox böyükdür (maksimum ${MAX_DIMENSION}x${MAX_DIMENSION})` 
+                : `Изображение ${i + 1} слишком большое (максимум ${MAX_DIMENSION}x${MAX_DIMENSION})`
+            );
+            continue;
+          }
+        }
+
+        // ✅ Create attachment with proper validation
+        const attachment: MessageAttachment = {
+          id: `${Date.now()}-${Math.random().toString(36).substring(2, 11)}-${i}`,
+          type: 'image',
+          uri: asset.uri.trim(),
+          name: asset.fileName || `image_${Date.now()}_${i}.jpg`,
+          size: fileSize,
+          mimeType: asset.mimeType || 'image/jpeg',
+          width: asset.width,
+          height: asset.height,
+        };
+
+        logger.debug('[pickImage] Sending image:', { 
+          name: attachment.name, 
+          size: attachment.size,
+          dimensions: `${attachment.width}x${attachment.height}` 
+        });
+        
+        await sendMessage('', 'image', [attachment]);
+        
+        // ✅ Small delay between messages to ensure proper ordering
+        if (i < result.assets.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 150));
+>>>>>>> origin/main
         }
       }
+
+      logger.info('[pickImage] Successfully sent', result.assets.length, 'images');
     } catch (error) {
-      logger.debug('Image picker error:', error);
+      logger.error('[pickImage] Error picking/sending images:', error);
+      
+      // ✅ Provide specific error messages
+      let errorMessage = language === 'az' ? 'Şəkil seçilə bilmədi' : 'Не удалось выбрать изображение';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('permission')) {
+          errorMessage = language === 'az'
+            ? 'Şəkil seçmək üçün icazə lazımdır'
+            : 'Требуется разрешение для выбора изображений';
+        } else if (error.message.includes('network')) {
+          errorMessage = language === 'az'
+            ? 'Şəbəkə xətası. Yenidən cəhd edin.'
+            : 'Ошибка сети. Попробуйте снова.';
+        }
+      }
+      
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' ? 'Şəkil seçilə bilmədi' : 'Не удалось выбрать изображение'
+        errorMessage
       );
+    } finally {
+      // ✅ Always reset uploading state
+      setIsUploadingFile(false);
+      setShowAttachmentModal(false);
     }
-    setShowAttachmentModal(false);
   };
 
   const pickDocument = async () => {
+    // ✅ Check if already uploading
+    if (isUploadingFile) {
+      logger.warn('[pickDocument] Upload already in progress');
+      return;
+    }
+
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: '*/*',
         copyToCacheDirectory: true,
+        // ✅ Allow multiple files
+        multiple: false, // Can be changed to true if needed
       });
 
+<<<<<<< HEAD
       // BUG FIX: Check if assets array exists and has elements
       if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0]) {
         const asset = result.assets[0];
@@ -489,19 +653,153 @@ export default function ConversationScreen() {
         };
         
         await sendMessage('', 'file', [attachment]);
+=======
+      // ✅ Validate result
+      if (result.canceled) {
+        logger.debug('[pickDocument] User cancelled document selection');
+        setShowAttachmentModal(false);
+        return;
+>>>>>>> origin/main
       }
+
+      if (!result.assets || result.assets.length === 0) {
+        logger.warn('[pickDocument] No assets in result');
+        setShowAttachmentModal(false);
+        return;
+      }
+
+      // ✅ Set uploading state
+      setIsUploadingFile(true);
+      setShowAttachmentModal(false);
+
+      // ✅ Validate and send document
+      const asset = result.assets[0];
+      
+      // ✅ Validate URI
+      if (!asset.uri || typeof asset.uri !== 'string' || asset.uri.trim().length === 0) {
+        logger.error('[pickDocument] Invalid URI for document');
+        throw new Error('Invalid file URI');
+      }
+
+      // ✅ Validate file name
+      if (!asset.name || typeof asset.name !== 'string' || asset.name.trim().length === 0) {
+        logger.error('[pickDocument] Invalid file name');
+        throw new Error('Invalid file name');
+      }
+
+      // ✅ Validate file size (max 50MB for documents)
+      const MAX_SIZE = 50 * 1024 * 1024; // 50MB
+      const fileSize = asset.size || 0;
+      
+      if (fileSize === 0) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' 
+            ? 'Fayl ölçüsü müəyyən edilə bilmədi' 
+            : 'Не удалось определить размер файла'
+        );
+        return;
+      }
+
+      if (fileSize > MAX_SIZE) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' 
+            ? `Fayl çox böyükdür (maksimum 50MB). Seçilən: ${(fileSize / 1024 / 1024).toFixed(2)}MB` 
+            : `Файл слишком большой (максимум 50MB). Выбрано: ${(fileSize / 1024 / 1024).toFixed(2)}MB`
+        );
+        return;
+      }
+
+      // ✅ Validate file extension
+      const fileName = asset.name.toLowerCase();
+      const dangerousExtensions = ['.exe', '.bat', '.cmd', '.sh', '.app', '.dmg', '.jar', '.apk'];
+      
+      if (dangerousExtensions.some(ext => fileName.endsWith(ext))) {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' 
+            ? 'Bu fayl növü təhlükəsizlik səbəbi ilə icazə verilmir' 
+            : 'Этот тип файла запрещен по соображениям безопасности'
+        );
+        return;
+      }
+
+      // ✅ Determine mime type if not provided
+      let mimeType = asset.mimeType || 'application/octet-stream';
+      
+      // ✅ Enhance mime type based on extension
+      if (mimeType === 'application/octet-stream') {
+        if (fileName.endsWith('.pdf')) {
+          mimeType = 'application/pdf';
+        } else if (fileName.endsWith('.doc') || fileName.endsWith('.docx')) {
+          mimeType = 'application/msword';
+        } else if (fileName.endsWith('.xls') || fileName.endsWith('.xlsx')) {
+          mimeType = 'application/vnd.ms-excel';
+        } else if (fileName.endsWith('.ppt') || fileName.endsWith('.pptx')) {
+          mimeType = 'application/vnd.ms-powerpoint';
+        } else if (fileName.endsWith('.txt')) {
+          mimeType = 'text/plain';
+        } else if (fileName.endsWith('.zip')) {
+          mimeType = 'application/zip';
+        }
+      }
+
+      // ✅ Create attachment with proper validation
+      const attachment: MessageAttachment = {
+        id: `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+        type: 'file',
+        uri: asset.uri.trim(),
+        name: asset.name.trim(),
+        size: fileSize,
+        mimeType: mimeType,
+      };
+
+      logger.debug('[pickDocument] Sending document:', { 
+        name: attachment.name, 
+        size: `${(attachment.size / 1024).toFixed(2)}KB`,
+        mimeType: attachment.mimeType 
+      });
+      
+      await sendMessage('', 'file', [attachment]);
+
+      logger.info('[pickDocument] Successfully sent document:', attachment.name);
     } catch (error) {
-      logger.debug('Document picker error:', error);
+      logger.error('[pickDocument] Error picking/sending document:', error);
+      
+      // ✅ Provide specific error messages
+      let errorMessage = language === 'az' ? 'Fayl seçilə bilmədi' : 'Не удалось выбрать файл';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('permission')) {
+          errorMessage = language === 'az'
+            ? 'Fayl seçmək üçün icazə lazımdır'
+            : 'Требуется разрешение для выбора файла';
+        } else if (error.message.includes('network')) {
+          errorMessage = language === 'az'
+            ? 'Şəbəkə xətası. Yenidən cəhd edin.'
+            : 'Ошибка сети. Попробуйте снова.';
+        } else if (error.message.includes('Invalid file')) {
+          errorMessage = language === 'az'
+            ? 'Yanlış fayl formatı'
+            : 'Неверный формат файла';
+        }
+      }
+      
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' ? 'Fayl seçilə bilmədi' : 'Не удалось выбрать файл'
+        errorMessage
       );
+    } finally {
+      // ✅ Always reset uploading state
+      setIsUploadingFile(false);
+      setShowAttachmentModal(false);
     }
-    setShowAttachmentModal(false);
   };
 
   const startRecording = async () => {
     try {
+      // ✅ 1. Platform check
       if (Platform.OS === 'web') {
         Alert.alert(
           language === 'az' ? 'Xəbərdarlıq' : 'Предупреждение',
@@ -509,7 +807,14 @@ export default function ConversationScreen() {
         );
         return;
       }
+      
+      // ✅ 2. Prevent concurrent recordings
+      if (recording || isRecording) {
+        logger.warn('Recording already in progress');
+        return;
+      }
 
+<<<<<<< HEAD
       // ✅ Prevent multiple recordings at once
       if (recording || isRecording) {
         logger.warn('Recording already in progress');
@@ -517,14 +822,26 @@ export default function ConversationScreen() {
       }
 
       const { status } = await Audio.requestPermissionsAsync();
+=======
+      // ✅ 3. Request and verify permission
+      const { status, canAskAgain } = await Audio.requestPermissionsAsync();
+      
+>>>>>>> origin/main
       if (status !== 'granted') {
         Alert.alert(
           language === 'az' ? 'İcazə lazımdır' : 'Требуется разрешение',
-          language === 'az' ? 'Səs yazmaq üçün icazə verin' : 'Предоставьте разрешение для записи аудио'
+          language === 'az' 
+            ? canAskAgain 
+              ? 'Səs yazmaq üçün icazə verin' 
+              : 'Səs yazma icazəsi rədd edilib. Tənzimləmələrdən icazə verin.'
+            : canAskAgain
+              ? 'Предоставьте разрешение для записи аудио'
+              : 'Разрешение на запись отклонено. Разрешите в настройках.'
         );
         return;
       }
 
+<<<<<<< HEAD
       // ✅ Enhanced audio mode configuration
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,
@@ -535,22 +852,72 @@ export default function ConversationScreen() {
         playThroughEarpieceAndroid: false,
       });
 
+=======
+      // ✅ 4. Set audio mode with error handling
+      try {
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: true,
+          playsInSilentModeIOS: true,
+          staysActiveInBackground: false,
+        });
+      } catch (audioModeError) {
+        logger.error('Failed to set audio mode:', audioModeError);
+        throw new Error('Audio mode configuration failed');
+      }
+
+      // ✅ 5. Create recording
+>>>>>>> origin/main
       const { recording: newRecording } = await Audio.Recording.createAsync(
         Audio.RecordingOptionsPresets.HIGH_QUALITY
       );
       
       setRecording(newRecording);
       setIsRecording(true);
+<<<<<<< HEAD
       setRecordingDuration(0);
       
       // ✅ Start recording duration timer
       recordingTimerRef.current = setInterval(() => {
         setRecordingDuration(prev => prev + 1);
       }, 1000);
+=======
+      
+      // ✅ 6. Set max duration timer (5 minutes)
+      const MAX_DURATION_MS = 5 * 60 * 1000;
+      const timer = setTimeout(async () => {
+        logger.warn('Max recording duration reached, auto-stopping');
+        Alert.alert(
+          language === 'az' ? 'Xəbərdarlıq' : 'Предупреждение',
+          language === 'az' 
+            ? 'Maksimum qeyd müddəti (5 dəqiqə) bitdi. Səs avtomatik saxlanıldı.' 
+            : 'Достигнута максимальная длительность записи (5 минут). Аудио сохранено автоматически.'
+        );
+        await stopRecording();
+      }, MAX_DURATION_MS);
+      
+      setRecordingTimer(timer);
+>>>>>>> origin/main
       
       logger.info('Recording started successfully');
     } catch (error) {
       logger.error('Failed to start recording:', error);
+<<<<<<< HEAD
+=======
+      
+      // ✅ Cleanup on error
+      setIsRecording(false);
+      setRecording(null);
+      
+      // ✅ Reset audio mode on error
+      try {
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
+        });
+      } catch (resetError) {
+        logger.error('Failed to reset audio mode:', resetError);
+      }
+      
+>>>>>>> origin/main
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Səs yazma başladıla bilmədi' : 'Не удалось начать запись'
@@ -565,7 +932,18 @@ export default function ConversationScreen() {
 
   const stopRecording = async () => {
     // ✅ Early return with proper validation
+<<<<<<< HEAD
     if (!recording || Platform.OS === 'web') return;
+=======
+    if (!recording || Platform.OS === 'web') {
+      // ✅ Clear timer even if recording is null
+      if (recordingTimer) {
+        clearTimeout(recordingTimer);
+        setRecordingTimer(null);
+      }
+      return;
+    }
+>>>>>>> origin/main
 
     try {
       // ✅ Stop recording timer
@@ -576,6 +954,7 @@ export default function ConversationScreen() {
       
       setIsRecording(false);
       
+<<<<<<< HEAD
       // ✅ Check minimum recording duration (at least 1 second)
       if (recordingDuration < 1) {
         await recording.stopAndUnloadAsync();
@@ -594,6 +973,14 @@ export default function ConversationScreen() {
       // ✅ Get recording status for file size
       const status = await recording.getStatusAsync();
       
+=======
+      // ✅ Clear max duration timer
+      if (recordingTimer) {
+        clearTimeout(recordingTimer);
+        setRecordingTimer(null);
+      }
+      
+>>>>>>> origin/main
       // ✅ Proper cleanup sequence
       await recording.stopAndUnloadAsync();
       
@@ -609,6 +996,7 @@ export default function ConversationScreen() {
         const uriParts = uri.split('.');
         const fileType = uriParts[uriParts.length - 1];
         
+<<<<<<< HEAD
         // ✅ Get actual file size if available
         const fileSize = status?.durationMillis ? Math.floor(status.durationMillis / 10) : 0;
         
@@ -618,7 +1006,50 @@ export default function ConversationScreen() {
           uri,
           name: `voice_${Date.now()}.${fileType}`,
           size: fileSize,
+=======
+        // ✅ Validate URI
+        if (!uri || typeof uri !== 'string' || uri.trim().length === 0) {
+          logger.error('Invalid audio URI');
+          Alert.alert(
+            language === 'az' ? 'Xəta' : 'Ошибка',
+            language === 'az' ? 'Səs faylı yaratıla bilmədi' : 'Не удалось создать аудио файл'
+          );
+          return;
+        }
+        
+        // ✅ Get recording status for duration and file size
+        const status = await recording.getStatusAsync();
+        const durationMs = status.durationMillis || 0;
+        const durationSeconds = Math.floor(durationMs / 1000);
+        
+        // ✅ Validate recording duration
+        if (durationSeconds < 1) {
+          logger.warn('Recording too short:', durationSeconds);
+          Alert.alert(
+            language === 'az' ? 'Xəbərdarlıq' : 'Предупреждение',
+            language === 'az' ? 'Səs qeydi çox qısadır (minimum 1 saniyə)' : 'Аудио слишком короткое (минимум 1 секунда)'
+          );
+          return;
+        }
+        
+        if (durationSeconds > 300) { // 5 minutes max
+          logger.warn('Recording too long:', durationSeconds);
+          Alert.alert(
+            language === 'az' ? 'Xəbərdarlıq' : 'Предупреждение',
+            language === 'az' ? 'Səs qeydi çox uzundur (maksimum 5 dəqiqə)' : 'Аудио слишком длинное (максимум 5 минут)'
+          );
+          return;
+        }
+        
+        const attachment: MessageAttachment = {
+          id: `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`, // ✅ Use substring()
+          type: 'audio',
+          uri: uri.trim(),
+          name: `recording_${Date.now()}.${fileType}`,
+          size: 0, // ⚠️ TODO - Get actual file size
+>>>>>>> origin/main
           mimeType: `audio/${fileType}`,
+          duration: durationSeconds, // ✅ Store duration
         };
         
         logger.info(`Sending voice message: ${recordingDuration}s, ${fileSize} bytes`);
@@ -636,10 +1067,17 @@ export default function ConversationScreen() {
       setRecording(null);
       setRecordingDuration(0);
       
+<<<<<<< HEAD
       // ✅ Stop timer
       if (recordingTimerRef.current) {
         clearInterval(recordingTimerRef.current);
         recordingTimerRef.current = null;
+=======
+      // ✅ Clear timer on error
+      if (recordingTimer) {
+        clearTimeout(recordingTimer);
+        setRecordingTimer(null);
+>>>>>>> origin/main
       }
       
       // ✅ Try to reset audio mode even if recording failed
@@ -696,7 +1134,13 @@ export default function ConversationScreen() {
   };
 
   const playAudio = async (uri: string, messageId: string) => {
+<<<<<<< HEAD
     // ✅ Platform check
+=======
+    // ===== VALIDATION START =====
+    
+    // ✅ 1. Platform check
+>>>>>>> origin/main
     if (Platform.OS === 'web') {
       Alert.alert(
         language === 'az' ? 'Xəbərdarlıq' : 'Предупреждение',
@@ -704,6 +1148,24 @@ export default function ConversationScreen() {
       );
       return;
     }
+    
+    // ✅ 2. Validate URI
+    if (!uri || typeof uri !== 'string' || uri.trim().length === 0) {
+      logger.error('Invalid audio URI');
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Səs faylı tapılmadı' : 'Аудио файл не найден'
+      );
+      return;
+    }
+    
+    // ✅ 3. Validate messageId
+    if (!messageId || typeof messageId !== 'string') {
+      logger.error('Invalid messageId');
+      return;
+    }
+    
+    // ===== VALIDATION END =====
 
     // ✅ Don't play audio while recording
     if (isRecording) {
@@ -715,7 +1177,11 @@ export default function ConversationScreen() {
     }
 
     try {
+<<<<<<< HEAD
       // ✅ Toggle playback if already playing this audio
+=======
+      // ✅ 4. Toggle playback if already playing
+>>>>>>> origin/main
       if (playingAudio === messageId) {
         if (sound) {
           await sound.stopAsync();
@@ -727,7 +1193,11 @@ export default function ConversationScreen() {
         return;
       }
 
+<<<<<<< HEAD
       // ✅ Stop and cleanup previous sound
+=======
+      // ✅ 5. Stop and cleanup previous sound
+>>>>>>> origin/main
       if (sound) {
         try {
           await sound.stopAsync();
@@ -738,7 +1208,11 @@ export default function ConversationScreen() {
         setSound(null);
       }
 
+<<<<<<< HEAD
       // ✅ Set proper audio mode for playback
+=======
+      // ✅ 6. Set proper audio mode
+>>>>>>> origin/main
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: false,
         playsInSilentModeIOS: true,
@@ -747,8 +1221,9 @@ export default function ConversationScreen() {
         playThroughEarpieceAndroid: false,
       });
 
+      // ✅ 7. Create and play sound
       const { sound: newSound } = await Audio.Sound.createAsync(
-        { uri },
+        { uri: uri.trim() },
         { shouldPlay: true },
         (status) => {
           // ✅ Proper cleanup when audio finishes
@@ -789,25 +1264,107 @@ export default function ConversationScreen() {
   };
 
   const handleDeleteMessage = (messageId: string) => {
+    // ✅ Validate message ID
+    if (!messageId || typeof messageId !== 'string' || messageId.trim().length === 0) {
+      logger.error('[handleDeleteMessage] Invalid message ID');
+      return;
+    }
+    
+    // ✅ Check if already deleting
+    if (isDeletingMessage) {
+      logger.warn('[handleDeleteMessage] Deletion already in progress');
+      return;
+    }
+    
+    // ✅ Validate message exists and belongs to current user
+    const message = messages.find(m => m.id === messageId);
+    if (!message) {
+      logger.error('[handleDeleteMessage] Message not found:', messageId);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Mesaj tapılmadı' : 'Сообщение не найдено'
+      );
+      return;
+    }
+    
+    // ✅ Check if message belongs to current user
+    if (message.senderId !== currentUser?.id) {
+      logger.error('[handleDeleteMessage] Cannot delete other user\'s message');
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Yalnız öz mesajlarınızı silə bilərsiniz' : 'Вы можете удалить только свои сообщения'
+      );
+      return;
+    }
+    
+    logger.debug('[handleDeleteMessage] Opening delete modal for message:', messageId);
     setSelectedMessageId(messageId);
     setShowDeleteModal(true);
   };
 
-  const confirmDeleteMessage = () => {
-    if (selectedMessageId && conversationId) {
+  const confirmDeleteMessage = async () => {
+    // ✅ Validate parameters
+    if (!selectedMessageId || !conversationId) {
+      logger.error('[confirmDeleteMessage] Missing required parameters');
+      setShowDeleteModal(false);
+      setSelectedMessageId(null);
+      return;
+    }
+    
+    // ✅ Set loading state
+    setIsDeletingMessage(true);
+    
+    try {
+      logger.debug('[confirmDeleteMessage] Deleting message:', selectedMessageId);
+      
+      // ✅ Delete message from store
       deleteMessage(conversationId, selectedMessageId);
       
-      // Update local conversation state
+      // ✅ Update local conversation state
       const updatedConversation = getConversation(conversationId);
       if (updatedConversation) {
         setConversation({
           ...updatedConversation,
           messages: [...updatedConversation.messages]
         });
+        logger.debug('[confirmDeleteMessage] Conversation updated, messages count:', updatedConversation.messages.length);
+      } else {
+        logger.warn('[confirmDeleteMessage] Updated conversation not found');
       }
+      
+      // ✅ Show success feedback
+      Alert.alert(
+        language === 'az' ? 'Uğurlu' : 'Успешно',
+        language === 'az' ? 'Mesaj silindi' : 'Сообщение удалено',
+        [{ text: 'OK' }],
+        { cancelable: true }
+      );
+    } catch (error) {
+      logger.error('[confirmDeleteMessage] Error deleting message:', error);
+      
+      // ✅ Show specific error message
+      let errorMessage = language === 'az' 
+        ? 'Mesaj silinərkən xəta baş verdi' 
+        : 'Произошла ошибка при удалении сообщения';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('not found')) {
+          errorMessage = language === 'az'
+            ? 'Mesaj artıq silinib və ya tapılmadı'
+            : 'Сообщение уже удалено или не найдено';
+        }
+      }
+      
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        errorMessage
+      );
+    } finally {
+      // ✅ Always reset loading state and close modal
+      setIsDeletingMessage(false);
+      setShowDeleteModal(false);
+      setSelectedMessageId(null);
     }
-    setShowDeleteModal(false);
-    setSelectedMessageId(null);
   };
 
   const renderMessage = ({ item }: { item: Message }) => {
@@ -849,9 +1406,16 @@ export default function ConversationScreen() {
                   ) : (
                     <Play size={20} color={Colors.primary} />
                   )}
-                  <Text style={styles.audioText}>
-                    {language === 'az' ? 'Səs mesajı' : 'Голосовое сообщение'}
-                  </Text>
+                  <View style={{ flex: 1, marginLeft: 8 }}>
+                    <Text style={styles.audioText}>
+                      {language === 'az' ? 'Səs mesajı' : 'Голосовое сообщение'}
+                    </Text>
+                    {attachment.duration && (
+                      <Text style={[styles.audioText, { fontSize: 12, opacity: 0.7 }]}>
+                        {Math.floor(attachment.duration / 60)}:{String(attachment.duration % 60).padStart(2, '0')}
+                      </Text>
+                    )}
+                  </View>
                 </TouchableOpacity>
               )}
               
@@ -1102,17 +1666,52 @@ export default function ConversationScreen() {
             onPress={() => setShowAttachmentModal(false)}
           >
             <View style={styles.attachmentModal}>
-              <TouchableOpacity style={styles.attachmentOption} onPress={pickImage}>
-                <ImageIcon size={24} color={Colors.primary} />
-                <Text style={styles.attachmentOptionText}>
+              {isUploadingFile && (
+                <View style={styles.uploadingIndicator}>
+                  <ActivityIndicator size="small" color={Colors.primary} />
+                  <Text style={styles.uploadingText}>
+                    {language === 'az' ? 'Yüklənir...' : 'Загрузка...'}
+                  </Text>
+                </View>
+              )}
+              
+              <TouchableOpacity 
+                style={[
+                  styles.attachmentOption,
+                  isUploadingFile && styles.attachmentOptionDisabled
+                ]} 
+                onPress={pickImage}
+                disabled={isUploadingFile}
+              >
+                <ImageIcon size={24} color={isUploadingFile ? Colors.textSecondary : Colors.primary} />
+                <Text style={[
+                  styles.attachmentOptionText,
+                  isUploadingFile && styles.attachmentOptionTextDisabled
+                ]}>
                   {language === 'az' ? 'Şəkil' : 'Изображение'}
+                </Text>
+                <Text style={styles.attachmentOptionHint}>
+                  {language === 'az' ? 'Maks 10MB, 10 ədəd' : 'Макс 10MB, 10 шт'}
                 </Text>
               </TouchableOpacity>
               
-              <TouchableOpacity style={styles.attachmentOption} onPress={pickDocument}>
-                <File size={24} color={Colors.primary} />
-                <Text style={styles.attachmentOptionText}>
+              <TouchableOpacity 
+                style={[
+                  styles.attachmentOption,
+                  isUploadingFile && styles.attachmentOptionDisabled
+                ]} 
+                onPress={pickDocument}
+                disabled={isUploadingFile}
+              >
+                <File size={24} color={isUploadingFile ? Colors.textSecondary : Colors.primary} />
+                <Text style={[
+                  styles.attachmentOptionText,
+                  isUploadingFile && styles.attachmentOptionTextDisabled
+                ]}>
                   {language === 'az' ? 'Fayl' : 'Файл'}
+                </Text>
+                <Text style={styles.attachmentOptionHint}>
+                  {language === 'az' ? 'Maks 50MB' : 'Макс 50MB'}
                 </Text>
               </TouchableOpacity>
               
@@ -1226,31 +1825,76 @@ export default function ConversationScreen() {
           onPress={() => setShowAttachmentModal(false)}
         >
           <View style={styles.attachmentModal}>
-            <TouchableOpacity style={styles.attachmentOption} onPress={pickImage}>
-              <ImageIcon size={24} color={Colors.primary} />
-              <Text style={styles.attachmentOptionText}>
+            {isUploadingFile && (
+              <View style={styles.uploadingIndicator}>
+                <ActivityIndicator size="small" color={Colors.primary} />
+                <Text style={styles.uploadingText}>
+                  {language === 'az' ? 'Yüklənir...' : 'Загрузка...'}
+                </Text>
+              </View>
+            )}
+            
+            <TouchableOpacity 
+              style={[
+                styles.attachmentOption,
+                isUploadingFile && styles.attachmentOptionDisabled
+              ]} 
+              onPress={pickImage}
+              disabled={isUploadingFile}
+            >
+              <ImageIcon size={24} color={isUploadingFile ? Colors.textSecondary : Colors.primary} />
+              <Text style={[
+                styles.attachmentOptionText,
+                isUploadingFile && styles.attachmentOptionTextDisabled
+              ]}>
                 {language === 'az' ? 'Şəkil' : 'Изображение'}
+              </Text>
+              <Text style={styles.attachmentOptionHint}>
+                {language === 'az' ? 'Maks 10MB, 10 ədəd' : 'Макс 10MB, 10 шт'}
               </Text>
             </TouchableOpacity>
             
-            <TouchableOpacity style={styles.attachmentOption} onPress={pickDocument}>
-              <File size={24} color={Colors.primary} />
-              <Text style={styles.attachmentOptionText}>
+            <TouchableOpacity 
+              style={[
+                styles.attachmentOption,
+                isUploadingFile && styles.attachmentOptionDisabled
+              ]} 
+              onPress={pickDocument}
+              disabled={isUploadingFile}
+            >
+              <File size={24} color={isUploadingFile ? Colors.textSecondary : Colors.primary} />
+              <Text style={[
+                styles.attachmentOptionText,
+                isUploadingFile && styles.attachmentOptionTextDisabled
+              ]}>
                 {language === 'az' ? 'Fayl' : 'Файл'}
+              </Text>
+              <Text style={styles.attachmentOptionHint}>
+                {language === 'az' ? 'Maks 50MB' : 'Макс 50MB'}
               </Text>
             </TouchableOpacity>
             
             {Platform.OS !== 'web' && (
               <TouchableOpacity 
-                style={styles.attachmentOption} 
+                style={[
+                  styles.attachmentOption,
+                  (isUploadingFile || isRecording) && styles.attachmentOptionDisabled
+                ]} 
                 onPress={() => {
                   setShowAttachmentModal(false);
                   startRecording();
                 }}
+                disabled={isUploadingFile || isRecording}
               >
-                <Mic size={24} color={Colors.primary} />
-                <Text style={styles.attachmentOptionText}>
+                <Mic size={24} color={(isUploadingFile || isRecording) ? Colors.textSecondary : Colors.primary} />
+                <Text style={[
+                  styles.attachmentOptionText,
+                  (isUploadingFile || isRecording) && styles.attachmentOptionTextDisabled
+                ]}>
                   {language === 'az' ? 'Səs yazma' : 'Запись голоса'}
+                </Text>
+                <Text style={styles.attachmentOptionHint}>
+                  {language === 'az' ? 'Maks 5 dəqiqə' : 'Макс 5 минут'}
                 </Text>
               </TouchableOpacity>
             )}
@@ -1286,11 +1930,11 @@ export default function ConversationScreen() {
         visible={showDeleteModal}
         transparent
         animationType="fade"
-        onRequestClose={() => setShowDeleteModal(false)}
+        onRequestClose={() => !isDeletingMessage && setShowDeleteModal(false)}
       >
         <Pressable 
           style={styles.modalOverlay}
-          onPress={() => setShowDeleteModal(false)}
+          onPress={() => !isDeletingMessage && setShowDeleteModal(false)}
         >
           <View style={styles.deleteModal}>
             <Text style={styles.deleteModalTitle}>
@@ -1298,25 +1942,45 @@ export default function ConversationScreen() {
             </Text>
             <Text style={styles.deleteModalText}>
               {language === 'az' 
-                ? 'Bu mesajı silmək istədiyinizə əminsinizmi?' 
-                : 'Вы уверены, что хотите удалить это сообщение?'
+                ? 'Bu mesajı silmək istədiyinizə əminsinizmi?\n\nBu əməliyyat geri qaytarıla bilməz.' 
+                : 'Вы уверены, что хотите удалить это сообщение?\n\nЭто действие нельзя отменить.'
               }
             </Text>
+            {isDeletingMessage && (
+              <ActivityIndicator 
+                size="small" 
+                color={Colors.primary} 
+                style={{ marginVertical: 12 }} 
+              />
+            )}
             <View style={styles.deleteModalButtons}>
               <TouchableOpacity
-                style={[styles.deleteModalButton, styles.cancelButton]}
+                style={[
+                  styles.deleteModalButton, 
+                  styles.cancelButton,
+                  isDeletingMessage && styles.disabledButton
+                ]}
                 onPress={() => setShowDeleteModal(false)}
+                disabled={isDeletingMessage}
               >
                 <Text style={styles.cancelButtonText}>
                   {language === 'az' ? 'Ləğv et' : 'Отмена'}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.deleteModalButton, styles.confirmButton]}
+                style={[
+                  styles.deleteModalButton, 
+                  styles.confirmButton,
+                  isDeletingMessage && styles.disabledButton
+                ]}
                 onPress={confirmDeleteMessage}
+                disabled={isDeletingMessage}
               >
                 <Text style={styles.confirmButtonText}>
-                  {language === 'az' ? 'Sil' : 'Удалить'}
+                  {isDeletingMessage 
+                    ? (language === 'az' ? 'Silinir...' : 'Удаление...')
+                    : (language === 'az' ? 'Sil' : 'Удалить')
+                  }
                 </Text>
               </TouchableOpacity>
             </View>
@@ -1602,11 +2266,38 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
     marginBottom: 12,
   },
+  attachmentOptionDisabled: {
+    opacity: 0.5,
+  },
   attachmentOptionText: {
     marginLeft: 12,
     fontSize: 16,
     fontWeight: '500',
     color: Colors.text,
+    flex: 1,
+  },
+  attachmentOptionTextDisabled: {
+    color: Colors.textSecondary,
+  },
+  attachmentOptionHint: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    fontStyle: 'italic',
+  },
+  uploadingIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    backgroundColor: Colors.background,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  uploadingText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: Colors.primary,
+    fontWeight: '500',
   },
   imageModalOverlay: {
     flex: 1,
@@ -1702,5 +2393,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
     color: '#fff',
+  },
+  disabledButton: {
+    opacity: 0.5,
+  },
+  activityIndicator: {
+    marginVertical: 12,
   },
 });

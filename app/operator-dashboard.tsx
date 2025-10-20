@@ -36,14 +36,16 @@ export default function OperatorDashboard() {
   const { liveChats, operators, sendMessage, assignOperator, closeLiveChat } = useSupportStore();
   const colors = getColors(themeMode, colorTheme);
 
-  // For demo purposes, we'll simulate being the first operator
-  const currentOperator = operators[0];
+  // ✅ For demo purposes, we'll simulate being the first operator
+  const currentOperator = operators && operators.length > 0 ? operators[0] : null;
   const [selectedChat, setSelectedChat] = useState<LiveChat | null>(null);
 
-  // Get chats for current operator
-  const operatorChats = liveChats.filter(chat => 
-    chat.operatorId === currentOperator?.id || chat.status === 'waiting'
-  );
+  // ✅ Get chats for current operator with null-safety
+  const operatorChats = currentOperator 
+    ? liveChats.filter(chat => 
+        chat.operatorId === currentOperator.id || chat.status === 'waiting'
+      )
+    : [];
 
   const waitingChats = operatorChats.filter(chat => chat.status === 'waiting');
   const activeChats = operatorChats.filter(chat => chat.status === 'active');

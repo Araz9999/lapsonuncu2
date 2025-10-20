@@ -71,6 +71,7 @@ export default function NotificationsScreen() {
   const t = texts[language];
 
   const formatTime = (dateString: string) => {
+<<<<<<< HEAD
     const now = new Date();
     const date = new Date(dateString);
     
@@ -90,6 +91,44 @@ export default function NotificationsScreen() {
     if (diffInMinutes < 60) return `${diffInMinutes} ${t.minutesAgo}`;
     if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)} ${t.hoursAgo}`;
     return `${Math.floor(diffInMinutes / 1440)} ${t.daysAgo}`;
+=======
+    try {
+      const now = new Date();
+      const date = new Date(dateString);
+      
+      // \u2705 Validate date
+      if (isNaN(date.getTime())) {
+        return t.now; // Fallback for invalid dates
+      }
+      
+      const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
+      
+      // \u2705 Handle future dates (negative diff)
+      if (diffInMinutes < 0) {
+        return t.now; // Treat future dates as "now"
+      }
+      
+      // \u2705 Handle edge cases
+      if (diffInMinutes < 1) return t.now;
+      if (diffInMinutes < 60) return `${diffInMinutes} ${t.minutesAgo}`;
+      if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)} ${t.hoursAgo}`;
+      
+      const days = Math.floor(diffInMinutes / 1440);
+      
+      // \u2705 Cap at 30 days, show date for older
+      if (days > 30) {
+        return date.toLocaleDateString(language === 'az' ? 'az-AZ' : 'ru-RU', {
+          day: 'numeric',
+          month: 'short',
+          year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
+        });
+      }
+      
+      return `${days} ${t.daysAgo}`;
+    } catch (error) {
+      return t.now; // Fallback for any errors
+    }
+>>>>>>> origin/main
   };
 
   const handleClearAll = () => {
@@ -107,6 +146,7 @@ export default function NotificationsScreen() {
     );
   };
 
+<<<<<<< HEAD
   // ✅ Handle notification press with navigation
   const handleNotificationPress = (item: Notification) => {
     // Mark as read
@@ -172,14 +212,92 @@ export default function NotificationsScreen() {
         </View>
         {!item.isRead && <View style={[styles.unreadDot, { backgroundColor: colors.primary }]} />}
       </View>
+=======
+  const renderNotification = ({ item }: { item: Notification }) => {
+    // \u2705 Null-safety checks
+    const hasAvatar = item.fromUserAvatar && typeof item.fromUserAvatar === 'string' && item.fromUserAvatar.trim().length > 0;
+    const hasUserName = item.fromUserName && typeof item.fromUserName === 'string' && item.fromUserName.trim().length > 0;
+    const hasMessage = item.message && typeof item.message === 'string' && item.message.trim().length > 0;
+    
+    // \u2705 Get notification type text
+    const getTypeText = () => {
+      switch (item.type) {
+        case 'nudge': return t.nudgeNotification;
+        case 'message': return t.messageNotification;
+        case 'call': return t.callNotification;
+        default: return item.title || '';
+      }
+    };
+    
+    return (
+>>>>>>> origin/main
       <TouchableOpacity
-        style={styles.deleteButton}
-        onPress={() => removeNotification(item.id)}
+        style={[
+          styles.notificationCard, 
+          { backgroundColor: colors.card },
+          !item.isRead && { backgroundColor: colors.primary + '10', borderLeftColor: colors.primary }
+        ]}
+        onPress={() => {
+          if (!item.isRead) {
+            markAsRead(item.id);
+          }
+        }}
       >
-        <Trash2 size={16} color={colors.textSecondary} />
+        <View style={styles.notificationContent}>
+          {hasAvatar && (
+            <Image 
+              source={{ uri: item.fromUserAvatar }} 
+              style={styles.avatar}
+              defaultSource={require('@/assets/images/default-avatar.png')}
+              onError={() => {
+                // \u2705 Fallback if image fails to load
+              }}
+            />
+          )}
+          <View style={styles.notificationText}>
+            <Text style={[styles.notificationTitle, { color: colors.text }]} numberOfLines={2}>
+              {hasUserName && (
+                <Text style={styles.userName}>{item.fromUserName} </Text>
+              )}
+              {getTypeText()}
+            </Text>
+            {hasMessage && (
+              <Text 
+                style={[styles.notificationMessage, { color: colors.textSecondary }]} 
+                numberOfLines={3}
+              >
+                {item.message}
+              </Text>
+            )}
+            <Text style={[styles.notificationTime, { color: colors.textSecondary }]}>
+              {formatTime(item.createdAt)}
+            </Text>
+          </View>
+          {!item.isRead && <View style={[styles.unreadDot, { backgroundColor: colors.primary }]} />}
+        </View>
+        <TouchableOpacity
+          style={styles.deleteButton}
+          onPress={(e) => {
+            e.stopPropagation(); // \u2705 Prevent card click
+            Alert.alert(
+              language === 'az' ? 'Bildiri\u015fi sil' : '\u0423\u0434\u0430\u043b\u0438\u0442\u044c \u0443\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u0435',
+              language === 'az' ? 'Bu bildiri\u015fi silm\u0259k ist\u0259yirsiniz?' : '\u0425\u043e\u0442\u0438\u0442\u0435 \u0443\u0434\u0430\u043b\u0438\u0442\u044c \u044d\u0442\u043e \u0443\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u0435?',
+              [
+                { text: language === 'az' ? 'X\u0259yr' : '\u041d\u0435\u0442', style: 'cancel' },
+                { 
+                  text: language === 'az' ? 'B\u0259li' : '\u0414\u0430', 
+                  style: 'destructive',
+                  onPress: () => removeNotification(item.id)
+                },
+              ]
+            );
+          }}
+        >
+          <Trash2 size={16} color={colors.textSecondary} />
+        </TouchableOpacity>
       </TouchableOpacity>
-    </TouchableOpacity>
-  );
+    );
+  };
 
   const renderEmptyState = () => (
     <View style={styles.emptyState}>

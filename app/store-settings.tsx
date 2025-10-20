@@ -209,6 +209,7 @@ export default function StoreSettingsScreen() {
 
   // Handle settings updates
   const handleSettingToggle = async (key: string, value: boolean) => {
+<<<<<<< HEAD
     if (!store) {
       logger.error('[StoreSettings] No store for settings update');
       return;
@@ -235,6 +236,80 @@ export default function StoreSettingsScreen() {
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Tənzimləmə yenilənə bilmədi' : 'Не удалось обновить настройку'
       );
+=======
+    // ✅ VALIDATION START
+    
+    // 1. Check if already saving
+    if (isSavingSettings) {
+      return;
+    }
+    
+    // 2. Validate key
+    if (!key || typeof key !== 'string' || key.trim().length === 0) {
+      Alert.alert('Xəta', 'Düzgün olmayan tənzimləmə açarı');
+      return;
+    }
+    
+    // 3. Validate value type
+    if (typeof value !== 'boolean') {
+      Alert.alert('Xəta', 'Düzgün olmayan tənzimləmə dəyəri');
+      return;
+    }
+    
+    // 4. Check authentication
+    if (!currentUser || !currentUser.id) {
+      Alert.alert('Xəta', 'Daxil olmamısınız');
+      return;
+    }
+    
+    // 5. Check store
+    if (!store || !store.id) {
+      Alert.alert('Xəta', 'Mağaza tapılmadı');
+      return;
+    }
+    
+    // 6. Check ownership
+    if (store.userId !== currentUser.id) {
+      Alert.alert(
+        'İcazə yoxdur',
+        'Siz bu mağazanın tənzimləmələrini dəyişdirə bilməzsiniz'
+      );
+      return;
+    }
+    
+    // ✅ VALIDATION END
+    
+    // Optimistic update
+    const previousSettings = { ...settings };
+    const newSettings = { ...settings, [key]: value };
+    setSettings(newSettings);
+    
+    setIsSavingSettings(true);
+    
+    try {
+      await updateUserStoreSettings(currentUser.id, store.id, { [key]: value });
+      
+      // Success (silent - no alert needed for settings toggle)
+    } catch (error) {
+      // Rollback on error
+      setSettings(previousSettings);
+      
+      let errorMessage = 'Tənzimləmə yadda saxlanmadı';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('tapılmadı') || error.message.includes('not found')) {
+          errorMessage = 'Mağaza tapılmadı';
+        } else if (error.message.includes('network') || error.message.includes('timeout')) {
+          errorMessage = 'Şəbəkə xətası. Yenidən cəhd edin.';
+        } else if (error.message.includes('Invalid')) {
+          errorMessage = 'Düzgün olmayan məlumat';
+        }
+      }
+      
+      Alert.alert('Xəta', errorMessage);
+    } finally {
+      setIsSavingSettings(false);
+>>>>>>> origin/main
     }
   };
 
@@ -322,6 +397,7 @@ export default function StoreSettingsScreen() {
   };
 
   const handleSaveEdit = async () => {
+<<<<<<< HEAD
     if (!store) {
       logger.error('[StoreSettings] No store for saving edits');
       return;
@@ -336,10 +412,38 @@ export default function StoreSettingsScreen() {
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         nameValidation.error || 'Mağaza adı düzgün deyil'
+=======
+    // ✅ VALIDATION START
+    
+    // 1. Check if already saving
+    if (isLoading) {
+      Alert.alert('Xəta', 'Məlumatlar artıq yadda saxlanılır');
+      return;
+    }
+    
+    // 2. Check authentication
+    if (!currentUser || !currentUser.id) {
+      Alert.alert('Xəta', 'Daxil olmamısınız');
+      return;
+    }
+    
+    // 3. Check store
+    if (!store || !store.id) {
+      Alert.alert('Xəta', 'Mağaza tapılmadı');
+      return;
+    }
+    
+    // 4. Check ownership
+    if (store.userId !== currentUser.id) {
+      Alert.alert(
+        'İcazə yoxdur',
+        'Siz bu mağazanı redaktə edə bilməzsiniz'
+>>>>>>> origin/main
       );
       return;
     }
     
+<<<<<<< HEAD
     // ✅ Validate email (optional but must be valid if provided)
     if (editForm.email.trim() && !validateEmail(editForm.email.trim())) {
       Alert.alert(
@@ -384,6 +488,103 @@ export default function StoreSettingsScreen() {
       return;
     }
     
+=======
+    // 5. Validate store name
+    if (!editForm.name || typeof editForm.name !== 'string') {
+      Alert.alert('Xəta', 'Mağaza adı düzgün deyil');
+      return;
+    }
+    
+    const trimmedName = editForm.name.trim();
+    
+    if (trimmedName.length === 0) {
+      Alert.alert('Xəta', 'Mağaza adı daxil edilməlidir');
+      return;
+    }
+    
+    if (trimmedName.length < 3) {
+      Alert.alert('Xəta', 'Mağaza adı ən azı 3 simvol olmalıdır');
+      return;
+    }
+    
+    if (trimmedName.length > 50) {
+      Alert.alert('Xəta', 'Mağaza adı maksimum 50 simvol ola bilər');
+      return;
+    }
+    
+    // 6. Validate description
+    if (editForm.description && typeof editForm.description === 'string') {
+      const trimmedDescription = editForm.description.trim();
+      if (trimmedDescription.length > 1000) {
+        Alert.alert('Xəta', 'Təsvir maksimum 1000 simvol ola bilər');
+        return;
+      }
+    }
+    
+    // 7. Validate email if provided
+    if (editForm.email && typeof editForm.email === 'string') {
+      const trimmedEmail = editForm.email.trim();
+      if (trimmedEmail.length > 0) {
+        const emailRegex = /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+        if (!emailRegex.test(trimmedEmail)) {
+          Alert.alert('Xəta', 'Düzgün email formatı daxil edin');
+          return;
+        }
+        if (trimmedEmail.length > 255) {
+          Alert.alert('Xəta', 'Email maksimum 255 simvol ola bilər');
+          return;
+        }
+      }
+    }
+    
+    // 8. Validate phone if provided
+    if (editForm.phone && typeof editForm.phone === 'string') {
+      const phoneDigits = editForm.phone.replace(/\D/g, '');
+      if (phoneDigits.length > 0 && (phoneDigits.length < 9 || phoneDigits.length > 15)) {
+        Alert.alert('Xəta', 'Telefon nömrəsi 9-15 rəqəm olmalıdır');
+        return;
+      }
+    }
+    
+    // 9. Validate WhatsApp if provided
+    if (editForm.whatsapp && typeof editForm.whatsapp === 'string') {
+      const whatsappDigits = editForm.whatsapp.replace(/\D/g, '');
+      if (whatsappDigits.length > 0 && (whatsappDigits.length < 9 || whatsappDigits.length > 15)) {
+        Alert.alert('Xəta', 'WhatsApp nömrəsi 9-15 rəqəm olmalıdır');
+        return;
+      }
+    }
+    
+    // 10. Validate website if provided
+    if (editForm.website && typeof editForm.website === 'string') {
+      const trimmedWebsite = editForm.website.trim();
+      if (trimmedWebsite.length > 0) {
+        if (!trimmedWebsite.match(/^https?:\/\/.+/)) {
+          Alert.alert('Xəta', 'Vebsayt http:// və ya https:// ilə başlamalıdır');
+          return;
+        }
+        try {
+          const url = new URL(trimmedWebsite);
+          if (!['http:', 'https:'].includes(url.protocol)) {
+            Alert.alert('Xəta', 'Yalnız HTTP və ya HTTPS protokolu dəstəklənir');
+            return;
+          }
+          if (trimmedWebsite.length > 2083) {
+            Alert.alert('Xəta', 'Vebsayt ünvanı çox uzundur (maks 2083 simvol)');
+            return;
+          }
+        } catch {
+          Alert.alert('Xəta', 'Düzgün URL formatı daxil edin');
+          return;
+        }
+      }
+    }
+    
+    // ✅ VALIDATION END
+    
+    setIsLoading(true);
+    
+>>>>>>> origin/main
     try {
       logger.info('[StoreSettings] Updating store:', {
         storeId: store.id,
@@ -393,6 +594,7 @@ export default function StoreSettingsScreen() {
       });
       
       await editStore(store.id, {
+<<<<<<< HEAD
         name: editForm.name.trim(),
         description: editForm.description.trim(),
         contactInfo: {
@@ -417,10 +619,47 @@ export default function StoreSettingsScreen() {
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Məlumatlar yenilənə bilmədi' : 'Не удалось обновить данные'
       );
+=======
+        name: trimmedName,
+        description: editForm.description?.trim() || '',
+        contactInfo: {
+          ...store.contactInfo,
+          phone: editForm.phone?.trim() || undefined,
+          email: editForm.email?.trim() || undefined,
+          website: editForm.website?.trim() || undefined,
+          whatsapp: editForm.whatsapp?.trim() || undefined
+        }
+      });
+      
+      setShowEditModal(false);
+      Alert.alert(
+        'Uğurlu', 
+        `"${trimmedName}" mağazasının məlumatları yeniləndi`,
+        [{ text: 'OK' }],
+        { cancelable: false }
+      );
+    } catch (error) {
+      let errorMessage = 'Məlumatlar yenilənə bilmədi';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('tapılmadı') || error.message.includes('not found')) {
+          errorMessage = 'Mağaza tapılmadı';
+        } else if (error.message.includes('network') || error.message.includes('timeout')) {
+          errorMessage = 'Şəbəkə xətası. Yenidən cəhd edin.';
+        } else if (error.message.includes('Invalid')) {
+          errorMessage = 'Düzgün olmayan məlumat';
+        }
+      }
+      
+      Alert.alert('Xəta', errorMessage);
+    } finally {
+      setIsLoading(false);
+>>>>>>> origin/main
     }
   };
 
   const handleDeleteStore = () => {
+<<<<<<< HEAD
     if (!store) {
       logger.error('[StoreSettings] No store for deletion');
       return;
@@ -428,9 +667,52 @@ export default function StoreSettingsScreen() {
     
     logger.warn('[StoreSettings] Delete store confirmation requested:', { storeId: store.id, storeName: store.name });
     
+=======
+    // ✅ VALIDATION START
+    
+    // 1. Check authentication
+    if (!currentUser || !currentUser.id) {
+      Alert.alert('Xəta', 'Daxil olmamısınız');
+      return;
+    }
+    
+    // 2. Check store
+    if (!store || !store.id) {
+      Alert.alert('Xəta', 'Mağaza tapılmadı');
+      return;
+    }
+    
+    // 3. Check ownership
+    if (store.userId !== currentUser.id) {
+      Alert.alert(
+        'İcazə yoxdur',
+        'Siz bu mağazanı silə bilməzsiniz. Yalnız öz mağazanızı silə bilərsiniz.'
+      );
+      return;
+    }
+    
+    // 4. Check if already being deleted
+    if (isLoading) {
+      Alert.alert('Xəta', 'Əməliyyat artıq icra olunur');
+      return;
+    }
+    
+    // 5. Check if store is already deleted
+    if (store.status === 'archived' || store.archivedAt) {
+      Alert.alert('Xəta', 'Mağaza artıq silinib');
+      return;
+    }
+    
+    // ✅ VALIDATION END
+    
+    // Get store data for confirmation
+    const followersCount = Array.isArray(store.followers) ? store.followers.length : 0;
+    
+    // First confirmation
+>>>>>>> origin/main
     Alert.alert(
-      'Mağazanı Sil',
-      'Bu əməliyyat geri qaytarıla bilməz. Bütün məlumatlar silinəcək.',
+      '⚠️ Mağazanı Sil',
+      `"${store.name}" mağazasını silmək istədiyinizə əminsiniz?\n\n⚠️ Bu əməliyyat geri qaytarıla bilməz!\n• Bütün məlumatlar silinəcək\n• ${followersCount} izləyici bildiriş alacaq\n• Mağazaya giriş mümkün olmayacaq`,
       [
         { 
           text: 'Ləğv et', 
@@ -438,8 +720,9 @@ export default function StoreSettingsScreen() {
           onPress: () => logger.info('[StoreSettings] Delete cancelled')
         },
         {
-          text: 'Sil',
+          text: 'Davam et',
           style: 'destructive',
+<<<<<<< HEAD
           onPress: async () => {
             logger.info('[StoreSettings] Deleting store:', store.id);
             try {
@@ -451,6 +734,59 @@ export default function StoreSettingsScreen() {
               logger.error('[StoreSettings] Failed to delete store:', error);
               Alert.alert('Xəta', 'Mağaza silinə bilmədi');
             }
+=======
+          onPress: () => {
+            // Second confirmation after 300ms
+            setTimeout(() => {
+              Alert.alert(
+                '🔴 SON XƏBƏRDARLIQ',
+                `"${store.name}" mağazasını həqiqətən silmək istəyirsiniz?\n\n❌ Bu əməliyyat GERİ QAYTARILA BİLMƏZ!\n\nBu son təsdiqdir. Əminsinizsə, "MƏN ƏMİNƏM" düyməsinə basın.`,
+                [
+                  { text: 'Ləğv et', style: 'cancel' },
+                  {
+                    text: 'MƏN ƏMİNƏM',
+                    style: 'destructive',
+                    onPress: async () => {
+                      setIsLoading(true);
+                      
+                      try {
+                        await deleteStore(store.id);
+                        
+                        Alert.alert(
+                          '✅ Uğurlu!',
+                          `"${store.name}" mağazası silindi.\n\n${followersCount > 0 ? `${followersCount} izləyiciyə bildiriş göndərildi.\n\n` : ''}Siz indi yeni mağaza yarada bilərsiniz.`,
+                          [{ text: 'OK', onPress: () => router.back() }],
+                          { cancelable: false }
+                        );
+                      } catch (error) {
+                        let errorMessage = 'Mağaza silinə bilmədi';
+                        
+                        if (error instanceof Error) {
+                          if (error.message.includes('tapılmadı') || error.message.includes('not found')) {
+                            errorMessage = 'Mağaza tapılmadı';
+                          } else if (error.message.includes('silinib') || error.message.includes('already deleted') || error.message.includes('archived')) {
+                            errorMessage = 'Mağaza artıq silinib';
+                          } else if (error.message.includes('active listings') || error.message.includes('aktiv elan')) {
+                            const match = error.message.match(/(\d+)/);
+                            const count = match ? match[1] : '?';
+                            errorMessage = `Mağazada ${count} aktiv elan var. Əvvəlcə bütün elanları silməlisiniz.`;
+                          } else if (error.message.includes('network') || error.message.includes('timeout')) {
+                            errorMessage = 'Şəbəkə xətası. Yenidən cəhd edin.';
+                          } else if (error.message.includes('Invalid')) {
+                            errorMessage = 'Düzgün olmayan məlumat';
+                          }
+                        }
+                        
+                        Alert.alert('Xəta', errorMessage);
+                      } finally {
+                        setIsLoading(false);
+                      }
+                    }
+                  }
+                ]
+              );
+            }, 300);
+>>>>>>> origin/main
           }
         }
       ]

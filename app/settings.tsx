@@ -822,15 +822,25 @@ export default function SettingsScreen() {
               <Switch
                 value={currentUser?.privacySettings?.hidePhoneNumber ?? false}
                 onValueChange={(value) => {
+<<<<<<< HEAD
                   if (!currentUser) {
                     logger.error('[Settings] No current user for privacy update');
                     Alert.alert(
                       language === 'az' ? 'Xəta' : 'Ошибка',
                       language === 'az' ? 'İstifadəçi tapılmadı' : 'Пользователь не найден'
+=======
+                  // ✅ Validate current user
+                  if (!currentUser) {
+                    logger.warn('[Settings] No current user');
+                    Alert.alert(
+                      language === 'az' ? 'Xəta' : 'Ошибка',
+                      language === 'az' ? 'İstifadəçi daxil olmayıb' : 'Пользователь не вошел 'в систему'
+>>>>>>> origin/main
                     );
                     return;
                   }
                   
+<<<<<<< HEAD
                   logger.info('[Settings] Updating hidePhoneNumber:', { 
                     from: currentUser.privacySettings?.hidePhoneNumber ?? false,
                     to: value, 
@@ -861,6 +871,16 @@ export default function SettingsScreen() {
                       language === 'az' 
                         ? 'Məxfilik tənzimləməsi yenilənə bilmədi' 
                         : 'Не удалось обновить настройки конфиденциальности'
+=======
+                  try {
+                    updatePrivacySettings({ hidePhoneNumber: value });
+                    logger.info('[Settings] Phone visibility updated:', value);
+                  } catch (error) {
+                    logger.error('[Settings] Error updating phone visibility:', error);
+                    Alert.alert(
+                      language === 'az' ? 'Xəta' : 'Ошибка',
+                      language === 'az' ? 'Tənzimləmə yadda saxlanılmadı' : 'Не удалось сохранить настройку'
+>>>>>>> origin/main
                     );
                   }
                 }}
@@ -881,15 +901,25 @@ export default function SettingsScreen() {
               <Switch
                 value={currentUser?.privacySettings?.onlyAppMessaging ?? false}
                 onValueChange={(value) => {
+<<<<<<< HEAD
                   if (!currentUser) {
                     logger.error('[Settings] No current user for onlyAppMessaging update');
                     Alert.alert(
                       language === 'az' ? 'Xəta' : 'Ошибка',
                       language === 'az' ? 'İstifadəçi tapılmadı' : 'Пользователь не найден'
+=======
+                  // ✅ Validate current user
+                  if (!currentUser) {
+                    logger.warn('[Settings] No current user');
+                    Alert.alert(
+                      language === 'az' ? 'Xəta' : 'Ошибка',
+                      language === 'az' ? 'İstifadəçi daxil olmayıb' : 'Пользователь не вошел в систему'
+>>>>>>> origin/main
                     );
                     return;
                   }
                   
+<<<<<<< HEAD
                   logger.info('[Settings] Updating onlyAppMessaging:', { 
                     from: currentUser.privacySettings?.onlyAppMessaging ?? false,
                     to: value, 
@@ -897,10 +927,15 @@ export default function SettingsScreen() {
                   });
                   
                   try {
+=======
+                  try {
+                    // ✅ Conflict resolution: onlyAppMessaging and allowDirectContact are mutually exclusive
+>>>>>>> origin/main
                     updatePrivacySettings({ 
                       onlyAppMessaging: value,
                       allowDirectContact: !value
                     });
+<<<<<<< HEAD
                     logger.info('[Settings] onlyAppMessaging updated successfully:', { 
                       onlyAppMessaging: value,
                       allowDirectContact: !value
@@ -924,6 +959,14 @@ export default function SettingsScreen() {
                       language === 'az' 
                         ? 'Mesajlaşma tənzimləməsi yenilənə bilmədi' 
                         : 'Не удалось обновить настройки сообщений'
+=======
+                    logger.info('[Settings] App messaging preference updated:', value);
+                  } catch (error) {
+                    logger.error('[Settings] Error updating messaging preference:', error);
+                    Alert.alert(
+                      language === 'az' ? 'Xəta' : 'Ошибка',
+                      language === 'az' ? 'Tənzimləmə yadda saxlanılmadı' : 'Не удалось сохранить настройку'
+>>>>>>> origin/main
                     );
                   }
                 }}
@@ -944,15 +987,25 @@ export default function SettingsScreen() {
               <Switch
                 value={currentUser?.privacySettings?.allowDirectContact ?? false}
                 onValueChange={(value) => {
+<<<<<<< HEAD
                   if (!currentUser) {
                     logger.error('[Settings] No current user for allowDirectContact update');
                     Alert.alert(
                       language === 'az' ? 'Xəta' : 'Ошибка',
                       language === 'az' ? 'İstifadəçi tapılmadı' : 'Пользователь не найден'
+=======
+                  // ✅ Validate current user
+                  if (!currentUser) {
+                    logger.warn('[Settings] No current user');
+                    Alert.alert(
+                      language === 'az' ? 'Xəta' : 'Ошибка',
+                      language === 'az' ? 'İstifadəçi daxil olmayıb' : 'Пользователь не вошел в систему'
+>>>>>>> origin/main
                     );
                     return;
                   }
                   
+<<<<<<< HEAD
                   logger.info('[Settings] Updating allowDirectContact:', { 
                     from: currentUser.privacySettings?.allowDirectContact ?? false,
                     to: value, 
@@ -960,10 +1013,15 @@ export default function SettingsScreen() {
                   });
                   
                   try {
+=======
+                  try {
+                    // ✅ Conflict resolution: allowDirectContact and onlyAppMessaging are mutually exclusive
+>>>>>>> origin/main
                     updatePrivacySettings({ 
                       allowDirectContact: value,
                       onlyAppMessaging: !value
                     });
+<<<<<<< HEAD
                     logger.info('[Settings] allowDirectContact updated successfully:', { 
                       allowDirectContact: value,
                       onlyAppMessaging: !value
@@ -987,6 +1045,14 @@ export default function SettingsScreen() {
                       language === 'az' 
                         ? 'Əlaqə tənzimləməsi yenilənə bilmədi' 
                         : 'Не удалось обновить настройки контактов'
+=======
+                    logger.info('[Settings] Direct contact preference updated:', value);
+                  } catch (error) {
+                    logger.error('[Settings] Error updating direct contact:', error);
+                    Alert.alert(
+                      language === 'az' ? 'Xəta' : 'Ошибка',
+                      language === 'az' ? 'Tənzimləmə yadda saxlanılmadı' : 'Не удалось сохранить настройку'
+>>>>>>> origin/main
                     );
                   }
                 }}

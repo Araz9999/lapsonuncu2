@@ -50,18 +50,51 @@ export default function CallHistoryScreen() {
   });
 
   const formatDuration = (seconds?: number) => {
-    if (!seconds) return '00:00';
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
+    // ✅ Validate input
+    if (seconds === undefined || seconds === null || isNaN(seconds) || !isFinite(seconds)) {
+      return '00:00';
+    }
+    
+    // ✅ Handle negative values
+    const validSeconds = Math.max(0, Math.floor(seconds));
+    
+    const mins = Math.floor(validSeconds / 60);
+    const secs = validSeconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
   const formatDate = (dateString: string) => {
+<<<<<<< HEAD
     const date = new Date(dateString);
     
     // ✅ Validate date
     if (isNaN(date.getTime())) {
       return language === 'az' ? 'Tarix məlum deyil' : 'Дата неизвестна';
+=======
+    try {
+      const date = new Date(dateString);
+      
+      // ✅ Validate date
+      if (isNaN(date.getTime())) {
+        return language === 'az' ? 'Naməlum' : 'Неизвестно';
+      }
+      
+      const now = new Date();
+      const diffTime = Math.abs(now.getTime() - date.getTime());
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)); // ✅ Use floor, not ceil
+
+      if (diffDays === 0) {
+        return language === 'az' ? 'Bu gün' : 'Сегодня';
+      } else if (diffDays === 1) {
+        return language === 'az' ? 'Dünən' : 'Вчера';
+      } else if (diffDays <= 7) {
+        return `${diffDays} ${language === 'az' ? 'gün əvvəl' : 'дней назад'}`;
+      } else {
+        return date.toLocaleDateString(language === 'az' ? 'az-AZ' : 'ru-RU');
+      }
+    } catch (error) {
+      return language === 'az' ? 'Naməlum' : 'Неизвестно';
+>>>>>>> origin/main
     }
     
     const now = new Date();
@@ -148,6 +181,7 @@ export default function CallHistoryScreen() {
   };
 
   const handleCallPress = async (call: Call) => {
+<<<<<<< HEAD
     logger.info('[CallHistory] Call item pressed:', { 
       callId: call.id, 
       type: call.type,
@@ -190,7 +224,48 @@ export default function CallHistoryScreen() {
           language === 'az' ? 'Zəng Xətası' : 'Ошибка звонка',
           language === 'az' ? 'Zəng başlatmaq mümkün olmadı' : 'Не удалось начать звонок'
         );
+=======
+    try {
+      if (!call || !call.id) {
+        logger.error('Invalid call object');
+        return;
+>>>>>>> origin/main
       }
+      
+      if (!call.isRead) {
+        markCallAsRead(call.id);
+      }
+
+      const otherUserId = call.callerId === currentUser?.id ? call.receiverId : call.callerId;
+      
+      // ✅ Validate otherUserId
+      if (!otherUserId || typeof otherUserId !== 'string') {
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'İstifadəçi məlumatı tapılmadı' : 'Информация о пользователе не найдена'
+        );
+        return;
+      }
+      
+      const otherUser = users.find(u => u.id === otherUserId);
+      
+      if (otherUser?.privacySettings?.hidePhoneNumber) {
+        // Initiate app call with same type as previous call
+        try {
+          const callId = await initiateCall(otherUserId, call.listingId, call.type);
+          router.push(`/call/${callId}`);
+        } catch (error) {
+          logger.error('Failed to initiate call:', error);
+          Alert.alert(
+            language === 'az' ? 'Xəta' : 'Ошибка',
+            language === 'az' 
+              ? 'Zəng başlatıla bilmədi. Xahiş edirik yenidən cəhd edin.'
+              : 'Не удалось начать звонок. Пожалуйста, попробуйте снова.'
+          );
+        }
+      }
+    } catch (error) {
+      logger.error('Error in handleCallPress:', error);
     }
   };
 
@@ -311,7 +386,15 @@ export default function CallHistoryScreen() {
           }}
           testID={`call-item-${item.id}`}
         >
-          <Image source={{ uri: otherUser?.avatar }} style={styles.avatar} />
+          <Image 
+            source={{ uri: otherUser?.avatar || 'https://via.placeholder.com/50' }} 
+            style={styles.avatar}
+            defaultSource={require('@/assets/images/default-avatar.png')}
+            onError={() => {
+              // ✅ Fallback if image fails to load
+              logger.debug('Avatar image failed to load for user:', otherUserId);
+            }}
+          />
           
           <View style={styles.callInfo}>
             <View style={styles.callHeader}>

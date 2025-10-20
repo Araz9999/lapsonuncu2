@@ -7,7 +7,7 @@ import { useListingStore } from '@/store/listingStore';
 import ListingCard from '@/components/ListingCard';
 import Colors from '@/constants/colors';
 import { users } from '@/mocks/users';
-import { Clock, AlertCircle, Edit, Trash2, TrendingUp, Eye, RefreshCw, Archive, Settings, Bell, DollarSign, Tag } from 'lucide-react-native';
+import { Clock, AlertCircle, Edit, Trash2, TrendingUp, Eye, RefreshCw, Archive, Settings, Bell, DollarSign, Tag, Percent, Gift } from 'lucide-react-native';
 import { Listing } from '@/types/listing';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -22,7 +22,7 @@ export default function MyListingsScreen() {
   const router = useRouter();
   const { language } = useLanguageStore();
   const { isAuthenticated, canAfford, spendFromBalance, getTotalBalance } = useUserStore();
-  const { listings, deleteListing, updateListing } = useListingStore();
+  const { listings, deleteListing, updateListing, getExpiringListings, getArchivedListings } = useListingStore();
   const [refreshing, setRefreshing] = useState(false);
   const [notifications, setNotifications] = useState<string[]>([]);
   const [autoRenewalSettings, setAutoRenewalSettings] = useState<{[key: string]: boolean}>({});
@@ -597,35 +597,37 @@ export default function MyListingsScreen() {
         {/* Quick Actions */}
         <View style={styles.quickActions}>
           <TouchableOpacity 
-            style={[styles.quickActionButton, showArchived && styles.quickActionButtonActive]}
-            onPress={() => setShowArchived(!showArchived)}
+            style={styles.quickActionCard}
+            onPress={() => router.push('/renewal-offers')}
           >
-            <Archive size={16} color={showArchived ? 'white' : Colors.primary} />
-            <Text style={[styles.quickActionText, showArchived && styles.quickActionTextActive]}>
-              {language === 'az' ? 'Arxiv' : 'Архив'} ({archivedListings.length})
-            </Text>
+            <View style={[styles.quickActionIcon, { backgroundColor: `${Colors.success}20` }]}>
+              <Gift size={20} color={Colors.success} />
+            </View>
+            <View style={styles.quickActionInfo}>
+              <Text style={styles.quickActionLabel}>
+                {language === 'az' ? 'Güzəştli Təkliflər' : 'Скидки'}
+              </Text>
+              <Text style={styles.quickActionValue}>
+                {getExpiringListings(currentUser.id, 7).length} {language === 'az' ? 'təklif' : 'предложений'}
+              </Text>
+            </View>
           </TouchableOpacity>
           
           <TouchableOpacity 
-            style={styles.quickActionButton}
-            onPress={() => {
-              const expiringCount = userListings.filter(listing => {
-                const daysLeft = getDaysLeft(listing.expiresAt);
-                return daysLeft <= 3;
-              }).length;
-              
-              Alert.alert(
-                language === 'az' ? 'Müddəti bitən elanlar' : 'Истекающие объявления',
-                language === 'az' 
-                  ? `${expiringCount} elanınızın müddəti 3 gün ərzində bitəcək`
-                  : `У ${expiringCount} объявлений истекает срок в течение 3 дней`
-              );
-            }}
+            style={styles.quickActionCard}
+            onPress={() => router.push('/archived-listings')}
           >
-            <Bell size={16} color={Colors.warning} />
-            <Text style={styles.quickActionText}>
-              {language === 'az' ? 'Xəbərdarlıqlar' : 'Уведомления'}
-            </Text>
+            <View style={[styles.quickActionIcon, { backgroundColor: `${Colors.textSecondary}20` }]}>
+              <Archive size={20} color={Colors.textSecondary} />
+            </View>
+            <View style={styles.quickActionInfo}>
+              <Text style={styles.quickActionLabel}>
+                {language === 'az' ? 'Arxiv' : 'Архив'}
+              </Text>
+              <Text style={styles.quickActionValue}>
+                {getArchivedListings(currentUser.id).length} {language === 'az' ? 'elan' : 'объявлений'}
+              </Text>
+            </View>
           </TouchableOpacity>
         </View>
         
@@ -680,9 +682,19 @@ export default function MyListingsScreen() {
                 </Text>
               </View>
               <Text style={styles.settingValue}>
-                {language === 'az' ? '20% endirim' : 'Скидка 20%'}
+                {language === 'az' ? '7gün:15% • 3gün:10% • 1gün:5%' : '7дн:15% • 3дн:10% • 1дн:5%'}
               </Text>
             </View>
+            
+            <TouchableOpacity
+              style={styles.viewOffersButton}
+              onPress={() => router.push('/renewal-offers')}
+            >
+              <Percent size={16} color="white" />
+              <Text style={styles.viewOffersButtonText}>
+                {language === 'az' ? 'Güzəştli Təklifləri Gör' : 'Смотреть предложения'}
+              </Text>
+            </TouchableOpacity>
           </View>
         )}
       </View>
@@ -945,6 +957,37 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 16,
     gap: 12,
+  },
+  quickActionCard: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.card,
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  quickActionIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  quickActionInfo: {
+    flex: 1,
+  },
+  quickActionLabel: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginBottom: 2,
+  },
+  quickActionValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.text,
   },
   quickActionButton: {
     flexDirection: 'row',
@@ -1243,6 +1286,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginLeft: 4,
   },
+<<<<<<< HEAD
 });olor: Colors.success,
     fontSize: 10,
     fontWeight: '500',
@@ -1255,5 +1299,52 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '500',
     marginLeft: 4,
+=======
+  viewOffersButton: {
+    backgroundColor: Colors.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginTop: 12,
+    gap: 6,
+  },
+  viewOffersButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: 'white',
+  },
+  quickActionCard: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.card,
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  quickActionIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  quickActionInfo: {
+    flex: 1,
+  },
+  quickActionLabel: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginBottom: 2,
+  },
+  quickActionValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.text,
+>>>>>>> origin/main
   },
 });
