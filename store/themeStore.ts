@@ -96,8 +96,17 @@ export const useThemeStore = create<ThemeState>()(
         logger.debug('Adaptive interface:', enabled ? 'enabled' : 'disabled');
       },
       sendNotification: async (title: string, body: string) => {
+        // ✅ Validate inputs
+        if (!title || !body) {
+          logger.error('[ThemeStore] Invalid notification: title and body are required');
+          return;
+        }
+        
         const state = get();
-        if (!state.notificationsEnabled) return;
+        if (!state.notificationsEnabled) {
+          logger.debug('[ThemeStore] Notifications disabled, skipping');
+          return;
+        }
         
         if (Platform.OS !== 'web') {
           try {
@@ -110,22 +119,31 @@ export const useThemeStore = create<ThemeState>()(
               },
               trigger: null,
             });
+            logger.info('[ThemeStore] Notification sent:', title);
             
             if (state.vibrationEnabled) {
               try {
                 const Haptics = await import('expo-haptics');
                 await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                logger.debug('[ThemeStore] Haptic feedback played for notification');
               } catch (hapticsError) {
-                logger.debug('Haptics not available:', hapticsError);
+                logger.debug('[ThemeStore] Haptics not available:', hapticsError);
               }
             }
           } catch (error) {
-            logger.debug('Failed to send notification:', error);
+            logger.error('[ThemeStore] Failed to send notification:', error);
           }
         } else {
           // Web fallback
           if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-            new Notification(title, { body });
+            new Notification(title, { 
+              body,
+              icon: window.location ? `${window.location.origin}/icon.png` : undefined,
+              timestamp: Date.now(),
+            });
+            logger.info('[ThemeStore] Web notification sent:', title);
+          } else {
+            logger.debug('[ThemeStore] Web notifications not available or permission not granted');
           }
         }
       },
@@ -135,10 +153,14 @@ export const useThemeStore = create<ThemeState>()(
         
         if (Platform.OS !== 'web') {
           try {
-            // Use system notification sound with haptic feedback
-            const Haptics = await import('expo-haptics');
-            await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            logger.debug('Playing notification sound with haptic feedback');
+            // ✅ Check vibration setting before haptic
+            if (state.vibrationEnabled) {
+              const Haptics = await import('expo-haptics');
+              await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              logger.debug('Playing notification sound with haptic feedback');
+            } else {
+              logger.debug('Playing notification sound without haptic (disabled)');
+            }
           } catch (error) {
             logger.debug('Failed to play notification sound:', error);
           }

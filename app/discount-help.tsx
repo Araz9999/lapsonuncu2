@@ -4,10 +4,16 @@ import { useRouter } from 'expo-router';
 import { useLanguageStore } from '@/store/languageStore';
 import Colors from '@/constants/colors';
 import { ArrowLeft, Tag, Percent, Calendar, Users, TrendingUp, Gift, Zap, Info, CheckCircle } from 'lucide-react-native';
+import { logger } from '@/utils/logger';
 
 export default function DiscountHelpScreen() {
   const router = useRouter();
   const { language } = useLanguageStore();
+  
+  // ✅ Log screen open
+  React.useEffect(() => {
+    logger.info('[DiscountHelp] Screen opened', { language });
+  }, []);
   
   const features = [
     {
@@ -107,7 +113,13 @@ export default function DiscountHelpScreen() {
     <ScrollView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <TouchableOpacity 
+          style={styles.backButton} 
+          onPress={() => {
+            logger.info('[DiscountHelp] Back button clicked');
+            router.back();
+          }}
+        >
           <ArrowLeft size={24} color={Colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>
@@ -236,7 +248,10 @@ export default function DiscountHelpScreen() {
           </Text>
           <TouchableOpacity 
             style={styles.ctaButton}
-            onPress={() => router.push('/my-listings')}
+            onPress={() => {
+              logger.info('[DiscountHelp] CTA button clicked - navigating to my listings');
+              router.push('/my-listings');
+            }}
           >
             <Text style={styles.ctaButtonText}>
               {language === 'az' ? 'Mənim Elanlarım' : 'Мои объявления'}

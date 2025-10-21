@@ -20,6 +20,8 @@ import { useStoreStore } from '@/store/storeStore';
 import { useUserStore } from '@/store/userStore';
 import { useListingStore } from '@/store/listingStore';
 import CountdownTimer from '@/components/CountdownTimer';
+import { logger } from '@/utils/logger';
+import { sanitizeTextInput } from '@/utils/inputValidation';
 
 export default function CreateDiscountScreen() {
   const router = useRouter();
@@ -62,6 +64,175 @@ export default function CreateDiscountScreen() {
   const storeListings = listings.filter(l => l.storeId === currentStore.id && !l.deletedAt);
   
   const handleSubmit = () => {
+<<<<<<< HEAD
+    try {
+      logger.info('[CreateDiscount] Validating discount form...');
+      
+      // ✅ Sanitize and validate title
+      const sanitizedTitle = sanitizeTextInput(formData.title);
+      if (!sanitizedTitle || sanitizedTitle.length < 3) {
+        Alert.alert('Xəta', 'Endirim başlığı ən azı 3 simvol olmalıdır');
+        logger.error('[CreateDiscount] Invalid title length');
+        return;
+      }
+      
+      if (sanitizedTitle.length > 100) {
+        Alert.alert('Xəta', 'Endirim başlığı 100 simvoldan çox ola bilməz');
+        logger.error('[CreateDiscount] Title too long');
+        return;
+      }
+      
+      // ✅ Sanitize description
+      const sanitizedDescription = sanitizeTextInput(formData.description);
+      if (sanitizedDescription.length > 500) {
+        Alert.alert('Xəta', 'Açıqlama 500 simvoldan çox ola bilməz');
+        logger.error('[CreateDiscount] Description too long');
+        return;
+      }
+      
+      // ✅ Validate value
+      if (!formData.value.trim()) {
+        Alert.alert('Xəta', 'Endirim dəyəri daxil edin');
+        logger.error('[CreateDiscount] No value provided');
+        return;
+      }
+      
+      const value = parseFloat(formData.value.trim());
+      if (isNaN(value) || value <= 0) {
+        Alert.alert('Xəta', 'Düzgün endirim dəyəri daxil edin (0-dan böyük rəqəm)');
+        logger.error('[CreateDiscount] Invalid value:', formData.value);
+        return;
+      }
+      
+      // ✅ Type-specific validation
+      if (formData.type === 'percentage') {
+        if (value > 99) {
+          Alert.alert('Xəta', 'Faiz endirimi 99%-dən çox ola bilməz');
+          logger.error('[CreateDiscount] Percentage too high:', value);
+          return;
+        }
+        if (value < 1) {
+          Alert.alert('Xəta', 'Faiz endirimi ən azı 1% olmalıdır');
+          logger.error('[CreateDiscount] Percentage too low:', value);
+          return;
+        }
+      }
+      
+      if (formData.type === 'fixed_amount') {
+        if (value > 10000) {
+          Alert.alert('Xəta', 'Sabit məbləğ 10,000 AZN-dən çox ola bilməz');
+          logger.error('[CreateDiscount] Fixed amount too high:', value);
+          return;
+        }
+      }
+      
+      if (formData.type === 'buy_x_get_y') {
+        if (value < 1 || value > 10 || !Number.isInteger(value)) {
+          Alert.alert('Xəta', '"X Al" 1-10 arasında tam ədəd olmalıdır');
+          logger.error('[CreateDiscount] Invalid buy_x_get_y value:', value);
+          return;
+        }
+      }
+      
+      // ✅ Validate listings
+      if (selectedListings.length === 0) {
+        Alert.alert('Xəta', 'Ən azı bir məhsul seçin');
+        logger.error('[CreateDiscount] No listings selected');
+        return;
+      }
+      
+      // ✅ Validate dates
+      if (formData.endDate <= formData.startDate) {
+        Alert.alert('Xəta', 'Bitmə tarixi başlama tarixindən sonra olmalıdır');
+        logger.error('[CreateDiscount] Invalid date range');
+        return;
+      }
+      
+      const now = new Date();
+      if (formData.endDate <= now) {
+        Alert.alert('Xəta', 'Bitmə tarixi gələcəkdə olmalıdır');
+        logger.error('[CreateDiscount] End date in past');
+        return;
+      }
+      
+      // ✅ Validate optional numeric fields
+      let minPurchaseAmount: number | undefined;
+      if (formData.minPurchaseAmount && formData.minPurchaseAmount.trim()) {
+        minPurchaseAmount = parseFloat(formData.minPurchaseAmount.trim());
+        if (isNaN(minPurchaseAmount) || minPurchaseAmount < 0) {
+          Alert.alert('Xəta', 'Minimum alış məbləği düzgün deyil');
+          logger.error('[CreateDiscount] Invalid minPurchaseAmount');
+          return;
+        }
+      }
+      
+      let maxDiscountAmount: number | undefined;
+      if (formData.maxDiscountAmount && formData.maxDiscountAmount.trim()) {
+        maxDiscountAmount = parseFloat(formData.maxDiscountAmount.trim());
+        if (isNaN(maxDiscountAmount) || maxDiscountAmount < 0) {
+          Alert.alert('Xəta', 'Maksimum endirim məbləği düzgün deyil');
+          logger.error('[CreateDiscount] Invalid maxDiscountAmount');
+          return;
+        }
+      }
+      
+      let usageLimit: number | undefined;
+      if (formData.usageLimit && formData.usageLimit.trim()) {
+        usageLimit = parseInt(formData.usageLimit.trim(), 10);
+        if (isNaN(usageLimit) || usageLimit < 1 || usageLimit > 100000) {
+          Alert.alert('Xəta', 'İstifadə limiti 1-100,000 arasında olmalıdır');
+          logger.error('[CreateDiscount] Invalid usageLimit');
+          return;
+        }
+      }
+      
+      // ✅ Validate countdown if enabled
+      if (formData.hasCountdown) {
+        if (formData.countdownEndDate <= now) {
+          Alert.alert('Xəta', 'Geri sayım tarixi gələcəkdə olmalıdır');
+          logger.error('[CreateDiscount] Countdown date in past');
+          return;
+        }
+        
+        const sanitizedCountdownTitle = sanitizeTextInput(formData.countdownTitle);
+        if (sanitizedCountdownTitle.length > 100) {
+          Alert.alert('Xəta', 'Geri sayım başlığı 100 simvoldan çox ola bilməz');
+          logger.error('[CreateDiscount] Countdown title too long');
+          return;
+        }
+      }
+      
+      logger.info('[CreateDiscount] Validation passed, creating discount...');
+      
+      addDiscount({
+        storeId: currentStore.id,
+        title: sanitizedTitle,
+        description: sanitizedDescription,
+        type: formData.type,
+        value,
+        minPurchaseAmount,
+        maxDiscountAmount,
+        applicableListings: selectedListings,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        usageLimit,
+        usedCount: 0,
+        isActive: formData.isActive,
+        hasCountdown: formData.hasCountdown,
+        countdownEndDate: formData.hasCountdown ? formData.countdownEndDate : undefined,
+        countdownTitle: formData.hasCountdown ? sanitizeTextInput(formData.countdownTitle) : undefined,
+      });
+      
+      logger.info('[CreateDiscount] Discount created successfully');
+      
+      Alert.alert('Uğurlu', 'Endirim yaradıldı', [
+        { text: 'OK', onPress: () => router.back() }
+      ]);
+    } catch (error) {
+      logger.error('[CreateDiscount] Error creating discount:', error);
+      Alert.alert('Xəta', 'Endirim yaradılarkən xəta baş verdi');
+    }
+=======
     // Validation: Title
     if (!formData.title.trim()) {
       Alert.alert('Xəta', 'Endirim başlığı daxil edin');
@@ -187,6 +358,7 @@ export default function CreateDiscountScreen() {
     Alert.alert('Uğurlu', 'Endirim yaradıldı', [
       { text: 'OK', onPress: () => router.back() }
     ]);
+>>>>>>> origin/main
   };
   
   const toggleListingSelection = (listingId: string) => {

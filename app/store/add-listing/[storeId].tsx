@@ -63,6 +63,7 @@ export default function AddStoreListingScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [locationSearchQuery, setLocationSearchQuery] = useState('');
   
   const selectedLocationData = locations.find(l => l.id === selectedLocation);
   const selectedCategoryData = categories.find(c => c.id === selectedCategory);
@@ -143,6 +144,19 @@ export default function AddStoreListingScreen() {
 
       // BUG FIX: Validate assets array exists and has items
       if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0]) {
+        const asset = result.assets[0];
+        
+        // ✅ Check file size (max 5MB) - same as camera
+        if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024) {
+          Alert.alert(
+            language === 'az' ? 'Şəkil çox böyükdür' : 'Изображение слишком большое',
+            language === 'az' 
+              ? 'Maksimum 5MB ölçüsündə şəkil əlavə edin' 
+              : 'Добавьте изображение размером до 5MB'
+          );
+          return;
+        }
+        
         if (images.length >= 5) {
           Alert.alert(
             language === 'az' ? 'Limit aşıldı' : 'Лимит превышен',
@@ -152,7 +166,7 @@ export default function AddStoreListingScreen() {
           );
           return;
         }
-        setImages([...images, result.assets[0].uri]);
+        setImages([...images, asset.uri]);
       }
     } catch (error) {
       storeLogger.error('Gallery error:', error);
@@ -194,6 +208,19 @@ export default function AddStoreListingScreen() {
 
       // BUG FIX: Validate assets array exists and has items
       if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0]) {
+        const asset = result.assets[0];
+        
+        // ✅ Check file size (max 5MB)
+        if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024) {
+          Alert.alert(
+            language === 'az' ? 'Şəkil çox böyükdür' : 'Изображение слишком большое',
+            language === 'az' 
+              ? 'Maksimum 5MB ölçüsündə şəkil əlavə edin' 
+              : 'Добавьте изображение размером до 5MB'
+          );
+          return;
+        }
+        
         if (images.length >= 5) {
           Alert.alert(
             language === 'az' ? 'Limit aşıldı' : 'Лимит превышен',
@@ -203,7 +230,7 @@ export default function AddStoreListingScreen() {
           );
           return;
         }
-        setImages([...images, result.assets[0].uri]);
+        setImages([...images, asset.uri]);
       }
     } catch (error) {
       storeLogger.error('Camera error:', error);
@@ -318,11 +345,14 @@ export default function AddStoreListingScreen() {
     setIsSubmitting(true);
     
     try {
+      // ✅ Generate unique ID with random component
+      const listingId = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+      
       const newListing: Listing = {
-        id: Date.now().toString(),
+        id: listingId,
         title: {
-          az: title,
-          ru: title
+          az: title.trim(),
+          ru: title.trim()
         },
         description: {
           az: description,
@@ -371,11 +401,21 @@ export default function AddStoreListingScreen() {
         ]
       );
     } catch (error) {
+      storeLogger.error('Failed to add listing to store:', error);
+      
+      // ✅ Provide specific error feedback
+      const errorMessage = error instanceof Error ? error.message : '';
+      const isLimitError = errorMessage.toLowerCase().includes('limit') || errorMessage.toLowerCase().includes('maximum');
+      
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' 
-          ? 'Elan əlavə edilərkən xəta baş verdi' 
-          : 'Произошла ошибка при добавлении объявления'
+        isLimitError
+          ? (language === 'az' 
+              ? 'Mağaza limiti dolub. Paketi yüksəldin.' 
+              : 'Лимит магазина исчерпан. Улучшите пакет.')
+          : (language === 'az' 
+              ? 'Elan əlavə edilərkən xəta baş verdi' 
+              : 'Произошла ошибка при добавлении объявления')
       );
     } finally {
       setIsSubmitting(false);
@@ -748,11 +788,17 @@ export default function AddStoreListingScreen() {
         visible={showLocationModal}
         animationType="slide"
         presentationStyle="pageSheet"
-        onRequestClose={() => setShowLocationModal(false)}
+        onRequestClose={() => {
+          setShowLocationModal(false);
+          setLocationSearchQuery('');
+        }}
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={() => setShowLocationModal(false)}>
+            <TouchableOpacity onPress={() => {
+              setShowLocationModal(false);
+              setLocationSearchQuery('');
+            }}>
               <Text style={styles.modalCancelText}>
                 {language === 'az' ? 'Ləğv et' : 'Отмена'}
               </Text>
@@ -762,9 +808,36 @@ export default function AddStoreListingScreen() {
             </Text>
             <View style={styles.modalPlaceholder} />
           </View>
+          
+          {/* ✅ Search input */}
+          <View style={styles.searchContainer}>
+            <MapPin size={20} color={Colors.textSecondary} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder={language === 'az' ? 'Axtar...' : 'Поиск...'}
+              placeholderTextColor={Colors.textSecondary}
+              value={locationSearchQuery}
+              onChangeText={setLocationSearchQuery}
+            />
+          </View>
+          
+          {/* ✅ Filtered locations */}
           <FlatList
-            data={locations}
+            data={locationSearchQuery
+              ? locations.filter(loc =>
+                  loc.name[language].toLowerCase().includes(locationSearchQuery.toLowerCase())
+                )
+              : locations
+            }
             keyExtractor={(item) => item.id}
+            ListEmptyComponent={() => (
+              <View style={styles.emptyContainer}>
+                <MapPin size={48} color={Colors.textSecondary} />
+                <Text style={styles.emptyText}>
+                  {language === 'az' ? 'Heç bir yer tapılmadı' : 'Местоположений не найдено'}
+                </Text>
+              </View>
+            )}
             renderItem={({ item }) => (
               <TouchableOpacity
                 style={[
@@ -772,8 +845,16 @@ export default function AddStoreListingScreen() {
                   selectedLocation === item.id && styles.selectedModalItem
                 ]}
                 onPress={() => {
+                  // ✅ Validate location selection
+                  if (!item?.id) {
+                    storeLogger.error('[AddStoreListing] Invalid location selected');
+                    return;
+                  }
+                  
                   setSelectedLocation(item.id);
                   setShowLocationModal(false);
+                  setLocationSearchQuery('');
+                  storeLogger.info('[AddStoreListing] Location selected:', item.id);
                 }}
               >
                 <Text style={[
@@ -1263,5 +1344,34 @@ const styles = StyleSheet.create({
   selectedModalItemText: {
     color: Colors.primary,
     fontWeight: '500',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.background,
+    margin: 16,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  searchInput: {
+    flex: 1,
+    padding: 12,
+    fontSize: 16,
+    color: Colors.text,
+    marginLeft: 8,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: Colors.textSecondary,
+    marginTop: 16,
+    textAlign: 'center',
   },
 });

@@ -242,8 +242,8 @@ export const useMessageStore = create<MessageStore>((set, get) => ({
       throw new Error('ListingId is required');
     }
     
-    // ✅ Generate unique ID with random component to prevent conflicts (use substring instead of substr)
-    const conversationId = `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+    // BUG FIX: Generate unique ID with random component to prevent conflicts
+    const conversationId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     
     const newConversation: Conversation = {
       id: conversationId,

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import { useLanguageStore } from '@/store/languageStore';
 import { useStoreStore } from '@/store/storeStore';
 import { useUserStore } from '@/store/userStore';
 import Colors from '@/constants/colors';
+import { logger } from '@/utils/logger';
 import {
   ArrowLeft,
   TrendingUp,
@@ -29,13 +30,25 @@ export default function StorePromotionScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { language } = useLanguageStore();
   const { stores } = useStoreStore();
-  const { currentUser } = useUserStore();
+  const { currentUser, walletBalance, bonusBalance, spendFromBalance, getTotalBalance } = useUserStore();
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  
+  // ✅ Log screen access
+  useEffect(() => {
+    logger.info('[StorePromotion] Screen opened:', { storeId: id });
+  }, [id]);
   
   const store = stores.find(s => s.id === id);
   
   if (!store || !currentUser || store.userId !== currentUser.id) {
+    logger.warn('[StorePromotion] Access denied or store not found:', { 
+      storeId: id, 
+      hasStore: !!store,
+      hasUser: !!currentUser,
+      isOwner: store?.userId === currentUser?.id
+    });
     return (
       <View style={styles.container}>
         <View style={styles.header}>
@@ -103,41 +116,148 @@ export default function StorePromotionScreen() {
   ];
 
   const handleSelectPlan = (planId: string) => {
+    logger.info('[StorePromotion] Plan selected:', { 
+      storeId: id,
+      planId,
+      previousPlan: selectedPlan
+    });
     setSelectedPlan(planId);
   };
 
-  const handlePurchase = () => {
-    if (!selectedPlan) return;
+  const handlePurchase = async () => {
+    if (!selectedPlan) {
+      logger.warn('[StorePromotion] No plan selected');
+      return;
+    }
+    
+    if (isProcessing) {
+      logger.warn('[StorePromotion] Already processing a purchase');
+      return;
+    }
     
     const plan = promotionPlans.find(p => p.id === selectedPlan);
-    if (!plan) return;
+    if (!plan) {
+      logger.error('[StorePromotion] Selected plan not found:', { planId: selectedPlan });
+      return;
+    }
+    
+    logger.info('[StorePromotion] Purchase initiated:', { 
+      storeId: id,
+      planId: plan.id,
+      price: plan.price,
+      duration: plan.duration
+    });
+    
+    // ✅ Check balance first
+    const totalBalance = getTotalBalance();
+    if (totalBalance < plan.price) {
+      logger.warn('[StorePromotion] Insufficient balance:', { 
+        required: plan.price,
+        available: totalBalance
+      });
+      Alert.alert(
+        language === 'az' ? 'Balans kifayət etmir' : 'Недостаточно средств',
+        language === 'az' 
+          ? `Bu plan üçün ${plan.price} AZN lazımdır. Balansınız: ${totalBalance.toFixed(2)} AZN`
+          : `Для этого плана требуется ${plan.price} AZN. Ваш баланс: ${totalBalance.toFixed(2)} AZN`,
+        [
+          { 
+            text: language === 'az' ? 'Ləğv et' : 'Отмена', 
+            style: 'cancel',
+            onPress: () => logger.info('[StorePromotion] User cancelled due to insufficient balance')
+          },
+          { 
+            text: language === 'az' ? 'Balans artır' : 'Пополнить баланс', 
+            onPress: () => {
+              logger.info('[StorePromotion] Navigating to wallet to add balance');
+              router.push('/wallet');
+            }
+          }
+        ]
+      );
+      return;
+    }
 
+    logger.info('[StorePromotion] Showing confirmation dialog:', { 
+      planId: plan.id,
+      price: plan.price,
+      balance: totalBalance
+    });
+    
     Alert.alert(
       language === 'az' ? 'Ödəniş təsdiqi' : 'Подтверждение оплаты',
       language === 'az' 
-        ? `${plan.name} planını ${plan.price} AZN-ə satın almaq istədiyinizə əminsiniz?`
-        : `Вы уверены, что хотите купить план ${plan.name} за ${plan.price} AZN?`,
+        ? `${plan.name} planını ${plan.price} AZN-ə satın almaq istədiyinizə əminsiniz?\n\nBalansınız: ${totalBalance.toFixed(2)} AZN`
+        : `Вы уверены, что хотите купить план ${plan.name} за ${plan.price} AZN?\n\nВаш баланс: ${totalBalance.toFixed(2)} AZN`,
       [
         {
           text: language === 'az' ? 'Ləğv et' : 'Отмена',
           style: 'cancel',
+          onPress: () => {
+            logger.info('[StorePromotion] User cancelled payment confirmation');
+          }
         },
         {
           text: language === 'az' ? 'Ödə' : 'Оплатить',
-          onPress: () => {
-            // In a real app, integrate with payment gateway
-            Alert.alert(
-              language === 'az' ? 'Uğurlu!' : 'Успешно!',
-              language === 'az' 
-                ? 'Mağazanız uğurla təşviq edildi!' 
-                : 'Ваш магазин успешно продвинут!',
-              [
-                {
-                  text: 'OK',
-                  onPress: () => router.back(),
-                },
-              ]
-            );
+          onPress: async () => {
+            if (isProcessing) {
+              logger.warn('[StorePromotion] Already processing payment');
+              return;
+            }
+            
+            setIsProcessing(true);
+            logger.info('[StorePromotion] Processing payment:', { 
+              storeId: id,
+              planId: plan.id,
+              price: plan.price
+            });
+            
+            try {
+              // ✅ Use spendFromBalance for automatic bonus → wallet ordering
+              const paymentSuccess = spendFromBalance(plan.price);
+              
+              if (!paymentSuccess) {
+                logger.error('[StorePromotion] Payment failed:', { 
+                  price: plan.price, 
+                  balance: getTotalBalance() 
+                });
+                Alert.alert(
+                  language === 'az' ? 'Xəta' : 'Ошибка',
+                  language === 'az' ? 'Ödəniş uğursuz oldu' : 'Платеж не удался'
+                );
+                return;
+              }
+              
+              logger.info('[StorePromotion] Payment successful:', { 
+                price: plan.price,
+                remainingBalance: getTotalBalance()
+              });
+              
+              // ✅ Payment successful - show success
+              Alert.alert(
+                language === 'az' ? 'Uğurlu!' : 'Успешно!',
+                language === 'az' 
+                  ? `Mağazanız ${plan.name} paketi ilə uğurla təşviq edildi! ${plan.price} AZN balansınızdan çıxarıldı.` 
+                  : `Ваш магазин успешно продвинут с пакетом ${plan.name}! ${plan.price} AZN списано с баланса.`,
+                [
+                  {
+                    text: 'OK',
+                    onPress: () => {
+                      logger.info('[StorePromotion] Success confirmed, navigating back');
+                      router.back();
+                    },
+                  },
+                ]
+              );
+            } catch (error) {
+              logger.error('[StorePromotion] Store promotion error:', error);
+              Alert.alert(
+                language === 'az' ? 'Xəta' : 'Ошибка',
+                language === 'az' ? 'Təşviq zamanı xəta baş verdi' : 'Произошла ошибка при продвижении'
+              );
+            } finally {
+              setIsProcessing(false);
+            }
           },
         },
       ]
@@ -164,6 +284,26 @@ export default function StorePromotionScreen() {
               ? 'Mağazanızın görünürlüyünü artırın və daha çox müştəri cəlb edin'
               : 'Увеличьте видимость вашего магазина и привлеките больше клиентов'}
           </Text>
+        </View>
+        
+        {/* Balance Display */}
+        <View style={styles.balanceCard}>
+          <View style={styles.balanceRow}>
+            <Text style={styles.balanceLabel}>
+              {language === 'az' ? 'Cari Balans:' : 'Текущий баланс:'}
+            </Text>
+            <Text style={styles.balanceAmount}>
+              {(walletBalance + bonusBalance).toFixed(2)} AZN
+            </Text>
+          </View>
+          <View style={styles.balanceBreakdown}>
+            <Text style={styles.balanceDetail}>
+              {language === 'az' ? 'Əsas:' : 'Основной:'} {walletBalance.toFixed(2)} AZN
+            </Text>
+            <Text style={styles.balanceDetail}>
+              {language === 'az' ? 'Bonus:' : 'Бонус:'} {bonusBalance.toFixed(2)} AZN
+            </Text>
+          </View>
         </View>
 
         <View style={styles.plansContainer}>
@@ -246,10 +386,20 @@ export default function StorePromotionScreen() {
 
       {selectedPlan && (
         <View style={styles.footer}>
-          <TouchableOpacity style={styles.purchaseButton} onPress={handlePurchase}>
+          <TouchableOpacity 
+            style={[
+              styles.purchaseButton,
+              isProcessing && styles.processingButton
+            ]} 
+            onPress={handlePurchase}
+            disabled={isProcessing}
+          >
             <CreditCard size={20} color="white" />
             <Text style={styles.purchaseButtonText}>
-              {language === 'az' ? 'Ödəniş et' : 'Оплатить'}
+              {isProcessing 
+                ? (language === 'az' ? 'Emal edilir...' : 'Обработка...')
+                : (language === 'az' ? 'Ödəniş et' : 'Оплатить')
+              }
             </Text>
           </TouchableOpacity>
         </View>
@@ -422,5 +572,44 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.textSecondary || '#6B7280',
     textAlign: 'center',
+  },
+  balanceCard: {
+    backgroundColor: Colors.card || '#FFFFFF',
+    marginHorizontal: 16,
+    marginTop: 16,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border || '#E5E7EB',
+  },
+  balanceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  balanceLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: Colors.text || '#1F2937',
+  },
+  balanceAmount: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: Colors.primary || '#0E7490',
+  },
+  balanceBreakdown: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border || '#E5E7EB',
+  },
+  balanceDetail: {
+    fontSize: 12,
+    color: Colors.textSecondary || '#6B7280',
+  },
+  processingButton: {
+    opacity: 0.6,
   },
 });

@@ -3,8 +3,6 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { verifyToken } from "../utils/jwt";
 import { logger } from "../../utils/logger";
-
-import { logger } from '@/utils/logger';
 export const createContext = async (opts: FetchCreateContextFnOptions) => {
   const authHeader = opts.req.headers.get('authorization');
   let user = null;
@@ -50,6 +48,50 @@ const isAuthenticated = t.middleware(({ ctx, next }) => {
   });
 });
 
+const isModerator = t.middleware(({ ctx, next }) => {
+  if (!ctx.user) {
+    throw new TRPCError({
+      code: 'UNAUTHORIZED',
+      message: 'Giriş tələb olunur',
+    });
+  }
+  if (ctx.user.role !== 'moderator' && ctx.user.role !== 'admin') {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message: 'Bu əməliyyat üçün moderator icazəsi tələb olunur',
+    });
+  }
+  return next({
+    ctx: {
+      ...ctx,
+      user: ctx.user,
+    },
+  });
+});
+
+const isAdmin = t.middleware(({ ctx, next }) => {
+  if (!ctx.user) {
+    throw new TRPCError({
+      code: 'UNAUTHORIZED',
+      message: 'Giriş tələb olunur',
+    });
+  }
+  if (ctx.user.role !== 'admin') {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message: 'Bu əməliyyat üçün admin icazəsi tələb olunur',
+    });
+  }
+  return next({
+    ctx: {
+      ...ctx,
+      user: ctx.user,
+    },
+  });
+});
+
 export const createTRPCRouter = t.router;
 export const publicProcedure = t.procedure;
 export const protectedProcedure = t.procedure.use(isAuthenticated);
+export const moderatorProcedure = t.procedure.use(isModerator);
+export const adminProcedure = t.procedure.use(isAdmin);

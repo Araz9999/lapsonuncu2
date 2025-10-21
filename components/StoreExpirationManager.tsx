@@ -11,6 +11,7 @@ import {
 import { useLanguageStore } from '@/store/languageStore';
 import { useStoreStore } from '@/store/storeStore';
 import Colors from '@/constants/colors';
+import { logger } from '@/utils/logger';
 import {
   Clock,
   AlertTriangle,
@@ -82,14 +83,36 @@ export default function StoreExpirationManager({ storeId, showCompact = false }:
   };
   
   const handleRenewStore = async () => {
+    if (!storeId) {
+      logger.error('[StoreExpiration] No store ID provided');
+      return;
+    }
+    
+    if (!selectedPlanId) {
+      logger.error('[StoreExpiration] No plan selected');
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Paket seçilməyib' : 'Пакет не выбран'
+      );
+      return;
+    }
+    
+    logger.info('[StoreExpiration] Renewing store:', { storeId, planId: selectedPlanId, canReactivate: storeActions.canReactivate });
+    
     try {
       // Check if 20% discount should be applied (grace period)
       const applyDiscount = expirationInfo?.status === 'grace_period';
       
       if (storeActions.canReactivate) {
         await reactivateStore(storeId, selectedPlanId);
+        logger.info('[StoreExpiration] Store reactivated successfully');
       } else {
+<<<<<<< HEAD
+        await renewStore(storeId, selectedPlanId);
+        logger.info('[StoreExpiration] Store renewed successfully');
+=======
         await renewStore(storeId, selectedPlanId, applyDiscount);
+>>>>>>> origin/main
       }
       setShowRenewModal(false);
       
@@ -103,7 +126,8 @@ export default function StoreExpirationManager({ storeId, showCompact = false }:
         language === 'az' ? 'Uğurlu!' : 'Успешно!',
         (language === 'az' ? 'Mağaza yeniləndi' : 'Магазин обновлен') + discountMessage
       );
-    } catch {
+    } catch (error) {
+      logger.error('[StoreExpiration] Store renewal failed:', error);
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Yeniləmə zamanı xəta baş verdi' : 'Ошибка при обновлении'
@@ -112,13 +136,22 @@ export default function StoreExpirationManager({ storeId, showCompact = false }:
   };
   
   const sendNotification = async (type: 'warning' | 'grace_period' | 'deactivated') => {
+    if (!storeId) {
+      logger.error('[StoreExpiration] No store ID for notification');
+      return;
+    }
+    
+    logger.info('[StoreExpiration] Sending expiration notification:', { storeId, type });
+    
     try {
       await sendExpirationNotification(storeId, type);
+      logger.info('[StoreExpiration] Notification sent successfully');
       Alert.alert(
         language === 'az' ? 'Bildiriş göndərildi' : 'Уведомление отправлено',
         language === 'az' ? 'Xəbərdarlıq bildiriş göndərildi' : 'Предупреждение отправлено'
       );
-    } catch {
+    } catch (error) {
+      logger.error('[StoreExpiration] Notification failed:', error);
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Bildiriş göndərilərkən xəta baş verdi' : 'Ошибка при отправке уведомления'

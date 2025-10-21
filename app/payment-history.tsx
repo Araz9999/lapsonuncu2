@@ -23,8 +23,11 @@ import {
   FileText
 } from 'lucide-react-native';
 import { useUserStore } from '@/store/userStore';
+import { useLanguageStore } from '@/store/languageStore';
 import { getColors } from '@/constants/colors';
 import { useThemeStore } from '@/store/themeStore';
+import { Alert } from 'react-native';
+import { logger } from '@/utils/logger';
 
 interface PaymentRecord {
   id: string;
@@ -126,13 +129,25 @@ const typeLabels = {
 export default function PaymentHistoryScreen() {
   const router = useRouter();
   const { currentUser } = useUserStore();
+  const { language } = useLanguageStore();
   const { themeMode, colorTheme } = useThemeStore();
   const colors = getColors(themeMode, colorTheme);
   
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [paymentHistory] = useState<PaymentRecord[]>(mockPaymentHistory);
+  
+  logger.info('[PaymentHistory] Screen opened:', { 
+    userId: currentUser?.id, 
+    totalPayments: mockPaymentHistory.length,
+    filter: selectedFilter
+  });
 
   const filteredPayments = paymentHistory.filter(payment => {
+    if (!payment || !payment.status) {
+      logger.warn('[PaymentHistory] Invalid payment record:', payment);
+      return false;
+    }
+    
     if (selectedFilter === 'all') return true;
     return payment.status === selectedFilter;
   });
@@ -217,23 +232,60 @@ export default function PaymentHistoryScreen() {
   };
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('az-AZ', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    try {
+      if (!dateString) {
+        logger.warn('[PaymentHistory] Empty date string provided');
+        return language === 'az' ? 'Tarix məlum deyil' : 'Дата неизвестна';
+      }
+      
+      const date = new Date(dateString);
+      
+      if (isNaN(date.getTime())) {
+        logger.warn('[PaymentHistory] Invalid date string:', dateString);
+        return language === 'az' ? 'Tarix səhv' : 'Неверная дата';
+      }
+      
+      return date.toLocaleDateString(language === 'az' ? 'az-AZ' : 'ru-RU', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
+      logger.error('[PaymentHistory] Date formatting error:', error);
+      return language === 'az' ? 'Tarix xətası' : 'Ошибка даты';
+    }
   };
 
   const renderPaymentItem = (payment: PaymentRecord) => {
+    if (!payment) {
+      logger.error('[PaymentHistory] Null payment record in renderPaymentItem');
+      return null;
+    }
+    
+    if (!payment.id || !payment.status || !payment.amount) {
+      logger.warn('[PaymentHistory] Incomplete payment record:', { id: payment.id, status: payment.status });
+      return null;
+    }
+    
     return (
       <TouchableOpacity
         key={payment.id}
         style={styles.paymentItem}
         onPress={() => {
-          // Navigate to payment details
+          logger.info('[PaymentHistory] Payment item clicked:', { 
+            paymentId: payment.id, 
+            transactionId: payment.transactionId 
+          });
+          
+          Alert.alert(
+            language === 'az' ? 'Ödəniş Detalları' : 'Детали платежа',
+            `${language === 'az' ? 'Transaksiya ID' : 'ID транзакции'}: ${payment.transactionId}\n` +
+            `${language === 'az' ? 'Məbləğ' : 'Сумма'}: ${payment.amount} AZN\n` +
+            `${language === 'az' ? 'Status' : 'Статус'}: ${getStatusText(payment.status)}\n` +
+            `${language === 'az' ? 'Tarix' : 'Дата'}: ${formatDate(payment.date)}`
+          );
         }}
       >
         <View style={styles.paymentLeft}>
@@ -291,14 +343,27 @@ export default function PaymentHistoryScreen() {
     );
   };
 
+  const styles = createStyles(colors);
+  
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Stack.Screen 
         options={{ 
           title: 'Ödəniş Tarixçəsi',
           headerRight: () => (
             <View style={styles.headerActions}>
-              <TouchableOpacity style={styles.headerButton}>
+              <TouchableOpacity 
+                style={styles.headerButton}
+                onPress={() => {
+                  logger.info('[PaymentHistory] Export payment history requested');
+                  Alert.alert(
+                    language === 'az' ? 'Tarixçəni Yüklə' : 'Загрузить историю',
+                    language === 'az' 
+                      ? 'Ödəniş tarixçəsi PDF formatında yükləniləcək.' 
+                      : 'История платежей будет загружена в формате PDF.'
+                  );
+                }}
+              >
                 <Download size={20} color={colors.primary} />
               </TouchableOpacity>
             </View>
@@ -333,7 +398,10 @@ export default function PaymentHistoryScreen() {
                   styles.filterTab,
                   selectedFilter === option.id && styles.activeFilterTab
                 ]}
-                onPress={() => setSelectedFilter(option.id)}
+                onPress={() => {
+                  logger.info('[PaymentHistory] Filter changed:', { from: selectedFilter, to: option.id });
+                  setSelectedFilter(option.id);
+                }}
               >
                 <Text style={[
                   styles.filterTabText,
@@ -387,17 +455,56 @@ export default function PaymentHistoryScreen() {
         {/* Help Section */}
         <View style={styles.helpSection}>
           <Text style={styles.sectionTitle}>Kömək və Dəstək</Text>
-          <TouchableOpacity style={styles.helpItem}>
+          <TouchableOpacity 
+            style={styles.helpItem}
+            onPress={() => {
+              logger.info('[PaymentHistory] Payment issues help requested');
+              Alert.alert(
+                language === 'az' ? 'Ödəniş Problemləri' : 'Проблемы с оплатой',
+                language === 'az' 
+                  ? 'Ödəniş ilə bağlı problemləriniz varsa, dəstək komandamızla əlaqə saxlayın.' 
+                  : 'Если у вас есть проблемы с оплатой, свяжитесь с нашей службой поддержки.'
+              );
+            }}
+          >
             <AlertCircle size={20} color={colors.primary} />
-            <Text style={styles.helpText}>Ödəniş problemləri</Text>
+            <Text style={styles.helpText}>
+              {language === 'az' ? 'Ödəniş problemləri' : 'Проблемы с оплатой'}
+            </Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.helpItem}>
+          <TouchableOpacity 
+            style={styles.helpItem}
+            onPress={() => {
+              logger.info('[PaymentHistory] Refund request initiated');
+              Alert.alert(
+                language === 'az' ? 'Geri Qaytarma' : 'Возврат',
+                language === 'az' 
+                  ? 'Geri qaytarma tələbləri 24 saat ərzində işlənir. Dəstək komandası sizinlə əlaqə saxlayacaq.' 
+                  : 'Запросы на возврат обрабатываются в течение 24 часов. Служба поддержки свяжется с вами.'
+              );
+            }}
+          >
             <RefreshCw size={20} color={colors.primary} />
-            <Text style={styles.helpText}>Geri qaytarma tələbi</Text>
+            <Text style={styles.helpText}>
+              {language === 'az' ? 'Geri qaytarma tələbi' : 'Запрос на возврат'}
+            </Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.helpItem}>
+          <TouchableOpacity 
+            style={styles.helpItem}
+            onPress={() => {
+              logger.info('[PaymentHistory] Receipt request initiated');
+              Alert.alert(
+                language === 'az' ? 'Qəbz Tələb Et' : 'Запросить чек',
+                language === 'az' 
+                  ? 'Qəbz email ünvanınıza göndəriləcək. Zəhmət olmasa bir neçə dəqiqə gözləyin.' 
+                  : 'Чек будет отправлен на ваш email. Пожалуйста, подождите несколько минут.'
+              );
+            }}
+          >
             <FileText size={20} color={colors.primary} />
-            <Text style={styles.helpText}>Qəbz tələb et</Text>
+            <Text style={styles.helpText}>
+              {language === 'az' ? 'Qəbz tələb et' : 'Запросить чек'}
+            </Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -421,13 +528,13 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   summaryCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
     margin: 16,
     padding: 20,
     borderRadius: 12,
     ...Platform.select({
       ios: {
-        shadowColor: '#000000',
+        shadowColor: colors.shadow || '#000000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 4,
@@ -446,20 +553,20 @@ const styles = StyleSheet.create({
   summaryTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#6B7280',
+    color: colors.textSecondary,
   },
   summaryAmount: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#1F2937',
+    color: colors.text,
     marginBottom: 4,
   },
   summarySubtitle: {
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.textSecondary,
   },
   filterContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
     paddingVertical: 16,
     marginBottom: 8,
   },
@@ -471,21 +578,21 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     marginRight: 12,
     borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.background,
   },
   activeFilterTab: {
-    backgroundColor: '#0E7490',
+    backgroundColor: colors.primary,
   },
   filterTabText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#6B7280',
+    color: colors.textSecondary,
   },
   activeFilterTabText: {
     color: '#FFFFFF',
   },
   paymentList: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
     marginBottom: 8,
   },
   paymentItem: {
@@ -493,7 +600,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: colors.border,
   },
   paymentLeft: {
     flexDirection: 'row',
@@ -509,12 +616,12 @@ const styles = StyleSheet.create({
   paymentDescription: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#1F2937',
+    color: colors.text,
     marginBottom: 4,
   },
   paymentType: {
     fontSize: 12,
-    color: '#0E7490',
+    color: colors.primary,
     fontWeight: '600',
     marginBottom: 8,
   },
@@ -525,7 +632,7 @@ const styles = StyleSheet.create({
   },
   paymentDate: {
     fontSize: 12,
-    color: '#6B7280',
+    color: colors.textSecondary,
     marginRight: 16,
   },
   paymentMethod: {
@@ -534,12 +641,12 @@ const styles = StyleSheet.create({
   },
   methodText: {
     fontSize: 12,
-    color: '#6B7280',
+    color: colors.textSecondary,
     marginLeft: 4,
   },
   storeName: {
     fontSize: 12,
-    color: '#6B7280',
+    color: colors.textSecondary,
     fontStyle: 'italic',
   },
   paymentRight: {
@@ -563,7 +670,7 @@ const styles = StyleSheet.create({
   },
   transactionId: {
     fontSize: 10,
-    color: '#6B7280',
+    color: colors.textSecondary,
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   emptyState: {
@@ -573,25 +680,25 @@ const styles = StyleSheet.create({
   emptyStateTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1F2937',
+    color: colors.text,
     marginTop: 16,
     marginBottom: 8,
   },
   emptyStateText: {
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
   },
   monthlySection: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
     padding: 16,
     marginBottom: 8,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1F2937',
+    color: colors.text,
     marginBottom: 16,
   },
   monthlyGrid: {
@@ -606,15 +713,15 @@ const styles = StyleSheet.create({
   monthlyValue: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#0E7490',
+    color: colors.primary,
   },
   monthlyLabel: {
     fontSize: 12,
-    color: '#6B7280',
+    color: colors.textSecondary,
     marginTop: 4,
   },
   helpSection: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
     padding: 16,
     marginBottom: 16,
   },
@@ -623,11 +730,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: colors.border,
   },
   helpText: {
     fontSize: 16,
-    color: '#1F2937',
+    color: colors.text,
     marginLeft: 12,
   },
 });

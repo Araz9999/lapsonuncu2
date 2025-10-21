@@ -200,7 +200,7 @@ export default function CreateCampaignScreen() {
               <TouchableOpacity
                 key={type.key}
                 style={[styles.typeButton, formData.type === type.key && styles.activeTypeButton]}
-                onPress={() => setFormData(prev => ({ ...prev, type: type.key as any }))}
+                onPress={() => setFormData(prev => ({ ...prev, type: type.key as 'flash_sale' | 'seasonal' | 'clearance' | 'bundle' | 'loyalty' }))}
               >
                 <View style={[styles.typeIcon, formData.type === type.key && styles.activeTypeIcon]}>
                   {React.cloneElement(getCampaignTypeIcon(type.icon), {
@@ -227,7 +227,7 @@ export default function CreateCampaignScreen() {
               <TouchableOpacity
                 key={audience.key}
                 style={[styles.audienceButton, formData.targetAudience === audience.key && styles.activeAudienceButton]}
-                onPress={() => setFormData(prev => ({ ...prev, targetAudience: audience.key as any }))}
+                onPress={() => setFormData(prev => ({ ...prev, targetAudience: audience.key as 'all' | 'new_customers' | 'returning_customers' }))}
               >
                 <Text style={[styles.audienceButtonText, formData.targetAudience === audience.key && styles.activeAudienceButtonText]}>
                   {audience.label}

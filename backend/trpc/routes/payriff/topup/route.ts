@@ -51,7 +51,7 @@ export const topupProcedure = publicProcedure
         signal: AbortSignal.timeout(30000),
       });
     } catch (error) {
-      console.error('Network error during topup:', error);
+      logger.error('Network error during topup:', error);
       throw new Error('Network error: Unable to connect to payment service');
     }
 
