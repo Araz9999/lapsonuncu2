@@ -1,5 +1,10 @@
+<<<<<<< HEAD
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, TextInput, ActivityIndicator, RefreshControl, Linking, Platform } from 'react-native';
+=======
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, TextInput, ActivityIndicator, RefreshControl, Linking, Platform, KeyboardAvoidingView, Keyboard, TouchableWithoutFeedback } from 'react-native';
+>>>>>>> origin/main
 import { Stack } from 'expo-router';
 import { useLanguageStore } from '@/store/languageStore';
 import { useUserStore } from '@/store/userStore';
@@ -9,9 +14,15 @@ import { trpc } from '@/lib/trpc';
 import type { PayriffWalletHistory } from '@/services/payriffService';
 
 import { logger } from '@/utils/logger';
+import { sanitizeNumericInput } from '@/utils/inputValidation';
+
 export default function WalletScreen() {
   const { language } = useLanguageStore();
+<<<<<<< HEAD
+  const { currentUser, walletBalance, bonusBalance, addToWallet, addBonus } = useUserStore();
+=======
   const { walletBalance, bonusBalance, addToWallet, addBonus, currentUser } = useUserStore();
+>>>>>>> origin/main
   
   const [showTopUp, setShowTopUp] = useState(false);
   const [topUpAmount, setTopUpAmount] = useState('');
@@ -28,10 +39,38 @@ export default function WalletScreen() {
 
   const [refreshing, setRefreshing] = useState(false);
 
+  // ✅ Sync local balance with Payriff balance
+  useEffect(() => {
+    if (walletQuery.data?.payload?.totalBalance !== undefined) {
+      const payriffBalance = walletQuery.data.payload.totalBalance;
+      const currentTotalBalance = walletBalance + bonusBalance;
+      
+      // Only sync if there's a significant difference (more than 0.01 AZN)
+      if (Math.abs(payriffBalance - currentTotalBalance) > 0.01) {
+        logger.info('[Wallet] Syncing local balance with Payriff:', { 
+          payriff: payriffBalance, 
+          local: currentTotalBalance 
+        });
+        
+        // Update wallet balance to match Payriff (keep bonus separate)
+        const newWalletBalance = Math.max(0, payriffBalance - bonusBalance);
+        addToWallet(newWalletBalance - walletBalance);
+      }
+    }
+  }, [walletQuery.data]);
+
   const onRefresh = async () => {
     setRefreshing(true);
-    await walletQuery.refetch();
-    setRefreshing(false);
+    logger.info('[Wallet] Refreshing wallet data...');
+    
+    try {
+      await walletQuery.refetch();
+      logger.info('[Wallet] Refresh completed successfully');
+    } catch (error) {
+      logger.error('[Wallet] Refresh failed:', error);
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const paymentMethods = [
@@ -77,6 +116,14 @@ export default function WalletScreen() {
   };
 
   const handleTopUp = async () => {
+<<<<<<< HEAD
+    // ✅ Validate current user
+    if (!currentUser) {
+      logger.error('[Wallet] No current user for top-up');
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'İstifadəçi məlumatları tapılmadı' : 'Информация о пользователе не найдена'
+=======
     // ===== VALIDATION START =====
     
     // 0. Check if user is authenticated
@@ -84,12 +131,18 @@ export default function WalletScreen() {
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Daxil olmamısınız' : 'Вы не вошли в систему'
+>>>>>>> origin/main
       );
       return;
     }
     
+<<<<<<< HEAD
+    // ✅ Validate amount
+    if (!topUpAmount || topUpAmount.trim() === '') {
+=======
     // 1. Check if amount is entered
     if (!topUpAmount || typeof topUpAmount !== 'string' || topUpAmount.trim().length === 0) {
+>>>>>>> origin/main
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Məbləğ daxil edin' : 'Введите сумму'
@@ -97,11 +150,17 @@ export default function WalletScreen() {
       return;
     }
     
+<<<<<<< HEAD
+    const amount = parseFloat(topUpAmount);
+    
+    if (isNaN(amount) || amount <= 0) {
+=======
     // 2. Parse amount
     const amount = parseFloat(topUpAmount.trim());
     
     // 3. Check if amount is a valid number
     if (isNaN(amount) || !isFinite(amount)) {
+>>>>>>> origin/main
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Düzgün məbləğ daxil edin' : 'Введите корректную сумму'
@@ -109,6 +168,13 @@ export default function WalletScreen() {
       return;
     }
     
+<<<<<<< HEAD
+    // ✅ Add minimum amount check
+    if (amount < 1) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Minimum məbləğ 1 AZN olmalıdır' : 'Минимальная сумма должна быть 1 AZN'
+=======
     // 4. Check if amount is positive
     if (amount <= 0) {
       Alert.alert(
@@ -123,10 +189,23 @@ export default function WalletScreen() {
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Minimum məbləğ 1 AZN olmalıdır' : 'Минимальная сумма 1 AZN'
+>>>>>>> origin/main
       );
       return;
     }
     
+<<<<<<< HEAD
+    // ✅ Add maximum amount check
+    if (amount > 10000) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Maksimum məbləğ 10,000 AZN olmalıdır' : 'Максимальная сумма должна быть 10,000 AZN'
+      );
+      return;
+    }
+
+    if (!selectedPaymentMethod) {
+=======
     // 6. Check maximum amount (10,000 AZN)
     if (amount > 10000) {
       Alert.alert(
@@ -148,6 +227,7 @@ export default function WalletScreen() {
     
     // 8. Check payment method selected
     if (!selectedPaymentMethod || typeof selectedPaymentMethod !== 'string') {
+>>>>>>> origin/main
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Ödəniş üsulunu seçin' : 'Выберите способ оплаты'
@@ -155,7 +235,11 @@ export default function WalletScreen() {
       return;
     }
     
+<<<<<<< HEAD
+    logger.info('[Wallet] Initiating top-up:', { amount, userId: currentUser.id });
+=======
     // ===== VALIDATION END =====
+>>>>>>> origin/main
     
     try {
       setIsProcessing(true);
@@ -165,18 +249,23 @@ export default function WalletScreen() {
         language: language === 'az' ? 'AZ' : 'RU',
         currency: 'AZN',
         description: language === 'az' 
-          ? `Balans artırılması - ${amount} AZN`
-          : `Пополнение баланса - ${amount} AZN`,
+          ? `Balans artırılması - ${amount.toFixed(2)} AZN`
+          : `Пополнение баланса - ${amount.toFixed(2)} AZN`,
         operation: 'PURCHASE',
         metadata: {
           type: 'wallet_topup',
+<<<<<<< HEAD
+          userId: currentUser.id,
+          amount: amount.toFixed(2),
+=======
           userId: useUserStore.getState().currentUser?.id || 'guest',
           amount: amount.toFixed(2),
           timestamp: new Date().toISOString(),
+>>>>>>> origin/main
         },
       });
 
-      logger.debug('Order created:', result);
+      logger.info('[Wallet] Order created successfully:', { orderId: result.payload?.orderId });
 
       if (result.payload?.paymentUrl) {
         const paymentUrl = result.payload.paymentUrl;
@@ -200,7 +289,10 @@ export default function WalletScreen() {
         setShowTopUp(false);
         setTopUpAmount('');
         setSelectedPaymentMethod('');
+        
+        logger.info('[Wallet] Payment page opened successfully');
       } else {
+        logger.error('[Wallet] No payment URL in response');
         Alert.alert(
           language === 'az' ? 'Xəta' : 'Ошибка',
           language === 'az' 
@@ -209,6 +301,11 @@ export default function WalletScreen() {
         );
       }
     } catch (error) {
+<<<<<<< HEAD
+      logger.error('[Wallet] Top-up error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error('Error details:', errorMessage);
+=======
       logger.error('[WalletTopUp] Error:', error);
       
       // User-friendly error messages
@@ -237,6 +334,7 @@ export default function WalletScreen() {
             : 'Вы не авторизованы. Войдите снова.';
         }
       }
+>>>>>>> origin/main
       
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
@@ -250,6 +348,7 @@ export default function WalletScreen() {
   const getOperationLabel = (operation: string) => {
     const operationMap: Record<string, { az: string; ru: string }> = {
       'TOPUP': { az: 'Balans artırılması', ru: 'Пополнение баланса' },
+      'PURCHASE': { az: 'Balans artırılması', ru: 'Пополнение баланса' },
       'SPEND': { az: 'Xərc', ru: 'Расход' },
       'TRANSFER_IN': { az: 'Transfer (daxil olma)', ru: 'Перевод (входящий)' },
       'TRANSFER_OUT': { az: 'Transfer (çıxış)', ru: 'Перевод (исходящий)' },
@@ -258,11 +357,37 @@ export default function WalletScreen() {
       'BONUS': { az: 'Bonus', ru: 'Бонус' },
     };
 
-    const mapped = operationMap[operation.toUpperCase()];
+    const mapped = operationMap[operation?.toUpperCase()];
     if (mapped) {
       return language === 'az' ? mapped.az : mapped.ru;
     }
-    return operation;
+    return operation || (language === 'az' ? 'Naməlum əməliyyat' : 'Неизвестная операция');
+  };
+  
+  // ✅ Format date helper
+  const formatTransactionDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      const now = new Date();
+      const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (diffDays === 0) {
+        return language === 'az' ? 'Bu gün' : 'Сегодня';
+      } else if (diffDays === 1) {
+        return language === 'az' ? 'Dünən' : 'Вчера';
+      } else if (diffDays < 7) {
+        return language === 'az' ? `${diffDays} gün əvvəl` : `${diffDays} дней назад`;
+      } else {
+        return date.toLocaleDateString(language === 'az' ? 'az-AZ' : 'ru-RU', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric'
+        });
+      }
+    } catch (error) {
+      logger.error('[Wallet] Date format error:', error);
+      return dateString;
+    }
   };
 
   const transactions = walletQuery.data?.payload?.historyResponse || [];
@@ -387,11 +512,18 @@ export default function WalletScreen() {
                   amountError && styles.inputError
                 ]}
                 value={topUpAmount}
+<<<<<<< HEAD
+                onChangeText={(text) => setTopUpAmount(sanitizeNumericInput(text))}
+                placeholder="0.00"
+                keyboardType="decimal-pad"
+                maxLength={10}
+=======
                 onChangeText={handleAmountChange}
                 placeholder="0.00"
                 keyboardType="decimal-pad"
                 returnKeyType="done"
                 onSubmitEditing={Keyboard.dismiss}
+>>>>>>> origin/main
                 placeholderTextColor={Colors.placeholder}
               />
               
@@ -516,10 +648,10 @@ export default function WalletScreen() {
             {language === 'az' ? 'Bonus sistemi' : 'Бонусная система'}
           </Text>
           <View style={styles.bonusInfoCard}>
-            <Text style={styles.bonusInfoText}>
+              <Text style={styles.bonusInfoText}>
               {language === 'az' 
-                ? '• Balans artırdıqda 5% bonus qazanın\n• Bonusları elan yerləşdirmək üçün istifadə edin\n• Hər ay yeni bonuslar qazanın'
-                : '• Получайте 5% бонуса при пополнении\n• Используйте бонусы для размещения объявлений\n• Зарабатывайте новые бонусы каждый месяц'
+                ? '• Balans artırdıqda avtomatik bonus qazanın\n• Bonuslar əvvəlcə xərclənir, sonra əsas balans\n• Bonusların müddəti yoxdur\n• Minimum yükləmə: 1 AZN\n• Maksimum yükləmə: 10,000 AZN'
+                : '• Получайте автоматический бонус при пополнении\n• Бонусы тратятся первыми, затем основной баланс\n• Бонусы не имеют срока действия\n• Минимальное пополнение: 1 AZN\n• Максимальное пополнение: 10,000 AZN'
               }
             </Text>
           </View>
@@ -559,8 +691,13 @@ export default function WalletScreen() {
                       {getOperationLabel(transaction.operation)}
                     </Text>
                     <Text style={styles.transactionDate}>
-                      {language === 'az' ? 'Balans' : 'Баланс'}: {transaction.balance.toFixed(2)} AZN
+                      {transaction.createdAt ? formatTransactionDate(transaction.createdAt) : ''}
                     </Text>
+                    {transaction.description && (
+                      <Text style={styles.transactionMeta}>
+                        {transaction.description}
+                      </Text>
+                    )}
                   </View>
                   
                   <Text style={[
@@ -798,6 +935,12 @@ const styles = StyleSheet.create({
   transactionDate: {
     fontSize: 12,
     color: Colors.textSecondary,
+  },
+  transactionMeta: {
+    fontSize: 11,
+    color: Colors.textSecondary,
+    marginTop: 1,
+    fontStyle: 'italic',
   },
   transactionAmount: {
     fontSize: 16,

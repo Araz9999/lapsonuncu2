@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { Discount, Campaign, DiscountCode } from '@/types/discount';
+import { logger } from '@/utils/logger';
 
 interface DiscountStore {
   discounts: Discount[];
@@ -76,101 +77,54 @@ export const useDiscountStore = create<DiscountStore>((set, get) => ({
   discountCodes: [],
   
   addDiscount: (discount) => {
-    // ===== VALIDATION START =====
-    
-    // 1. Check required fields
-    if (!discount.storeId || typeof discount.storeId !== 'string') {
-      throw new Error('Mağaza ID-si tələb olunur');
+    // ✅ Validate inputs
+    if (!discount.storeId || !discount.title || !discount.value) {
+      logger.error('[DiscountStore] Invalid discount data:', { discount });
+      return;
     }
     
-    if (!discount.title || typeof discount.title !== 'string' || discount.title.trim().length === 0) {
-      throw new Error('Endirim başlığı tələb olunur');
+    // ✅ Validate dates
+    if (discount.endDate <= discount.startDate) {
+      logger.error('[DiscountStore] End date must be after start date');
+      return;
     }
     
-    if (discount.title.trim().length > 100) {
-      throw new Error('Başlıq maksimum 100 simvol ola bilər');
-    }
-    
-    // 2. Type validation
-    const validTypes = ['percentage', 'fixed_amount', 'buy_x_get_y'];
-    if (!validTypes.includes(discount.type)) {
-      throw new Error('Endirim növü düzgün deyil');
-    }
-    
-    // 3. Value validation
-    if (typeof discount.value !== 'number' || isNaN(discount.value) || !isFinite(discount.value)) {
-      throw new Error('Endirim dəyəri düzgün deyil');
-    }
-    
-    if (discount.type === 'percentage') {
-      if (discount.value < 1 || discount.value > 99) {
-        throw new Error('Faiz endirimi 1-99 arasında olmalıdır');
-      }
-    } else if (discount.type === 'fixed_amount') {
-      if (discount.value <= 0) {
-        throw new Error('Endirim məbləği müsbət olmalıdır');
-      }
-      if (discount.value > 10000) {
-        throw new Error('Endirim məbləği maksimum 10,000 AZN ola bilər');
-      }
-    }
-    
-    // 4. Date validation
-    if (!(discount.startDate instanceof Date) || isNaN(discount.startDate.getTime())) {
-      throw new Error('Başlama tarixi etibarsızdır');
-    }
-    
-    if (!(discount.endDate instanceof Date) || isNaN(discount.endDate.getTime())) {
-      throw new Error('Bitmə tarixi etibarsızdır');
-    }
-    
-    if (discount.startDate >= discount.endDate) {
-      throw new Error('Başlama tarixi bitmə tarixindən əvvəl olmalıdır');
-    }
-    
-    const maxDuration = 365 * 24 * 60 * 60 * 1000;
-    if (discount.endDate.getTime() - discount.startDate.getTime() > maxDuration) {
-      throw new Error('Endirim müddəti maksimum 1 il ola bilər');
-    }
-    
-    // 5. Listings validation
-    if (!Array.isArray(discount.applicableListings) || discount.applicableListings.length === 0) {
-      throw new Error('Ən azı bir məhsul seçin');
-    }
-    
-    // 6. Optional fields validation
-    if (discount.minPurchaseAmount !== undefined) {
-      if (typeof discount.minPurchaseAmount !== 'number' || discount.minPurchaseAmount < 0) {
-        throw new Error('Minimum alış məbləği düzgün deyil');
-      }
-    }
-    
-    if (discount.maxDiscountAmount !== undefined) {
-      if (typeof discount.maxDiscountAmount !== 'number' || discount.maxDiscountAmount <= 0) {
-        throw new Error('Maksimum endirim məbləği düzgün deyil');
-      }
-    }
-    
-    if (discount.usageLimit !== undefined) {
-      if (typeof discount.usageLimit !== 'number' || discount.usageLimit <= 0 || !Number.isInteger(discount.usageLimit)) {
-        throw new Error('İstifadə limiti tam ədəd olmalıdır');
-      }
-    }
-    
-    // ===== VALIDATION END =====
-    
+    // ✅ Generate unique ID with random component
     const newDiscount: Discount = {
       ...discount,
-      id: Date.now().toString(),
+      id: `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
+    
     set((state) => ({
       discounts: [...state.discounts, newDiscount],
     }));
+    
+    logger.info('[DiscountStore] Discount added:', newDiscount.id);
   },
   
   updateDiscount: (id, updates) => {
+    // ✅ Validate ID
+    if (!id) {
+      logger.error('[DiscountStore] Invalid discount ID');
+      return;
+    }
+    
+    // ✅ Validate dates if being updated
+    if (updates.startDate && updates.endDate) {
+      if (updates.endDate <= updates.startDate) {
+        logger.error('[DiscountStore] End date must be after start date');
+        return;
+      }
+    }
+    
+    const discount = get().discounts.find(d => d.id === id);
+    if (!discount) {
+      logger.error('[DiscountStore] Discount not found:', id);
+      return;
+    }
+    
     set((state) => ({
       discounts: state.discounts.map((discount) =>
         discount.id === id
@@ -178,16 +132,44 @@ export const useDiscountStore = create<DiscountStore>((set, get) => ({
           : discount
       ),
     }));
+    
+    logger.info('[DiscountStore] Discount updated:', id);
   },
   
   deleteDiscount: (id) => {
+    // ✅ Validate ID
+    if (!id) {
+      logger.error('[DiscountStore] Invalid discount ID');
+      return;
+    }
+    
+    const discount = get().discounts.find(d => d.id === id);
+    if (!discount) {
+      logger.warn('[DiscountStore] Discount not found for deletion:', id);
+      return;
+    }
+    
     set((state) => ({
       discounts: state.discounts.filter((discount) => discount.id !== id),
       discountCodes: state.discountCodes.filter((code) => code.discountId !== id),
     }));
+    
+    logger.info('[DiscountStore] Discount deleted:', id);
   },
   
   toggleDiscountStatus: (id) => {
+    // ✅ Validate ID
+    if (!id) {
+      logger.error('[DiscountStore] Invalid discount ID');
+      return;
+    }
+    
+    const discount = get().discounts.find(d => d.id === id);
+    if (!discount) {
+      logger.error('[DiscountStore] Discount not found:', id);
+      return;
+    }
+    
     set((state) => ({
       discounts: state.discounts.map((discount) =>
         discount.id === id
@@ -195,18 +177,36 @@ export const useDiscountStore = create<DiscountStore>((set, get) => ({
           : discount
       ),
     }));
+    
+    logger.info('[DiscountStore] Discount status toggled:', id, !discount.isActive);
   },
   
   addCampaign: (campaign) => {
+    // ✅ Validate inputs
+    if (!campaign.storeId || !campaign.title) {
+      logger.error('[DiscountStore] Invalid campaign data:', { campaign });
+      return;
+    }
+    
+    // ✅ Validate dates
+    if (campaign.endDate <= campaign.startDate) {
+      logger.error('[DiscountStore] Campaign end date must be after start date');
+      return;
+    }
+    
+    // ✅ Generate unique ID with random component
     const newCampaign: Campaign = {
       ...campaign,
-      id: Date.now().toString(),
+      id: `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
+    
     set((state) => ({
       campaigns: [...state.campaigns, newCampaign],
     }));
+    
+    logger.info('[DiscountStore] Campaign added:', newCampaign.id);
   },
   
   updateCampaign: (id, updates) => {
@@ -264,24 +264,36 @@ export const useDiscountStore = create<DiscountStore>((set, get) => ({
   },
   
   getActiveDiscounts: (storeId) => {
-    const now = new Date();
+    // ✅ Validate storeId
+    if (!storeId) {
+      logger.error('[DiscountStore] Invalid storeId for getActiveDiscounts');
+      return [];
+    }
+    
+    const now = new Date().getTime();
     return get().discounts.filter(
       (discount) =>
         discount.storeId === storeId &&
         discount.isActive &&
-        discount.startDate <= now &&
-        discount.endDate >= now
+        new Date(discount.startDate).getTime() <= now &&
+        new Date(discount.endDate).getTime() >= now
     );
   },
   
   getActiveCampaigns: (storeId) => {
-    const now = new Date();
+    // ✅ Validate storeId
+    if (!storeId) {
+      logger.error('[DiscountStore] Invalid storeId for getActiveCampaigns');
+      return [];
+    }
+    
+    const now = new Date().getTime();
     return get().campaigns.filter(
       (campaign) =>
         campaign.storeId === storeId &&
         campaign.isActive &&
-        campaign.startDate <= now &&
-        campaign.endDate >= now
+        new Date(campaign.startDate).getTime() <= now &&
+        new Date(campaign.endDate).getTime() >= now
     );
   },
   
@@ -290,23 +302,35 @@ export const useDiscountStore = create<DiscountStore>((set, get) => ({
   },
   
   getActiveDiscountsForListing: (listingId) => {
-    const now = new Date();
+    // ✅ Validate listingId
+    if (!listingId) {
+      logger.error('[DiscountStore] Invalid listingId for getActiveDiscountsForListing');
+      return [];
+    }
+    
+    const now = new Date().getTime();
     return get().discounts.filter(
       (discount) =>
         discount.isActive &&
-        discount.startDate <= now &&
-        discount.endDate >= now &&
+        new Date(discount.startDate).getTime() <= now &&
+        new Date(discount.endDate).getTime() >= now &&
         discount.applicableListings.includes(listingId)
     );
   },
   
   getActiveCampaignsForListing: (listingId) => {
-    const now = new Date();
+    // ✅ Validate listingId
+    if (!listingId) {
+      logger.error('[DiscountStore] Invalid listingId for getActiveCampaignsForListing');
+      return [];
+    }
+    
+    const now = new Date().getTime();
     return get().campaigns.filter(
       (campaign) =>
         campaign.isActive &&
-        campaign.startDate <= now &&
-        campaign.endDate >= now &&
+        new Date(campaign.startDate).getTime() <= now &&
+        new Date(campaign.endDate).getTime() >= now &&
         campaign.featuredListings.includes(listingId)
     );
   },

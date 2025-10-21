@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import { useUserStore } from '@/store/userStore';
 import { paymentMethods } from '@/constants/paymentMethods';
 import Colors from '@/constants/colors';
 import { storeLogger } from '@/utils/logger';
+import { validateEmail, validateWebsiteURL, validateAzerbaijanPhone } from '@/utils/inputValidation'; // ✅ Import validation
 import {
   Check,
   ArrowLeft,
@@ -56,6 +57,17 @@ export default function CreateStoreScreen() {
   const isFirstStore = userStores.length === 0;
   const discount = isFirstStore ? 0 : 0.25;
   
+  // ✅ Log screen access
+  useEffect(() => {
+    storeLogger.info('[CreateStore] Screen opened:', { 
+      hasExistingStore: !!userStore,
+      storeId: userStore?.id,
+      storeName: userStore?.name,
+      currentStep,
+      isFirstStore
+    });
+  }, []);
+  
   const getPlanPrice = (planId: string) => {
     const plan = plans.find(p => p.id === planId);
     if (!plan) return 100;
@@ -65,11 +77,16 @@ export default function CreateStoreScreen() {
   const selectedPlanPrice = selectedPlan ? getPlanPrice(selectedPlan) : 0;
 
   const handleNext = () => {
-    storeLogger.debug('handleNext called, currentStep:', currentStep, 'selectedPlan:', selectedPlan);
+    storeLogger.info('[CreateStore] Navigation to next step:', { 
+      currentStep, 
+      selectedPlan,
+      selectedPayment
+    });
     
     // Step 1: Package selection validation - CRITICAL CHECK
     if (currentStep === 1) {
       if (!selectedPlan || selectedPlan === '') {
+        storeLogger.warn('[CreateStore] Step 1 validation failed: No plan selected');
         Alert.alert(
           language === 'az' ? '❌ Paket Seçilməyib!' : '❌ Пакет не выбран!',
           language === 'az' 
@@ -78,13 +95,28 @@ export default function CreateStoreScreen() {
         );
         return;
       }
-      storeLogger.debug('✅ Package validation passed:', selectedPlan, 'Price:', getPlanPrice(selectedPlan));
+      storeLogger.info('[CreateStore] Step 1 validation passed:', { 
+        selectedPlan, 
+        price: getPlanPrice(selectedPlan)
+      });
     }
     
     // Step 2: Store information validation
     if (currentStep === 2) {
+<<<<<<< HEAD
+      storeLogger.info('[CreateStore] Validating step 2 (store info):', {
+        hasName: !!storeData.name.trim(),
+        hasCategory: !!storeData.categoryName.trim(),
+        hasLogo: !!storeData.logo,
+        hasCoverImage: !!storeData.coverImage
+      });
+      
+      if (!storeData.name.trim() || !storeData.categoryName.trim()) {
+        storeLogger.warn('[CreateStore] Step 2 validation failed: Missing required fields');
+=======
       // Validation: Store name
       if (!storeData.name.trim()) {
+>>>>>>> origin/main
         Alert.alert(
           language === 'az' ? 'Xəta' : 'Ошибка',
           language === 'az' ? 'Mağaza adı daxil edin' : 'Введите название магазина'
@@ -160,12 +192,54 @@ export default function CreateStoreScreen() {
         );
         return;
       }
+      
+      // ✅ Validate email if provided
+      if (storeData.contactInfo.email && !validateEmail(storeData.contactInfo.email)) {
+        storeLogger.warn('[CreateStore] Invalid email:', { email: storeData.contactInfo.email });
+        Alert.alert(
+          language === 'az' ? 'Email düzgün deyil' : 'Неверный email',
+          language === 'az' ? 'Zəhmət olmasa düzgün email daxil edin' : 'Пожалуйста, введите корректный email'
+        );
+        return;
+      }
+      
+      // ✅ Validate website if provided
+      if (storeData.contactInfo.website && !validateWebsiteURL(storeData.contactInfo.website)) {
+        storeLogger.warn('[CreateStore] Invalid website:', { website: storeData.contactInfo.website });
+        Alert.alert(
+          language === 'az' ? 'Veb sayt düzgün deyil' : 'Неверный веб-сайт',
+          language === 'az' ? 'Zəhmət olmasa düzgün URL daxil edin (https://example.com)' : 'Пожалуйста, введите корректный URL (https://example.com)'
+        );
+        return;
+      }
+      
+      // ✅ Validate phone if provided
+      if (storeData.contactInfo.phone && !validateAzerbaijanPhone(storeData.contactInfo.phone, false)) {
+        storeLogger.warn('[CreateStore] Invalid phone:', { phone: storeData.contactInfo.phone });
+        Alert.alert(
+          language === 'az' ? 'Telefon nömrəsi düzgün deyil' : 'Неверный номер телефона',
+          language === 'az' ? 'Zəhmət olmasa Azərbaycan telefon nömrəsi daxil edin (+994...)' : 'Пожалуйста, введите азербайджанский номер телефона (+994...)'
+        );
+        return;
+      }
+      
+      // ✅ Validate WhatsApp if provided
+      if (storeData.contactInfo.whatsapp && !validateAzerbaijanPhone(storeData.contactInfo.whatsapp, false)) {
+        storeLogger.warn('[CreateStore] Invalid WhatsApp:', { whatsapp: storeData.contactInfo.whatsapp });
+        Alert.alert(
+          language === 'az' ? 'WhatsApp nömrəsi düzgün deyil' : 'Неверный номер WhatsApp',
+          language === 'az' ? 'Zəhmət olmasa Azərbaycan telefon nömrəsi daxil edin (+994...)' : 'Пожалуйста, введите азербайджанский номер телефона (+994...)'
+        );
+        return;
+      }
+      
+      storeLogger.info('[CreateStore] Step 2 validation passed');
     }
     
     // Skip payment validation - no payment required
     
     // IMPORTANT: Only move to next step, NO PAYMENT HERE
-    storeLogger.debug('✅ Moving to next step, no payment processing');
+    storeLogger.info('[CreateStore] Moving to next step:', { from: currentStep, to: currentStep + 1 });
     setCurrentStep(prev => prev + 1);
   };
 
@@ -264,9 +338,18 @@ export default function CreateStoreScreen() {
               );
             } catch (error) {
               storeLogger.error('❌ Store creation error:', error);
+              
+              // ✅ Better error messages
+              const errorMessage = error instanceof Error ? error.message : '';
+              const isMultiStoreError = errorMessage.includes('already has an active store');
+              
               Alert.alert(
                 language === 'az' ? 'Yaratma Xətası' : 'Ошибка создания',
-                language === 'az' ? 'Mağaza yaradılarkən xəta baş verdi' : 'Произошла ошибка при создании магазина'
+                isMultiStoreError
+                  ? (language === 'az' 
+                      ? 'Sizin artıq aktiv mağazanız var. Əlavə mağaza yaratmaq üçün əvvəlcə mövcud mağazanızı idarə edin.'
+                      : 'У вас уже есть активный магазин. Для создания дополнительного магазина управляйте существующим.')
+                  : (language === 'az' ? 'Mağaza yaradılarkən xəta baş verdi' : 'Произошла ошибка при создании магазина')
               );
             }
           }
@@ -379,8 +462,14 @@ export default function CreateStoreScreen() {
             selectedPlan === plan.id && styles.planCardSelected
           ]}
           onPress={() => {
+            storeLogger.info('[CreateStore] Plan selected:', { 
+              planId: plan.id, 
+              planName: plan.name.az,
+              price: getPlanPrice(plan.id),
+              maxAds: plan.maxAds,
+              isFirstStore
+            });
             setSelectedPlan(plan.id);
-            storeLogger.debug('Package selected:', plan.id, 'Price:', getPlanPrice(plan.id));
           }}
         >
           <View style={styles.planHeader}>
@@ -479,9 +568,22 @@ export default function CreateStoreScreen() {
       });
 
       storeLogger.debug('📸 Camera result:', result);
-      if (!result.canceled && result.assets && result.assets[0]) {
-        storeLogger.debug('✅ Profile image selected:', result.assets[0].uri);
-        setStoreData(prev => ({ ...prev, logo: result.assets[0].uri }));
+      if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0]) {
+        const asset = result.assets[0];
+        
+        // ✅ Check file size (max 5MB)
+        if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024) {
+          Alert.alert(
+            language === 'az' ? 'Şəkil çox böyükdür' : 'Изображение слишком большое',
+            language === 'az' 
+              ? 'Zəhmət olmasa 5MB-dan kiçik şəkil çəkin' 
+              : 'Пожалуйста, сделайте изображение меньше 5MB'
+          );
+          return;
+        }
+        
+        storeLogger.debug('✅ Profile image selected:', asset.uri);
+        setStoreData(prev => ({ ...prev, logo: asset.uri }));
         Alert.alert(
           language === 'az' ? 'Uğurlu!' : 'Успешно!',
           language === 'az' ? 'Profil şəkli əlavə edildi' : 'Изображение профиля добавлено'
@@ -517,9 +619,22 @@ export default function CreateStoreScreen() {
       });
 
       storeLogger.debug('🖼️ Gallery result:', result);
-      if (!result.canceled && result.assets && result.assets[0]) {
-        storeLogger.debug('✅ Profile image selected from gallery:', result.assets[0].uri);
-        setStoreData(prev => ({ ...prev, logo: result.assets[0].uri }));
+      if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0]) {
+        const asset = result.assets[0];
+        
+        // ✅ Check file size (max 5MB)
+        if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024) {
+          Alert.alert(
+            language === 'az' ? 'Şəkil çox böyükdür' : 'Изображение слишком большое',
+            language === 'az' 
+              ? 'Zəhmət olmasa 5MB-dan kiçik şəkil seçin' 
+              : 'Пожалуйста, выберите изображение меньше 5MB'
+          );
+          return;
+        }
+        
+        storeLogger.debug('✅ Profile image selected from gallery:', asset.uri);
+        setStoreData(prev => ({ ...prev, logo: asset.uri }));
         Alert.alert(
           language === 'az' ? 'Uğurlu!' : 'Успешно!',
           language === 'az' ? 'Profil şəkli əlavə edildi' : 'Изображение профиля добавлено'
@@ -555,9 +670,22 @@ export default function CreateStoreScreen() {
       });
 
       storeLogger.debug('📸 Camera result for cover:', result);
-      if (!result.canceled && result.assets && result.assets[0]) {
-        storeLogger.debug('✅ Cover image selected:', result.assets[0].uri);
-        setStoreData(prev => ({ ...prev, coverImage: result.assets[0].uri }));
+      if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0]) {
+        const asset = result.assets[0];
+        
+        // ✅ Check file size (max 5MB)
+        if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024) {
+          Alert.alert(
+            language === 'az' ? 'Şəkil çox böyükdür' : 'Изображение слишком большое',
+            language === 'az' 
+              ? 'Zəhmət olmasa 5MB-dan kiçik şəkil çəkin' 
+              : 'Пожалуйста, сделайте изображение меньше 5MB'
+          );
+          return;
+        }
+        
+        storeLogger.debug('✅ Cover image selected:', asset.uri);
+        setStoreData(prev => ({ ...prev, coverImage: asset.uri }));
         Alert.alert(
           language === 'az' ? 'Uğurlu!' : 'Успешно!',
           language === 'az' ? 'Arxa fon şəkli əlavə edildi' : 'Фоновое изображение добавлено'
@@ -593,11 +721,24 @@ export default function CreateStoreScreen() {
       });
 
       storeLogger.debug('🖼️ Gallery result for cover:', result);
-      if (!result.canceled && result.assets && result.assets[0]) {
-        storeLogger.debug('✅ Cover image selected from gallery:', result.assets[0].uri);
-        setStoreData(prev => ({ ...prev, coverImage: result.assets[0].uri }));
+      if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0]) {
+        const asset = result.assets[0];
+        
+        // ✅ Check file size (max 5MB)
+        if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024) {
+          Alert.alert(
+            language === 'az' ? 'Şəkil çox böyükdür' : 'Изображение слишком большое',
+            language === 'az' 
+              ? 'Zəhmət olmasa 5MB-dan kiçik şəkil seçin' 
+              : 'Пожалуйста, выберите изображение меньше 5MB'
+          );
+          return;
+        }
+        
+        storeLogger.debug('✅ Cover image selected from gallery:', asset.uri);
+        setStoreData(prev => ({ ...prev, coverImage: asset.uri }));
         Alert.alert(
-          language === 'az' ? 'Uğurlu!' : 'Успешno!',
+          language === 'az' ? 'Uğurlu!' : 'Успешно!',
           language === 'az' ? 'Arxa fon şəkli əlavə edildi' : 'Фоновое изображение добавлено'
         );
       }
@@ -716,9 +857,14 @@ export default function CreateStoreScreen() {
         <TextInput
           style={styles.input}
           value={storeData.name}
-          onChangeText={(text) => setStoreData(prev => ({ ...prev, name: text }))}
+          onChangeText={(text) => {
+            // ✅ Sanitize: max 50 chars, normalize spaces
+            const sanitized = text.substring(0, 50).replace(/\s+/g, ' ');
+            setStoreData(prev => ({ ...prev, name: sanitized }));
+          }}
           placeholder={language === 'az' ? 'Mağaza adını daxil edin' : 'Введите название магазина'}
           placeholderTextColor={Colors.textSecondary}
+          maxLength={50}
         />
       </View>
       
@@ -729,9 +875,14 @@ export default function CreateStoreScreen() {
         <TextInput
           style={styles.input}
           value={storeData.categoryName}
-          onChangeText={(text) => setStoreData(prev => ({ ...prev, categoryName: text }))}
+          onChangeText={(text) => {
+            // ✅ Sanitize: max 50 chars, normalize spaces
+            const sanitized = text.substring(0, 50).replace(/\s+/g, ' ');
+            setStoreData(prev => ({ ...prev, categoryName: sanitized }));
+          }}
           placeholder={language === 'az' ? 'Kateqoriya adını daxil edin' : 'Введите название категории'}
           placeholderTextColor={Colors.textSecondary}
+          maxLength={50}
         />
       </View>
       
@@ -755,12 +906,21 @@ export default function CreateStoreScreen() {
         <TextInput
           style={[styles.input, styles.textArea]}
           value={storeData.description}
-          onChangeText={(text) => setStoreData(prev => ({ ...prev, description: text }))}
-          placeholder={language === 'az' ? 'Mağaza haqqında məlumat' : 'Информация о магазине'}
+          onChangeText={(text) => {
+            // ✅ Max 500 characters
+            if (text.length <= 500) {
+              setStoreData(prev => ({ ...prev, description: text }));
+            }
+          }}
+          placeholder={language === 'az' ? 'Mağaza haqqında məlumat (maks 500 simvol)' : 'Информация о магазине (макс 500 символов)'}
           placeholderTextColor={Colors.textSecondary}
           multiline
           numberOfLines={4}
+          maxLength={500}
         />
+        <Text style={styles.charCount}>
+          {storeData.description.length}/500
+        </Text>
       </View>
       
       <Text style={styles.sectionTitle}>
@@ -774,10 +934,14 @@ export default function CreateStoreScreen() {
         <TextInput
           style={styles.input}
           value={storeData.contactInfo.phone}
-          onChangeText={(text) => setStoreData(prev => ({
-            ...prev,
-            contactInfo: { ...prev.contactInfo, phone: text }
-          }))}
+          onChangeText={(text) => {
+            // ✅ Sanitize: only numbers, +, and spaces
+            const sanitized = text.replace(/[^0-9+\s]/g, '');
+            setStoreData(prev => ({
+              ...prev,
+              contactInfo: { ...prev.contactInfo, phone: sanitized }
+            }));
+          }}
           placeholder="+994 XX XXX XX XX"
           placeholderTextColor={Colors.textSecondary}
           keyboardType="phone-pad"
@@ -804,10 +968,14 @@ export default function CreateStoreScreen() {
         <TextInput
           style={styles.input}
           value={storeData.contactInfo.whatsapp}
-          onChangeText={(text) => setStoreData(prev => ({
-            ...prev,
-            contactInfo: { ...prev.contactInfo, whatsapp: text }
-          }))}
+          onChangeText={(text) => {
+            // ✅ Sanitize: only numbers, +, and spaces
+            const sanitized = text.replace(/[^0-9+\s]/g, '');
+            setStoreData(prev => ({
+              ...prev,
+              contactInfo: { ...prev.contactInfo, whatsapp: sanitized }
+            }));
+          }}
           placeholder="+994 XX XXX XX XX"
           placeholderTextColor={Colors.textSecondary}
           keyboardType="phone-pad"
@@ -1722,6 +1890,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.success,
     fontWeight: '500',
+  },
+  charCount: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    textAlign: 'right',
+    marginTop: 4,
   },
   warningCard: {
     backgroundColor: '#fff3cd',

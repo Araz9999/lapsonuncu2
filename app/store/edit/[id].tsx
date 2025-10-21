@@ -29,6 +29,8 @@ import {
   Globe,
   MessageCircle
 } from 'lucide-react-native';
+import { logger } from '@/utils/logger';
+import { validateEmail, validateAzerbaijanPhone, validateWebsiteURL, validateStoreName } from '@/utils/inputValidation';
 
 export default function EditStoreScreen() {
   const router = useRouter();
@@ -78,6 +80,35 @@ export default function EditStoreScreen() {
   };
   
   useEffect(() => {
+<<<<<<< HEAD
+    if (store) {
+      logger.info('[EditStore] Loading store data:', { storeId: store.id, storeName: store.name });\n      \n      setFormData({
+        name: store.name,
+        categoryName: store.categoryName,
+        address: store.address,
+        description: store.description || '',
+        contactInfo: {
+          phone: store.contactInfo.phone || '',
+          email: store.contactInfo.email || '',
+          website: store.contactInfo.website || '',
+          whatsapp: store.contactInfo.whatsapp || ''
+        }
+      });\n      \n      logger.info('[EditStore] Form data initialized successfully');\n    } else {\n      logger.warn('[EditStore] No store found for ID:', id);\n    }
+  }, [store, id]);
+  
+  const handleSave = async () => {
+    if (!store || !currentUser) {
+      logger.error('[EditStore] Missing store or user:', { hasStore: !!store, hasUser: !!currentUser });
+      return;
+    }
+    
+    logger.info('[EditStore] Saving store changes:', { storeId: store.id, storeName: formData.name });
+    
+    // ✅ Validate store name
+    const nameValidation = validateStoreName(formData.name);
+    if (!nameValidation.isValid) {
+      logger.warn('[EditStore] Invalid store name:', { name: formData.name, error: nameValidation.error });
+=======
     try {
       if (store) {
         // ✅ Validate store data
@@ -150,9 +181,10 @@ export default function EditStoreScreen() {
     
     // Validation: Store name
     if (!formData.name.trim()) {
+>>>>>>> origin/main
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' ? 'Mağaza adı tələb olunur' : 'Название магазина обязательно'
+        nameValidation.error || (language === 'az' ? 'Mağaza adı düzgün deyil' : 'Неверное название магазина')
       );
       return;
     }
@@ -175,6 +207,7 @@ export default function EditStoreScreen() {
     
     // Validation: Address
     if (!formData.address.trim()) {
+      logger.warn('[EditStore] Address is required');
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Ünvan tələb olunur' : 'Адрес обязателен'
@@ -182,23 +215,69 @@ export default function EditStoreScreen() {
       return;
     }
     
+<<<<<<< HEAD
+    // ✅ Validate email (optional but must be valid if provided)
+    if (formData.contactInfo.email.trim() && !validateEmail(formData.contactInfo.email.trim())) {
+      logger.warn('[EditStore] Invalid email format:', formData.contactInfo.email);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' 
+          ? 'Email formatı düzgün deyil (məsələn: info@magaza.az)' 
+          : 'Неверный формат email'
+=======
     if (formData.address.trim().length < 5) {
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Ünvan ən azı 5 simvol olmalıdır' : 'Адрес должен быть не менее 5 символов'
+>>>>>>> origin/main
       );
       return;
     }
     
+<<<<<<< HEAD
+    // ✅ Validate phone (optional but must be valid if provided)
+    if (formData.contactInfo.phone.trim() && !validateAzerbaijanPhone(formData.contactInfo.phone.trim(), false)) {
+      logger.warn('[EditStore] Invalid phone format:', formData.contactInfo.phone);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az'
+          ? 'Telefon formatı düzgün deyil (məsələn: +994501234567)'
+          : 'Неверный формат телефона'
+=======
     // ✅ Validation: Description length if provided
     if (formData.description.trim() && formData.description.trim().length > 1000) {
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Təsvir maksimum 1000 simvol ola bilər' : 'Описание не должно превышать 1000 символов'
+>>>>>>> origin/main
       );
       return;
     }
     
+<<<<<<< HEAD
+    // ✅ Validate WhatsApp (optional but must be valid if provided)
+    if (formData.contactInfo.whatsapp.trim() && !validateAzerbaijanPhone(formData.contactInfo.whatsapp.trim(), false)) {
+      logger.warn('[EditStore] Invalid WhatsApp format:', formData.contactInfo.whatsapp);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az'
+          ? 'WhatsApp nömrəsi formatı düzgün deyil'
+          : 'Неверный формат WhatsApp'
+      );
+      return;
+    }
+    
+    // ✅ Validate website URL (optional but must be valid if provided)
+    if (formData.contactInfo.website.trim() && !validateWebsiteURL(formData.contactInfo.website.trim(), false)) {
+      logger.warn('[EditStore] Invalid website URL:', formData.contactInfo.website);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az'
+          ? 'Website URL formatı düzgün deyil (məsələn: https://magaza.az)'
+          : 'Неверный формат URL'
+      );
+      return;
+=======
     // ✅ Validation: Email format if provided (enhanced regex)
     const emailTrimmed = formData.contactInfo.email.trim();
     if (emailTrimmed) {
@@ -275,15 +354,27 @@ export default function EditStoreScreen() {
         );
         return;
       }
+>>>>>>> origin/main
     }
     
     setIsLoading(true);
     
     try {
+<<<<<<< HEAD
+      logger.info('[EditStore] Updating store:', {
+        storeId: store.id,
+        name: formData.name.trim(),
+        hasEmail: !!formData.contactInfo.email.trim(),
+        hasPhone: !!formData.contactInfo.phone.trim()
+      });
+      
+      await editStore(store.id, {
+=======
       logger.debug('[EditStoreScreen] Saving store:', store.id);
       
       // ✅ Prepare update data
       const updateData = {
+>>>>>>> origin/main
         name: formData.name.trim(),
         categoryName: formData.categoryName.trim(),
         address: formData.address.trim(),
@@ -300,6 +391,8 @@ export default function EditStoreScreen() {
       
       logger.info('[EditStoreScreen] Store updated successfully:', store.id);
       
+      logger.info('[EditStore] Store updated successfully:', store.id);
+      
       Alert.alert(
         language === 'az' ? 'Uğurlu!' : 'Успешно!',
         language === 'az' 
@@ -312,6 +405,9 @@ export default function EditStoreScreen() {
         { cancelable: false }
       );
     } catch (error) {
+<<<<<<< HEAD
+      logger.error('[EditStore] Failed to update store:', error);
+=======
       logger.error('[EditStoreScreen] Error updating store:', error);
       
       let errorMessage = language === 'az' 
@@ -334,6 +430,7 @@ export default function EditStoreScreen() {
         }
       }
       
+>>>>>>> origin/main
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         errorMessage

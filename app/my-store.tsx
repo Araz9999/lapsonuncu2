@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,8 +13,10 @@ import { useLanguageStore } from '@/store/languageStore';
 import { useStoreStore } from '@/store/storeStore';
 import { useUserStore } from '@/store/userStore';
 import { useListingStore } from '@/store/listingStore';
+import { useRatingStore } from '@/store/ratingStore'; // ✅ Import rating store
 import StoreExpirationManager from '@/components/StoreExpirationManager';
 import Colors from '@/constants/colors';
+import { logger } from '@/utils/logger';
 import {
   ArrowLeft,
   Store,
@@ -62,6 +64,18 @@ export default function MyStoreScreen() {
   const canReactivate = userStore ? canStoreBeReactivated(userStore.id) : false;
   const storePlans = getStorePlans();
   
+  // ✅ Log screen access
+  useEffect(() => {
+    logger.info('[MyStore] Screen opened:', { 
+      hasStore: !!userStore,
+      storeId: userStore?.id,
+      storeName: userStore?.name,
+      storeStatus: currentStoreStatus,
+      adsUsed: storeUsage?.used,
+      adsMax: storeUsage?.max
+    });
+  }, []);
+  
   // Get store listings
   const storeListings = userStore 
     ? listings.filter(listing => 
@@ -72,7 +86,19 @@ export default function MyStoreScreen() {
     : [];
   
   const handleDeleteStore = () => {
+<<<<<<< HEAD
+    if (!userStore) {
+      logger.warn('[MyStore] Delete attempt without store');
+      return;
+    }
+    
+    logger.info('[MyStore] Delete store initiated:', { 
+      storeId: userStore.id,
+      storeName: userStore.name
+    });
+=======
     // ✅ VALIDATION START
+>>>>>>> origin/main
     
     // 1. Check authentication
     if (!currentUser || !currentUser.id) {
@@ -141,16 +167,25 @@ export default function MyStoreScreen() {
         : `Вы уверены, что хотите удалить свой магазин?\n\n📊 Данные магазина:\n• Название: ${userStore.name}\n• Активные объявления: ${activeListingsCount}\n• Удаленные объявления: ${deletedListingsCount}\n• Всего объявлений: ${totalListingsCount}\n• Подписчики: ${followersCount}\n• Статус: ${userStore.status}\n\n${activeListingsCount > 0 ? '⚠️ ВНИМАНИЕ: В магазине есть активные объявления! Сначала нужно удалить все объявления.\n\n' : ''}⚠️ Это действие нельзя отменить!\n• Все данные магазина будут удалены\n• Подписчики будут уведомлены\n• Доступ к магазину будет закрыт`,
       [
         {
-          text: language === 'az' ? 'Ləğv et' : 'Отмена',
-          style: 'cancel'
+          text: language === 'az' ? 'Ləğv et' : 'Отmena',
+          style: 'cancel',
+          onPress: () => logger.info('[MyStore] Delete store cancelled')
         },
         {
           text: language === 'az' ? 'Davam et' : 'Продолжить',
           style: 'destructive',
+<<<<<<< HEAD
+          onPress: async () => {
+            try {
+              logger.info('[MyStore] Deleting store:', { storeId: userStore.id });
+              await deleteStore(userStore.id);
+              logger.info('[MyStore] Store deleted successfully:', { storeId: userStore.id });
+=======
           onPress: () => {
             // Delay for emphatic second confirmation
             setTimeout(() => {
               // Second confirmation (more emphatic)
+>>>>>>> origin/main
               Alert.alert(
                 language === 'az' ? '🔴 SON XƏBƏRDARLIQ' : '🔴 ПОСЛЕДНЕЕ ПРЕДУПРЕЖДЕНИЕ',
                 language === 'az'
@@ -219,7 +254,18 @@ export default function MyStoreScreen() {
                   }
                 ]
               );
+<<<<<<< HEAD
+              router.back();
+            } catch (error) {
+              logger.error('[MyStore] Store deletion failed:', error);
+              Alert.alert(
+                language === 'az' ? 'Xəta' : 'Ошибка',
+                language === 'az' ? 'Mağaza silinərkən xəta baş verdi' : 'Ошибка при удалении магазина'
+              );
+            }
+=======
             }, 300); // Delay for emphasis
+>>>>>>> origin/main
           }
         }
       ]
@@ -227,7 +273,17 @@ export default function MyStoreScreen() {
   };
   
   const handleDeleteListing = (listingId: string) => {
-    if (!userStore) return;
+    if (!userStore) {
+      logger.warn('[MyStore] Delete listing attempt without store');
+      return;
+    }
+    
+    const listing = storeListings.find(l => l.id === listingId);
+    logger.info('[MyStore] Delete listing initiated:', { 
+      storeId: userStore.id,
+      listingId,
+      listingTitle: listing?.title?.az || listing?.title?.ru
+    });
     
     Alert.alert(
       language === 'az' ? 'Elanı sil' : 'Удалить объявление',
@@ -237,19 +293,23 @@ export default function MyStoreScreen() {
       [
         {
           text: language === 'az' ? 'Ləğv et' : 'Отмена',
-          style: 'cancel'
+          style: 'cancel',
+          onPress: () => logger.info('[MyStore] Delete listing cancelled')
         },
         {
           text: language === 'az' ? 'Sil' : 'Удалить',
           style: 'destructive',
           onPress: async () => {
             try {
+              logger.info('[MyStore] Deleting listing:', { storeId: userStore.id, listingId });
               await deleteListingEarly(userStore.id, listingId);
+              logger.info('[MyStore] Listing deleted successfully:', { listingId });
               Alert.alert(
                 language === 'az' ? 'Uğurlu!' : 'Успешно!',
                 language === 'az' ? 'Elan silindi' : 'Объявление удалено'
               );
             } catch (error) {
+              logger.error('[MyStore] Listing deletion failed:', error);
               Alert.alert(
                 language === 'az' ? 'Xəta' : 'Ошибка',
                 language === 'az' ? 'Elan silinərkən xəta baş verdi' : 'Ошибка при удалении объявления'
@@ -282,6 +342,20 @@ export default function MyStoreScreen() {
     
     const price = prices[promotionType];
     
+    // ✅ Get wallet functions
+    const { walletBalance, spendFromWallet } = useUserStore.getState();
+    
+    // ✅ Check balance first
+    if (walletBalance < price) {
+      Alert.alert(
+        language === 'az' ? '💰 Kifayət qədər balans yoxdur' : '💰 Недостаточно средств',
+        language === 'az' 
+          ? `İrəli çəkmək üçün ${price} AZN lazımdır.\nCari balansınız: ${walletBalance.toFixed(2)} AZN\n\nZəhmət olmasa balansınızı artırın.`
+          : `Для продвижения требуется ${price} AZN.\nВаш текущий баланс: ${walletBalance.toFixed(2)} AZN\n\nПожалуйста, пополните баланс.`
+      );
+      return;
+    }
+    
     Alert.alert(
       language === 'az' ? 'Elanı irəli çək' : 'Продвинуть объявление',
       language === 'az' 
@@ -296,6 +370,17 @@ export default function MyStoreScreen() {
           text: language === 'az' ? 'Ödə' : 'Оплатить',
           onPress: async () => {
             try {
+              // ✅ Process payment first
+              const paymentSuccess = spendFromWallet(price);
+              if (!paymentSuccess) {
+                Alert.alert(
+                  language === 'az' ? 'Ödəniş Xətası' : 'Ошибка оплаты',
+                  language === 'az' ? 'Ödəniş zamanı xəta baş verdi' : 'Произошла ошибка при оплате'
+                );
+                return;
+              }
+              
+              // ✅ Then promote
               await promoteListingInStore(selectedListingId, promotionType, price);
               setShowPromoteModal(false);
               setSelectedListingId(null);
@@ -327,6 +412,35 @@ export default function MyStoreScreen() {
       return;
     }
     
+    // ✅ Get wallet functions
+    const { walletBalance, spendFromWallet } = useUserStore.getState();
+    
+    logger.info('[MyStore] Store renewal initiated:', { 
+      storeId: userStore.id,
+      storeName: userStore.name,
+      planId: selectedPlanId,
+      planName: selectedPlan.name.az,
+      price: selectedPlan.price,
+      canReactivate
+    });
+    
+    // ✅ Check balance first
+    if (walletBalance < selectedPlan.price) {
+      logger.warn('[MyStore] Insufficient balance for renewal:', { 
+        required: selectedPlan.price,
+        available: walletBalance
+      });
+      Alert.alert(
+        language === 'az' ? '💰 Kifayət qədər balans yoxdur' : '💰 Недостаточно средств',
+        language === 'az' 
+          ? `Mağazanı yeniləmək üçün ${selectedPlan.price} AZN lazımdır.\nCari balansınız: ${walletBalance.toFixed(2)} AZN\n\nZəhmət olmasa balansınızı artırın.`
+          : `Для обновления магазина требуется ${selectedPlan.price} AZN.\nВаш текущий баланс: ${walletBalance.toFixed(2)} AZN\n\nПожалуйста, пополните баланс.`
+      );
+      return;
+    }
+    
+    logger.info('[MyStore] Showing renewal confirmation');
+    
     Alert.alert(
       language === 'az' ? 'Mağazanı yenilə' : 'Обновить магазин',
       language === 'az' 
@@ -335,16 +449,36 @@ export default function MyStoreScreen() {
       [
         {
           text: language === 'az' ? 'Ləğv et' : 'Отмена',
-          style: 'cancel'
+          style: 'cancel',
+          onPress: () => logger.info('[MyStore] Renewal cancelled by user')
         },
         {
           text: language === 'az' ? 'Ödə' : 'Оплатить',
           onPress: async () => {
             try {
+              // ✅ Process payment first
+              logger.info('[MyStore] Processing renewal payment:', { price: selectedPlan.price });
+              const paymentSuccess = spendFromWallet(selectedPlan.price);
+              if (!paymentSuccess) {
+                logger.error('[MyStore] Renewal payment failed');
+                Alert.alert(
+                  language === 'az' ? 'Ödəniş Xətası' : 'Ошибка оплаты',
+                  language === 'az' ? 'Ödəniş zamanı xəta baş verdi' : 'Произошла ошибка при оплате'
+                );
+                return;
+              }
+              
+              logger.info('[MyStore] Payment successful, proceeding with renewal');
+              
+              // ✅ Then renew/reactivate
               if (canReactivate) {
+                logger.info('[MyStore] Reactivating store:', { storeId: userStore.id });
                 await reactivateStore(userStore.id, selectedPlanId);
+                logger.info('[MyStore] Store reactivated successfully');
               } else {
+                logger.info('[MyStore] Renewing store:', { storeId: userStore.id });
                 await renewStore(userStore.id, selectedPlanId);
+                logger.info('[MyStore] Store renewed successfully');
               }
               setShowRenewModal(false);
               Alert.alert(
@@ -352,6 +486,7 @@ export default function MyStoreScreen() {
                 language === 'az' ? 'Mağaza yeniləndi' : 'Магазин обновлен'
               );
             } catch (error) {
+              logger.error('[MyStore] Store renewal/reactivation failed:', error);
               Alert.alert(
                 language === 'az' ? 'Xəta' : 'Ошибка',
                 language === 'az' ? 'Ödəniş zamanı xəta baş verdi' : 'Ошибка при оплате'

@@ -8,7 +8,12 @@ export const resetPasswordProcedure = publicProcedure
   .input(
     z.object({
       token: z.string(),
-      password: z.string().min(6),
+      // ✅ Match registration requirements (8+ chars, uppercase, lowercase, number)
+      password: z.string()
+        .min(8, 'Şifrə ən azı 8 simvol olmalıdır')
+        .regex(/[A-Z]/, 'Şifrə ən azı 1 böyük hərf olmalıdır')
+        .regex(/[a-z]/, 'Şifrə ən azı 1 kiçik hərf olmalıdır')
+        .regex(/[0-9]/, 'Şifrə ən azı 1 rəqəm olmalıdır'),
     })
   )
   .mutation(async ({ input }) => {

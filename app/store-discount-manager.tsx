@@ -26,6 +26,7 @@ import { useDiscountStore } from '@/store/discountStore';
 import { useStoreStore } from '@/store/storeStore';
 import { useUserStore } from '@/store/userStore';
 import { useListingStore } from '@/store/listingStore';
+import { logger } from '@/utils/logger';
 
 export default function DiscountAnalyticsScreen() {
   const router = useRouter();
@@ -33,6 +34,11 @@ export default function DiscountAnalyticsScreen() {
   const { getActiveStoreForUser, applyDiscountToProduct, removeDiscountFromProduct, applyStoreWideDiscount, removeStoreWideDiscount } = useStoreStore();
   const { currentUser } = useUserStore();
   const { listings } = useListingStore();
+  
+  // ✅ Validate currentUser
+  if (!currentUser) {
+    logger.warn('[DiscountManager] No current user');
+  }
   
   const currentStore = currentUser ? getActiveStoreForUser(currentUser.id) : null;
   const [selectedTab, setSelectedTab] = useState<'overview' | 'discounts' | 'campaigns' | 'quick-actions'>('overview');
@@ -60,8 +66,20 @@ export default function DiscountAnalyticsScreen() {
   const totalConversions = activeCampaigns.reduce((sum, campaign) => sum + campaign.analytics.conversions, 0);
 
   const handleQuickDiscount = (percentage: number) => {
+<<<<<<< HEAD
+    // ✅ Validate inputs
+    if (!currentStore) {
+      logger.error('[DiscountManager] No current store for quick discount');
+      Alert.alert('Xəta', 'Mağaza seçilməyib');
+      return;
+    }
+    
+    if (percentage < 1 || percentage > 99) {
+      logger.error('[DiscountManager] Invalid percentage:', percentage);
+=======
     // Validation: Percentage range
     if (percentage < 1 || percentage > 99) {
+>>>>>>> origin/main
       Alert.alert('Xəta', 'Endirim faizi 1-99 arasında olmalıdır');
       return;
     }
@@ -74,10 +92,17 @@ export default function DiscountAnalyticsScreen() {
         { 
           text: 'Tətbiq et', 
           onPress: async () => {
+            logger.info('[DiscountManager] Applying quick discount:', { storeId: currentStore.id, percentage });
+            
             try {
               await applyStoreWideDiscount(currentStore.id, percentage);
+              
+              logger.info('[DiscountManager] Quick discount applied successfully');
+              
               Alert.alert('Uğurlu', `${percentage}% endirim bütün məhsullara tətbiq edildi`);
             } catch (error) {
+              logger.error('[DiscountManager] Error applying quick discount:', error);
+              
               Alert.alert('Xəta', 'Endirim tətbiq edilərkən xəta baş verdi');
             }
           }
@@ -87,6 +112,13 @@ export default function DiscountAnalyticsScreen() {
   };
 
   const handleRemoveAllDiscounts = () => {
+    // ✅ Validate current store
+    if (!currentStore) {
+      logger.error('[DiscountManager] No current store for remove discounts');
+      Alert.alert('Xəta', 'Mağaza seçilməyib');
+      return;
+    }
+    
     Alert.alert(
       'Endirimi Ləğv et',
       'Bütün məhsullardan endirimi ləğv etmək istəyirsiniz?',
@@ -96,10 +128,17 @@ export default function DiscountAnalyticsScreen() {
           text: 'Ləğv et', 
           style: 'destructive',
           onPress: async () => {
+            logger.info('[DiscountManager] Removing all discounts:', currentStore.id);
+            
             try {
               await removeStoreWideDiscount(currentStore.id);
+              
+              logger.info('[DiscountManager] All discounts removed successfully');
+              
               Alert.alert('Uğurlu', 'Bütün endirimlər ləğv edildi');
             } catch (error) {
+              logger.error('[DiscountManager] Error removing all discounts:', error);
+              
               Alert.alert('Xəta', 'Endirimlər ləğv edilərkən xəta baş verdi');
             }
           }
@@ -171,6 +210,7 @@ export default function DiscountAnalyticsScreen() {
           <View style={styles.conversionRate}>
             <Text style={styles.conversionLabel}>Konversiya Dərəcəsi</Text>
             <Text style={styles.conversionValue}>
+              {/* ✅ Prevent division by zero */}
               {totalClicks > 0 ? ((totalConversions / totalClicks) * 100).toFixed(1) : '0.0'}%
             </Text>
           </View>

@@ -27,7 +27,7 @@ export default function AuthSuccessScreen() {
       try {
         userData = JSON.parse(user as string);
       } catch (error) {
-        console.error('[AuthSuccess] Failed to parse user data');
+        logger.error('[AuthSuccess] Failed to parse user data:', error);
         router.replace('/auth/login');
         return;
       }

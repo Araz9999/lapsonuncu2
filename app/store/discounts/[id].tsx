@@ -19,6 +19,7 @@ import { useStoreStore } from '@/store/storeStore';
 import { useListingStore } from '@/store/listingStore';
 import { useUserStore } from '@/store/userStore';
 import Colors from '@/constants/colors';
+import { logger } from '@/utils/logger';
 import {
   ArrowLeft,
   Percent,
@@ -61,6 +62,17 @@ export default function StoreDiscountsScreen() {
   const [excludeListings, setExcludeListings] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   
+<<<<<<< HEAD
+  const handleApplyDiscount = async () => {
+    if (!selectedListing || !store) {
+      logger.error('[StoreDiscounts] Missing selectedListing or store');
+      return;
+    }
+    
+    // ✅ Single validation check (removed duplicate)
+    const discount = parseFloat(discountPercentage.trim());
+    if (isNaN(discount) || discount < 1 || discount > 99) {
+=======
   // ✅ Helper: Validate discount percentage (removed duplicate)
   const validateDiscountPercentage = (value: string): number | null => {
     if (!value || typeof value !== 'string' || value.trim().length === 0) {
@@ -82,11 +94,17 @@ export default function StoreDiscountsScreen() {
     }
     
     if (discount < 1 || discount > 99) {
+>>>>>>> origin/main
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Endirim faizi 1-99 arasında olmalıdır' : 'Процент скидки должен быть от 1 до 99'
       );
+<<<<<<< HEAD
+      logger.error('[StoreDiscounts] Invalid discount percentage:', discountPercentage);
+      return;
+=======
       return null;
+>>>>>>> origin/main
     }
     
     return discount;
@@ -99,13 +117,18 @@ export default function StoreDiscountsScreen() {
     if (discount === null) return;
     
     const listing = storeListings.find(l => l.id === selectedListing);
-    if (!listing) return;
+    if (!listing) {
+      logger.error('[StoreDiscounts] Listing not found:', selectedListing);
+      return;
+    }
     
+    // ✅ Validate listing type
     if (listing.priceByAgreement) {
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Razılaşma ilə qiymətli məhsullara endirim tətbiq edilə bilməz' : 'Нельзя применить скидку к товарам с ценой по договоренности'
       );
+      logger.warn('[StoreDiscounts] Cannot apply discount to priceByAgreement listing:', selectedListing);
       return;
     }
     
@@ -123,9 +146,13 @@ export default function StoreDiscountsScreen() {
           text: language === 'az' ? 'Tətbiq et' : 'Применить',
           onPress: async () => {
             setIsLoading(true);
+            logger.info('[StoreDiscounts] Applying discount to product:', { storeId: store.id, listingId: selectedListing, discount });
             
             try {
               await applyDiscountToProduct(store.id, selectedListing, discount);
+              
+              logger.info('[StoreDiscounts] Discount applied successfully');
+              
               Alert.alert(
                 language === 'az' ? 'Uğurlu!' : 'Успешно!',
                 language === 'az' ? 'Endirim tətbiq edildi' : 'Скидка применена'
@@ -134,6 +161,8 @@ export default function StoreDiscountsScreen() {
               setSelectedListing(null);
               setDiscountPercentage('');
             } catch (error) {
+              logger.error('[StoreDiscounts] Error applying discount:', error);
+              
               Alert.alert(
                 language === 'az' ? 'Xəta' : 'Ошибка',
                 language === 'az' ? 'Endirim tətbiq edilərkən xəta baş verdi' : 'Ошибка при применении скидки'
@@ -148,7 +177,15 @@ export default function StoreDiscountsScreen() {
   };
   
   const handleRemoveDiscount = async (listingId: string) => {
-    if (!store) return;
+    if (!store) {
+      logger.error('[StoreDiscounts] Store not found for removeDiscount');
+      return;
+    }
+    
+    if (!listingId) {
+      logger.error('[StoreDiscounts] Invalid listingId for removeDiscount');
+      return;
+    }
     
     Alert.alert(
       language === 'az' ? 'Endirimi sil' : 'Удалить скидку',
@@ -162,13 +199,20 @@ export default function StoreDiscountsScreen() {
           text: language === 'az' ? 'Sil' : 'Удалить',
           style: 'destructive',
           onPress: async () => {
+            logger.info('[StoreDiscounts] Removing discount from product:', { storeId: store.id, listingId });
+            
             try {
               await removeDiscountFromProduct(store.id, listingId);
+              
+              logger.info('[StoreDiscounts] Discount removed successfully');
+              
               Alert.alert(
                 language === 'az' ? 'Uğurlu!' : 'Успешно!',
                 language === 'az' ? 'Endirim silindi' : 'Скидка удалена'
               );
             } catch (error) {
+              logger.error('[StoreDiscounts] Error removing discount:', error);
+              
               Alert.alert(
                 language === 'az' ? 'Xəta' : 'Ошибка',
                 language === 'az' ? 'Endirim silinərkən xəta baş verdi' : 'Ошибка при удалении скидки'
@@ -181,10 +225,25 @@ export default function StoreDiscountsScreen() {
   };
   
   const handleApplyStoreWideDiscount = async () => {
-    if (!store) return;
+    if (!store) {
+      logger.error('[StoreDiscounts] Store not found for storeWideDiscount');
+      return;
+    }
     
+<<<<<<< HEAD
+    const discount = parseFloat(storeWideDiscount.trim());
+    if (isNaN(discount) || discount < 1 || discount > 99) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Endirim faizi 1-99 arasında olmalıdır' : 'Процент скидки должен быть от 1 до 99'
+      );
+      logger.error('[StoreDiscounts] Invalid store-wide discount:', storeWideDiscount);
+      return;
+    }
+=======
     const discount = validateDiscountPercentage(storeWideDiscount);
     if (discount === null) return;
+>>>>>>> origin/main
     
     const applicableListings = storeListings.filter(l => 
       !excludeListings.includes(l.id) && !l.priceByAgreement
@@ -195,6 +254,7 @@ export default function StoreDiscountsScreen() {
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Endirim tətbiq ediləcək məhsul yoxdur' : 'Нет товаров для применения скидки'
       );
+      logger.warn('[StoreDiscounts] No applicable listings for store-wide discount');
       return;
     }
     
@@ -212,9 +272,13 @@ export default function StoreDiscountsScreen() {
           text: language === 'az' ? 'Tətbiq et' : 'Применить',
           onPress: async () => {
             setIsLoading(true);
+            logger.info('[StoreDiscounts] Applying store-wide discount:', { storeId: store.id, discount, excludeListings });
             
             try {
               await applyStoreWideDiscount(store.id, discount, excludeListings);
+              
+              logger.info('[StoreDiscounts] Store-wide discount applied successfully');
+              
               Alert.alert(
                 language === 'az' ? 'Uğurlu!' : 'Успешно!',
                 language === 'az' ? 'Mağaza üzrə endirim tətbiq edildi' : 'Скидка по магазину применена'
@@ -223,6 +287,8 @@ export default function StoreDiscountsScreen() {
               setStoreWideDiscount('');
               setExcludeListings([]);
             } catch (error) {
+              logger.error('[StoreDiscounts] Error applying store-wide discount:', error);
+              
               Alert.alert(
                 language === 'az' ? 'Xəta' : 'Ошибка',
                 language === 'az' ? 'Endirim tətbiq edilərkən xəta baş verdi' : 'Ошибка при применении скидки'
@@ -237,7 +303,10 @@ export default function StoreDiscountsScreen() {
   };
   
   const handleRemoveStoreWideDiscount = async () => {
-    if (!store) return;
+    if (!store) {
+      logger.error('[StoreDiscounts] Store not found for removeStoreWideDiscount');
+      return;
+    }
     
     Alert.alert(
       language === 'az' ? 'Mağaza endirimi sil' : 'Удалить скидку магазина',
@@ -251,13 +320,20 @@ export default function StoreDiscountsScreen() {
           text: language === 'az' ? 'Sil' : 'Удалить',
           style: 'destructive',
           onPress: async () => {
+            logger.info('[StoreDiscounts] Removing store-wide discount:', store.id);
+            
             try {
               await removeStoreWideDiscount(store.id);
+              
+              logger.info('[StoreDiscounts] Store-wide discount removed successfully');
+              
               Alert.alert(
                 language === 'az' ? 'Uğurlu!' : 'Успешно!',
                 language === 'az' ? 'Mağaza endirimi silindi' : 'Скидка магазина удалена'
               );
             } catch (error) {
+              logger.error('[StoreDiscounts] Error removing store-wide discount:', error);
+              
               Alert.alert(
                 language === 'az' ? 'Xəta' : 'Ошибка',
                 language === 'az' ? 'Endirim silinərkən xəta baş verdi' : 'Ошибка при удалении скидки'
