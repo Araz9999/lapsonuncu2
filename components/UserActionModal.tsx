@@ -11,6 +11,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Share,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { 
@@ -37,7 +38,10 @@ import { useUserStore } from '@/store/userStore';
 import { useNotificationStore } from '@/store/notificationStore';
 import { useLanguageStore } from '@/store/languageStore';
 import { User } from '@/types/user';
+<<<<<<< HEAD
+=======
 import { Share } from 'react-native';
+>>>>>>> origin/main
 import { logger } from '@/utils/logger';
 interface UserActionModalProps {
   visible: boolean;
@@ -48,6 +52,13 @@ interface UserActionModalProps {
 const { width } = Dimensions.get('window');
 
 export default function UserActionModal({ visible, onClose, user }: UserActionModalProps) {
+  // ✅ Log modal open/close
+  React.useEffect(() => {
+    if (visible && user) {
+      logger.info('[UserActionModal] Modal opened:', { userId: user.id, userName: user.name });
+    }
+  }, [visible, user]);
+  
   const { language } = useLanguageStore();
   const { 
     blockUser, 
@@ -229,11 +240,23 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
   const t = texts[language];
 
   const handleNudge = async () => {
+    if (!user?.id) {
+      logger.error('[UserActionModal] No user for nudge');
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'İstifadəçi məlumatı tapılmadı' : 'Информация о пользователе не найдена'
+      );
+      return;
+    }
+    
     if (!canNudge) {
+      logger.warn('[UserActionModal] Nudge limit reached:', { userId: user.id });
       Alert.alert('', t.nudgeLimit);
       return;
     }
 
+    logger.info('[UserActionModal] Nudging user:', { userId: user.id, userName: user.name });
+    
     setIsLoading(true);
     try {
       nudgeUser(user.id);
@@ -249,31 +272,48 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
         data: { userId: currentUser?.id }
       });
 
+      logger.info('[UserActionModal] Nudge successful:', { userId: user.id });
       Alert.alert('', t.nudgeSuccess);
       onClose();
     } catch (error) {
-      logger.error('Nudge error:', error);
+      logger.error('[UserActionModal] Nudge error:', error);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Dürtmə uğursuz oldu' : 'Не удалось подтолкнуть'
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleBlock = () => {
+<<<<<<< HEAD
+    if (!user?.id) {
+      logger.error('[UserActionModal] No user for block');
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'İstifadəçi məlumatı tapılmadı' : 'Информация о пользователе не найдена'
+=======
     // ✅ Validate user
     if (!user || !user.id || !user.name) {
       logger.error('[UserActionModal] Invalid user for blocking');
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Yanlış istifadəçi' : 'Неверный пользователь'
+>>>>>>> origin/main
       );
       return;
     }
     
+<<<<<<< HEAD
+    logger.warn('[UserActionModal] Block confirmation requested:', { userId: user.id, userName: user.name });
+=======
     // ✅ Check if already loading
     if (isLoading) {
       logger.warn('[UserActionModal] Action already in progress');
       return;
     }
+>>>>>>> origin/main
     
     Alert.alert(
       language === 'az' ? 'Blok et' : 'Заблокировать',
@@ -281,10 +321,29 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
         ? `${user.name} istifadəçisini blok etmək istədiyinizə əminsinizmi?\n\nBlok etdikdə:\n• Mesajlarını görə bilməyəcəksiniz\n• Elanlarını görə bilməyəcəksiniz\n• Sizinlə əlaqə saxlaya bilməyəcək`
         : `Вы уверены, что хотите заблокировать ${user.name}?\n\nПосле блокировки:\n• Вы не увидите его сообщения\n• Вы не увидите его объявления\n• Он не сможет с вами связаться`,
       [
-        { text: t.no, style: 'cancel' },
+        { 
+          text: t.no, 
+          style: 'cancel',
+          onPress: () => logger.info('[UserActionModal] Block cancelled:', { userId: user.id })
+        },
         {
           text: t.yes,
           style: 'destructive',
+<<<<<<< HEAD
+          onPress: () => {
+            try {
+              logger.info('[UserActionModal] Blocking user:', { userId: user.id });
+              blockUser(user.id);
+              logger.info('[UserActionModal] Block successful:', { userId: user.id });
+              Alert.alert('', t.blockSuccess);
+              onClose();
+            } catch (error) {
+              logger.error('[UserActionModal] Block error:', error);
+              Alert.alert(
+                language === 'az' ? 'Xəta' : 'Ошибка',
+                language === 'az' ? 'Blok etmə uğursuz oldu' : 'Не удалось заблокировать'
+              );
+=======
           onPress: async () => {
             setIsLoading(true);
             
@@ -326,6 +385,7 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
               );
             } finally {
               setIsLoading(false);
+>>>>>>> origin/main
             }
           },
         },
@@ -334,21 +394,33 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
   };
 
   const handleUnblock = () => {
+<<<<<<< HEAD
+    if (!user?.id) {
+      logger.error('[UserActionModal] No user for unblock');
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'İstifadəçi məlumatı tapılmadı' : 'Информация о пользователе не найдена'
+=======
     // ✅ Validate user
     if (!user || !user.id || !user.name) {
       logger.error('[UserActionModal] Invalid user for unblocking');
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Yanlış istifadəçi' : 'Неверный пользователь'
+>>>>>>> origin/main
       );
       return;
     }
     
+<<<<<<< HEAD
+    logger.info('[UserActionModal] Unblock confirmation requested:', { userId: user.id, userName: user.name });
+=======
     // ✅ Check if already loading
     if (isLoading) {
       logger.warn('[UserActionModal] Action already in progress');
       return;
     }
+>>>>>>> origin/main
     
     Alert.alert(
       language === 'az' ? 'Blokdan çıxar' : 'Разблокировать',
@@ -356,9 +428,28 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
         ? `${user.name} istifadəçisini blokdan çıxarmaq istədiyinizə əminsinizmi?\n\nOnunla yenidən əlaqə saxlaya biləcəksiniz.`
         : `Вы уверены, что хотите разблокировать ${user.name}?\n\nВы снова сможете связаться с ним.`,
       [
-        { text: t.no, style: 'cancel' },
+        { 
+          text: t.no, 
+          style: 'cancel',
+          onPress: () => logger.info('[UserActionModal] Unblock cancelled:', { userId: user.id })
+        },
         {
           text: t.yes,
+<<<<<<< HEAD
+          onPress: () => {
+            try {
+              logger.info('[UserActionModal] Unblocking user:', { userId: user.id });
+              unblockUser(user.id);
+              logger.info('[UserActionModal] Unblock successful:', { userId: user.id });
+              Alert.alert('', t.unblockSuccess);
+              onClose();
+            } catch (error) {
+              logger.error('[UserActionModal] Unblock error:', error);
+              Alert.alert(
+                language === 'az' ? 'Xəta' : 'Ошибка',
+                language === 'az' ? 'Blokdan çıxarma uğursuz oldu' : 'Не удалось разблокировать'
+              );
+=======
           onPress: async () => {
             setIsLoading(true);
             
@@ -396,6 +487,7 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
               );
             } finally {
               setIsLoading(false);
+>>>>>>> origin/main
             }
           },
         },
@@ -404,50 +496,223 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
   };
 
   const handleReport = () => {
+    if (!user?.id) {
+      logger.error('[UserActionModal] No user for report');
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'İstifadəçi məlumatı tapılmadı' : 'Информация о пользователе не найдена'
+      );
+      return;
+    }
+    
+    // ✅ Prevent opening report input if loading
+    if (isLoading) {
+      logger.warn('[UserActionModal] Cannot open report input while operation in progress');
+      return;
+    }
+    
+    logger.info('[UserActionModal] Opening report input:', { userId: user.id, userName: user.name });
     setShowReportInput(true);
   };
 
-  const handleSubmitReport = () => {
-    if (reportText.trim()) {
+  const handleSubmitReport = async () => {
+    // ✅ Validate input
+    if (!reportText.trim()) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Şikayət səbəbini yazın' : 'Напишите причину жалобы'
+      );
+      return;
+    }
+
+    // ✅ Validate user data
+    if (!user?.id) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'İstifadəçi məlumatı tapılmadı' : 'Информация о пользователе не найдена'
+      );
+      return;
+    }
+
+    // ✅ Prevent double submissions
+    if (isLoading) {
+      logger.warn('[UserActionModal] Report submission already in progress');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      logger.info('[UserActionModal] Submitting report:', { userId: user.id, reasonLength: reportText.trim().length });
       reportUser(user.id, reportText.trim());
+      logger.info('[UserActionModal] Report submitted successfully:', { userId: user.id });
       Alert.alert('', t.reportSuccess);
       setShowReportInput(false);
       setReportText('');
       onClose();
+    } catch (error) {
+      logger.error('[UserActionModal] Report error:', error);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Şikayət göndərilmədi' : 'Не удалось отправить жалобу'
+      );
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleFollow = () => {
-    if (isFollowed) {
-      unfollowUser(user.id);
-      Alert.alert('', t.unfollowSuccess);
-    } else {
-      followUser(user.id);
-      Alert.alert('', t.followSuccess);
+  const handleFollow = async () => {
+    // ✅ Validate user data
+    if (!user?.id) {
+      logger.error('[UserActionModal] No user for follow/unfollow');
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'İstifadəçi məlumatı tapılmadı' : 'Информация о пользователе не найдена'
+      );
+      return;
+    }
+
+    // ✅ Prevent double clicks
+    if (isLoading) {
+      logger.warn('[UserActionModal] Follow operation already in progress');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      if (isFollowed) {
+        logger.info('[UserActionModal] Unfollowing user:', { userId: user.id, userName: user.name });
+        unfollowUser(user.id);
+        logger.info('[UserActionModal] Unfollow successful:', { userId: user.id });
+        Alert.alert('', t.unfollowSuccess);
+      } else {
+        logger.info('[UserActionModal] Following user:', { userId: user.id, userName: user.name });
+        followUser(user.id);
+        logger.info('[UserActionModal] Follow successful:', { userId: user.id });
+        Alert.alert('', t.followSuccess);
+      }
+    } catch (error) {
+      logger.error('[UserActionModal] Follow/unfollow error:', error);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'İzləmə əməliyyatı uğursuz oldu' : 'Не удалось выполнить операцию подписки'
+      );
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleFavorite = () => {
-    if (isFavorite) {
-      removeFromFavoriteUsers(user.id);
-      Alert.alert('', t.unfavoriteSuccess);
-    } else {
-      addToFavoriteUsers(user.id);
-      Alert.alert('', t.favoriteSuccess);
+  const handleFavorite = async () => {
+    // ✅ Validate user data
+    if (!user?.id) {
+      logger.error('[UserActionModal] No user for favorite/unfavorite');
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'İstifadəçi məlumatı tapılmadı' : 'Информация о пользователе не найдена'
+      );
+      return;
+    }
+
+    // ✅ Prevent double clicks
+    if (isLoading) {
+      logger.warn('[UserActionModal] Favorite operation already in progress');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      if (isFavorite) {
+        logger.info('[UserActionModal] Removing from favorites:', { userId: user.id, userName: user.name });
+        removeFromFavoriteUsers(user.id);
+        logger.info('[UserActionModal] Remove from favorites successful:', { userId: user.id });
+        Alert.alert('', t.unfavoriteSuccess);
+      } else {
+        logger.info('[UserActionModal] Adding to favorites:', { userId: user.id, userName: user.name });
+        addToFavoriteUsers(user.id);
+        logger.info('[UserActionModal] Add to favorites successful:', { userId: user.id });
+        Alert.alert('', t.favoriteSuccess);
+      }
+    } catch (error) {
+      logger.error('[UserActionModal] Favorite/unfavorite error:', error);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Sevimlilər əməliyyatı uğursuz oldu' : 'Не удалось выполнить операцию избранного'
+      );
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleMute = () => {
-    if (isMuted) {
-      unmuteUser(user.id);
-      Alert.alert('', t.unmuteSuccess);
-    } else {
-      muteUser(user.id);
-      Alert.alert('', t.muteSuccess);
+  const handleMute = async () => {
+    // ✅ Validate user data
+    if (!user?.id) {
+      logger.error('[UserActionModal] No user for mute/unmute');
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'İstifadəçi məlumatı tapılmadı' : 'Информация о пользователе не найдена'
+      );
+      return;
+    }
+
+    // ✅ Prevent double clicks
+    if (isLoading) {
+      logger.warn('[UserActionModal] Mute operation already in progress');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      if (isMuted) {
+        logger.info('[UserActionModal] Unmuting user:', { userId: user.id, userName: user.name });
+        unmuteUser(user.id);
+        logger.info('[UserActionModal] Unmute successful:', { userId: user.id });
+        Alert.alert('', t.unmuteSuccess);
+      } else {
+        logger.info('[UserActionModal] Muting user:', { userId: user.id, userName: user.name });
+        muteUser(user.id);
+        logger.info('[UserActionModal] Mute successful:', { userId: user.id });
+        Alert.alert('', t.muteSuccess);
+      }
+    } catch (error) {
+      logger.error('[UserActionModal] Mute/unmute error:', error);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Səssizə alma əməliyyatı uğursuz oldu' : 'Не удалось выполнить операцию отключения звука'
+      );
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleShare = async () => {
+<<<<<<< HEAD
+    if (!user?.id || !user?.name) {
+      logger.error('[UserActionModal] No user for share');
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'İstifadəçi məlumatı tapılmadı' : 'Информация о пользователе не найдена'
+      );
+      return;
+    }
+    
+    logger.info('[UserActionModal] Sharing user profile:', { userId: user.id, userName: user.name });
+    
+    try {
+      const result = await Share.share({
+        message: `${user.name} profilini görün - ${user.location?.[language] || user.location?.az || ''}`,
+        title: user.name,
+      });
+      
+      if (result.action === Share.sharedAction) {
+        logger.info('[UserActionModal] Profile shared successfully:', { userId: user.id, sharedWith: result.activityType });
+      } else if (result.action === Share.dismissedAction) {
+        logger.info('[UserActionModal] Share dismissed:', { userId: user.id });
+      }
+    } catch (error) {
+      logger.error('[UserActionModal] Share error:', error);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Profil paylaşıla bilmədi' : 'Не удалось поделиться профилем'
+=======
     // ✅ Validate user
     if (!user || !user.name) {
       logger.error('[handleShare] Invalid user object');
@@ -482,31 +747,106 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Paylaşma zamanı xəta baş verdi' : 'Произошла ошибка при попытке поделиться'
+>>>>>>> origin/main
       );
     }
   };
 
-  const handleTrust = () => {
-    if (isTrusted) {
-      untrustUser(user.id);
-      Alert.alert('', t.untrustSuccess);
-    } else {
-      trustUser(user.id);
-      Alert.alert('', t.trustSuccess);
+  const handleTrust = async () => {
+    // ✅ Validate user data
+    if (!user?.id) {
+      logger.error('[UserActionModal] No user for trust/untrust');
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'İstifadəçi məlumatı tapılmadı' : 'Информация о пользователе не найдена'
+      );
+      return;
+    }
+
+    // ✅ Prevent double clicks
+    if (isLoading) {
+      logger.warn('[UserActionModal] Trust operation already in progress');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      if (isTrusted) {
+        logger.info('[UserActionModal] Untrusting user:', { userId: user.id, userName: user.name });
+        untrustUser(user.id);
+        logger.info('[UserActionModal] Untrust successful:', { userId: user.id });
+        Alert.alert('', t.untrustSuccess);
+      } else {
+        logger.info('[UserActionModal] Trusting user:', { userId: user.id, userName: user.name });
+        trustUser(user.id);
+        logger.info('[UserActionModal] Trust successful:', { userId: user.id });
+        Alert.alert('', t.trustSuccess);
+      }
+    } catch (error) {
+      logger.error('[UserActionModal] Trust/untrust error:', error);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Etibar əməliyyatı uğursuz oldu' : 'Не удалось выполнить операцию доверия'
+      );
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleSubscribe = () => {
-    if (isSubscribed) {
-      unsubscribeFromUser(user.id);
-      Alert.alert('', t.unsubscribeSuccess);
-    } else {
-      subscribeToUser(user.id);
-      Alert.alert('', t.subscribeSuccess);
+  const handleSubscribe = async () => {
+    // ✅ Validate user data
+    if (!user?.id) {
+      logger.error('[UserActionModal] No user for subscribe/unsubscribe');
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'İstifadəçi məlumatı tapılmadı' : 'Информация о пользователе не найдена'
+      );
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      if (isSubscribed) {
+        logger.info('[UserActionModal] Unsubscribing from user:', { userId: user.id, userName: user.name });
+        unsubscribeFromUser(user.id);
+        logger.info('[UserActionModal] Unsubscribe successful:', { userId: user.id });
+        Alert.alert('', t.unsubscribeSuccess);
+      } else {
+        logger.info('[UserActionModal] Subscribing to user:', { userId: user.id, userName: user.name });
+        subscribeToUser(user.id);
+        logger.info('[UserActionModal] Subscribe successful:', { userId: user.id });
+        Alert.alert('', t.subscribeSuccess);
+      }
+    } catch (error) {
+      logger.error('[UserActionModal] Subscribe/unsubscribe error:', error);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Əməliyyat uğursuz oldu' : 'Операция не удалась'
+      );
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleNote = () => {
+    // ✅ Validate user data
+    if (!user?.id) {
+      logger.error('[UserActionModal] No user for note');
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'İstifadəçi məlumatı tapılmadı' : 'Информация о пользователе не найдена'
+      );
+      return;
+    }
+
+    // ✅ Prevent opening note input if loading
+    if (isLoading) {
+      logger.warn('[UserActionModal] Cannot open note input while operation in progress');
+      return;
+    }
+
+    logger.info('[UserActionModal] Opening note input:', { userId: user.id, hasExistingNote: !!userNote });
+    
     if (userNote) {
       setNoteText(userNote);
     } else {
@@ -515,16 +855,47 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
     setShowNoteInput(true);
   };
 
-  const handleSaveNote = () => {
-    if (noteText.trim()) {
-      addUserNote(user.id, noteText.trim());
-      Alert.alert('', t.noteSuccess);
-    } else {
-      removeUserNote(user.id);
-      Alert.alert('', t.noteRemoved);
+  const handleSaveNote = async () => {
+    // ✅ Validate user data
+    if (!user?.id) {
+      logger.error('[UserActionModal] No user for save note');
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'İstifadəçi məlumatı tapılmadı' : 'Информация о пользователе не найдена'
+      );
+      return;
     }
-    setShowNoteInput(false);
-    setNoteText('');
+
+    // ✅ Prevent double saves
+    if (isLoading) {
+      logger.warn('[UserActionModal] Note save already in progress');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      if (noteText.trim()) {
+        logger.info('[UserActionModal] Saving user note:', { userId: user.id, noteLength: noteText.trim().length });
+        addUserNote(user.id, noteText.trim());
+        logger.info('[UserActionModal] Note saved successfully:', { userId: user.id });
+        Alert.alert('', t.noteSuccess);
+      } else {
+        logger.info('[UserActionModal] Removing user note:', { userId: user.id });
+        removeUserNote(user.id);
+        logger.info('[UserActionModal] Note removed successfully:', { userId: user.id });
+        Alert.alert('', t.noteRemoved);
+      }
+      setShowNoteInput(false);
+      setNoteText('');
+    } catch (error) {
+      logger.error('[UserActionModal] Note save error:', error);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Qeyd yadda saxlanmadı' : 'Не удалось сохранить заметку'
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -544,7 +915,13 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
           <View style={styles.container}>
             <View style={styles.header}>
               <Text style={styles.title}>{t.userActions}</Text>
-              <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <TouchableOpacity 
+                onPress={() => {
+                  logger.info('[UserActionModal] Modal closed via X button');
+                  onClose();
+                }} 
+                style={styles.closeButton}
+              >
                 <X size={24} color="#666" />
               </TouchableOpacity>
             </View>
@@ -806,7 +1183,7 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
                   <TouchableOpacity
                     style={[styles.noteButton, styles.cancelNoteButton]}
                     onPress={() => {
-                      setShowNoteInput(false);
+                      logger.info('[UserActionModal] Note input cancelled');\n                      setShowNoteInput(false);
                       setNoteText('');
                     }}
                   >
@@ -838,7 +1215,7 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
                   <TouchableOpacity
                     style={[styles.noteButton, styles.cancelNoteButton]}
                     onPress={() => {
-                      setShowReportInput(false);
+                      logger.info('[UserActionModal] Report input cancelled');\n                      setShowReportInput(false);
                       setReportText('');
                     }}
                   >
@@ -857,7 +1234,13 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
             </ScrollView>
 
             {!showNoteInput && !showReportInput && (
-              <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
+              <TouchableOpacity 
+                style={styles.cancelButton} 
+                onPress={() => {
+                  logger.info('[UserActionModal] Modal closed by user');
+                  onClose();
+                }}
+              >
                 <Text style={styles.cancelText}>{t.cancel}</Text>
               </TouchableOpacity>
             )}

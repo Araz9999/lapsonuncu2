@@ -16,21 +16,35 @@ export interface SocialAuthConfig {
 }
 
 export async function checkSocialAuthStatus(): Promise<SocialAuthConfig> {
+  logger.info('[SocialAuth] Checking social auth status');
+  
   try {
     const baseUrl = Platform.select({
       web: typeof window !== 'undefined' && window.location ? window.location.origin : 'https://1r36dhx42va8pxqbqz5ja.rork.app',
       default: 'https://1r36dhx42va8pxqbqz5ja.rork.app'
     });
-    logger.debug('[SocialAuth] Checking status at:', `${baseUrl}/api/auth/status`);
+    
+    logger.info('[SocialAuth] Fetching status from:', `${baseUrl}/api/auth/status`);
     const response = await fetch(`${baseUrl}/api/auth/status`);
     
     if (!response.ok) {
-      logger.warn('[SocialAuth] Failed to check auth status');
+      logger.warn('[SocialAuth] Failed to check auth status:', { 
+        status: response.status,
+        statusText: response.statusText 
+      });
       return { google: false, facebook: false, vk: false };
     }
     
     const data = await response.json();
-    return data.configured || { google: false, facebook: false, vk: false };
+    const config = data.configured || { google: false, facebook: false, vk: false };
+    
+    logger.info('[SocialAuth] Auth status retrieved:', { 
+      google: config.google,
+      facebook: config.facebook,
+      vk: config.vk
+    });
+    
+    return config;
   } catch (error) {
     logger.error('[SocialAuth] Error checking auth status:', error);
     return { google: false, facebook: false, vk: false };
@@ -42,50 +56,86 @@ export async function initiateSocialLogin(
   onSuccess: (result: SocialAuthResult) => void,
   onError: (error: string) => void
 ): Promise<void> {
+  logger.info(`[SocialAuth] Initiating ${provider} login`, { 
+    provider,
+    platform: Platform.OS 
+  });
+  
   try {
-    logger.debug(`[SocialAuth] Initiating ${provider} login`);
-    
     const baseUrl = Platform.select({
       web: typeof window !== 'undefined' && window.location ? window.location.origin : 'https://1r36dhx42va8pxqbqz5ja.rork.app',
       default: 'https://1r36dhx42va8pxqbqz5ja.rork.app'
     });
     const authUrl = `${baseUrl}/api/auth/${provider}/login`;
     
-    logger.debug(`[SocialAuth] Opening auth URL: ${authUrl}`);
+    logger.info(`[SocialAuth] Opening auth URL:`, { provider, authUrl });
 
     if (Platform.OS === 'web') {
+      logger.info(`[SocialAuth] Redirecting to ${provider} (web)`);
       window.location.href = authUrl;
     } else {
+      logger.info(`[SocialAuth] Opening auth session (mobile)`, { provider });
       const result = await WebBrowser.openAuthSessionAsync(
         authUrl,
         `${baseUrl}/auth/success`
       );
 
+      logger.info(`[SocialAuth] Auth session result:`, { 
+        provider,
+        type: result.type,
+        hasUrl: !!result.url
+      });
+
       if (result.type === 'success' && result.url) {
+        logger.info(`[SocialAuth] Auth session successful`, { provider });
+        
         const url = new URL(result.url);
         const token = url.searchParams.get('token');
         const userData = url.searchParams.get('user');
 
         if (token && userData) {
+          logger.info(`[SocialAuth] Retrieved token and user data`, { provider });
+          
           let user;
           try {
             user = JSON.parse(userData);
-          } catch {
+            logger.info(`[SocialAuth] User data parsed successfully:`, { 
+              provider,
+              userId: user.id,
+              email: user.email
+            });
+          } catch (error) {
+            logger.error(`[SocialAuth] Failed to parse user data:`, { provider, error });
             onError?.('Invalid user data received');
             return;
           }
+          
+          logger.info(`[SocialAuth] Login successful via ${provider}`, { 
+            userId: user.id,
+            email: user.email
+          });
+          
           onSuccess({
             success: true,
             token,
             user,
           });
         } else {
+          logger.error(`[SocialAuth] Missing token or user data`, { 
+            provider,
+            hasToken: !!token,
+            hasUserData: !!userData
+          });
           onError('Failed to retrieve authentication data');
         }
       } else if (result.type === 'cancel') {
-        logger.debug('[SocialAuth] User cancelled OAuth flow');
+        logger.info(`[SocialAuth] User cancelled ${provider} OAuth flow`);
         onError('Login cancelled');
       } else {
+        logger.error(`[SocialAuth] Auth session failed:`, { 
+          provider,
+          type: result.type
+        });
         onError('Login failed');
       }
     }
@@ -98,10 +148,17 @@ export async function initiateSocialLogin(
 export function showSocialLoginError(provider: string, error: string): void {
   const providerName = provider.charAt(0).toUpperCase() + provider.slice(1);
   
+  logger.warn(`[SocialAuth] Showing error alert for ${provider}:`, { error });
+  
   Alert.alert(
     `${providerName} Login Failed`,
     error || `Failed to login with ${providerName}. Please try again or use a different method.`,
-    [{ text: 'OK' }]
+    [{ 
+      text: 'OK',
+      onPress: () => {
+        logger.info(`[SocialAuth] User dismissed error alert for ${provider}`);
+      }
+    }]
   );
 }
 
@@ -124,6 +181,7 @@ export function getSocialLoginButtonConfig(provider: 'google' | 'facebook' | 'vk
     },
   };
 
+  logger.debug(`[SocialAuth] Getting button config for ${provider}`);
   return configs[provider];
 }
 

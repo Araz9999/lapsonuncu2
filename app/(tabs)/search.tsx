@@ -61,9 +61,18 @@ export default function SearchScreen() {
   };
 
   const handlePriceRangeApply = () => {
+<<<<<<< HEAD
+    // ✅ Define maximum price limit
+    const MAX_PRICE = 1000000; // 1 million AZN
+    
+    // BUG FIX: Validate price range
+    const minVal = minPrice ? Number(minPrice) : null;
+    const maxVal = maxPrice ? Number(maxPrice) : null;
+=======
     // ✅ Trim whitespace from inputs
     const trimmedMin = minPrice?.trim() || '';
     const trimmedMax = maxPrice?.trim() || '';
+>>>>>>> origin/main
     
     // ✅ Parse and validate
     const minVal = trimmedMin ? parseFloat(trimmedMin) : null;
@@ -123,7 +132,32 @@ export default function SearchScreen() {
       }
     }
     
+<<<<<<< HEAD
+    // ✅ Check maximum price limits
+    if (minVal !== null && minVal > MAX_PRICE) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' 
+          ? `Minimum qiymət ${MAX_PRICE.toLocaleString()} AZN-dən çox ola bilməz` 
+          : `Минимальная цена не может быть больше ${MAX_PRICE.toLocaleString()} AZN`
+      );
+      return;
+    }
+    
+    if (maxVal !== null && maxVal > MAX_PRICE) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' 
+          ? `Maksimum qiymət ${MAX_PRICE.toLocaleString()} AZN-dən çox ola bilməz` 
+          : `Максимальная цена не может быть больше ${MAX_PRICE.toLocaleString()} AZN`
+      );
+      return;
+    }
+    
+    // BUG FIX: Validate min is not greater than max
+=======
     // ✅ Validate min is not greater than max
+>>>>>>> origin/main
     if (minVal !== null && maxVal !== null && minVal > maxVal) {
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
@@ -400,8 +434,8 @@ export default function SearchScreen() {
                     style={styles.priceInput}
                     placeholder={language === 'az' ? 'Min' : 'Мин'}
                     value={minPrice}
-                    onChangeText={setMinPrice}
-                    keyboardType="numeric"
+                    onChangeText={(text) => setMinPrice(sanitizeNumericInput(text, 2))} // ✅ Sanitize input
+                    keyboardType="decimal-pad" // ✅ Better keyboard type
                   />
                   <Text style={styles.priceCurrency}>AZN</Text>
                 </View>
@@ -411,8 +445,8 @@ export default function SearchScreen() {
                     style={styles.priceInput}
                     placeholder={language === 'az' ? 'Max' : 'Макс'}
                     value={maxPrice}
-                    onChangeText={setMaxPrice}
-                    keyboardType="numeric"
+                    onChangeText={(text) => setMaxPrice(sanitizeNumericInput(text, 2))} // ✅ Sanitize input
+                    keyboardType="decimal-pad" // ✅ Better keyboard type
                   />
                   <Text style={styles.priceCurrency}>AZN</Text>
                 </View>

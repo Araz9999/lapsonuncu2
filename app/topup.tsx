@@ -13,9 +13,11 @@ import { Stack, router } from 'expo-router';
 import { ArrowLeft, Smartphone } from 'lucide-react-native';
 import { trpc } from '@/lib/trpc';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useLanguageStore } from '@/store/languageStore';
 
 export default function TopupScreen() {
   const insets = useSafeAreaInsets();
+  const { language } = useLanguageStore();
   const [phoneNumber, setPhoneNumber] = useState<string>('');
   const [amount, setAmount] = useState<string>('');
   const [description, setDescription] = useState<string>('');

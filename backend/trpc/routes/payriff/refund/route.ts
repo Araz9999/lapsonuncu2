@@ -39,7 +39,7 @@ export const refundProcedure = publicProcedure
         signal: AbortSignal.timeout(30000),
       });
     } catch (error) {
-      console.error('Network error during refund:', error);
+      logger.error('Network error during refund:', error);
       throw new Error('Network error: Unable to connect to payment service');
     }
 

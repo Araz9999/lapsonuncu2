@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useLanguageStore } from '@/store/languageStore';
@@ -9,8 +9,15 @@ import Colors from '@/constants/colors';
 import { users } from '@/mocks/users';
 import { Clock, AlertCircle, Edit, Trash2, TrendingUp, Eye, RefreshCw, Archive, Settings, Bell, DollarSign, Tag, Percent, Gift } from 'lucide-react-native';
 import { Listing } from '@/types/listing';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { logger } from '@/utils/logger';
+
+// ✅ Helper function for price calculation with proper precision
+const calculatePrice = (basePrice: number, discount: number): number => {
+  return Math.round(basePrice * discount * 100) / 100;
+};
+
 export default function MyListingsScreen() {
   const router = useRouter();
   const { language } = useLanguageStore();
@@ -23,13 +30,11 @@ export default function MyListingsScreen() {
   const [archivedListings, setArchivedListings] = useState<Listing[]>([]);
   const [showArchived, setShowArchived] = useState(false);
   
-  // Mock current user (first user in the list)
-  const currentUser = users[0];
+  // ✅ Memoize current user
+  const currentUser = useMemo(() => users[0], []);
   
-  // Filter listings: 
-  // 1. Personal listings (not in stores)
-  // 2. Promoted listings from stores (isPremium, isFeatured, isVip, or purchasedViews)
-  const userListings = listings.filter(listing => {
+  // ✅ Memoize user listings to prevent infinite loops
+  const userListings = useMemo(() => listings.filter(listing => {
     if (listing.userId !== currentUser.id) return false;
     
     // Include personal listings (not in stores)
@@ -37,17 +42,23 @@ export default function MyListingsScreen() {
     
     // Include promoted listings from stores
     return listing.isPremium || listing.isFeatured || listing.isVip || (listing.purchasedViews && listing.purchasedViews > 0);
-  });
+  }), [listings]);
   
   // Check for expiring listings (3 days or less)
-  const checkExpiringListings = useCallback(() => {
+  // ✅ Memoized for performance
+  const expiringListings = React.useMemo(() => {
     const now = new Date();
     const threeDaysFromNow = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
     
-    const expiringListings = userListings.filter(listing => {
+    return userListings.filter(listing => {
       const expirationDate = new Date(listing.expiresAt);
       return expirationDate <= threeDaysFromNow && expirationDate > now;
     });
+  }, [userListings]);
+
+  const checkExpiringListings = useCallback(() => {
+    // ✅ FIX: Define 'now' inside the callback
+    const now = new Date();
     
     const notificationMessages = expiringListings.map(listing => {
       const expirationDate = new Date(listing.expiresAt);
@@ -59,23 +70,91 @@ export default function MyListingsScreen() {
     });
     
     setNotifications(notificationMessages);
-  }, [userListings, language]);
+    logger.info('[MyListings] Checked expiring listings:', { count: expiringListings.length });
+  }, [expiringListings, language]);
   
+  // ✅ Load persisted auto-renewal settings and archived listings on mount
   useEffect(() => {
+    const loadPersistedData = async () => {
+      try {
+        // Load auto-renewal settings
+        const storedSettings = await AsyncStorage.getItem('autoRenewalSettings');
+        if (storedSettings) {
+          setAutoRenewalSettings(JSON.parse(storedSettings));
+          logger.info('[MyListings] Loaded auto-renewal settings:', JSON.parse(storedSettings));
+        }
+        
+        // Load archived listings
+        const storedArchived = await AsyncStorage.getItem('archivedListings');
+        if (storedArchived) {
+          setArchivedListings(JSON.parse(storedArchived));
+          logger.info('[MyListings] Loaded archived listings:', { count: JSON.parse(storedArchived).length });
+        }
+      } catch (error) {
+        logger.error('[MyListings] Failed to load persisted data:', error);
+      }
+    };
+    
     if (isAuthenticated) {
+      loadPersistedData();
       checkExpiringListings();
     }
   }, [isAuthenticated, checkExpiringListings]);
   
-  const onRefresh = () => {
+  // ✅ Improved refresh with actual data reload
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    checkExpiringListings();
-    setTimeout(() => setRefreshing(false), 1000);
-  };
+    logger.info('[MyListings] Refreshing listings...');
+    
+    try {
+      // Reload auto-renewal settings
+      const storedSettings = await AsyncStorage.getItem('autoRenewalSettings');
+      if (storedSettings) {
+        setAutoRenewalSettings(JSON.parse(storedSettings));
+      }
+      
+      // Reload archived listings
+      const storedArchived = await AsyncStorage.getItem('archivedListings');
+      if (storedArchived) {
+        setArchivedListings(JSON.parse(storedArchived));
+      }
+      
+      // Check expiring listings
+      checkExpiringListings();
+      
+      logger.info('[MyListings] Refresh completed successfully');
+    } catch (error) {
+      logger.error('[MyListings] Refresh failed:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [checkExpiringListings]);
   
-  const handleAutoRenewal = (listingId: string) => {
+  const handleAutoRenewal = async (listingId: string) => {
+    // ✅ Validate listingId
+    if (!listingId || typeof listingId !== 'string') {
+      logger.error('[MyListings] Invalid listingId for auto-renewal');
+      Alert.alert(
+        language === 'az' ? 'Xəta!' : 'Ошибка!',
+        language === 'az' ? 'Elan ID səhvdir' : 'Неверный ID объявления'
+      );
+      return;
+    }
+    
+    const listing = userListings.find(l => l.id === listingId);
+    if (!listing) {
+      logger.error('[MyListings] Listing not found for auto-renewal:', listingId);
+      Alert.alert(
+        language === 'az' ? 'Xəta!' : 'Ошибка!',
+        language === 'az' ? 'Elan tapılmadı' : 'Объявление не найдено'
+      );
+      return;
+    }
+    
     const isActive = autoRenewalSettings[listingId];
     const autoRenewalCost = 5; // 5 AZN per month
+    
+    logger.info('[MyListings] Toggling auto-renewal:', { listingId, isActive, cost: autoRenewalCost });
     
     if (!isActive && !canAfford(autoRenewalCost)) {
       Alert.alert(
@@ -113,13 +192,24 @@ export default function MyListingsScreen() {
             try {
               if (!isActive) {
                 // Activating auto-renewal - charge the user
-                if (spendFromBalance(autoRenewalCost)) {
-                  setAutoRenewalSettings(prev => ({ ...prev, [listingId]: true }));
+                const success = spendFromBalance(autoRenewalCost);
+                if (success) {
+                  const newSettings = { ...autoRenewalSettings, [listingId]: true };
+                  setAutoRenewalSettings(newSettings);
+                  
+                  // ✅ Persist to AsyncStorage
+                  try {
+                    await AsyncStorage.setItem('autoRenewalSettings', JSON.stringify(newSettings));
+                    logger.info('[MyListings] Auto-renewal activated and persisted:', listingId);
+                  } catch (error) {
+                    logger.error('[MyListings] Failed to persist auto-renewal settings:', error);
+                  }
+                  
                   Alert.alert(
                     language === 'az' ? 'Uğurlu!' : 'Успешно!',
                     language === 'az' 
-                      ? `Avtomatik uzatma aktivləşdirildi. ${autoRenewalCost} AZN balansınızdan çıxarıldı.`
-                      : `Автоматическое продление активировано. ${autoRenewalCost} AZN списано с баланса.`
+                      ? `Avtomatik uzatma aktivləşdirildi. ${autoRenewalCost} AZN balansınızdan çıxarıldı.\n\n⚠️ Qeyd: Elan müddəti bitəndə avtomatik olaraq 30 gün uzadılacaq.`
+                      : `Автоматическое продление активировано. ${autoRenewalCost} AZN списано с баланса.\n\n⚠️ Примечание: Объявление будет автоматически продлено на 30 дней после истечения.`
                   );
                 } else {
                   Alert.alert(
@@ -129,7 +219,17 @@ export default function MyListingsScreen() {
                 }
               } else {
                 // Deactivating auto-renewal - no charge
-                setAutoRenewalSettings(prev => ({ ...prev, [listingId]: false }));
+                const newSettings = { ...autoRenewalSettings, [listingId]: false };
+                setAutoRenewalSettings(newSettings);
+                
+                // ✅ Persist to AsyncStorage
+                try {
+                  await AsyncStorage.setItem('autoRenewalSettings', JSON.stringify(newSettings));
+                  logger.info('[MyListings] Auto-renewal deactivated and persisted:', listingId);
+                } catch (error) {
+                  logger.error('[MyListings] Failed to persist auto-renewal settings:', error);
+                }
+                
                 Alert.alert(
                   language === 'az' ? 'Uğurlu!' : 'Успешно!',
                   language === 'az' 
@@ -138,7 +238,7 @@ export default function MyListingsScreen() {
                 );
               }
             } catch (error) {
-              logger.error('Error toggling auto renewal:', error);
+              logger.error('[MyListings] Error toggling auto renewal:', error);
               Alert.alert(
                 language === 'az' ? 'Xəta!' : 'Ошибка!',
                 language === 'az' ? 'Tənzimləmə zamanı xəta baş verdi' : 'Произошла ошибка при настройке'
@@ -151,15 +251,27 @@ export default function MyListingsScreen() {
   };
 
   const handleExtendListing = (listingId: string) => {
+    // ✅ Validate listingId
+    if (!listingId || typeof listingId !== 'string') {
+      logger.error('[MyListings] Invalid listingId for extension');
+      return;
+    }
+    
     const listing = userListings.find(l => l.id === listingId);
-    if (!listing) return;
+    if (!listing) {
+      logger.error('[MyListings] Listing not found for extension:', listingId);
+      return;
+    }
+    
+    logger.info('[MyListings] Extending listing:', { listingId, expiresAt: listing.expiresAt });
     
     const daysLeft = getDaysLeft(listing.expiresAt);
     const isExpiringSoon = daysLeft <= 3;
     const discountMultiplier = isExpiringSoon ? 0.8 : 1; // 20% discount
     
-    const sevenDayPrice = Math.round(2 * discountMultiplier * 10) / 10; // Round to 1 decimal
-    const thirtyDayPrice = Math.round(5 * discountMultiplier * 10) / 10; // Round to 1 decimal
+    // ✅ Use helper function for precise calculation
+    const sevenDayPrice = calculatePrice(2, discountMultiplier);
+    const thirtyDayPrice = calculatePrice(5, discountMultiplier);
     
     const discountText = isExpiringSoon ? ' (20% endirim)' : '';
     
@@ -202,6 +314,8 @@ export default function MyListingsScreen() {
                   expiresAt: newExpirationDate.toISOString()
                 });
                 
+                logger.info('[MyListings] Listing extended by 7 days:', { listingId, newExpiresAt: newExpirationDate.toISOString() });
+                
                 Alert.alert(
                   language === 'az' ? 'Uğurlu!' : 'Успешно!',
                   language === 'az' 
@@ -210,7 +324,7 @@ export default function MyListingsScreen() {
                 );
               }
             } catch (error) {
-              logger.error('Error extending listing:', error);
+              logger.error('[MyListings] Error extending listing:', error);
               Alert.alert(
                 language === 'az' ? 'Xəta!' : 'Ошибка!',
                 language === 'az' ? 'Uzatma zamanı xəta baş verdi' : 'Произошла ошибка при продлении'
@@ -247,6 +361,8 @@ export default function MyListingsScreen() {
                   expiresAt: newExpirationDate.toISOString()
                 });
                 
+                logger.info('[MyListings] Listing extended by 30 days:', { listingId, newExpiresAt: newExpirationDate.toISOString() });
+                
                 Alert.alert(
                   language === 'az' ? 'Uğurlu!' : 'Успешно!',
                   language === 'az' 
@@ -255,7 +371,7 @@ export default function MyListingsScreen() {
                 );
               }
             } catch (error) {
-              logger.error('Error extending listing:', error);
+              logger.error('[MyListings] Error extending listing:', error);
               Alert.alert(
                 language === 'az' ? 'Xəta!' : 'Ошибка!',
                 language === 'az' ? 'Uzatma zamanı xəta baş verdi' : 'Произошла ошибка при продлении'
@@ -267,9 +383,20 @@ export default function MyListingsScreen() {
     );
   };
 
-  const handleArchiveListing = (listingId: string) => {
+  const handleArchiveListing = async (listingId: string) => {
+    // ✅ Validate listingId
+    if (!listingId || typeof listingId !== 'string') {
+      logger.error('[MyListings] Invalid listingId for archiving');
+      return;
+    }
+    
     const listing = userListings.find(l => l.id === listingId);
-    if (!listing) return;
+    if (!listing) {
+      logger.error('[MyListings] Listing not found for archiving:', listingId);
+      return;
+    }
+    
+    logger.info('[MyListings] Archiving listing:', listingId);
     
     Alert.alert(
       language === 'az' ? 'Elanı arxivləşdir' : 'Архивировать объявление',
@@ -283,10 +410,29 @@ export default function MyListingsScreen() {
         },
         {
           text: language === 'az' ? 'Arxivləşdir' : 'Архивировать',
-          onPress: () => {
+          onPress: async () => {
             try {
-              setArchivedListings(prev => [...prev, listing]);
+              const newArchived = [...archivedListings, listing];
+              setArchivedListings(newArchived);
+              
+              // ✅ Persist archived listings
+              try {
+                await AsyncStorage.setItem('archivedListings', JSON.stringify(newArchived));
+                logger.info('[MyListings] Archived listing persisted:', listingId);
+              } catch (storageError) {
+                logger.error('[MyListings] Failed to persist archived listing:', storageError);
+              }
+              
+              // ✅ Remove auto-renewal if active
+              if (autoRenewalSettings[listingId]) {
+                const newSettings = { ...autoRenewalSettings, [listingId]: false };
+                setAutoRenewalSettings(newSettings);
+                await AsyncStorage.setItem('autoRenewalSettings', JSON.stringify(newSettings));
+                logger.info('[MyListings] Auto-renewal removed for archived listing:', listingId);
+              }
+              
               deleteListing(listingId);
+              
               Alert.alert(
                 language === 'az' ? 'Arxivləndi' : 'Архивировано',
                 language === 'az' 
@@ -294,7 +440,7 @@ export default function MyListingsScreen() {
                   : 'Объявление перемещено в архив. Вы можете реактивировать его из раздела архива.'
               );
             } catch (error) {
-              logger.error('Error archiving listing:', error);
+              logger.error('[MyListings] Error archiving listing:', error);
               Alert.alert(
                 language === 'az' ? 'Xəta!' : 'Ошибка!',
                 language === 'az' ? 'Arxivləmə zamanı xəta baş verdi' : 'Произошла ошибка при архивировании'
@@ -347,7 +493,7 @@ export default function MyListingsScreen() {
                   : 'Объявление реактивировано и будет опубликовано на 30 дней'
               );
             } catch (error) {
-              logger.error('Error reactivating listing:', error);
+              logger.error('[MyListings] Error reactivating listing:', error);
               Alert.alert(
                 language === 'az' ? 'Xəta!' : 'Ошибка!',
                 language === 'az' ? 'Aktivləşdirmə zamanı xəta baş verdi' : 'Произошла ошибка при реактивации'
@@ -1140,6 +1286,20 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginLeft: 4,
   },
+<<<<<<< HEAD
+});olor: Colors.success,
+    fontSize: 10,
+    fontWeight: '500',
+    marginLeft: 4,
+  },
+});7, 94, 0.1)',
+  },
+  discountButtonText: {
+    color: Colors.success,
+    fontSize: 10,
+    fontWeight: '500',
+    marginLeft: 4,
+=======
   viewOffersButton: {
     backgroundColor: Colors.primary,
     flexDirection: 'row',
@@ -1185,5 +1345,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: Colors.text,
+>>>>>>> origin/main
   },
 });

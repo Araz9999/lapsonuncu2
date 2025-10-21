@@ -103,13 +103,13 @@ export const useStoreStore = create<StoreState>((set, get) => ({
       );
       
       if (existingStore) {
-        throw new Error('User already has an active store');
+        throw new Error('User already has an active store. Multiple stores require additional purchase.');
       }
       
       // BUG FIX: Generate unique ID with random component
       const newStore: Store = {
         ...storeData,
-        id: `store-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        id: `store-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
         createdAt: new Date().toISOString(),
         expiresAt: new Date(Date.now() + storeData.plan.duration * 24 * 60 * 60 * 1000).toISOString(),
         adsUsed: 0,
@@ -272,6 +272,12 @@ export const useStoreStore = create<StoreState>((set, get) => ({
   },
 
   getAllUserStores: (userId) => {
+    // ✅ Validate userId
+    if (!userId || typeof userId !== 'string') {
+      logger.warn('[StoreStore] Invalid userId for getAllUserStores');
+      return [];
+    }
+    
     const { stores } = get();
     return stores.filter(store => 
       store.userId === userId && 
@@ -342,7 +348,7 @@ export const useStoreStore = create<StoreState>((set, get) => ({
       
       // BUG FIX: Generate unique ID
       const newFollower: StoreFollower = {
-        id: `follower-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        id: `follower-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
         userId,
         storeId,
         followedAt: new Date().toISOString(),
@@ -366,8 +372,16 @@ export const useStoreStore = create<StoreState>((set, get) => ({
   },
 
   unfollowStore: async (userId, storeId) => {
+    logger.info('[StoreStore] Unfollow store initiated:', { userId, storeId });
     set({ isLoading: true, error: null });
     try {
+      const store = get().stores.find(s => s.id === storeId);
+      const wasFollowing = get().followers.some(f => f.userId === userId && f.storeId === storeId);
+      
+      if (!wasFollowing) {
+        logger.warn('[StoreStore] User was not following store:', { userId, storeId });
+      }
+      
       set(state => ({
         followers: state.followers.filter(f => !(f.userId === userId && f.storeId === storeId)),
         stores: state.stores.map(store => 
@@ -377,7 +391,15 @@ export const useStoreStore = create<StoreState>((set, get) => ({
         ),
         isLoading: false
       }));
-    } catch {
+      
+      logger.info('[StoreStore] Store unfollowed successfully:', { 
+        userId, 
+        storeId,
+        storeName: store?.name,
+        followersCount: store ? store.followers.length - 1 : 0
+      });
+    } catch (error) {
+      logger.error('[StoreStore] Unfollow store failed:', error);
       set({ error: 'Failed to unfollow store', isLoading: false });
     }
   },
@@ -420,7 +442,7 @@ export const useStoreStore = create<StoreState>((set, get) => ({
     }
     
     const newNotifications: StoreNotification[] = storeFollowers.map((follower, index) => ({
-      id: `notif-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`, // BUG FIX: Unique IDs
+      id: `notif-${Date.now()}-${index}-${Math.random().toString(36).substring(2, 11)}`, // BUG FIX: Unique IDs
       storeId,
       userId: follower.userId,
       listingId,
@@ -558,6 +580,19 @@ export const useStoreStore = create<StoreState>((set, get) => ({
   },
 
   deleteListingEarly: async (storeId, listingId) => {
+    logger.info('[StoreStore] Delete listing early:', { storeId, listingId });
+    
+    const store = get().stores.find(s => s.id === storeId);
+    if (!store) {
+      logger.error('[StoreStore] Store not found for listing deletion:', { storeId });
+      throw new Error('Store not found');
+    }
+    
+    if (store.deletedListings.includes(listingId)) {
+      logger.warn('[StoreStore] Listing already deleted:', { storeId, listingId });
+      return;
+    }
+    
     set(state => ({
       stores: state.stores.map(s => 
         s.id === storeId 
@@ -568,6 +603,12 @@ export const useStoreStore = create<StoreState>((set, get) => ({
           : s
       )
     }));
+    
+    logger.info('[StoreStore] Listing deleted early successfully:', { 
+      storeId, 
+      listingId,
+      totalDeleted: store.deletedListings.length + 1
+    });
   },
 
   getStoreUsage: (storeId) => {
@@ -698,38 +739,86 @@ export const useStoreStore = create<StoreState>((set, get) => ({
 
   applyDiscountToProduct: async (storeId, listingId, discountPercentage) => {
     try {
+      // ✅ Validate inputs
+      if (!storeId || typeof storeId !== 'string') {
+        logger.error('[StoreStore] Invalid storeId for applyDiscountToProduct');
+        throw new Error('Invalid store ID');
+      }
+      
+      if (!listingId || typeof listingId !== 'string') {
+        logger.error('[StoreStore] Invalid listingId for applyDiscountToProduct');
+        throw new Error('Invalid listing ID');
+      }
+      
+      if (typeof discountPercentage !== 'number' || isNaN(discountPercentage) || discountPercentage < 1 || discountPercentage > 99) {
+        logger.error('[StoreStore] Invalid discountPercentage:', discountPercentage);
+        throw new Error('Discount percentage must be between 1 and 99');
+      }
+      
       const { useListingStore } = await import('@/store/listingStore');
       const { updateListing, listings } = useListingStore.getState();
       
       const listing = listings.find(l => l.id === listingId && l.storeId === storeId);
-      if (!listing) throw new Error('Listing not found in store');
+      if (!listing) {
+        logger.error('[StoreStore] Listing not found:', { listingId, storeId });
+        throw new Error('Listing not found in store');
+      }
       
       if (listing.priceByAgreement) {
+        logger.warn('[StoreStore] Cannot discount price-by-agreement listing:', listingId);
         throw new Error('Cannot apply discount to price by agreement listings');
       }
       
-      const discountAmount = (listing.price * discountPercentage) / 100;
-      const discountedPrice = Math.max(0, listing.price - discountAmount);
+      // ✅ Calculate from originalPrice (or current price if not discounted yet)
+      const basePrice = listing.originalPrice || listing.price;
+      const discountAmount = (basePrice * discountPercentage) / 100;
+      const discountedPrice = Math.round(Math.max(0, basePrice - discountAmount));
+      
+      logger.info('[StoreStore] Applying discount:', { listingId, basePrice, discountPercentage, discountedPrice });
       
       updateListing(listingId, {
-        originalPrice: listing.originalPrice || listing.price,
+        originalPrice: basePrice,
         price: discountedPrice,
         discountPercentage,
         hasDiscount: true
       });
+      
+      logger.info('[StoreStore] Discount applied successfully to listing:', listingId);
     } catch (error) {
-      logger.error('Failed to apply discount:', error);
+      logger.error('[StoreStore] Failed to apply discount:', error);
       throw error;
     }
   },
 
   removeDiscountFromProduct: async (storeId, listingId) => {
     try {
+      // ✅ Validate inputs
+      if (!storeId || typeof storeId !== 'string') {
+        logger.error('[StoreStore] Invalid storeId for removeDiscountFromProduct');
+        throw new Error('Invalid store ID');
+      }
+      
+      if (!listingId || typeof listingId !== 'string') {
+        logger.error('[StoreStore] Invalid listingId for removeDiscountFromProduct');
+        throw new Error('Invalid listing ID');
+      }
+      
       const { useListingStore } = await import('@/store/listingStore');
       const { updateListing, listings } = useListingStore.getState();
       
       const listing = listings.find(l => l.id === listingId && l.storeId === storeId);
-      if (!listing || !listing.hasDiscount) return;
+      
+      if (!listing) {
+        logger.error('[StoreStore] Listing not found:', { listingId, storeId });
+        throw new Error('Listing not found in store');
+      }
+      
+      if (!listing.hasDiscount) {
+        logger.warn('[StoreStore] Listing has no discount to remove:', listingId);
+        return;
+      }
+      
+      logger.info('[StoreStore] Removing discount from listing:', listingId);
       
       updateListing(listingId, {
         price: listing.originalPrice || listing.price,
@@ -737,14 +826,32 @@ export const useStoreStore = create<StoreState>((set, get) => ({
         discountPercentage: undefined,
         hasDiscount: false
       });
+      
+      logger.info('[StoreStore] Discount removed successfully from listing:', listingId);
     } catch (error) {
-      logger.error('Failed to remove discount:', error);
+      logger.error('[StoreStore] Failed to remove discount:', error);
       throw error;
     }
   },
 
   applyStoreWideDiscount: async (storeId, discountPercentage, excludeListingIds = []) => {
     try {
+      // ✅ Validate inputs
+      if (!storeId || typeof storeId !== 'string') {
+        logger.error('[StoreStore] Invalid storeId for applyStoreWideDiscount');
+        throw new Error('Invalid store ID');
+      }
+      
+      if (typeof discountPercentage !== 'number' || isNaN(discountPercentage) || discountPercentage < 1 || discountPercentage > 99) {
+        logger.error('[StoreStore] Invalid discountPercentage:', discountPercentage);
+        throw new Error('Discount percentage must be between 1 and 99');
+      }
+      
+      if (!Array.isArray(excludeListingIds)) {
+        logger.error('[StoreStore] excludeListingIds must be an array');
+        throw new Error('Exclude list must be an array');
+      }
+      
       const { useListingStore } = await import('@/store/listingStore');
       const { listings, updateListing } = useListingStore.getState();
       
@@ -755,25 +862,52 @@ export const useStoreStore = create<StoreState>((set, get) => ({
         !l.priceByAgreement
       );
       
-      for (const listing of storeListings) {
-        const discountAmount = (listing.price * discountPercentage) / 100;
-        const discountedPrice = Math.max(0, listing.price - discountAmount);
-        
-        updateListing(listing.id, {
-          originalPrice: listing.originalPrice || listing.price,
-          price: discountedPrice,
-          discountPercentage,
-          hasDiscount: true
-        });
+      if (storeListings.length === 0) {
+        logger.warn('[StoreStore] No applicable listings found for store-wide discount:', storeId);
+        return;
       }
+      
+      logger.info('[StoreStore] Applying store-wide discount:', { storeId, discountPercentage, listingCount: storeListings.length, excludedCount: excludeListingIds.length });
+      
+      let successCount = 0;
+      let errorCount = 0;
+      
+      for (const listing of storeListings) {
+        try {
+          // ✅ Calculate from originalPrice (or current price if not discounted yet)
+          const basePrice = listing.originalPrice || listing.price;
+          const discountAmount = (basePrice * discountPercentage) / 100;
+          const discountedPrice = Math.round(Math.max(0, basePrice - discountAmount));
+          
+          updateListing(listing.id, {
+            originalPrice: basePrice,
+            price: discountedPrice,
+            discountPercentage,
+            hasDiscount: true
+          });
+          
+          successCount++;
+        } catch (listingError) {
+          logger.error('[StoreStore] Failed to discount individual listing:', { listingId: listing.id, error: listingError });
+          errorCount++;
+        }
+      }
+      
+      logger.info('[StoreStore] Store-wide discount applied:', { storeId, successCount, errorCount, totalAttempted: storeListings.length });
     } catch (error) {
-      logger.error('Failed to apply store-wide discount:', error);
+      logger.error('[StoreStore] Failed to apply store-wide discount:', error);
       throw error;
     }
   },
 
   removeStoreWideDiscount: async (storeId) => {
     try {
+      // ✅ Validate inputs
+      if (!storeId || typeof storeId !== 'string') {
+        logger.error('[StoreStore] Invalid storeId for removeStoreWideDiscount');
+        throw new Error('Invalid store ID');
+      }
+      
       const { useListingStore } = await import('@/store/listingStore');
       const { listings, updateListing } = useListingStore.getState();
       
@@ -783,27 +917,84 @@ export const useStoreStore = create<StoreState>((set, get) => ({
         !l.deletedAt
       );
       
-      for (const listing of storeListings) {
-        updateListing(listing.id, {
-          price: listing.originalPrice || listing.price,
-          originalPrice: undefined,
-          discountPercentage: undefined,
-          hasDiscount: false
-        });
+      if (storeListings.length === 0) {
+        logger.warn('[StoreStore] No discounted listings found to remove:', storeId);
+        return;
       }
+      
+      logger.info('[StoreStore] Removing store-wide discount:', { storeId, listingCount: storeListings.length });
+      
+      let successCount = 0;
+      let errorCount = 0;
+      
+      for (const listing of storeListings) {
+        try {
+          updateListing(listing.id, {
+            price: listing.originalPrice || listing.price,
+            originalPrice: undefined,
+            discountPercentage: undefined,
+            hasDiscount: false
+          });
+          
+          successCount++;
+        } catch (listingError) {
+          logger.error('[StoreStore] Failed to remove discount from individual listing:', { listingId: listing.id, error: listingError });
+          errorCount++;
+        }
+      }
+      
+      logger.info('[StoreStore] Store-wide discount removed:', { storeId, successCount, errorCount, totalAttempted: storeListings.length });
     } catch (error) {
-      logger.error('Failed to remove store-wide discount:', error);
+      logger.error('[StoreStore] Failed to remove store-wide discount:', error);
       throw error;
     }
   },
 
   getStoreDiscounts: (storeId) => {
     try {
-      // This would normally be imported dynamically, but for type safety we'll use a different approach
+      // ✅ Validate storeId
+      if (!storeId || typeof storeId !== 'string') {
+        logger.error('[StoreStore] Invalid storeId for getStoreDiscounts');
+        return [];
+      }
+      
+      // ✅ Get actual discounts from listingStore
+      // Note: We can't use dynamic import in sync function, so we access the global state
       const discounts: { listingId: string; originalPrice: number; discountedPrice: number; discountPercentage: number }[] = [];
+      
+      // Access listingStore if available
+      try {
+        // This is a workaround for type safety - in production, use proper state management
+        const listingStoreModule = require('@/store/listingStore');
+        if (listingStoreModule && listingStoreModule.useListingStore) {
+          const { listings } = listingStoreModule.useListingStore.getState();
+          
+          const discountedListings = listings.filter((l: any) => 
+            l.storeId === storeId && 
+            l.hasDiscount && 
+            !l.deletedAt &&
+            l.originalPrice &&
+            l.discountPercentage
+          );
+          
+          discountedListings.forEach((listing: any) => {
+            discounts.push({
+              listingId: listing.id,
+              originalPrice: listing.originalPrice,
+              discountedPrice: listing.price,
+              discountPercentage: listing.discountPercentage
+            });
+          });
+          
+          logger.info('[StoreStore] Retrieved store discounts:', { storeId, count: discounts.length });
+        }
+      } catch (moduleError) {
+        logger.warn('[StoreStore] Could not load listingStore for discounts:', moduleError);
+      }
+      
       return discounts;
     } catch (error) {
-      logger.error('Failed to get store discounts:', error);
+      logger.error('[StoreStore] Failed to get store discounts:', error);
       return [];
     }
   },
@@ -858,10 +1049,19 @@ export const useStoreStore = create<StoreState>((set, get) => ({
   },
 
   updateStoreStatus: async (storeId) => {
+    if (!storeId) {
+      logger.error('[StoreStore] No storeId for status update');
+      return;
+    }
+    
     const { stores, checkStoreStatus } = get();
     const store = stores.find(s => s.id === storeId);
-    if (!store) return;
+    if (!store) {
+      logger.error('[StoreStore] Store not found for status update:', storeId);
+      return;
+    }
     
+    const oldStatus = store.status;
     const newStatus = checkStoreStatus(storeId);
     const now = new Date().toISOString();
     
@@ -873,14 +1073,21 @@ export const useStoreStore = create<StoreState>((set, get) => ({
       gracePeriodEnd.setDate(gracePeriodEnd.getDate() + 7);
       updates.gracePeriodEndsAt = gracePeriodEnd.toISOString();
       updates.isActive = true; // Keep active during grace period
+      logger.info('[StoreStore] Grace period started:', { storeId, storeName: store.name, gracePeriodEnd: updates.gracePeriodEndsAt });
     } else if (newStatus === 'deactivated' && !store.deactivatedAt) {
       // Deactivate store
       updates.deactivatedAt = now;
       updates.isActive = false;
+      logger.warn('[StoreStore] Store deactivated:', { storeId, storeName: store.name });
     } else if (newStatus === 'archived' && !store.archivedAt) {
       // Archive store
       updates.archivedAt = now;
       updates.isActive = false;
+      logger.info('[StoreStore] Store archived:', { storeId, storeName: store.name });
+    }
+    
+    if (oldStatus !== newStatus) {
+      logger.info('[StoreStore] Store status changed:', { storeId, oldStatus, newStatus });
     }
     
     set(state => ({
@@ -891,11 +1098,32 @@ export const useStoreStore = create<StoreState>((set, get) => ({
   },
 
   renewStore: async (storeId, planId) => {
+    // ✅ Input validation
+    if (!storeId || typeof storeId !== 'string') {
+      logger.error('[StoreStore] Invalid storeId for renewal:', storeId);
+      throw new Error('Invalid store ID');
+    }
+    
+    if (!planId || typeof planId !== 'string') {
+      logger.error('[StoreStore] Invalid planId for renewal:', planId);
+      throw new Error('Invalid plan ID');
+    }
+    
     const { stores } = get();
     const store = stores.find(s => s.id === storeId);
     const plan = storePlans.find(p => p.id === planId);
     
-    if (!store || !plan) throw new Error('Store or plan not found');
+    if (!store) {
+      logger.error('[StoreStore] Store not found for renewal:', storeId);
+      throw new Error('Store not found');
+    }
+    
+    if (!plan) {
+      logger.error('[StoreStore] Plan not found for renewal:', planId);
+      throw new Error('Plan not found');
+    }
+    
+    logger.info('[StoreStore] Renewing store:', { storeId, storeName: store.name, planId, planDuration: plan.duration });
     
     const now = new Date();
     const newExpiresAt = new Date(now.getTime() + plan.duration * 24 * 60 * 60 * 1000);
@@ -916,6 +1144,8 @@ export const useStoreStore = create<StoreState>((set, get) => ({
         s.id === storeId ? { ...s, ...updates } : s
       )
     }));
+    
+    logger.info('[StoreStore] Store renewed successfully:', { storeId, newExpiresAt: newExpiresAt.toISOString() });
   },
 
   sendPaymentReminder: async (storeId) => {
@@ -943,24 +1173,55 @@ export const useStoreStore = create<StoreState>((set, get) => ({
   },
 
   reactivateStore: async (storeId, planId) => {
+    if (!storeId || typeof storeId !== 'string') {
+      logger.error('[StoreStore] Invalid storeId for reactivation:', storeId);
+      throw new Error('Invalid store ID');
+    }
+    
     const { canStoreBeReactivated, renewStore } = get();
     
     if (!canStoreBeReactivated(storeId)) {
+      logger.error('[StoreStore] Store cannot be reactivated:', storeId);
       throw new Error('Store cannot be reactivated');
     }
     
+    logger.info('[StoreStore] Reactivating store:', storeId);
     await renewStore(storeId, planId);
   },
 
   getExpirationInfo: (storeId) => {
-    const { stores, sendExpirationNotification } = get();
+    if (!storeId) {
+      logger.error('[StoreStore] No storeId provided to getExpirationInfo');
+      return null;
+    }
+    
+    const { stores } = get();
     const store = stores.find(s => s.id === storeId);
-    if (!store) return null;
+    if (!store) {
+      logger.warn('[StoreStore] Store not found for expiration info:', storeId);
+      return null;
+    }
     
     const now = new Date();
     const expiresAt = new Date(store.expiresAt);
     const gracePeriodEndsAt = store.gracePeriodEndsAt ? new Date(store.gracePeriodEndsAt) : null;
     const deactivatedAt = store.deactivatedAt ? new Date(store.deactivatedAt) : null;
+    
+    // ✅ Validate dates
+    if (isNaN(expiresAt.getTime())) {
+      logger.error('[StoreStore] Invalid expiresAt date for store:', { storeId, expiresAt: store.expiresAt });
+      return null;
+    }
+    
+    if (gracePeriodEndsAt && isNaN(gracePeriodEndsAt.getTime())) {
+      logger.error('[StoreStore] Invalid gracePeriodEndsAt date:', { storeId, gracePeriodEndsAt: store.gracePeriodEndsAt });
+      return null;
+    }
+    
+    if (deactivatedAt && isNaN(deactivatedAt.getTime())) {
+      logger.error('[StoreStore] Invalid deactivatedAt date:', { storeId, deactivatedAt: store.deactivatedAt });
+      return null;
+    }
     
     const daysUntilExpiration = Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
     const daysInGracePeriod = gracePeriodEndsAt ? Math.ceil((gracePeriodEndsAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : 0;
@@ -1050,6 +1311,11 @@ export const useStoreStore = create<StoreState>((set, get) => ({
   },
 
   sendExpirationNotification: async (storeId, type) => {
+    if (!storeId) {
+      logger.error('[StoreStore] No storeId for notification');
+      return;
+    }
+    
     const { stores } = get();
     const store = stores.find(s => s.id === storeId);
     if (!store) {

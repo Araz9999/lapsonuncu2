@@ -8,6 +8,7 @@ import { useCallStore } from '@/store/callStore';
 import { getColors } from '@/constants/colors';
 import { logger } from '@/utils/logger';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { notificationService } from '@/services/notificationService';
 import * as FileSystem from 'expo-file-system';
 import { LucideIcon } from 'lucide-react-native';
 import { 
@@ -338,6 +339,36 @@ export default function SettingsScreen() {
         },
       ]
     );
+  };
+
+  // ✅ Handle notification permission toggle
+  const handleNotificationToggle = async (value: boolean) => {
+    if (value) {
+      // Request permission when enabling
+      try {
+        const hasPermission = await notificationService.requestPermissions();
+        if (hasPermission) {
+          setNotificationsEnabled(true);
+          logger.debug('Notifications enabled');
+        } else {
+          Alert.alert(
+            language === 'az' ? 'İcazə lazımdır' : 'Требуется разрешение',
+            language === 'az' 
+              ? 'Bildirişlər üçün icazə verilməlidir. Tənzimləmələrdən icazə verə bilərsiniz.' 
+              : 'Необходимо разрешение для уведомлений. Вы можете предоставить его в настройках.'
+          );
+        }
+      } catch (error) {
+        logger.error('Notification permission error:', error);
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'İcazə alınarkən xəta baş verdi' : 'Ошибка при запросе разрешения'
+        );
+      }
+    } else {
+      // Just disable
+      setNotificationsEnabled(false);
+    }
   };
 
   const SettingItem = ({ 
@@ -703,7 +734,7 @@ export default function SettingsScreen() {
             rightComponent={
               <Switch
                 value={notificationsEnabled}
-                onValueChange={setNotificationsEnabled}
+                onValueChange={handleNotificationToggle}
                 trackColor={{ false: colors.border, true: colors.primary }}
                 thumbColor={notificationsEnabled ? '#fff' : colors.textSecondary}
               />
@@ -791,16 +822,56 @@ export default function SettingsScreen() {
               <Switch
                 value={currentUser?.privacySettings?.hidePhoneNumber ?? false}
                 onValueChange={(value) => {
+<<<<<<< HEAD
+                  if (!currentUser) {
+                    logger.error('[Settings] No current user for privacy update');
+                    Alert.alert(
+                      language === 'az' ? 'Xəta' : 'Ошибка',
+                      language === 'az' ? 'İstifadəçi tapılmadı' : 'Пользователь не найден'
+=======
                   // ✅ Validate current user
                   if (!currentUser) {
                     logger.warn('[Settings] No current user');
                     Alert.alert(
                       language === 'az' ? 'Xəta' : 'Ошибка',
                       language === 'az' ? 'İstifadəçi daxil olmayıb' : 'Пользователь не вошел 'в систему'
+>>>>>>> origin/main
                     );
                     return;
                   }
                   
+<<<<<<< HEAD
+                  logger.info('[Settings] Updating hidePhoneNumber:', { 
+                    from: currentUser.privacySettings?.hidePhoneNumber ?? false,
+                    to: value, 
+                    userId: currentUser.id 
+                  });
+                  
+                  try {
+                    updatePrivacySettings({ hidePhoneNumber: value });
+                    logger.info('[Settings] hidePhoneNumber updated successfully:', { 
+                      hidePhoneNumber: value 
+                    });
+                    
+                    Alert.alert(
+                      language === 'az' ? 'Məxfilik tənzimləməsi' : 'Настройки конфиденциальности',
+                      language === 'az' 
+                        ? value 
+                          ? 'Telefon nömrəniz artıq gizli. Digər istifadəçilər yalnız tətbiq üzərindən sizinlə əlaqə saxlaya biləcəklər.' 
+                          : 'Telefon nömrəniz artıq görünən. Digər istifadəçilər sizə birbaşa zəng edə biləcəklər.'
+                        : value
+                          ? 'Ваш номер телефона скрыт. Другие пользователи могут связаться с вами только через приложение.'
+                          : 'Ваш номер телефона виден. Другие пользователи могут звонить вам напрямую.',
+                      [{ text: language === 'az' ? 'Başa düşdüm' : 'Понятно' }]
+                    );
+                  } catch (error) {
+                    logger.error('[Settings] Failed to update hidePhoneNumber:', error);
+                    Alert.alert(
+                      language === 'az' ? 'Xəta' : 'Ошибка',
+                      language === 'az' 
+                        ? 'Məxfilik tənzimləməsi yenilənə bilmədi' 
+                        : 'Не удалось обновить настройки конфиденциальности'
+=======
                   try {
                     updatePrivacySettings({ hidePhoneNumber: value });
                     logger.info('[Settings] Phone visibility updated:', value);
@@ -809,6 +880,7 @@ export default function SettingsScreen() {
                     Alert.alert(
                       language === 'az' ? 'Xəta' : 'Ошибка',
                       language === 'az' ? 'Tənzimləmə yadda saxlanılmadı' : 'Не удалось сохранить настройку'
+>>>>>>> origin/main
                     );
                   }
                 }}
@@ -829,28 +901,72 @@ export default function SettingsScreen() {
               <Switch
                 value={currentUser?.privacySettings?.onlyAppMessaging ?? false}
                 onValueChange={(value) => {
+<<<<<<< HEAD
+                  if (!currentUser) {
+                    logger.error('[Settings] No current user for onlyAppMessaging update');
+                    Alert.alert(
+                      language === 'az' ? 'Xəta' : 'Ошибка',
+                      language === 'az' ? 'İstifadəçi tapılmadı' : 'Пользователь не найден'
+=======
                   // ✅ Validate current user
                   if (!currentUser) {
                     logger.warn('[Settings] No current user');
                     Alert.alert(
                       language === 'az' ? 'Xəta' : 'Ошибка',
                       language === 'az' ? 'İstifadəçi daxil olmayıb' : 'Пользователь не вошел в систему'
+>>>>>>> origin/main
                     );
                     return;
                   }
                   
+<<<<<<< HEAD
+                  logger.info('[Settings] Updating onlyAppMessaging:', { 
+                    from: currentUser.privacySettings?.onlyAppMessaging ?? false,
+                    to: value, 
+                    userId: currentUser.id 
+                  });
+                  
+                  try {
+=======
                   try {
                     // ✅ Conflict resolution: onlyAppMessaging and allowDirectContact are mutually exclusive
+>>>>>>> origin/main
                     updatePrivacySettings({ 
                       onlyAppMessaging: value,
                       allowDirectContact: !value
                     });
+<<<<<<< HEAD
+                    logger.info('[Settings] onlyAppMessaging updated successfully:', { 
+                      onlyAppMessaging: value,
+                      allowDirectContact: !value
+                    });
+                    
+                    Alert.alert(
+                      language === 'az' ? 'Əlaqə tənzimləməsi' : 'Настройки связи',
+                      language === 'az' 
+                        ? value 
+                          ? 'Yalnız tətbiq üzərindən əlaqə aktivdir. Birbaşa zənglər və ya mesajlar mümkün olmayacaq.' 
+                          : 'Birbaşa əlaqə aktivdir. İstifadəçilər sizinlə həm tətbiq, həm də birbaşa əlaqə saxlaya bilərlər.'
+                        : value
+                          ? 'Только связь через приложение активна. Прямые звонки или сообщения невозможны.'
+                          : 'Прямой контакт активен. Пользователи могут связаться с вами как через приложение, так и напрямую.',
+                      [{ text: language === 'az' ? 'Başa düşdüm' : 'Понятно' }]
+                    );
+                  } catch (error) {
+                    logger.error('[Settings] Failed to update onlyAppMessaging:', error);
+                    Alert.alert(
+                      language === 'az' ? 'Xəta' : 'Ошибка',
+                      language === 'az' 
+                        ? 'Mesajlaşma tənzimləməsi yenilənə bilmədi' 
+                        : 'Не удалось обновить настройки сообщений'
+=======
                     logger.info('[Settings] App messaging preference updated:', value);
                   } catch (error) {
                     logger.error('[Settings] Error updating messaging preference:', error);
                     Alert.alert(
                       language === 'az' ? 'Xəta' : 'Ошибка',
                       language === 'az' ? 'Tənzimləmə yadda saxlanılmadı' : 'Не удалось сохранить настройку'
+>>>>>>> origin/main
                     );
                   }
                 }}
@@ -871,28 +987,72 @@ export default function SettingsScreen() {
               <Switch
                 value={currentUser?.privacySettings?.allowDirectContact ?? false}
                 onValueChange={(value) => {
+<<<<<<< HEAD
+                  if (!currentUser) {
+                    logger.error('[Settings] No current user for allowDirectContact update');
+                    Alert.alert(
+                      language === 'az' ? 'Xəta' : 'Ошибка',
+                      language === 'az' ? 'İstifadəçi tapılmadı' : 'Пользователь не найден'
+=======
                   // ✅ Validate current user
                   if (!currentUser) {
                     logger.warn('[Settings] No current user');
                     Alert.alert(
                       language === 'az' ? 'Xəta' : 'Ошибка',
                       language === 'az' ? 'İstifadəçi daxil olmayıb' : 'Пользователь не вошел в систему'
+>>>>>>> origin/main
                     );
                     return;
                   }
                   
+<<<<<<< HEAD
+                  logger.info('[Settings] Updating allowDirectContact:', { 
+                    from: currentUser.privacySettings?.allowDirectContact ?? false,
+                    to: value, 
+                    userId: currentUser.id 
+                  });
+                  
+                  try {
+=======
                   try {
                     // ✅ Conflict resolution: allowDirectContact and onlyAppMessaging are mutually exclusive
+>>>>>>> origin/main
                     updatePrivacySettings({ 
                       allowDirectContact: value,
                       onlyAppMessaging: !value
                     });
+<<<<<<< HEAD
+                    logger.info('[Settings] allowDirectContact updated successfully:', { 
+                      allowDirectContact: value,
+                      onlyAppMessaging: !value
+                    });
+                    
+                    Alert.alert(
+                      language === 'az' ? 'Birbaşa əlaqə tənzimləməsi' : 'Настройки прямого контакта',
+                      language === 'az' 
+                        ? value 
+                          ? 'Birbaşa əlaqə aktivdir. İstifadəçilər sizə telefon nömrəniz vasitəsilə birbaşa zəng edə biləcəklər.' 
+                          : 'Birbaşa əlaqə deaktivdir. İstifadəçilər yalnız tətbiq vasitəsilə əlaqə saxlaya biləcəklər.'
+                        : value
+                          ? 'Прямой контакт активен. Пользователи смогут звонить вам напрямую через ваш номер телефона.'
+                          : 'Прямой контакт отключен. Пользователи смогут связаться только через приложение.',
+                      [{ text: language === 'az' ? 'Başa düşdüm' : 'Понятно' }]
+                    );
+                  } catch (error) {
+                    logger.error('[Settings] Failed to update allowDirectContact:', error);
+                    Alert.alert(
+                      language === 'az' ? 'Xəta' : 'Ошибка',
+                      language === 'az' 
+                        ? 'Əlaqə tənzimləməsi yenilənə bilmədi' 
+                        : 'Не удалось обновить настройки контактов'
+=======
                     logger.info('[Settings] Direct contact preference updated:', value);
                   } catch (error) {
                     logger.error('[Settings] Error updating direct contact:', error);
                     Alert.alert(
                       language === 'az' ? 'Xəta' : 'Ошибка',
                       language === 'az' ? 'Tənzimləmə yadda saxlanılmadı' : 'Не удалось сохранить настройку'
+>>>>>>> origin/main
                     );
                   }
                 }}
@@ -906,10 +1066,13 @@ export default function SettingsScreen() {
             icon={UserX}
             title={language === 'az' ? 'Blok edilmiş istifadəçilər' : 'Заблокированные пользователи'}
             subtitle={language === 'az' 
-              ? `${blockedUsers.length} istifadəçi blok edilib` 
-              : `${blockedUsers.length} пользователей заблокировано`
+              ? `${blockedUsers?.length || 0} istifadəçi blok edilib` 
+              : `${blockedUsers?.length || 0} пользователей заблокировано`
             }
-            onPress={() => router.push('/blocked-users')}
+            onPress={() => {
+              logger.info('[Settings] Navigating to blocked users');
+              router.push('/blocked-users');
+            }}
           />
         </AnimatedSection>
 
@@ -1002,12 +1165,21 @@ export default function SettingsScreen() {
               <Switch
                 value={animationEffectsEnabled}
                 onValueChange={(value) => {
+                  logger.info('[Settings] Animation effects toggle:', { 
+                    from: animationEffectsEnabled, 
+                    to: value,
+                    feature: 'animation_effects'
+                  });
+                  
                   setAnimationEffectsEnabled(value);
+                  
+                  logger.info('[Settings] Animation effects updated successfully:', { enabled: value });
+                  
                   Alert.alert(
                     language === 'az' ? 'Animasiya effektləri' : 'Эффекты анимации',
                     language === 'az' 
-                      ? `Animasiya effektləri ${value ? 'aktiv' : 'deaktiv'} edildi`
-                      : `Эффекты анимации ${value ? 'включены' : 'выключены'}`
+                      ? `Animasiya effektləri ${value ? 'aktiv' : 'deaktiv'} edildi. Tətbiq keçidləri və UI animasiyaları ${value ? 'göstəriləcək' : 'gizlədiləcək'}.`
+                      : `Эффекты анимации ${value ? 'включены' : 'выключены'}. Переходы и UI-анимации ${value ? 'будут показаны' : 'будут скрыты'}.`
                   );
                 }}
                 trackColor={{ false: colors.border, true: '#FFD700' }}
@@ -1025,12 +1197,24 @@ export default function SettingsScreen() {
               <Switch
                 value={dynamicColorsEnabled}
                 onValueChange={(value) => {
+                  logger.info('[Settings] Dynamic colors toggle:', { 
+                    from: dynamicColorsEnabled, 
+                    to: value,
+                    feature: 'dynamic_colors'
+                  });
+                  
                   setDynamicColorsEnabled(value);
+                  
+                  logger.info('[Settings] Dynamic colors updated successfully:', { enabled: value });
+                  
                   Alert.alert(
                     language === 'az' ? 'Dinamik rənglər' : 'Динамические цвета',
                     language === 'az' 
-                      ? `Dinamik rənglər ${value ? 'aktiv' : 'deaktiv'} edildi`
-                      : `Динамические цвета ${value ? 'включены' : 'выключены'}`
+                      ? `Dinamik rənglər ${value ? 'aktiv' : 'deaktiv'} edildi. Tətbiq ${value ? 'elan şəkillərindən dominant rəngləri çıxaracaq və interfeysi avtomatik uyğunlaşdıracaq' : 'standart rəng sxemindən istifadə edəcək'}.`
+                      : `Динамические цвета ${value ? 'включены' : 'выключены'}. Приложение ${value ? 'будет извлекать доминантные цвета из изображений объявлений и автоматически адаптировать интерфейс' : 'будет использовать стандартную цветовую схему'}.`,
+                    [
+                      { text: language === 'az' ? 'Başa düşdüm' : 'Понятно' }
+                    ]
                   );
                 }}
                 trackColor={{ false: 'rgba(255,255,255,0.3)', true: 'rgba(255,255,255,0.8)' }}
@@ -1048,12 +1232,24 @@ export default function SettingsScreen() {
               <Switch
                 value={adaptiveInterfaceEnabled}
                 onValueChange={(value) => {
+                  logger.info('[Settings] Adaptive interface toggle:', { 
+                    from: adaptiveInterfaceEnabled, 
+                    to: value,
+                    feature: 'adaptive_interface'
+                  });
+                  
                   setAdaptiveInterfaceEnabled(value);
+                  
+                  logger.info('[Settings] Adaptive interface updated successfully:', { enabled: value });
+                  
                   Alert.alert(
                     language === 'az' ? 'Adaptiv interfeys' : 'Адаптивный интерфейс',
                     language === 'az' 
-                      ? `Adaptiv interfeys ${value ? 'aktiv' : 'deaktiv'} edildi`
-                      : `Адаптивный интерфейс ${value ? 'включен' : 'выключен'}`
+                      ? `Adaptiv interfeys ${value ? 'aktiv' : 'deaktiv'} edildi. Tətbiq ${value ? 'istifadə tərzinizi öyrənəcək və sizə uyğun şəkildə uyğunlaşacaq (ən çox baxdığınız kateqoriyalar, tez-tez istifadə etdiyiniz filtrələr və s.)' : 'standart interfeysdən istifadə edəcək'}.`
+                      : `Адаптивный интерфейс ${value ? 'включен' : 'выключен'}. Приложение ${value ? 'будет изучать ваш стиль использования и адаптироваться (наиболее просматриваемые категории, часто используемые фильтры и т.д.)' : 'будет использовать стандартный интерфейс'}.`,
+                    [
+                      { text: language === 'az' ? 'Başa düşdüm' : 'Понятно' }
+                    ]
                   );
                 }}
                 trackColor={{ false: colors.border, true: '#FFD700' }}
@@ -1068,19 +1264,44 @@ export default function SettingsScreen() {
             subtitle={language === 'az' ? 'Eksklüziv xüsusiyyətlər və üstünlüklər' : 'Эксклюзивные функции и преимущества'}
             isPremium
             onPress={() => {
+              logger.info('[Settings] Premium mode tapped:', { userId: currentUser?.id });
+              
               Alert.alert(
                 language === 'az' ? 'Premium rejim' : 'Премиум режим',
                 language === 'az' 
-                  ? 'Premium üzvlük üçün əlaqə saxlayın'
-                  : 'Свяжитесь с нами для премиум подписки',
+                  ? 'Premium üzvlük ilə:\n\n✨ Limitsiz VIP elanlar\n🚀 Prioritet dəstək\n🎨 Eksklüziv dizayn temaları\n📊 Detallı analitika\n💎 Reklamsız təcrübə\n\nÜzvlük üçün əlaqə saxlayın:'
+                  : 'С премиум подпиской:\n\n✨ Безлимитные VIP объявления\n🚀 Приоритетная поддержка\n🎨 Эксклюзивные темы дизайна\n📊 Детальная аналитика\n💎 Без рекламы\n\nСвяжитесь с нами для подписки:',
                 [
                   {
-                    text: language === 'az' ? 'Əlaqə' : 'Связаться',
-                    onPress: () => logger.debug('Contact for premium')
+                    text: language === 'az' ? 'Ləğv et' : 'Отмена',
+                    style: 'cancel',
+                    onPress: () => {
+                      logger.info('[Settings] Premium mode dialog cancelled');
+                    }
                   },
                   {
-                    text: language === 'az' ? 'Ləğv et' : 'Отмена',
-                    style: 'cancel'
+                    text: language === 'az' ? 'Dəstək' : 'Поддержка',
+                    onPress: () => {
+                      logger.info('[Settings] Premium mode: navigating to support');
+                      router.push('/support');
+                    }
+                  },
+                  {
+                    text: language === 'az' ? 'Daha çox' : 'Подробнее',
+                    onPress: () => {
+                      logger.info('[Settings] Premium mode: viewing details');
+                      Alert.alert(
+                        language === 'az' ? 'Premium Paketlər' : 'Премиум пакеты',
+                        language === 'az'
+                          ? '💎 Aylıq: 19.99 AZN\n👑 İllik: 199.99 AZN (2 ay pulsuz!)\n🌟 Ömürlük: 499.99 AZN\n\nBütün paketlərdə 7 günlük pulsuz sınaq mövcuddur!'
+                          : '💎 Месяц: 19.99 AZN\n👑 Год: 199.99 AZN (2 месяца бесплатно!)\n🌟 Навсегда: 499.99 AZN\n\nВо всех пакетах доступна 7-дневная бесплатная пробная версия!',
+                        [
+                          { 
+                            text: language === 'az' ? 'Bağla' : 'Закрыть'
+                          }
+                        ]
+                      );
+                    }
                   }
                 ]
               );
@@ -1318,4 +1539,26 @@ const styles = StyleSheet.create({
   bottomSpacing: {
     height: 40,
   },
+});
+
+    marginTop: 4,
+    lineHeight: 20,
+  },
+  colorPreview: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  colorDot: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    marginRight: 12,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  bottomSpacing: {
+    height: 40,
+  },
+});
+},
 });

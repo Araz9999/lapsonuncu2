@@ -98,7 +98,7 @@ export default function FileAttachmentPicker({
         });
 
         const newAttachments = validAssets.slice(0, maxFiles - attachments.length).map((asset, index) => ({
-          id: `${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`,
+          id: `${Date.now()}-${index}-${Math.random().toString(36).substring(2, 11)}`,
           uri: asset.uri,
           name: asset.fileName || `image_${Date.now()}.jpg`,
           type: 'image' as const,
@@ -178,7 +178,7 @@ export default function FileAttachmentPicker({
         }
 
         const newAttachment: FileAttachment = {
-          id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          id: `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
           uri: asset.uri,
           name: asset.fileName || `photo_${Date.now()}.jpg`,
           type: 'image',
@@ -238,7 +238,7 @@ export default function FileAttachmentPicker({
         }
 
         const newAttachments = validAssets.slice(0, maxFiles - attachments.length).map((asset, index) => ({
-          id: `${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`,
+          id: `${Date.now()}-${index}-${Math.random().toString(36).substring(2, 11)}`,
           uri: asset.uri,
           name: asset.name,
           type: 'document' as const,

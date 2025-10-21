@@ -48,6 +48,8 @@ import { useUserStore } from '@/store/userStore';
 import { useLanguageStore } from '@/store/languageStore';
 import { getColors } from '@/constants/colors';
 import { useThemeStore } from '@/store/themeStore';
+import { validateEmail, validateAzerbaijanPhone, validateWebsiteURL, validateStoreName } from '@/utils/inputValidation';
+import { logger } from '@/utils/logger';
 
 interface SettingItem {
   id: string;
@@ -191,9 +193,15 @@ export default function StoreSettingsScreen() {
   // Load settings for current store
   useEffect(() => {
     if (currentUser?.id && currentStore?.id) {
+      logger.info('[StoreSettings] Loading settings for store:', { 
+        userId: currentUser.id, 
+        storeId: currentStore.id 
+      });
+      
       const storeSettings = getUserStoreSettings(currentUser.id, currentStore.id);
       setSettings(storeSettings as typeof settings);
-    }
+      
+      logger.info('[StoreSettings] Settings loaded successfully');\n    } else {\n      logger.warn('[StoreSettings] Cannot load settings - missing user or store:', {\n        hasUser: !!currentUser?.id,\n        hasStore: !!currentStore?.id\n      });\n    }
   }, [currentUser?.id, currentStore?.id, getUserStoreSettings]);
 
   const store = currentStore;
@@ -201,6 +209,34 @@ export default function StoreSettingsScreen() {
 
   // Handle settings updates
   const handleSettingToggle = async (key: string, value: boolean) => {
+<<<<<<< HEAD
+    if (!store) {
+      logger.error('[StoreSettings] No store for settings update');
+      return;
+    }
+    
+    if (!currentUser?.id) {
+      logger.error('[StoreSettings] No current user for settings update');
+      return;
+    }
+    
+    logger.info('[StoreSettings] Toggling setting:', { storeId: store.id, setting: key, value });
+    
+    const newSettings = { ...settings, [key]: value };
+    setSettings(newSettings);
+    
+    try {
+      await updateUserStoreSettings(currentUser.id, store.id, { [key]: value });
+      logger.info('[StoreSettings] Setting updated successfully:', { setting: key, value });
+    } catch (error) {
+      logger.error('[StoreSettings] Failed to update setting:', error);
+      // Revert on error
+      setSettings(settings);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Tənzimləmə yenilənə bilmədi' : 'Не удалось обновить настройку'
+      );
+=======
     // ✅ VALIDATION START
     
     // 1. Check if already saving
@@ -273,16 +309,44 @@ export default function StoreSettingsScreen() {
       Alert.alert('Xəta', errorMessage);
     } finally {
       setIsSavingSettings(false);
+>>>>>>> origin/main
     }
   };
 
   const handleStoreSwitch = async (selectedStoreId: string) => {
-    if (currentUser?.id) {
+    if (!currentUser?.id) {
+      logger.error('[StoreSettings] No current user for store switch');
+      return;
+    }
+    
+    if (!selectedStoreId || typeof selectedStoreId !== 'string') {
+      logger.error('[StoreSettings] Invalid store ID for switch:', selectedStoreId);
+      return;
+    }
+    
+    logger.info('[StoreSettings] Switching active store:', { 
+      userId: currentUser.id, 
+      newStoreId: selectedStoreId,
+      currentStoreId: store?.id
+    });
+    
+    try {
       await switchActiveStore(currentUser.id, selectedStoreId);
+      
+      logger.info('[StoreSettings] Active store switched successfully:', selectedStoreId);
       setShowStoreSelector(false);
+      
       // Reload settings for new store
       const newSettings = getUserStoreSettings(currentUser.id, selectedStoreId);
       setSettings(newSettings as typeof settings);
+      
+      logger.info('[StoreSettings] Settings loaded for new store');
+    } catch (error) {
+      logger.error('[StoreSettings] Failed to switch store:', error);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Mağaza dəyişdirilə bilmədi' : 'Не удалось переключить магазин'
+      );
     }
   };
 
@@ -314,6 +378,13 @@ export default function StoreSettingsScreen() {
   }
 
   const handleEditStore = () => {
+    if (!store) {
+      logger.error('[StoreSettings] No store for editing');
+      return;
+    }
+    
+    logger.info('[StoreSettings] Opening edit modal:', { storeId: store.id, storeName: store.name });
+    
     setEditForm({
       name: store.name,
       description: store.description || '',
@@ -326,6 +397,22 @@ export default function StoreSettingsScreen() {
   };
 
   const handleSaveEdit = async () => {
+<<<<<<< HEAD
+    if (!store) {
+      logger.error('[StoreSettings] No store for saving edits');
+      return;
+    }
+    
+    logger.info('[StoreSettings] Saving store edits:', { storeId: store.id, storeName: editForm.name });
+    
+    // ✅ Validate store name
+    const nameValidation = validateStoreName(editForm.name);
+    if (!nameValidation.isValid) {
+      logger.warn('[StoreSettings] Invalid store name:', { name: editForm.name, error: nameValidation.error });
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        nameValidation.error || 'Mağaza adı düzgün deyil'
+=======
     // ✅ VALIDATION START
     
     // 1. Check if already saving
@@ -351,10 +438,57 @@ export default function StoreSettingsScreen() {
       Alert.alert(
         'İcazə yoxdur',
         'Siz bu mağazanı redaktə edə bilməzsiniz'
+>>>>>>> origin/main
       );
       return;
     }
     
+<<<<<<< HEAD
+    // ✅ Validate email (optional but must be valid if provided)
+    if (editForm.email.trim() && !validateEmail(editForm.email.trim())) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' 
+          ? 'Email formatı düzgün deyil (məsələn: info@magaza.az)' 
+          : 'Неверный формат email'
+      );
+      return;
+    }
+    
+    // ✅ Validate phone (optional but must be valid if provided)
+    if (editForm.phone.trim() && !validateAzerbaijanPhone(editForm.phone.trim(), false)) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az'
+          ? 'Telefon formatı düzgün deyil (məsələn: +994501234567 və ya 0501234567)'
+          : 'Неверный формат телефона'
+      );
+      return;
+    }
+    
+    // ✅ Validate WhatsApp (optional but must be valid if provided)
+    if (editForm.whatsapp.trim() && !validateAzerbaijanPhone(editForm.whatsapp.trim(), false)) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az'
+          ? 'WhatsApp nömrəsi formatı düzgün deyil'
+          : 'Неверный формат WhatsApp'
+      );
+      return;
+    }
+    
+    // ✅ Validate website URL (optional but must be valid if provided)
+    if (editForm.website.trim() && !validateWebsiteURL(editForm.website.trim(), false)) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az'
+          ? 'Website URL formatı düzgün deyil (məsələn: https://magaza.az)'
+          : 'Неверный формат URL'
+      );
+      return;
+    }
+    
+=======
     // 5. Validate store name
     if (!editForm.name || typeof editForm.name !== 'string') {
       Alert.alert('Xəta', 'Mağaza adı düzgün deyil');
@@ -450,8 +584,42 @@ export default function StoreSettingsScreen() {
     
     setIsLoading(true);
     
+>>>>>>> origin/main
     try {
+      logger.info('[StoreSettings] Updating store:', {
+        storeId: store.id,
+        name: editForm.name.trim(),
+        hasEmail: !!editForm.email.trim(),
+        hasPhone: !!editForm.phone.trim()
+      });
+      
       await editStore(store.id, {
+<<<<<<< HEAD
+        name: editForm.name.trim(),
+        description: editForm.description.trim(),
+        contactInfo: {
+          ...store.contactInfo,
+          phone: editForm.phone.trim(),
+          email: editForm.email.trim().toLowerCase(),
+          website: editForm.website.trim(),
+          whatsapp: editForm.whatsapp.trim()
+        }
+      });
+      
+      logger.info('[StoreSettings] Store updated successfully:', store.id);
+      setShowEditModal(false);
+      
+      Alert.alert(
+        language === 'az' ? 'Uğurlu' : 'Успешно',
+        language === 'az' ? 'Mağaza məlumatları yeniləndi' : 'Данные магазина обновлены'
+      );
+    } catch (error) {
+      logger.error('[StoreSettings] Failed to update store:', error);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Məlumatlar yenilənə bilmədi' : 'Не удалось обновить данные'
+      );
+=======
         name: trimmedName,
         description: editForm.description?.trim() || '',
         contactInfo: {
@@ -486,10 +654,20 @@ export default function StoreSettingsScreen() {
       Alert.alert('Xəta', errorMessage);
     } finally {
       setIsLoading(false);
+>>>>>>> origin/main
     }
   };
 
   const handleDeleteStore = () => {
+<<<<<<< HEAD
+    if (!store) {
+      logger.error('[StoreSettings] No store for deletion');
+      return;
+    }
+    
+    logger.warn('[StoreSettings] Delete store confirmation requested:', { storeId: store.id, storeName: store.name });
+    
+=======
     // ✅ VALIDATION START
     
     // 1. Check authentication
@@ -531,14 +709,32 @@ export default function StoreSettingsScreen() {
     const followersCount = Array.isArray(store.followers) ? store.followers.length : 0;
     
     // First confirmation
+>>>>>>> origin/main
     Alert.alert(
       '⚠️ Mağazanı Sil',
       `"${store.name}" mağazasını silmək istədiyinizə əminsiniz?\n\n⚠️ Bu əməliyyat geri qaytarıla bilməz!\n• Bütün məlumatlar silinəcək\n• ${followersCount} izləyici bildiriş alacaq\n• Mağazaya giriş mümkün olmayacaq`,
       [
-        { text: 'Ləğv et', style: 'cancel' },
+        { 
+          text: 'Ləğv et', 
+          style: 'cancel',
+          onPress: () => logger.info('[StoreSettings] Delete cancelled')
+        },
         {
           text: 'Davam et',
           style: 'destructive',
+<<<<<<< HEAD
+          onPress: async () => {
+            logger.info('[StoreSettings] Deleting store:', store.id);
+            try {
+              await deleteStore(store.id);
+              logger.info('[StoreSettings] Store deleted successfully:', store.id);
+              router.back();
+              Alert.alert('Uğurlu', 'Mağaza silindi');
+            } catch (error) {
+              logger.error('[StoreSettings] Failed to delete store:', error);
+              Alert.alert('Xəta', 'Mağaza silinə bilmədi');
+            }
+=======
           onPress: () => {
             // Second confirmation after 300ms
             setTimeout(() => {
@@ -590,6 +786,7 @@ export default function StoreSettingsScreen() {
                 ]
               );
             }, 300);
+>>>>>>> origin/main
           }
         }
       ]
@@ -597,15 +794,39 @@ export default function StoreSettingsScreen() {
   };
 
   const handleRenewal = async (packageId: string) => {
+    if (!store) {
+      logger.error('[StoreSettings] No store for renewal');
+      return;
+    }
+    
+    if (!packageId || typeof packageId !== 'string') {
+      logger.error('[StoreSettings] Invalid package ID:', packageId);
+      return;
+    }
+    
+    const renewalPackage = renewalPackages.find(p => p.id === packageId);
+    if (!renewalPackage) {
+      logger.error('[StoreSettings] Renewal package not found:', packageId);
+      return;
+    }
+    
+    logger.info('[StoreSettings] Initiating renewal:', { 
+      storeId: store.id, 
+      packageId, 
+      packageName: renewalPackage.name,
+      price: renewalPackage.discountedPrice 
+    });
+    
     try {
-      const renewalPackage = renewalPackages.find(p => p.id === packageId);
-      if (!renewalPackage) return;
-
       // In a real app, this would handle payment
       await renewStore(store.id, store.plan.id);
+      
+      logger.info('[StoreSettings] Store renewed successfully:', store.id);
       setShowRenewalModal(false);
+      
       Alert.alert('Uğurlu', 'Mağaza yeniləndi');
     } catch (error) {
+      logger.error('[StoreSettings] Failed to renew store:', error);
       Alert.alert('Xəta', 'Yeniləmə uğursuz oldu');
     }
   };

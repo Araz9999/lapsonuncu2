@@ -88,6 +88,22 @@ export default function StoresTabScreen() {
       return;
     }
     
+<<<<<<< HEAD
+    // ✅ Get store
+    const store = stores.find(s => s.id === storeId);
+    if (!store) return;
+    
+    const isFollowing = isFollowingStore(currentUser.id, storeId);
+    if (isFollowing) {
+      await unfollowStore(currentUser.id, storeId);
+    } else {
+      // ✅ Check if active
+      if (!store.isActive) {
+        return; // Silently ignore for inactive stores in tab view
+      }
+      
+      await followStore(currentUser.id, storeId);
+=======
     // ✅ Set loading state
     setIsLoading(true);
     
@@ -116,6 +132,7 @@ export default function StoresTabScreen() {
     } finally {
       // ✅ Always reset loading state
       setIsLoading(false);
+>>>>>>> origin/main
     }
   };
   

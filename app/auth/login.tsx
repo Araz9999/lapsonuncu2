@@ -1,26 +1,53 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from '@/constants/translations';
 import { useUserStore } from '@/store/userStore';
-import { users } from '@/mocks/users';
 import Colors from '@/constants/colors';
 import { X, Eye, EyeOff, Facebook, Chrome, MessageCircle, Alert as AlertIcon } from 'lucide-react-native';
 import { Alert } from 'react-native';
 import { initiateSocialLogin, showSocialLoginError } from '@/utils/socialAuth';
+import { trpc } from '@/lib/trpc';
+import { logger } from '@/utils/logger';
+import { validateEmail } from '@/utils/inputValidation';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const { login } = useUserStore();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-
+  const [isLoading, setIsLoading] = useState(false);
   const [loadingSocial, setLoadingSocial] = useState<string | null>(null);
+  
+  const loginMutation = trpc.auth.login.useMutation();
 
   const handleLogin = async () => {
+<<<<<<< HEAD
+    // ✅ Validate inputs
+    if (!email || !email.trim()) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Email daxil edin' : 'Введите email'
+      );
+      return;
+    }
+
+    if (!validateEmail(email)) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Düzgün email daxil edin' : 'Введите корректный email'
+      );
+      return;
+    }
+
+    if (!password || password.length < 6) {
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Şifrə ən az 6 simvol olmalıdır' : 'Пароль должен содержать минимум 6 символов'
+=======
     // ===== VALIDATION START =====
     
     // 1. Email validation
@@ -28,10 +55,54 @@ export default function LoginScreen() {
       Alert.alert(
         t('error'),
         t('emailRequired') || 'Email tələb olunur'
+>>>>>>> origin/main
       );
       return;
     }
     
+<<<<<<< HEAD
+    setIsLoading(true);
+    
+    try {
+      // ✅ Use real backend API
+      const result = await loginMutation.mutateAsync({
+        email: email.trim().toLowerCase(),
+        password,
+      });
+
+      logger.info('Login successful for user:', result.user.email);
+
+      // ✅ Create complete user object for state
+      const userObject = {
+        id: result.user.id,
+        name: result.user.name,
+        email: result.user.email,
+        phone: result.user.phone || '',
+        avatar: result.user.avatar || '',
+        verified: result.user.verified,
+        rating: 0,
+        totalRatings: 0,
+        memberSince: new Date().toISOString(),
+        location: { az: '', ru: '', en: '' },
+        privacySettings: {
+          hidePhoneNumber: false,
+          allowDirectContact: true,
+          onlyAppMessaging: false,
+        },
+        analytics: {
+          lastOnline: new Date().toISOString(),
+          messageResponseRate: 0,
+          averageResponseTime: 0,
+          totalMessages: 0,
+          totalResponses: 0,
+          isOnline: true,
+        },
+      };
+
+      login(userObject);
+
+      // ✅ Navigate to home
+=======
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email.trim())) {
       Alert.alert(
@@ -93,17 +164,33 @@ export default function LoginScreen() {
       
       login(mockUser);
       
+>>>>>>> origin/main
       if (router.canGoBack()) {
         router.back();
       } else {
         router.replace('/');
       }
+<<<<<<< HEAD
+    } catch (error: any) {
+      logger.error('Login error:', error);
+      
+      // ✅ User-friendly error messages
+      Alert.alert(
+        language === 'az' ? 'Giriş uğursuz oldu' : 'Вход не удался',
+        error?.message || (language === 'az' 
+          ? 'Email və ya şifrə yanlışdır. Zəhmət olmasa yenidən cəhd edin.'
+          : 'Email или пароль неверны. Пожалуйста, попробуйте снова.')
+      );
+    } finally {
+      setIsLoading(false);
+=======
     } catch (error) {
       logger.error('Login error:', error);
       Alert.alert(
         t('error'),
         'Giriş zamanı xəta baş verdi. Yenidən cəhd edin.'
       );
+>>>>>>> origin/main
     }
   };
   
@@ -124,16 +211,20 @@ export default function LoginScreen() {
   };
 
   const handleSocialLogin = async (provider: 'google' | 'facebook' | 'vk') => {
+    logger.info('[Login] Social login initiated:', { provider });
+    
     try {
       setLoadingSocial(provider);
       
-      const baseUrl = 'https://1r36dhx42va8pxqbqz5ja.rork.app';
+      // ✅ Use environment variable or config for base URL
+      const baseUrl = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://1r36dhx42va8pxqbqz5ja.rork.app';
       const statusResponse = await fetch(`${baseUrl}/api/auth/status`);
       
       if (statusResponse.ok) {
         const statusData = await statusResponse.json();
         if (!statusData.configured[provider]) {
           setLoadingSocial(null);
+          logger.warn('[Login] Provider not configured:', { provider });
           showSocialLoginError(provider, `${provider.charAt(0).toUpperCase() + provider.slice(1)} login is not configured yet. Please contact support.`);
           return;
         }
@@ -144,23 +235,51 @@ export default function LoginScreen() {
         (result) => {
           setLoadingSocial(null);
           if (result.success && result.user) {
-            login({
-              ...users[0],
+            logger.info(`[Login] Social login successful (${provider}):`, { 
+              userId: result.user.id,
+              email: result.user.email
+            });
+            
+            // ✅ Create complete user object
+            const userObject = {
               id: result.user.id as string,
               name: result.user.name as string,
               email: result.user.email as string,
-              avatar: result.user.avatar as string,
-            });
+              phone: '',
+              avatar: result.user.avatar as string || '',
+              verified: true,
+              rating: 0,
+              totalRatings: 0,
+              memberSince: new Date().toISOString(),
+              location: { az: '', ru: '', en: '' },
+              privacySettings: {
+                hidePhoneNumber: false,
+                allowDirectContact: true,
+                onlyAppMessaging: false,
+              },
+              analytics: {
+                lastOnline: new Date().toISOString(),
+                messageResponseRate: 0,
+                averageResponseTime: 0,
+                totalMessages: 0,
+                totalResponses: 0,
+                isOnline: true,
+              },
+            };
+            
+            login(userObject);
             router.replace('/(tabs)');
           }
         },
         (error) => {
           setLoadingSocial(null);
+          logger.error(`[Login] Social login error (${provider}):`, error);
           showSocialLoginError(provider, error);
         }
       );
     } catch (error) {
       setLoadingSocial(null);
+      logger.error(`[Login] Social login initiation error (${provider}):`, error);
       showSocialLoginError(provider, 'Failed to initiate login. Please try again.');
     }
   };
@@ -205,8 +324,13 @@ export default function LoginScreen() {
               placeholderTextColor={Colors.placeholder}
               keyboardType="email-address"
               autoCapitalize="none"
+<<<<<<< HEAD
+              autoCorrect={false}
+              editable={!isLoading}
+=======
               returnKeyType="next"
               blurOnSubmit={false}
+>>>>>>> origin/main
             />
           </View>
           
@@ -222,12 +346,18 @@ export default function LoginScreen() {
                 placeholder={t('yourPassword')}
                 placeholderTextColor={Colors.placeholder}
                 secureTextEntry={!showPassword}
+<<<<<<< HEAD
+                autoCapitalize="none"
+                editable={!isLoading}
+=======
                 returnKeyType="go"
                 onSubmitEditing={handleLogin}
+>>>>>>> origin/main
               />
               <TouchableOpacity 
                 style={styles.eyeButton}
                 onPress={() => setShowPassword(!showPassword)}
+                disabled={isLoading}
               >
                 {showPassword ? (
                   <EyeOff size={20} color={Colors.textSecondary} />
@@ -238,7 +368,11 @@ export default function LoginScreen() {
             </View>
           </View>
           
-          <TouchableOpacity style={styles.forgotPassword} onPress={handleForgotPassword}>
+          <TouchableOpacity 
+            style={styles.forgotPassword} 
+            onPress={handleForgotPassword}
+            disabled={isLoading}
+          >
             <Text style={styles.forgotPasswordText}>
               {t('forgotPassword')}
             </Text>
@@ -247,14 +381,18 @@ export default function LoginScreen() {
           <TouchableOpacity 
             style={[
               styles.loginButton,
-              (!email || !password) && styles.disabledButton
+              ((!email || !password) || isLoading) && styles.disabledButton
             ]} 
             onPress={handleLogin}
-            disabled={!email || !password}
+            disabled={!email || !password || isLoading}
           >
-            <Text style={styles.loginButtonText}>
-              {t('login')}
-            </Text>
+            {isLoading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.loginButtonText}>
+                {t('login')}
+              </Text>
+            )}
           </TouchableOpacity>
           
           <View style={styles.divider}>
@@ -269,7 +407,7 @@ export default function LoginScreen() {
             <TouchableOpacity 
               style={[styles.socialButton, styles.googleButton]}
               onPress={() => handleSocialLogin('google')}
-              disabled={loadingSocial !== null}
+              disabled={loadingSocial !== null || isLoading}
             >
               {loadingSocial === 'google' ? (
                 <ActivityIndicator size="small" color="white" />
@@ -284,7 +422,7 @@ export default function LoginScreen() {
             <TouchableOpacity 
               style={[styles.socialButton, styles.facebookButton]}
               onPress={() => handleSocialLogin('facebook')}
-              disabled={loadingSocial !== null}
+              disabled={loadingSocial !== null || isLoading}
             >
               {loadingSocial === 'facebook' ? (
                 <ActivityIndicator size="small" color="white" />
@@ -299,7 +437,7 @@ export default function LoginScreen() {
             <TouchableOpacity 
               style={[styles.socialButton, styles.vkButton]}
               onPress={() => handleSocialLogin('vk')}
-              disabled={loadingSocial !== null}
+              disabled={loadingSocial !== null || isLoading}
             >
               {loadingSocial === 'vk' ? (
                 <ActivityIndicator size="small" color="white" />
@@ -324,7 +462,7 @@ export default function LoginScreen() {
             <Text style={styles.footerText}>
               {t('noAccount')}
             </Text>
-            <TouchableOpacity onPress={handleRegister}>
+            <TouchableOpacity onPress={handleRegister} disabled={isLoading}>
               <Text style={styles.registerText}>
                 {t('registerNow')}
               </Text>

@@ -123,6 +123,20 @@ export const useListingStore = create<ListingState>((set, get) => ({
     // Filter out deleted listings
     let filtered = listings.filter(listing => !listing.deletedAt);
     
+    // ✅ Early return if no filters applied (optimization)
+    const hasFilters = 
+      (searchQuery && searchQuery.trim()) ||
+      selectedCategory ||
+      selectedSubcategory ||
+      priceRange.min !== null ||
+      priceRange.max !== null ||
+      sortBy;
+    
+    if (!hasFilters) {
+      set({ filteredListings: filtered });
+      return;
+    }
+    
     // Apply search filter
     if (searchQuery && searchQuery.trim()) {
       const normalizedQuery = searchQuery.toLowerCase().trim();
@@ -192,13 +206,15 @@ export const useListingStore = create<ListingState>((set, get) => ({
       });
     }
     
-    // Apply sorting with featured listings priority
-    filtered.sort((a, b) => {
-      // First priority: Featured listings (with purchased views) go to top
-      if (a.isFeatured && a.purchasedViews && !b.isFeatured) return -1;
-      if (b.isFeatured && b.purchasedViews && !a.isFeatured) return 1;
+    // Apply sorting with VIP/Premium/Featured priority (create a copy to avoid mutation)
+    filtered = [...filtered].sort((a, b) => {
+      // ✅ CORRECT PRIORITY ORDER: VIP > Featured > Premium
       
-      // Second priority: Other featured listings
+      // First priority: VIP listings (highest tier)
+      if (a.isVip && !b.isVip) return -1;
+      if (b.isVip && !a.isVip) return 1;
+      
+      // Second priority: Featured listings (with or without purchased views)
       if (a.isFeatured && !b.isFeatured) return -1;
       if (b.isFeatured && !a.isFeatured) return 1;
       
@@ -206,9 +222,9 @@ export const useListingStore = create<ListingState>((set, get) => ({
       if (a.isPremium && !b.isPremium) return -1;
       if (b.isPremium && !a.isPremium) return 1;
       
-      // Fourth priority: VIP listings
-      if (a.isVip && !b.isVip) return -1;
-      if (b.isVip && !a.isVip) return 1;
+      // Fourth priority: Featured with purchased views (boost within same tier)
+      if (a.isFeatured && a.purchasedViews && !b.purchasedViews) return -1;
+      if (b.isFeatured && b.purchasedViews && !a.purchasedViews) return 1;
       
       // Apply user-selected sorting for same-tier listings
       if (sortBy) {
@@ -509,90 +525,23 @@ export const useListingStore = create<ListingState>((set, get) => ({
   },
 
   promoteListingInStore: async (id, type, price) => {
-    try {
-      // ✅ VALIDATION START
-      
-      // 1. Validate ID
-      if (!id || typeof id !== 'string' || id.trim().length === 0) {
-        logger.error('[promoteListingInStore] Invalid listing ID:', id);
-        throw new Error('Invalid listing ID');
-      }
-      
-      // 2. Validate type
-      const validTypes = ['premium', 'vip', 'featured'];
-      if (!type || !validTypes.includes(type)) {
-        logger.error('[promoteListingInStore] Invalid promotion type:', type);
-        throw new Error('Invalid promotion type. Must be: premium, vip, or featured');
-      }
-      
-      // 3. Validate price
-      if (typeof price !== 'number' || !isFinite(price) || price < 0) {
-        logger.error('[promoteListingInStore] Invalid price:', price);
-        throw new Error('Price must be a non-negative number');
-      }
-      
-      if (price > 1000) {
-        logger.error('[promoteListingInStore] Price too high:', price);
-        throw new Error('Price cannot exceed 1000 AZN');
-      }
-      
-      // 4. Find listing
-      const { listings } = get();
-      const listing = listings.find(l => l.id === id);
-      
-      if (!listing) {
-        logger.error('[promoteListingInStore] Listing not found:', id);
-        throw new Error('Listing not found');
-      }
-      
-      // 5. Check if listing is deleted
-      if (listing.deletedAt) {
-        logger.error('[promoteListingInStore] Cannot promote deleted listing:', id);
-        throw new Error('Cannot promote a deleted listing');
-      }
-      
-      // 6. Check if listing belongs to a store
-      if (!listing.storeId) {
-        logger.error('[promoteListingInStore] Listing does not belong to a store:', id);
-        throw new Error('This listing does not belong to a store');
-      }
-      
-      // 7. Check if listing is expired
-      const now = new Date();
-      const expiryDate = new Date(listing.expiresAt);
-      if (expiryDate < now) {
-        logger.error('[promoteListingInStore] Cannot promote expired listing:', id);
-        throw new Error('Cannot promote an expired listing');
-      }
-      
-      // ✅ VALIDATION END
-      
-      logger.info('[promoteListingInStore] Promoting store listing:', { id, type, price });
-      
-      // Simulate payment processing
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      set(state => ({
-        listings: state.listings.map(listing => 
-          listing.id === id 
-            ? { 
-                ...listing, 
-                isPremium: type === 'premium' || type === 'vip',
-                isFeatured: type === 'featured' || type === 'vip',
-                isVip: type === 'vip',
-                adType: type
-              } 
-            : listing
-        )
-      }));
-      
-      get().applyFilters();
-      
-      logger.info('[promoteListingInStore] Store promotion successful:', { id, type });
-    } catch (error) {
-      logger.error('[promoteListingInStore] Error:', error);
-      throw error; // Re-throw for UI handling
-    }
+    // Simulate payment processing
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    set(state => ({
+      listings: state.listings.map(listing => 
+        listing.id === id 
+          ? { 
+              ...listing, 
+              isPremium: type === 'premium' || type === 'vip',
+              isFeatured: type === 'featured' || type === 'vip',
+              isVip: type === 'vip',
+              adType: type
+            } 
+          : listing
+      )
+    }));
+    get().applyFilters();
   },
 
   incrementViewCount: (id) => {
@@ -976,100 +925,12 @@ export const useListingStore = create<ListingState>((set, get) => ({
   },
 
   applyCreativeEffects: async (id: string, effects: any[], effectEndDates: any[]) => {
-    // ===== VALIDATION START =====
-    
-    // 1. Check if effects array is valid
-    if (!effects || !Array.isArray(effects) || effects.length === 0) {
-      logger.error('[ListingStore] Invalid effects array:', effects);
-      throw new Error('Effektlər düzgün deyil');
-    }
-    
-    // 2. Check max effects limit
-    if (effects.length > 10) {
-      logger.error('[ListingStore] Too many effects:', effects.length);
-      throw new Error('Maksimum 10 effekt əlavə edə bilərsiniz');
-    }
-    
-    // 3. Check if effectEndDates array is valid and matches effects length
-    if (!effectEndDates || !Array.isArray(effectEndDates) || effectEndDates.length !== effects.length) {
-      logger.error('[ListingStore] Invalid effectEndDates array:', effectEndDates);
-      throw new Error('Effekt tarixləri düzgün deyil');
-    }
-    
-    // 4. Check for duplicate effects
-    const effectIds = effects.map(e => e.id);
-    const uniqueIds = new Set(effectIds);
-    if (effectIds.length !== uniqueIds.size) {
-      logger.error('[ListingStore] Duplicate effects detected');
-      throw new Error('Eyni effekt 2 dəfə tətbiq edilə bilməz');
-    }
-    
-    // 5. Validate each effect has required properties
-    for (let i = 0; i < effects.length; i++) {
-      const effect = effects[i];
-      const endDate = effectEndDates[i];
-      
-      // Check effect structure
-      if (!effect.id || typeof effect.id !== 'string') {
-        logger.error('[ListingStore] Invalid effect ID:', effect);
-        throw new Error(`Effekt ${i + 1}: ID düzgün deyil`);
-      }
-      
-      if (!effect.name || typeof effect.name !== 'object') {
-        logger.error('[ListingStore] Invalid effect name:', effect);
-        throw new Error(`Effekt ${i + 1}: Ad düzgün deyil`);
-      }
-      
-      if (!effect.price || typeof effect.price !== 'number' || effect.price <= 0 || !isFinite(effect.price)) {
-        logger.error('[ListingStore] Invalid effect price:', effect.price);
-        throw new Error(`Effekt ${i + 1}: Qiymət düzgün deyil`);
-      }
-      
-      if (effect.price > 100) {
-        logger.error('[ListingStore] Effect price too high:', effect.price);
-        throw new Error(`Effekt ${i + 1}: Qiymət çox yüksəkdir`);
-      }
-      
-      if (!effect.duration || typeof effect.duration !== 'number' || effect.duration <= 0 || !isFinite(effect.duration)) {
-        logger.error('[ListingStore] Invalid effect duration:', effect.duration);
-        throw new Error(`Effekt ${i + 1}: Müddət düzgün deyil`);
-      }
-      
-      if (effect.duration > 365) {
-        logger.error('[ListingStore] Effect duration too long:', effect.duration);
-        throw new Error(`Effekt ${i + 1}: Müddət çox uzundur`);
-      }
-      
-      // Check end date
-      if (!endDate || !endDate.endDate) {
-        logger.error('[ListingStore] Invalid end date:', endDate);
-        throw new Error(`Effekt ${i + 1}: Bitmə tarixi düzgün deyil`);
-      }
-      
-      const endDateObj = endDate.endDate instanceof Date ? endDate.endDate : new Date(endDate.endDate);
-      if (isNaN(endDateObj.getTime())) {
-        logger.error('[ListingStore] Invalid end date value:', endDate.endDate);
-        throw new Error(`Effekt ${i + 1}: Bitmə tarixi etibarsızdır`);
-      }
-      
-      const now = new Date();
-      if (endDateObj <= now) {
-        logger.error('[ListingStore] End date in past:', endDateObj);
-        throw new Error(`Effekt ${i + 1}: Bitmə tarixi keçmişdədir`);
-      }
-    }
-    
-    // ===== VALIDATION END =====
-    
     // Simulate payment processing
     await new Promise(resolve => setTimeout(resolve, 1000));
     
     const state = get();
     const listing = state.listings.find(l => l.id === id);
-    if (!listing) {
-      logger.error('[ListingStore] Listing not found:', id);
-      throw new Error('Elan tapılmadı');
-    }
+    if (!listing) return;
     
     // Apply creative effects to the listing
     set(state => ({
@@ -1086,6 +947,11 @@ export const useListingStore = create<ListingState>((set, get) => ({
           : listing
       )
     }));
+    
+    logger.info('[ListingStore] Creative effects applied successfully:', { 
+      listingId: id,
+      effectCount: effects.length
+    });
     
     get().applyFilters();
     

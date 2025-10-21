@@ -17,7 +17,7 @@ class SavedCardsDatabase {
   private cardUuidIndex: Map<string, string> = new Map();
 
   async saveCard(cardData: Omit<SavedCard, 'id' | 'savedAt'>): Promise<SavedCard> {
-    const id = `card_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const id = `card_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
     const now = new Date().toISOString();
 
     const card: SavedCard = {
