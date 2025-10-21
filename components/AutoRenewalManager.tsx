@@ -12,6 +12,7 @@ import { useUserStore } from '@/store/userStore';
 import { Listing } from '@/types/listing';
 import { adPackages } from '@/constants/adPackages';
 import { Bell, Clock, CreditCard, RefreshCw } from 'lucide-react-native';
+import { logger } from '@/utils/logger';
 
 interface AutoRenewalManagerProps {
   listing: Listing;
@@ -142,6 +143,22 @@ export default function AutoRenewalManager({ listing, onUpdate }: AutoRenewalMan
   };
 
   const enableAutoRenewal = async () => {
+    if (!listing || !listing.id) {
+      logger.error('[AutoRenewal] No listing provided');
+      return;
+    }
+    
+    if (!renewalPackage || typeof renewalPrice !== 'number' || isNaN(renewalPrice)) {
+      logger.error('[AutoRenewal] Invalid renewal package or price:', { renewalPackage, renewalPrice });
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'Yeniləmə paketi düzgün deyil' : 'Пакет обновления недействителен'
+      );
+      return;
+    }
+    
+    logger.info('[AutoRenewal] Enabling auto-renewal:', { listingId: listing.id, price: renewalPrice, packageId: renewalPackage.id });
+    
     setIsLoading(true);
     try {
       // Validation: Check listing expiration date
@@ -167,6 +184,7 @@ export default function AutoRenewalManager({ listing, onUpdate }: AutoRenewalMan
       // Deduct payment from balance
       const paymentSuccess = spendFromBalance(renewalPrice);
       if (!paymentSuccess) {
+        logger.error('[AutoRenewal] Payment failed:', { price: renewalPrice });
         Alert.alert(
           language === 'az' ? 'Ödəniş Xətası' : 'Ошибка Оплаты',
           language === 'az'
@@ -197,13 +215,15 @@ export default function AutoRenewalManager({ listing, onUpdate }: AutoRenewalMan
       onUpdate(updatedListing);
       setAutoRenewalEnabled(true);
 
+      logger.info('[AutoRenewal] Auto-renewal enabled successfully');
       Alert.alert(
         language === 'az' ? 'Uğurlu!' : 'Успешно!',
         language === 'az'
           ? `Avtomatik yeniləmə aktivləşdirildi və ${renewalPrice} ${renewalPackage?.currency} balansınızdan çıxıldı. Elanınız müddəti bitdikdən sonra avtomatik olaraq 30 günlük yeniləməyə davam edəcək.`
           : `Автообновление активировано и ${renewalPrice} ${renewalPackage?.currency} списано с баланса. После истечения срока ваше объявление будет автоматически продлеваться на 30 дней.`
       );
-    } catch {
+    } catch (error) {
+      logger.error('[AutoRenewal] Failed to enable auto-renewal:', error);
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az'
@@ -216,6 +236,13 @@ export default function AutoRenewalManager({ listing, onUpdate }: AutoRenewalMan
   };
 
   const disableAutoRenewal = async () => {
+    if (!listing || !listing.id) {
+      logger.error('[AutoRenewal] No listing provided for disable');
+      return;
+    }
+    
+    logger.info('[AutoRenewal] Disabling auto-renewal:', { listingId: listing.id });
+    
     setIsLoading(true);
     try {
       // Validation: Check current time
@@ -232,6 +259,19 @@ export default function AutoRenewalManager({ listing, onUpdate }: AutoRenewalMan
       // Check if we should refund the payment based on grace period
       const gracePeriodEnd = listing.gracePeriodEnd ? new Date(listing.gracePeriodEnd) : null;
       
+<<<<<<< HEAD
+      // ✅ Validate date
+      if (gracePeriodEnd && isNaN(gracePeriodEnd.getTime())) {
+        logger.error('[AutoRenewal] Invalid grace period date:', listing.gracePeriodEnd);
+        Alert.alert(
+          language === 'az' ? 'Xəta' : 'Ошибка',
+          language === 'az' ? 'Güzəşt müddəti düzgün deyil' : 'Неверная дата льготного периода'
+        );
+        return;
+      }
+      
+      const shouldRefund = listing.autoRenewalPaid && !listing.autoRenewalUsed && gracePeriodEnd && now <= gracePeriodEnd;
+=======
       // Validation: Grace period date
       if (gracePeriodEnd && isNaN(gracePeriodEnd.getTime())) {
         logger.error('[AutoRenewal] Invalid grace period date:', listing.gracePeriodEnd);
@@ -243,6 +283,7 @@ export default function AutoRenewalManager({ listing, onUpdate }: AutoRenewalMan
                           gracePeriodEnd && 
                           !isNaN(gracePeriodEnd.getTime()) && 
                           now <= gracePeriodEnd;
+>>>>>>> origin/main
       let refundMessage = '';
       
       if (shouldRefund && listing.autoRenewalPrice && listing.autoRenewalPrice > 0) {
@@ -279,13 +320,15 @@ export default function AutoRenewalManager({ listing, onUpdate }: AutoRenewalMan
       onUpdate(updatedListing);
       setAutoRenewalEnabled(false);
 
+      logger.info('[AutoRenewal] Auto-renewal disabled successfully', { refunded: shouldRefund, amount: listing.autoRenewalPrice });
       Alert.alert(
         language === 'az' ? 'Dayandırıldı' : 'Отключено',
         language === 'az'
           ? `Avtomatik yeniləmə dayandırıldı.${refundMessage}`
           : `Автообновление отключено.${refundMessage}`
       );
-    } catch {
+    } catch (error) {
+      logger.error('[AutoRenewal] Failed to disable auto-renewal:', error);
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az'

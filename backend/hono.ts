@@ -6,9 +6,8 @@ import { appRouter } from "./trpc/app-router";
 import { createContext } from "./trpc/create-context";
 import authRoutes from "./routes/auth";
 import paymentsRoutes from "./routes/payments";
-import { logger } from "../utils/logger";
+import { logger } from "./utils/logger";
 
-import { logger } from '@/utils/logger';
 // Simple in-memory rate limiter (per IP per window)
 type RateRecord = { count: number; resetAt: number };
 const rateBucket = new Map<string, RateRecord>();
@@ -26,6 +25,12 @@ function rateLimit(limit: number, windowMs: number) {
     }
 
     if (record.count >= limit) {
+      logger.warn('[RateLimit] Request limit exceeded:', { 
+        ip, 
+        limit, 
+        count: record.count,
+        path: c.req.path 
+      });
       return c.text('Too Many Requests', 429);
     }
     record.count += 1;
@@ -116,7 +121,12 @@ app.use('*', async (c, next) => {
 });
 
 app.get("/", (c) => {
-  return c.json({ status: "ok", message: "API is running" });
+  logger.info('[API] Health check requested');
+  return c.json({ 
+    status: "ok", 
+    message: "API is running",
+    timestamp: new Date().toISOString()
+  });
 });
 
 export default app;

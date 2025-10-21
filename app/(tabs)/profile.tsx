@@ -16,12 +16,18 @@ import { logger } from '@/utils/logger';
 export default function ProfileScreen() {
   const router = useRouter();
   const { t, language } = useTranslation();
-  const { isAuthenticated, logout, favorites, freeAdsThisMonth, walletBalance, bonusBalance } = useUserStore();
+  const { isAuthenticated, logout, favorites, freeAdsThisMonth, walletBalance, bonusBalance, currentUser } = useUserStore(); // ✅ Get real currentUser
   const { listings } = useListingStore();
   const { getUserStore } = useStoreStore();
   const { liveChats, getAvailableOperators } = useSupportStore();
   
   const [showLiveChat, setShowLiveChat] = React.useState<boolean>(false);
+<<<<<<< HEAD
+  const [isDeleting, setIsDeleting] = React.useState<boolean>(false); // ✅ Loading state
+  
+  // ✅ Use real currentUser from useUserStore (not mock data)
+  const userStore = currentUser ? getUserStore(currentUser.id) : null;
+=======
   const [isDeletingAccount, setIsDeletingAccount] = React.useState<boolean>(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState<boolean>(false);
   
@@ -34,6 +40,7 @@ export default function ProfileScreen() {
     logger.error('[ProfileScreen] Invalid current user');
   }
   const userStore = getUserStore(currentUser.id);
+>>>>>>> origin/main
   
   // Get user's active chats for live support
   const userChats = isAuthenticated ? liveChats.filter(chat => 
@@ -55,6 +62,24 @@ export default function ProfileScreen() {
   };
 
   const handleDeleteProfile = () => {
+<<<<<<< HEAD
+    // ✅ Validate user exists
+    if (!currentUser) {
+      Alert.alert(
+        t('error'),
+        language === 'az' ? 'İstifadəçi tapılmadı' : 'Пользователь не найден'
+      );
+      return;
+    }
+    
+    // ✅ Prevent deletion if already in progress
+    if (isDeleting) {
+      logger.debug('[handleDeleteProfile] Deletion already in progress, ignoring');
+      return;
+    }
+    
+    logger.debug('[handleDeleteProfile] Delete profile button pressed');
+=======
     // ✅ Validate user is authenticated
     if (!isAuthenticated || !currentUser) {
       logger.error('[handleDeleteProfile] User not authenticated');
@@ -85,6 +110,7 @@ export default function ProfileScreen() {
     });
     
     // ✅ First confirmation with actual user data
+>>>>>>> origin/main
     Alert.alert(
       t('deleteProfile'),
       language === 'az' 
@@ -101,6 +127,63 @@ export default function ProfileScreen() {
           style: 'destructive',
           onPress: () => {
             logger.debug('[handleDeleteProfile] First confirmation accepted, showing second confirmation');
+<<<<<<< HEAD
+            // ✅ No setTimeout needed - show second confirmation immediately
+            Alert.alert(
+              t('confirmDelete'),
+              t('areYouSure'),
+              [
+                {
+                  text: t('cancel'),
+                  style: 'cancel',
+                  onPress: () => logger.debug('[handleDeleteProfile] Second confirmation cancelled')
+                },
+                {
+                  text: t('yes'),
+                  style: 'destructive',
+                  onPress: async () => {
+                    setIsDeleting(true); // ✅ Set loading state
+                    logger.debug('[handleDeleteProfile] Profile deletion confirmed, calling API');
+                    
+                    try {
+                      await authService.deleteAccount();
+                      logout();
+                      logger.debug('[handleDeleteProfile] Account deleted and logged out, navigating to login');
+                      
+                      // ✅ Show success and auto-navigate
+                      Alert.alert(
+                        t('success'),
+                        language === 'az' 
+                          ? 'Profil uğurla silindi. Giriş səhifəsinə yönləndirilirsiniz...' 
+                          : 'Профиль успешно удален. Перенаправление на страницу входа...',
+                        [],
+                        { cancelable: false }
+                      );
+                      
+                      // ✅ Auto-navigate after 2 seconds
+                      setTimeout(() => {
+                        logger.debug('[handleDeleteProfile] Navigating to login screen');
+                        router.push('/auth/login');
+                      }, 2000);
+                    } catch (error) {
+                      logger.error('[handleDeleteProfile] Error during profile deletion:', error);
+                      
+                      // ✅ Show detailed error message
+                      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                      Alert.alert(
+                        t('error'),
+                        language === 'az' 
+                          ? `Profil silinərkən xəta baş verdi: ${errorMessage}` 
+                          : `Произошла ошибка при удалении профиля: ${errorMessage}`
+                      );
+                    } finally {
+                      setIsDeleting(false); // ✅ Reset loading state
+                    }
+                  },
+                },
+              ]
+            );
+=======
             
             // ✅ Second confirmation with delay
             setTimeout(() => {
@@ -185,6 +268,7 @@ export default function ProfileScreen() {
                 ]
               );
             }, 300);
+>>>>>>> origin/main
           },
         },
       ]
@@ -494,7 +578,7 @@ export default function ProfileScreen() {
       <LiveChatWidget
         visible={showLiveChat}
         onClose={() => setShowLiveChat(false)}
-        chatId={hasActiveChat ? userChats[0].id : undefined}
+        chatId={hasActiveChat && userChats.length > 0 ? userChats[0].id : undefined}
       />
     </ScrollView>
   );

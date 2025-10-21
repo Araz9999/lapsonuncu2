@@ -64,6 +64,27 @@ export default function BlockedUsersScreen() {
 
   const t = texts[language];
 
+<<<<<<< HEAD
+  logger.info('[BlockedUsers] Screen opened:', { 
+    totalBlocked: blockedUsers.length,
+    userId: users[0]?.id // Just for context
+  });
+  
+  const blockedUsersList = users.filter(user => {
+    if (!user || !user.id) {
+      logger.warn('[BlockedUsers] Invalid user in users list:', user);
+      return false;
+    }
+    return blockedUsers.includes(user.id);
+  });
+
+  const handleUnblock = (userId: string) => {
+    if (!userId || typeof userId !== 'string') {
+      logger.error('[BlockedUsers] Invalid userId for unblock:', userId);
+      Alert.alert(
+        language === 'az' ? 'Xəta' : 'Ошибка',
+        language === 'az' ? 'İstifadəçi tapılmadı' : 'Пользователь не найден'
+=======
   // ✅ Validate and filter blocked users
   const blockedUsersList = React.useMemo(() => {
     if (!Array.isArray(blockedUsers)) {
@@ -84,10 +105,14 @@ export default function BlockedUsersScreen() {
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Hesaba daxil olmamısınız' : 'Вы не авторизованы'
+>>>>>>> origin/main
       );
       return;
     }
     
+<<<<<<< HEAD
+    logger.info('[BlockedUsers] Unblock confirmation requested:', { userId });
+=======
     // ✅ Validate userId
     if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
       logger.error('[BlockedUsersScreen] Invalid userId for unblock');
@@ -103,6 +128,7 @@ export default function BlockedUsersScreen() {
       logger.warn('[BlockedUsersScreen] Unblock already in progress');
       return;
     }
+>>>>>>> origin/main
     
     Alert.alert(
       language === 'az' ? 'Blokdan çıxar' : 'Разблокировать',
@@ -110,9 +136,29 @@ export default function BlockedUsersScreen() {
         ? `${userName} istifadəçisini blokdan çıxarmaq istədiyinizə əminsinizmi?\n\nOnunla yenidən əlaqə saxlaya biləcəksiniz.`
         : `Вы уверены, что хотите разблокировать ${userName}?\n\nВы снова сможете связаться с ним.`,
       [
-        { text: t.no, style: 'cancel' },
+        { 
+          text: t.no, 
+          style: 'cancel',
+          onPress: () => logger.info('[BlockedUsers] Unblock cancelled:', { userId })
+        },
         {
           text: t.yes,
+<<<<<<< HEAD
+          onPress: () => {
+            try {
+              logger.info('[BlockedUsers] Unblocking user:', { userId });
+              unblockUser(userId);
+              logger.info('[BlockedUsers] User unblocked successfully:', { userId });
+              Alert.alert('', t.unblockSuccess);
+            } catch (error) {
+              logger.error('[BlockedUsers] Failed to unblock user:', error);
+              Alert.alert(
+                language === 'az' ? 'Xəta' : 'Ошибка',
+                language === 'az' 
+                  ? 'Blokdan çıxarma uğursuz oldu' 
+                  : 'Не удалось разблокировать'
+              );
+=======
           onPress: async () => {
             setIsUnblocking(userId);
             
@@ -154,6 +200,7 @@ export default function BlockedUsersScreen() {
               );
             } finally {
               setIsUnblocking(null);
+>>>>>>> origin/main
             }
           },
         },
@@ -162,6 +209,17 @@ export default function BlockedUsersScreen() {
   };
 
   const renderBlockedUser = ({ item }: { item: typeof users[0] }) => {
+<<<<<<< HEAD
+    if (!item) {
+      logger.warn('[BlockedUsers] Null item in renderBlockedUser');
+      return null;
+    }
+    
+    if (!item.id || !item.name) {
+      logger.warn('[BlockedUsers] Invalid user data:', { id: item.id, hasName: !!item.name });
+      return null;
+    }
+=======
     // ✅ Validate item
     if (!item || !item.id || !item.name) {
       logger.error('[BlockedUsersScreen] Invalid user item');
@@ -169,12 +227,22 @@ export default function BlockedUsersScreen() {
     }
     
     const isCurrentlyUnblocking = isUnblocking === item.id;
+>>>>>>> origin/main
     
     return (
       <View style={[styles.userCard, { backgroundColor: colors.card }]}>
         <Image 
           source={{ uri: item.avatar }} 
           style={styles.avatar}
+<<<<<<< HEAD
+          onError={(error) => {
+            logger.warn('[BlockedUsers] Avatar load failed:', { userId: item.id, error });
+          }}
+        />
+        <View style={styles.userInfo}>
+          <Text style={[styles.userName, { color: colors.text }]}>{item.name}</Text>
+          <Text style={[styles.userLocation, { color: colors.textSecondary }]}>
+=======
           defaultSource={require('@/assets/images/default-avatar.png')}
           onError={() => logger.warn('[BlockedUsersScreen] Avatar load error for:', item.id)}
         />
@@ -183,10 +251,18 @@ export default function BlockedUsersScreen() {
             {item.name}
           </Text>
           <Text style={[styles.userLocation, { color: colors.textSecondary }]} numberOfLines={1}>
+>>>>>>> origin/main
             {item.location?.[language] || item.location?.az || ''}
           </Text>
         </View>
         <TouchableOpacity
+<<<<<<< HEAD
+          style={[styles.unblockButton, { backgroundColor: colors.success + '20' }]}
+          onPress={() => handleUnblock(item.id)}
+        >
+          <UserCheck size={20} color={colors.success} />
+          <Text style={[styles.unblockText, { color: colors.success }]}>{t.unblock}</Text>
+=======
           style={[
             styles.unblockButton, 
             { backgroundColor: colors.success + '20' },
@@ -206,6 +282,7 @@ export default function BlockedUsersScreen() {
               : t.unblock
             }
           </Text>
+>>>>>>> origin/main
         </TouchableOpacity>
       </View>
     );

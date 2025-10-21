@@ -21,6 +21,7 @@ export const adPackages: AdPackage[] = [
     name: {
       az: 'Pulsuz',
       ru: 'Бесплатно',
+      en: 'Free',
     },
     price: 0,
     currency: 'AZN',
@@ -39,6 +40,7 @@ export const adPackages: AdPackage[] = [
     name: {
       az: 'Standart',
       ru: 'Стандарт',
+      en: 'Standard',
     },
     price: 3,
     currency: 'AZN',
@@ -57,6 +59,7 @@ export const adPackages: AdPackage[] = [
     name: {
       az: 'Standart (30 gün)',
       ru: 'Стандарт (30 дней)',
+      en: 'Standard (30 days)',
     },
     price: 5,
     currency: 'AZN',
@@ -75,6 +78,7 @@ export const adPackages: AdPackage[] = [
     name: {
       az: 'Premium',
       ru: 'Премиум',
+      en: 'Premium',
     },
     price: 8,
     currency: 'AZN',
@@ -93,6 +97,7 @@ export const adPackages: AdPackage[] = [
     name: {
       az: 'Premium (30 gün)',
       ru: 'Премиум (30 дней)',
+      en: 'Premium (30 days)',
     },
     price: 14,
     currency: 'AZN',
@@ -111,6 +116,7 @@ export const adPackages: AdPackage[] = [
     name: {
       az: 'VIP',
       ru: 'VIP',
+      en: 'VIP',
     },
     price: 12,
     currency: 'AZN',
@@ -129,6 +135,7 @@ export const adPackages: AdPackage[] = [
     name: {
       az: 'VIP (30 gün)',
       ru: 'VIP (30 дней)',
+      en: 'VIP (30 days)',
     },
     price: 18,
     currency: 'AZN',
@@ -149,6 +156,7 @@ export interface PromotionPackage {
   name: {
     az: string;
     ru: string;
+    en?: string;
   };
   price: number;
   currency: string;
@@ -157,6 +165,7 @@ export interface PromotionPackage {
   description: {
     az: string;
     ru: string;
+    en?: string;
   };
 }
 
@@ -166,6 +175,7 @@ export const promotionPackages: PromotionPackage[] = [
     name: {
       az: 'Önə Çəkmə (7 gün)',
       ru: 'Выделить (7 дней)',
+      en: 'Featured (7 days)',
     },
     price: 2,
     currency: 'AZN',
@@ -174,6 +184,7 @@ export const promotionPackages: PromotionPackage[] = [
     description: {
       az: 'Elanınız axtarış nəticələrində önə çəkiləcək',
       ru: 'Ваше объявление будет выделено в результатах поиска',
+      en: 'Your listing will be featured in search results',
     },
   },
   {
@@ -181,6 +192,7 @@ export const promotionPackages: PromotionPackage[] = [
     name: {
       az: 'Önə Çəkmə (14 gün)',
       ru: 'Выделить (14 дней)',
+      en: 'Featured (14 days)',
     },
     price: 3,
     currency: 'AZN',
@@ -189,6 +201,7 @@ export const promotionPackages: PromotionPackage[] = [
     description: {
       az: 'Elanınız axtarış nəticələrində önə çəkiləcək',
       ru: 'Ваше объявление будет выделено в результатах поиска',
+      en: 'Your listing will be featured in search results',
     },
   },
   {
@@ -196,6 +209,7 @@ export const promotionPackages: PromotionPackage[] = [
     name: {
       az: 'Premium (7 gün)',
       ru: 'Премиум (7 дней)',
+      en: 'Premium (7 days)',
     },
     price: 5,
     currency: 'AZN',
@@ -204,6 +218,7 @@ export const promotionPackages: PromotionPackage[] = [
     description: {
       az: 'Elanınız premium bölmədə göstəriləcək və daha çox görünəcək',
       ru: 'Ваше объявление будет показано в премиум разделе и получит больше просмотров',
+      en: 'Your listing will be shown in premium section and get more views',
     },
   },
   {
@@ -211,6 +226,7 @@ export const promotionPackages: PromotionPackage[] = [
     name: {
       az: 'Premium (14 gün)',
       ru: 'Премиум (14 дней)',
+      en: 'Premium (14 days)',
     },
     price: 8,
     currency: 'AZN',
@@ -219,6 +235,7 @@ export const promotionPackages: PromotionPackage[] = [
     description: {
       az: 'Elanınız premium bölmədə göstəriləcək və daha çox görünəcək',
       ru: 'Ваше объявление будет показано в премиум разделе и получит больше просмотров',
+      en: 'Your listing will be shown in premium section and get more views',
     },
   },
   {
@@ -226,6 +243,7 @@ export const promotionPackages: PromotionPackage[] = [
     name: {
       az: 'VIP (7 gün)',
       ru: 'VIP (7 дней)',
+      en: 'VIP (7 days)',
     },
     price: 8,
     currency: 'AZN',
@@ -234,6 +252,7 @@ export const promotionPackages: PromotionPackage[] = [
     description: {
       az: 'Elanınız ən yuxarıda göstəriləcək və maksimum görünürlük əldə edəcək',
       ru: 'Ваше объявление будет показано в самом верху и получит максимальную видимость',
+      en: 'Your listing will be shown at the top with maximum visibility',
     },
   },
   {
@@ -241,6 +260,7 @@ export const promotionPackages: PromotionPackage[] = [
     name: {
       az: 'VIP (14 gün)',
       ru: 'VIP (14 дней)',
+      en: 'VIP (14 days)',
     },
     price: 12,
     currency: 'AZN',
@@ -249,6 +269,7 @@ export const promotionPackages: PromotionPackage[] = [
     description: {
       az: 'Elanınız ən yuxarıda göstəriləcək və maksimum görünürlük əldə edəcək',
       ru: 'Ваше объявление будет показано в самом верху и получит максимальную видимость',
+      en: 'Your listing will be shown at the top with maximum visibility',
     },
   },
   {
@@ -256,6 +277,7 @@ export const promotionPackages: PromotionPackage[] = [
     name: {
       az: 'VIP (30 gün)',
       ru: 'VIP (30 дней)',
+      en: 'VIP (30 days)',
     },
     price: 18,
     currency: 'AZN',
@@ -263,7 +285,8 @@ export const promotionPackages: PromotionPackage[] = [
     type: 'vip',
     description: {
       az: 'Elanınız ən yuxarıda göstəriləcək və maksimum görünürlük əldə edəcək',
-      ru: 'Ваше объявление будет показано в самом верху и получит максимальную видимость',
+      ru: 'Ваше объявление будет показано в самом верху и получит максимальную видimость',
+      en: 'Your listing will be shown at the top with maximum visibility',
     },
   },
 ];
@@ -274,6 +297,7 @@ export interface ViewPackage {
   name: {
     az: string;
     ru: string;
+    en?: string;
   };
   views: number;
   price: number;
@@ -282,6 +306,7 @@ export interface ViewPackage {
   description: {
     az: string;
     ru: string;
+    en?: string;
   };
 }
 
@@ -291,6 +316,7 @@ export const viewPackages: ViewPackage[] = [
     name: {
       az: '100 Baxış',
       ru: '100 Просмотров',
+      en: '100 Views',
     },
     views: 100,
     price: 1,
@@ -299,6 +325,7 @@ export const viewPackages: ViewPackage[] = [
     description: {
       az: '🚀 Elanınızı 100 nəfər əlavə görəcək! Sanki elanınız şəhərin ən məşhur yerində asılıb - daha çox göz, daha çox maraq!',
       ru: '🚀 Ваше объявление увидят 100 дополнительных человек! Как будто ваше объявление висит в самом популярном месте города - больше глаз, больше интереса!',
+      en: '🚀 100 additional people will see your listing! As if your ad is placed in the most popular location in the city - more eyes, more interest!',
     },
   },
   {
@@ -306,6 +333,7 @@ export const viewPackages: ViewPackage[] = [
     name: {
       az: '500 Baxış',
       ru: '500 Просмотров',
+      en: '500 Views',
     },
     views: 500,
     price: 4,
@@ -314,6 +342,7 @@ export const viewPackages: ViewPackage[] = [
     description: {
       az: '⭐ 500 potensial alıcı elanınızı görəcək! Bu, mərkəzi meydanda reklam lövhəsi qədər güclüdür - maksimum diqqət!',
       ru: '⭐ 500 потенциальных покупателей увидят ваше объявление! Это как рекламный щит на центральной площади - максимум внимания!',
+      en: '⭐ 500 potential buyers will see your listing! This is as powerful as a billboard in the central square - maximum attention!',
     },
   },
   {
@@ -321,6 +350,7 @@ export const viewPackages: ViewPackage[] = [
     name: {
       az: '1000 Baxış',
       ru: '1000 Просмотров',
+      en: '1000 Views',
     },
     views: 1000,
     price: 7,
@@ -329,6 +359,7 @@ export const viewPackages: ViewPackage[] = [
     description: {
       az: '🔥 1000 insan elanınızı görəcək! Bu, televiziya reklamı qədər təsirlidir - elanınız hər yerdə danışılacaq!',
       ru: '🔥 1000 человек увидят ваше объявление! Это как телевизионная реклама - о вашем объявлении будут говорить везде!',
+      en: '🔥 1000 people will see your listing! This is as effective as TV advertising - everyone will talk about your ad!',
     },
   },
   {
@@ -336,6 +367,7 @@ export const viewPackages: ViewPackage[] = [
     name: {
       az: '2500 Baxış',
       ru: '2500 Просмотров',
+      en: '2500 Views',
     },
     views: 2500,
     price: 15,
@@ -344,6 +376,7 @@ export const viewPackages: ViewPackage[] = [
     description: {
       az: '💎 2500 nəfər elanınızı görəcək! Bu, şəhərin ən böyük reklam kampaniyası kimidir - elanınız viral olacaq!',
       ru: '💎 2500 человек увидят ваше объявление! Это как самая большая рекламная кампания в городе - ваше объявление станет вирусным!',
+      en: '💎 2500 people will see your listing! This is like the biggest ad campaign in the city - your ad will go viral!',
     },
   },
   {
@@ -351,6 +384,7 @@ export const viewPackages: ViewPackage[] = [
     name: {
       az: '5000 Baxış',
       ru: '5000 Просмотров',
+      en: '5000 Views',
     },
     views: 5000,
     price: 25,
@@ -359,6 +393,7 @@ export const viewPackages: ViewPackage[] = [
     description: {
       az: '👑 5000 potensial müştəri! Bu, Super Bowl reklamı qədər güclüdür - elanınız əfsanəvi olacaq və hamı onu xatırlayacaq!',
       ru: '👑 5000 потенциальных клиентов! Это как реклама в Супербоуле - ваше объявление станет легендарным и все его запомнят!',
+      en: '👑 5000 potential customers! This is as powerful as a Super Bowl ad - your listing will be legendary and everyone will remember it!',
     },
   },
 ];
@@ -369,6 +404,7 @@ export interface StoreRenewalPackage {
   name: {
     az: string;
     ru: string;
+    en?: string;
   };
   originalPrice: number;
   renewalPrice: number;
@@ -381,10 +417,12 @@ export interface StoreRenewalPackage {
   description: {
     az: string;
     ru: string;
+    en?: string;
   };
   features: {
     az: string;
     ru: string;
+    en?: string;
   }[];
 }
 
@@ -394,6 +432,7 @@ export const storeRenewalPackages: StoreRenewalPackage[] = [
     name: {
       az: 'Erkən Yeniləmə',
       ru: 'Раннее Обновление',
+      en: 'Early Renewal',
     },
     originalPrice: 100,
     renewalPrice: 80,
@@ -406,23 +445,28 @@ export const storeRenewalPackages: StoreRenewalPackage[] = [
     description: {
       az: 'Müddət bitməzdən əvvəl yeniləyin və endirim qazanın',
       ru: 'Обновите до истечения срока и получите скидку',
+      en: 'Renew before expiration and get a discount',
     },
     features: [
       {
         az: '20% endirim',
-        ru: '20% скидка'
+        ru: '20% скидка',
+        en: '20% discount'
       },
       {
         az: 'Bonus 5 gün',
-        ru: 'Бонус 5 дней'
+        ru: 'Бонус 5 дней',
+        en: 'Bonus 5 days'
       },
       {
         az: 'Prioritet dəstək',
-        ru: 'Приоритетная поддержка'
+        ru: 'Приоритетная поддержка',
+        en: 'Priority support'
       },
       {
         az: 'Reklam krediti',
-        ru: 'Рекламный кредит'
+        ru: 'Рекламный кредит',
+        en: 'Ad credit'
       }
     ]
   },
@@ -431,6 +475,7 @@ export const storeRenewalPackages: StoreRenewalPackage[] = [
     name: {
       az: 'Son Dəqiqə Təklifi',
       ru: 'Предложение Последней Минуты',
+      en: 'Last Minute Offer',
     },
     originalPrice: 100,
     renewalPrice: 90,
@@ -442,19 +487,23 @@ export const storeRenewalPackages: StoreRenewalPackage[] = [
     description: {
       az: 'Müddət bitməzdən 3 gün əvvəl',
       ru: 'За 3 дня до истечения срока',
+      en: '3 days before expiration',
     },
     features: [
       {
         az: '10% endirim',
-        ru: '10% скидка'
+        ru: '10% скидка',
+        en: '10% discount'
       },
       {
         az: 'Dərhal aktivləşmə',
-        ru: 'Немедленная активация'
+        ru: 'Немедленная активация',
+        en: 'Instant activation'
       },
       {
         az: 'Məlumat itikisi yoxdur',
-        ru: 'Нет потери данных'
+        ru: 'Нет потери данных',
+        en: 'No data loss'
       }
     ]
   },
@@ -463,6 +512,7 @@ export const storeRenewalPackages: StoreRenewalPackage[] = [
     name: {
       az: 'Güzəşt Müddəti Paketi',
       ru: 'Пакет Льготного Периода',
+      en: 'Grace Period Package',
     },
     originalPrice: 100,
     renewalPrice: 93,
@@ -474,23 +524,28 @@ export const storeRenewalPackages: StoreRenewalPackage[] = [
     description: {
       az: 'Güzəşt müddətində yeniləyin (30 gün ərzində)',
       ru: 'Обновите в льготный период (в течение 30 дней)',
+      en: 'Renew during grace period (within 30 days)',
     },
     features: [
       {
         az: '7% endirim',
-        ru: '7% скидка'
+        ru: '7% скидка',
+        en: '7% discount'
       },
       {
         az: 'Məlumatlar qorunur',
-        ru: 'Данные сохраняются'
+        ru: 'Данные сохраняются',
+        en: 'Data preserved'
       },
       {
         az: 'Reytinq saxlanılır',
-        ru: 'Рейтинг сохраняется'
+        ru: 'Рейтинг сохраняется',
+        en: 'Rating retained'
       },
       {
         az: 'İzləyicilər qalır',
-        ru: 'Подписчики остаются'
+        ru: 'Подписчики остаются',
+        en: 'Followers remain'
       }
     ]
   }
@@ -502,6 +557,7 @@ export interface RenewalPackage {
   name: {
     az: string;
     ru: string;
+    en?: string;
   };
   originalPrice: number;
   renewalPrice: number;
@@ -518,6 +574,7 @@ export interface RenewalPackage {
   description: {
     az: string;
     ru: string;
+    en?: string;
   };
 }
 
@@ -527,6 +584,7 @@ export const renewalPackages: RenewalPackage[] = [
     name: {
       az: 'Pulsuz Yeniləmə',
       ru: 'Бесплатное Обновление',
+      en: 'Free Renewal',
     },
     originalPrice: 0,
     renewalPrice: 0,
@@ -543,6 +601,7 @@ export const renewalPackages: RenewalPackage[] = [
     description: {
       az: 'Elanınızı pulsuz olaraq 3 gün ərzində yeniləyin',
       ru: 'Обновите ваше объявление бесплатно на 3 дня',
+      en: 'Renew your listing for free for 3 days',
     },
   },
   {
@@ -550,6 +609,7 @@ export const renewalPackages: RenewalPackage[] = [
     name: {
       az: 'Rəngli Çərçivə Yeniləmə',
       ru: 'Обновление с Цветной Рамкой',
+      en: 'Colored Frame Renewal',
     },
     originalPrice: 3,
     renewalPrice: 3,
@@ -566,6 +626,7 @@ export const renewalPackages: RenewalPackage[] = [
     description: {
       az: 'Elanınızı rəngli çərçivə ilə 7 gün ərzində yeniləyin',
       ru: 'Обновите ваше объявление с цветной рамкой на 7 дней',
+      en: 'Renew your listing with colored frame for 7 days',
     },
   },
   {
@@ -573,6 +634,7 @@ export const renewalPackages: RenewalPackage[] = [
     name: {
       az: 'Avtomatik Yeniləmə',
       ru: 'Автообновление',
+      en: 'Auto Renewal',
     },
     originalPrice: 5,
     renewalPrice: 5,
@@ -589,6 +651,7 @@ export const renewalPackages: RenewalPackage[] = [
     description: {
       az: 'Elanınızı avtomatik yeniləmə ilə 14 gün ərzində yeniləyin',
       ru: 'Обновите ваше объявление с автообновлением на 14 дней',
+      en: 'Renew your listing with auto-renewal for 14 days',
     },
   },
   {
@@ -596,6 +659,7 @@ export const renewalPackages: RenewalPackage[] = [
     name: {
       az: 'Premium Yeniləmə',
       ru: 'Премиум Обновление',
+      en: 'Premium Renewal',
     },
     originalPrice: 5,
     renewalPrice: 5,
@@ -612,6 +676,7 @@ export const renewalPackages: RenewalPackage[] = [
     description: {
       az: 'Elanınızı premium xüsusiyyətlərlə 14 gün ərzində yeniləyin',
       ru: 'Обновите ваше объявление с премиум функциями на 14 дней',
+      en: 'Renew your listing with premium features for 14 days',
     },
   },
   {
@@ -619,6 +684,7 @@ export const renewalPackages: RenewalPackage[] = [
     name: {
       az: 'VIP Yeniləmə',
       ru: 'VIP Обновление',
+      en: 'VIP Renewal',
     },
     originalPrice: 8,
     renewalPrice: 8,
@@ -635,6 +701,7 @@ export const renewalPackages: RenewalPackage[] = [
     description: {
       az: 'Elanınızı VIP xüsusiyyətlərlə 30 gün ərzində yeniləyin',
       ru: 'Обновите ваше объявление с VIP функциями на 30 дней',
+      en: 'Renew your listing with VIP features for 30 days',
     },
   },
 ];

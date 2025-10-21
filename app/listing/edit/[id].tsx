@@ -86,6 +86,7 @@ export default function EditListingScreen() {
   const [showCurrencyModal, setShowCurrencyModal] = useState(false);
   const [selectedCategoryLevel, setSelectedCategoryLevel] = useState(0);
   const [categoryPath, setCategoryPath] = useState<any[]>([]);
+  const [locationSearchQuery, setLocationSearchQuery] = useState('');
   
   const currencies = ['AZN', 'USD', 'EUR', 'TRY', 'RUB'];
   
@@ -222,14 +223,30 @@ export default function EditListingScreen() {
         quality: 0.8,
       });
 
-      if (!result.canceled && result.assets[0]) {
+      // ✅ Validate result and file size
+      if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0]) {
+        const asset = result.assets[0];
+        
+        // ✅ Check file size (max 10MB)
+        if (asset.fileSize && asset.fileSize > 10 * 1024 * 1024) {
+          Alert.alert(
+            language === 'az' ? 'Şəkil çox böyükdür' : 'Изображение слишком большое',
+            language === 'az' 
+              ? 'Maksimum 10MB ölçüsündə şəkil əlavə edin' 
+              : 'Добавьте изображение размером до 10MB'
+          );
+          return;
+        }
+        
         setFormData(prev => ({
           ...prev,
-          images: [...prev.images, result.assets[0].uri]
+          images: [...prev.images, asset.uri]
         }));
+        
+        logger.info('Image added from camera', { fileSize: asset.fileSize });
       }
     } catch (error) {
-      logger.debug('Camera error:', error);
+      logger.error('Camera error:', error);
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Şəkil çəkərkən xəta baş verdi' : 'Произошла ошибка при съемке'
@@ -255,14 +272,30 @@ export default function EditListingScreen() {
         quality: 0.8,
       });
 
-      if (!result.canceled && result.assets[0]) {
+      // ✅ Validate result and file size
+      if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0]) {
+        const asset = result.assets[0];
+        
+        // ✅ Check file size (max 10MB)
+        if (asset.fileSize && asset.fileSize > 10 * 1024 * 1024) {
+          Alert.alert(
+            language === 'az' ? 'Şəkil çox böyükdür' : 'Изображение слишком большое',
+            language === 'az' 
+              ? 'Maksimum 10MB ölçüsündə şəkil əlavə edin' 
+              : 'Добавьте изображение размером до 10MB'
+          );
+          return;
+        }
+        
         setFormData(prev => ({
           ...prev,
-          images: [...prev.images, result.assets[0].uri]
+          images: [...prev.images, asset.uri]
         }));
+        
+        logger.info('Image added from gallery', { fileSize: asset.fileSize });
       }
     } catch (error) {
-      logger.debug('Gallery error:', error);
+      logger.error('Gallery error:', error);
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Şəkil seçərkən xəta baş verdi' : 'Произошла ошибка при выборе изображения'
@@ -868,7 +901,10 @@ export default function EditListingScreen() {
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={() => setShowLocationModal(false)}>
+            <TouchableOpacity onPress={() => {
+              setShowLocationModal(false);
+              setLocationSearchQuery('');
+            }}>
               <X size={24} color={Colors.text} />
             </TouchableOpacity>
             <Text style={styles.modalTitle}>
@@ -877,17 +913,63 @@ export default function EditListingScreen() {
             <View style={{ width: 24 }} />
           </View>
           
+          {/* ✅ Search input */}
+          <View style={styles.searchContainer}>
+            <TextInput
+              style={styles.searchInput}
+              placeholder={language === 'az' ? 'Axtar...' : 'Поиск...'}
+              placeholderTextColor={Colors.textSecondary}
+              value={locationSearchQuery}
+              onChangeText={setLocationSearchQuery}
+            />
+          </View>
+          
+          {/* ✅ Filtered locations */}
           <FlatList
-            data={locations}
+            data={locationSearchQuery
+              ? locations.filter(loc =>
+                  loc.name[language as keyof typeof loc.name]
+                    .toLowerCase()
+                    .includes(locationSearchQuery.toLowerCase())
+                )
+              : locations
+            }
             keyExtractor={(item) => item.id}
+            ListEmptyComponent={() => (
+              <View style={styles.emptyContainer}>
+                <MapPin size={48} color={Colors.textSecondary} />
+                <Text style={styles.emptyText}>
+                  {language === 'az' ? 'Heç bir yer tapılmadı' : 'Местоположений не найдено'}
+                </Text>
+              </View>
+            )}
             renderItem={({ item }) => (
               <TouchableOpacity
-                style={styles.categoryItem}
-                onPress={() => handleLocationSelect(item)}
+                style={[
+                  styles.categoryItem,
+                  formData.locationId === item.id && styles.selectedCategoryItem
+                ]}
+                onPress={() => {
+                  // ✅ Validate location selection
+                  if (!item?.id) {
+                    logger.error('[EditListing] Invalid location selected');
+                    return;
+                  }
+                  
+                  handleLocationSelect(item);
+                  setLocationSearchQuery('');
+                  logger.info('[EditListing] Location changed:', item.id);
+                }}
               >
-                <Text style={styles.categoryItemText}>
+                <Text style={[
+                  styles.categoryItemText,
+                  formData.locationId === item.id && styles.selectedCategoryItemText
+                ]}>
                   {item.name[language as keyof typeof item.name]}
                 </Text>
+                {formData.locationId === item.id && (
+                  <Text style={styles.selectedIndicator}>✓</Text>
+                )}
               </TouchableOpacity>
             )}
           />
@@ -1194,5 +1276,40 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.background,
+    margin: 16,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  searchInput: {
+    flex: 1,
+    padding: 12,
+    fontSize: 16,
+    color: Colors.text,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: Colors.textSecondary,
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  selectedCategoryItem: {
+    backgroundColor: Colors.primaryLight || 'rgba(0, 122, 255, 0.1)',
+  },
+  selectedCategoryItemText: {
+    color: Colors.primary,
+    fontWeight: '600',
   },
 });

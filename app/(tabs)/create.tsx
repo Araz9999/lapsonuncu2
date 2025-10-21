@@ -36,6 +36,7 @@ export default function CreateListingScreen() {
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [contactPreference, setContactPreference] = useState<'phone' | 'message' | 'both'>('both');
   const [categorySearchQuery, setCategorySearchQuery] = useState('');
+  const [locationSearchQuery, setLocationSearchQuery] = useState('');
   
   // Category navigation state
   const [categoryNavigationStack, setCategoryNavigationStack] = useState<any[]>([]);
@@ -118,11 +119,14 @@ export default function CreateListingScreen() {
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [4, 3],
-        quality: 0.8, // BUG FIX: Reduced quality for better performance
+        quality: 0.8,
       });
 
-      // BUG FIX: Validate assets array exists and has items
+      // ✅ Validate assets array and file size
       if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0]) {
+        const asset = result.assets[0];
+        
+        // ✅ Check image limit
         if (images.length >= (selectedPackageData?.features.photosCount || 3)) {
           Alert.alert(
             language === 'az' ? 'Limit aşıldı' : 'Лимит превышен',
@@ -132,7 +136,20 @@ export default function CreateListingScreen() {
           );
           return;
         }
-        setImages([...images, result.assets[0].uri]);
+        
+        // ✅ Validate file size (max 10MB)
+        if (asset.fileSize && asset.fileSize > 10 * 1024 * 1024) {
+          Alert.alert(
+            language === 'az' ? 'Şəkil çox böyükdür' : 'Изображение слишком большое',
+            language === 'az' 
+              ? 'Maksimum 10MB ölçüsündə şəkil əlavə edin' 
+              : 'Добавьте изображение размером до 10MB'
+          );
+          return;
+        }
+        
+        setImages([...images, asset.uri]);
+        logger.info('Image added from gallery', { fileSize: asset.fileSize });
       }
     } catch (error) {
       logger.error('Gallery error:', error);
@@ -169,11 +186,24 @@ export default function CreateListingScreen() {
       const result = await ImagePicker.launchCameraAsync({
         allowsEditing: true,
         aspect: [4, 3],
-        quality: 0.8, // BUG FIX: Reduced quality for better performance
+        quality: 0.8,
       });
 
-      // BUG FIX: Validate assets array exists and has items
+      // ✅ Validate assets array and file size
       if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0]) {
+        const asset = result.assets[0];
+        
+        // ✅ Check file size (max 10MB - same as gallery for consistency)
+        if (asset.fileSize && asset.fileSize > 10 * 1024 * 1024) {
+          Alert.alert(
+            language === 'az' ? 'Şəkil çox böyükdür' : 'Изображение слишком большое',
+            language === 'az' 
+              ? 'Maksimum 10MB ölçüsündə şəkil əlavə edin' 
+              : 'Добавьте изображение размером до 10MB'
+          );
+          return;
+        }
+        
         if (images.length >= (selectedPackageData?.features.photosCount || 3)) {
           Alert.alert(
             language === 'az' ? 'Limit aşıldı' : 'Лимит превышен',
@@ -183,7 +213,7 @@ export default function CreateListingScreen() {
           );
           return;
         }
-        setImages([...images, result.assets[0].uri]);
+        setImages([...images, asset.uri]);
       }
     } catch (error) {
       logger.error('Camera error:', error);
@@ -405,24 +435,56 @@ export default function CreateListingScreen() {
     const isStoreListingWithSlots = addToStore && selectedStore && canAddToSelectedStore;
 
     try {
-      // Process payment only if not adding to store with available slots
+      // ✅ Process payment only if not adding to store with available slots
       if (!isStoreListingWithSlots && selectedPackage !== 'free') {
         const packagePrice = selectedPackageData?.price || 0;
-        if (!spendFromBalance(packagePrice)) {
+        
+        // ✅ Check if can afford first
+        if (!canAfford(packagePrice)) {
           Alert.alert(
-            language === 'az' ? 'Ödəniş xətası' : 'Ошибка оплаты',
+            language === 'az' ? 'Balans kifayət etmir' : 'Недостаточно средств',
             language === 'az' 
-              ? 'Balansınızdan ödəniş çıxıla bilmədi' 
-              : 'Не удалось списать средства с баланса'
+              ? 'Balansınızı artırın' 
+              : 'Пополните баланс',
+            [
+              {
+                text: language === 'az' ? 'Ləğv et' : 'Отмена',
+                style: 'cancel',
+              },
+              {
+                text: language === 'az' ? 'Balans artır' : 'Пополнить баланс',
+                onPress: () => router.push('/wallet'),
+              },
+            ]
           );
           return;
         }
+        
+        // ✅ Actually spend and check success
+        const paymentSuccess = spendFromBalance(packagePrice);
+        if (!paymentSuccess) {
+          Alert.alert(
+            language === 'az' ? 'Ödəniş xətası' : 'Ошибка оплаты',
+            language === 'az' 
+              ? 'Balansınızdan ödəniş çıxıla bilmədi. Yenidən cəhd edin.' 
+              : 'Не удалось списать средства с баланса. Попробуйте еще раз.'
+          );
+          return;
+        }
+        
+        logger.info('Payment successful for listing', { packagePrice, package: selectedPackage });
       }
 
-      // Calculate expiration date based on package duration
+      // ✅ Calculate expiration date with validation
       const now = new Date();
-      const expirationDate = new Date(now);
-      expirationDate.setDate(now.getDate() + (selectedPackageData?.duration || 3));
+      const duration = Math.max(1, Math.min(365, selectedPackageData?.duration || 3)); // 1-365 days
+      const expirationDate = new Date(now.getTime() + duration * 24 * 60 * 60 * 1000);
+      
+      // ✅ Validate result
+      if (isNaN(expirationDate.getTime())) {
+        logger.error('Invalid expiration date calculated, using fallback');
+        expirationDate.setTime(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+      }
 
       // Create the listing object
       const newListing: Listing = {
@@ -725,12 +787,22 @@ export default function CreateListingScreen() {
   };
 
   const renderLocationModal = () => {
+    // ✅ Filter locations based on search query
+    const filteredLocations = locationSearchQuery
+      ? locations.filter(loc =>
+          loc.name[language].toLowerCase().includes(locationSearchQuery.toLowerCase())
+        )
+      : locations;
+
     return (
       <Modal
         visible={showLocationModal}
         animationType="slide"
         transparent={true}
-        onRequestClose={() => setShowLocationModal(false)}
+        onRequestClose={() => {
+          setShowLocationModal(false);
+          setLocationSearchQuery('');
+        }}
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
@@ -740,27 +812,71 @@ export default function CreateListingScreen() {
               </Text>
               <TouchableOpacity 
                 style={styles.modalCloseButton}
-                onPress={() => setShowLocationModal(false)}
+                onPress={() => {
+                  setShowLocationModal(false);
+                  setLocationSearchQuery('');
+                }}
               >
                 <Text style={styles.modalCloseText}>×</Text>
               </TouchableOpacity>
             </View>
             
-            <FlatList
-              data={locations}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={styles.modalItem}
-                  onPress={() => {
-                    setSelectedLocation(item.id);
-                    setShowLocationModal(false);
-                  }}
-                >
-                  <Text style={styles.modalItemText}>{item.name[language]}</Text>
-                </TouchableOpacity>
-              )}
-            />
+            {/* ✅ Search input */}
+            <View style={styles.searchContainer}>
+              <Search size={20} color={Colors.textSecondary} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder={language === 'az' ? 'Axtar...' : 'Поиск...'}
+                placeholderTextColor={Colors.textSecondary}
+                value={locationSearchQuery}
+                onChangeText={setLocationSearchQuery}
+              />
+            </View>
+            
+            {/* ✅ Show message if no results */}
+            {filteredLocations.length === 0 ? (
+              <View style={styles.emptySearchContainer}>
+                <MapPin size={48} color={Colors.textSecondary} />
+                <Text style={styles.emptySearchText}>
+                  {language === 'az' ? 'Heç bir yer tapılmadı' : 'Местоположений не найдено'}
+                </Text>
+              </View>
+            ) : (
+              <FlatList
+                data={filteredLocations}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={[
+                      styles.modalItem,
+                      selectedLocation === item.id && styles.selectedModalItem
+                    ]}
+                    onPress={() => {
+                      // ✅ Validate selection
+                      if (!item?.id) {
+                        logger.error('[CreateListing] Invalid location selected');
+                        return;
+                      }
+                      
+                      setSelectedLocation(item.id);
+                      setShowLocationModal(false);
+                      setLocationSearchQuery('');
+                      logger.info('[CreateListing] Location selected:', item.id);
+                    }}
+                  >
+                    <Text style={[
+                      styles.modalItemText,
+                      selectedLocation === item.id && styles.selectedModalItemText
+                    ]}>
+                      {item.name[language]}
+                    </Text>
+                    {selectedLocation === item.id && (
+                      <Check size={20} color={Colors.primary} />
+                    )}
+                  </TouchableOpacity>
+                )}
+              />
+            )}
           </View>
         </View>
       </Modal>
@@ -892,10 +1008,10 @@ export default function CreateListingScreen() {
                 <TextInput
                   style={styles.priceInput}
                   value={price}
-                  onChangeText={setPrice}
+                  onChangeText={(text) => setPrice(sanitizeNumericInput(text, 2))}
                   placeholder="0"
                   placeholderTextColor={Colors.placeholder}
-                  keyboardType="numeric"
+                  keyboardType="decimal-pad"
                 />
                 <Text style={styles.currency}>
                   {currency}
@@ -2258,5 +2374,24 @@ const styles = StyleSheet.create({
   },
   authRequiredSecondaryButtonText: {
     color: Colors.primary,
+  },
+  emptySearchContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  emptySearchText: {
+    fontSize: 16,
+    color: Colors.textSecondary,
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  selectedModalItem: {
+    backgroundColor: Colors.primaryLight || 'rgba(0, 122, 255, 0.1)',
+  },
+  selectedModalItemText: {
+    color: Colors.primary,
+    fontWeight: '600',
   },
 });

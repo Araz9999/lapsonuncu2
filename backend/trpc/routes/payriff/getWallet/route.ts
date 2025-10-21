@@ -28,7 +28,7 @@ export const getWalletProcedure = publicProcedure.query(async () => {
         signal: AbortSignal.timeout(30000),
       });
     } catch (error) {
-      console.error('Network error fetching wallet:', error);
+      logger.error('Network error fetching wallet:', error);
       throw new Error('Network error: Unable to connect to payment service');
     }
 
@@ -41,7 +41,7 @@ export const getWalletProcedure = publicProcedure.query(async () => {
 
     return data;
   } catch (error) {
-    console.error('Payriff get wallet failed:', error);
+    logger.error('Payriff get wallet failed:', error);
     throw error;
   }
 });

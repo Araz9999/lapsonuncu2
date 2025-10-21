@@ -11,6 +11,11 @@ interface UserAnalyticsProps {
 
 export default function UserAnalytics({ user }: UserAnalyticsProps) {
   const { language } = useLanguageStore();
+  
+  // ✅ Early return if no analytics
+  if (!user.analytics) {
+    return null;
+  }
 
   const formatLastOnline = (lastOnlineDate: string, isOnline: boolean) => {
     if (isOnline) {
@@ -19,7 +24,19 @@ export default function UserAnalytics({ user }: UserAnalyticsProps) {
 
     const now = new Date();
     const lastOnline = new Date(lastOnlineDate);
+    
+    // ✅ Validate date
+    if (isNaN(lastOnline.getTime())) {
+      return language === 'az' ? 'Məlum deyil' : 'Неизвестно';
+    }
+    
     const diffInMinutes = Math.floor((now.getTime() - lastOnline.getTime()) / (1000 * 60));
+    
+    // ✅ Ensure non-negative (future date protection)
+    if (diffInMinutes < 0) {
+      return language === 'az' ? 'İndi onlayn' : 'Сейчас онлайн';
+    }
+    
     const diffInHours = Math.floor(diffInMinutes / 60);
     const diffInDays = Math.floor(diffInHours / 24);
 
@@ -39,8 +56,13 @@ export default function UserAnalytics({ user }: UserAnalyticsProps) {
   };
 
   const formatResponseTime = (hours: number) => {
+    // ✅ Validate input
+    if (isNaN(hours) || hours < 0) {
+      return language === 'az' ? 'Məlum deyil' : 'Неизвестно';
+    }
+    
     if (hours < 1) {
-      const minutes = Math.round(hours * 60);
+      const minutes = Math.max(1, Math.round(hours * 60)); // ✅ At least 1 minute
       return language === 'az' 
         ? `${minutes} dəqiqə ərzində`
         : `в течение ${minutes} минут`;
@@ -69,16 +91,18 @@ export default function UserAnalytics({ user }: UserAnalyticsProps) {
       </View>
 
       {/* Response Rate */}
-      <View style={styles.analyticsRow}>
-        <View style={styles.iconContainer}>
-          <MessageCircle size={14} color={Colors.textSecondary} />
+      {user.analytics.messageResponseRate != null && (
+        <View style={styles.analyticsRow}>
+          <View style={styles.iconContainer}>
+            <MessageCircle size={14} color={Colors.textSecondary} />
+          </View>
+          <Text style={styles.analyticsText}>
+            {language === 'az' 
+              ? `Mesajların ${Math.min(100, Math.max(0, user.analytics.messageResponseRate))}%-na cavab verir`
+              : `Отвечает на ${Math.min(100, Math.max(0, user.analytics.messageResponseRate))}% сообщений`}
+          </Text>
         </View>
-        <Text style={styles.analyticsText}>
-          {language === 'az' 
-            ? `Mesajların ${user.analytics.messageResponseRate}%-na cavab verir`
-            : `Отвечает на ${user.analytics.messageResponseRate}% сообщений`}
-        </Text>
-      </View>
+      )}
 
       {/* Average Response Time */}
       <View style={styles.analyticsRow}>

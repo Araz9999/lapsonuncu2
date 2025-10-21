@@ -13,9 +13,11 @@ interface CallStore {
   dialToneSound: Audio.Sound | null;
   ringtoneInterval: NodeJS.Timeout | null;
   dialToneInterval: NodeJS.Timeout | null;
+  incomingCallTimeouts: Map<string, NodeJS.Timeout>; // ✅ Track timeouts for cleanup
+  outgoingCallTimeouts: Map<string, NodeJS.Timeout>; // ✅ Track outgoing call timeouts
   
   // Call actions
-  initiateCall: (receiverId: string, listingId: string, type: CallType) => Promise<string>;
+  initiateCall: (currentUserId: string, receiverId: string, listingId: string, type: CallType) => Promise<string>;
   answerCall: (callId: string) => void;
   declineCall: (callId: string) => void;
   endCall: (callId: string) => void;
@@ -28,7 +30,7 @@ interface CallStore {
   // Call history
   getCallHistory: (userId: string) => Call[];
   markCallAsRead: (callId: string) => void;
-  getMissedCallsCount: () => number;
+  getMissedCallsCount: (currentUserId: string) => number;
   deleteCall: (callId: string) => void;
   clearAllCallHistory: () => void;
   
@@ -90,46 +92,18 @@ export const useCallStore = create<CallStore>((set, get) => ({
   dialToneSound: null,
   ringtoneInterval: null,
   dialToneInterval: null,
+  incomingCallTimeouts: new Map(), // ✅ Initialize timeout map
   
-  initiateCall: async (receiverId: string, listingId: string, type: CallType) => {
-    // ===== VALIDATION START =====
-    
-    // 1. Validate receiverId
-    if (!receiverId || typeof receiverId !== 'string' || receiverId.trim().length === 0) {
-      logger.error('CallStore - Invalid receiverId');
-      throw new Error('Ən azı bir istifadəçi seçin');
-    }
-    
-    // 2. Validate listingId
-    if (!listingId || typeof listingId !== 'string' || listingId.trim().length === 0) {
-      logger.error('CallStore - Invalid listingId');
-      throw new Error('Elan məlumatı etibarsızdır');
-    }
-    
-    // 3. Validate call type
-    const validTypes: CallType[] = ['voice', 'video'];
-    if (!type || !validTypes.includes(type)) {
-      logger.error('CallStore - Invalid call type:', type);
-      throw new Error('Zəng növü etibarsızdır');
-    }
-    
-    // 4. Check if receiver exists
-    const receiver = users.find(u => u.id === receiverId);
-    if (!receiver) {
-      logger.error('CallStore - Receiver not found:', receiverId);
-      throw new Error('İstifadəçi tapılmadı');
-    }
-    
-    // ===== VALIDATION END =====
-    
+  initiateCall: async (currentUserId: string, receiverId: string, listingId: string, type: CallType) => {
     logger.info('CallStore - initiating call to:', receiverId);
     
-    const callId = Date.now().toString() + Math.random().toString(36).substring(2, 9);
+    // ✅ Generate unique ID with random component
+    const callId = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
     const newCall: Call = {
       id: callId,
-      callerId: 'user1', // ⚠️ TODO: Get from currentUser in real app
-      receiverId: receiverId.trim(),
-      listingId: listingId.trim(),
+      callerId: 'user1', // Current user
+      receiverId,
+      listingId,
       type,
       status: 'outgoing',
       startTime: new Date().toISOString(),
@@ -144,7 +118,7 @@ export const useCallStore = create<CallStore>((set, get) => ({
     // Create active call
     const activeCall: ActiveCall = {
       id: callId,
-      callerId: 'user1',
+      callerId: currentUserId, // ✅ Use actual current user ID
       receiverId,
       listingId,
       type,
@@ -160,7 +134,7 @@ export const useCallStore = create<CallStore>((set, get) => ({
     await get().playDialTone();
     
     // Simulate call being answered after 3 seconds
-    setTimeout(() => {
+    const answerTimeout = setTimeout(() => {
       const currentState = get();
       if (currentState.activeCall?.id === callId) {
         get().stopAllSounds();
@@ -172,7 +146,17 @@ export const useCallStore = create<CallStore>((set, get) => ({
           ),
         }));
       }
+      
+      // ✅ Remove from timeout map after execution
+      const newTimeouts = new Map(get().outgoingCallTimeouts);
+      newTimeouts.delete(callId);
+      set({ outgoingCallTimeouts: newTimeouts });
     }, 3000);
+    
+    // ✅ Store timeout for potential cleanup
+    set((state) => ({
+      outgoingCallTimeouts: new Map(state.outgoingCallTimeouts).set(callId, answerTimeout)
+    }));
     
     return callId;
   },
@@ -182,6 +166,15 @@ export const useCallStore = create<CallStore>((set, get) => ({
     
     const call = get().calls.find(c => c.id === callId);
     if (!call) return;
+    
+    // ✅ Clear incoming call timeout if exists
+    const timeout = get().incomingCallTimeouts.get(callId);
+    if (timeout) {
+      clearTimeout(timeout);
+      const newTimeouts = new Map(get().incomingCallTimeouts);
+      newTimeouts.delete(callId);
+      set({ incomingCallTimeouts: newTimeouts });
+    }
     
     // Stop ringtone
     get().stopAllSounds();
@@ -215,6 +208,15 @@ export const useCallStore = create<CallStore>((set, get) => ({
   declineCall: (callId: string) => {
     logger.info('CallStore - declining call:', callId);
     
+    // ✅ Clear incoming call timeout if exists
+    const timeout = get().incomingCallTimeouts.get(callId);
+    if (timeout) {
+      clearTimeout(timeout);
+      const newTimeouts = new Map(get().incomingCallTimeouts);
+      newTimeouts.delete(callId);
+      set({ incomingCallTimeouts: newTimeouts });
+    }
+    
     // Stop ringtone
     get().stopAllSounds();
     
@@ -240,14 +242,14 @@ export const useCallStore = create<CallStore>((set, get) => ({
     const endTime = new Date().toISOString();
     const startTime = new Date(activeCall.startTime).getTime();
     
-    // ✅ Prevent negative duration
-    const durationMs = new Date(endTime).getTime() - startTime;
-    const duration = Math.max(0, Math.floor(durationMs / 1000));
-    
-    // ✅ Log warning if duration seems invalid
-    if (durationMs < 0) {
-      logger.warn('CallStore - Negative duration detected, setting to 0');
+    // ✅ Validate startTime and ensure positive duration
+    if (isNaN(startTime)) {
+      logger.error('Invalid call startTime, cannot calculate duration');
+      set({ activeCall: null });
+      return;
     }
+    
+    const duration = Math.max(0, Math.floor((new Date(endTime).getTime() - startTime) / 1000));
     
     set((state) => ({
       calls: state.calls.map(call => 
@@ -304,9 +306,9 @@ export const useCallStore = create<CallStore>((set, get) => ({
     }));
   },
   
-  getMissedCallsCount: () => {
+  getMissedCallsCount: (currentUserId: string) => {
     return get().calls.filter(call => 
-      call.receiverId === 'user1' && 
+      call.receiverId === currentUserId &&  // ✅ Use actual current user ID
       call.status === 'missed' && 
       !call.isRead
     ).length;
@@ -360,7 +362,7 @@ export const useCallStore = create<CallStore>((set, get) => ({
               await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
             }
           } catch (error) {
-            logger.debug('Haptic feedback interval error:', error);
+            logger.warn('Haptic feedback interval error:', error);
           }
         }, 1000);
         
@@ -395,7 +397,7 @@ export const useCallStore = create<CallStore>((set, get) => ({
               await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             }
           } catch (error) {
-            logger.debug('Haptic feedback interval error:', error);
+            logger.warn('Haptic feedback interval error:', error);
           }
         }, 2000);
         
@@ -411,46 +413,85 @@ export const useCallStore = create<CallStore>((set, get) => ({
   
   stopAllSounds: async () => {
     if (Platform.OS === 'web') {
-      logger.info('Sound stopping skipped for web platform');
+      logger.info('[CallStore] Sound stopping skipped for web platform');
       return;
     }
     
     const state = get();
     
     try {
-      logger.info('Stopping all sounds and haptic patterns...');
+      logger.info('[CallStore] Stopping all sounds and haptic patterns...');
       
       // Clear haptic intervals
       if (state.ringtoneInterval) {
         clearInterval(state.ringtoneInterval);
         set({ ringtoneInterval: null });
-        logger.info('Ringtone interval cleared');
+        logger.info('[CallStore] Ringtone interval cleared');
       }
       if (state.dialToneInterval) {
         clearInterval(state.dialToneInterval);
         set({ dialToneInterval: null });
-        logger.info('Dial tone interval cleared');
+        logger.info('[CallStore] Dial tone interval cleared');
       }
       
-      // Stop any actual sounds if they exist
-      if (state.ringtoneSound && state.ringtoneSound.stopAsync) {
-        await state.ringtoneSound.stopAsync();
-        logger.info('Ringtone sound stopped');
-      }
-      if (state.dialToneSound && state.dialToneSound.stopAsync) {
-        await state.dialToneSound.stopAsync();
-        logger.info('Dial tone sound stopped');
+      // Stop and unload any actual sounds if they exist
+      if (state.ringtoneSound) {
+        try {
+          if (state.ringtoneSound.stopAsync) {
+            await state.ringtoneSound.stopAsync();
+            logger.debug('[CallStore] Ringtone sound stopped');
+          }
+          // ✅ Unload sound to free memory
+          if (state.ringtoneSound.unloadAsync) {
+            await state.ringtoneSound.unloadAsync();
+            logger.debug('[CallStore] Ringtone sound unloaded');
+          }
+        } catch (soundError) {
+          logger.warn('[CallStore] Error stopping ringtone sound:', soundError);
+        }
       }
       
-      logger.info('All sounds and haptic patterns stopped successfully');
+      if (state.dialToneSound) {
+        try {
+          if (state.dialToneSound.stopAsync) {
+            await state.dialToneSound.stopAsync();
+            logger.debug('[CallStore] Dial tone sound stopped');
+          }
+          // ✅ Unload sound to free memory
+          if (state.dialToneSound.unloadAsync) {
+            await state.dialToneSound.unloadAsync();
+            logger.debug('[CallStore] Dial tone sound unloaded');
+          }
+        } catch (soundError) {
+          logger.warn('[CallStore] Error stopping dial tone sound:', soundError);
+        }
+      }
+      
+      logger.info('[CallStore] All sounds and haptic patterns stopped successfully');
     } catch (error) {
-      logger.error('Failed to stop sounds, continuing anyway:', error);
+      logger.error('[CallStore] Failed to stop sounds, continuing anyway:', error);
     }
   },
   
   cleanupSounds: async () => {
     await get().stopAllSounds();
-    set({ ringtoneSound: null, dialToneSound: null, ringtoneInterval: null, dialToneInterval: null });
+    
+    // ✅ Clear all incoming call timeouts
+    const incomingTimeouts = get().incomingCallTimeouts;
+    incomingTimeouts.forEach((timeout) => clearTimeout(timeout));
+    
+    // ✅ Clear all outgoing call timeouts
+    const outgoingTimeouts = get().outgoingCallTimeouts;
+    outgoingTimeouts.forEach((timeout) => clearTimeout(timeout));
+    
+    set({ 
+      ringtoneSound: null, 
+      dialToneSound: null, 
+      ringtoneInterval: null, 
+      dialToneInterval: null,
+      incomingCallTimeouts: new Map(),
+      outgoingCallTimeouts: new Map()
+    });
   },
   
   simulateIncomingCall: async () => {
@@ -461,7 +502,8 @@ export const useCallStore = create<CallStore>((set, get) => ({
     const randomListing = listings[Math.floor(Math.random() * listings.length)];
     const randomCallType = callTypes[Math.floor(Math.random() * callTypes.length)];
     
-    const callId = Date.now().toString();
+    // ✅ Generate unique ID with random component
+    const callId = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
     const incomingCall: Call = {
       id: callId,
       callerId: randomCaller,
@@ -507,8 +549,8 @@ export const useCallStore = create<CallStore>((set, get) => ({
       })();
     }
     
-    // Auto-decline after 30 seconds if not answered
-    setTimeout(() => {
+    // ✅ Auto-decline after 30 seconds if not answered
+    const timeout = setTimeout(() => {
       const currentState = get();
       if (currentState.incomingCall?.id === callId) {
         get().declineCall(callId);
@@ -522,6 +564,26 @@ export const useCallStore = create<CallStore>((set, get) => ({
           ),
         }));
       }
+      
+      // ✅ Remove from timeout map
+      const newTimeouts = new Map(get().incomingCallTimeouts);
+      newTimeouts.delete(callId);
+      set({ incomingCallTimeouts: newTimeouts });
     }, 30000);
+    
+    // ✅ Store timeout for potential cleanup
+    set((state) => ({
+      incomingCallTimeouts: new Map(state.incomingCallTimeouts).set(callId, timeout)
+    }));
+  },
+}));
+      newTimeouts.delete(callId);
+      set({ incomingCallTimeouts: newTimeouts });
+    }, 30000);
+    
+    // ✅ Store timeout for potential cleanup
+    set((state) => ({
+      incomingCallTimeouts: new Map(state.incomingCallTimeouts).set(callId, timeout)
+    }));
   },
 }));
