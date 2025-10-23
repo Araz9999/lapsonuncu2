@@ -174,7 +174,7 @@ export default function SavedCardsScreen() {
           </View>
         ) : (
           <View style={styles.cardsContainer}>
-            {savedCards.map((card) => (
+            {savedCards.map((card: SavedCard) => (
               <View key={card.id} style={styles.cardItem}>
                 <View style={[styles.cardBrand, { backgroundColor: getBrandColor(card.brand) }]}>
                   <Text style={styles.cardBrandText}>{card.brand}</Text>
@@ -186,7 +186,7 @@ export default function SavedCardsScreen() {
                     <Text style={styles.cardHolder}>{card.cardHolderName}</Text>
                   )}
                   <Text style={styles.cardDate}>
-                    Əlavə edilib: {new Date(card.savedAt).toLocaleDateString('az-AZ')}
+                    Əlavə edilib: {card.savedAt ? new Date(card.savedAt).toLocaleDateString('az-AZ') : '—'}
                   </Text>
                 </View>
 

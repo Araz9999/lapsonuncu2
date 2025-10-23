@@ -113,13 +113,6 @@ class AnalyticsService {
   track(event: AnalyticsEvent): void {
     if (!this.isEnabled) return;
     
-<<<<<<< HEAD
-    // ✅ Input validation
-    if (!event || !event.name || typeof event.name !== 'string') {
-      logger.error('[AnalyticsService] Invalid event:', event);
-      return;
-    }
-=======
     // ===== VALIDATION START =====
     
     // 1. Validate event object
@@ -152,7 +145,6 @@ class AnalyticsService {
     }
     
     // ===== VALIDATION END =====
->>>>>>> origin/main
 
     logger.info('[AnalyticsService] Tracking event:', { name: event.name, userId: event.userId });
 
@@ -214,13 +206,6 @@ class AnalyticsService {
   identify(userProperties: UserProperties): void {
     if (!this.isEnabled) return;
     
-<<<<<<< HEAD
-    // ✅ Input validation
-    if (!userProperties || !userProperties.userId) {
-      logger.error('[AnalyticsService] Invalid user properties:', userProperties);
-      return;
-    }
-=======
     // ===== VALIDATION START =====
     
     if (!userProperties || typeof userProperties !== 'object') {
@@ -234,7 +219,6 @@ class AnalyticsService {
     }
     
     // ===== VALIDATION END =====
->>>>>>> origin/main
 
     logger.info('[AnalyticsService] Identifying user:', { userId: userProperties.userId });
 
@@ -316,20 +300,6 @@ class AnalyticsService {
   }
 
   trackPurchase(amount: number, currency: string, itemId?: string): void {
-<<<<<<< HEAD
-    // ✅ Input validation
-    if (typeof amount !== 'number' || isNaN(amount) || amount < 0) {
-      logger.error('[AnalyticsService] Invalid purchase amount:', amount);
-      return;
-    }
-    
-    if (!currency || typeof currency !== 'string') {
-      logger.error('[AnalyticsService] Invalid currency:', currency);
-      return;
-    }
-    
-    logger.info('[AnalyticsService] Tracking purchase:', { amount, currency, itemId });
-=======
     // ===== VALIDATION START =====
     
     // 1. Validate amount
@@ -367,14 +337,13 @@ class AnalyticsService {
     }
     
     // ===== VALIDATION END =====
->>>>>>> origin/main
     
     this.track({
       name: 'purchase',
       properties: {
         amount: parseFloat(amount.toFixed(2)),
         currency: currency.toUpperCase(),
-        item_id: itemId,
+        item_id: itemId || "",
       },
     });
   }

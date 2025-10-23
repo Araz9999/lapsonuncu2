@@ -188,7 +188,7 @@ export default function MyListingsScreen() {
         },
         {
           text: language === 'az' ? (isActive ? 'Deaktivləşdir' : `Aktivləşdir (${autoRenewalCost} AZN/ay)`) : (isActive ? 'Деактивировать' : `Активировать (${autoRenewalCost} AZN/мес)`),
-          onPress: () => {
+          onPress: async() => {
             try {
               if (!isActive) {
                 // Activating auto-renewal - charge the user
@@ -374,9 +374,8 @@ export default function MyListingsScreen() {
               logger.error('[MyListings] Error extending listing:', error);
               Alert.alert(
                 language === 'az' ? 'Xəta!' : 'Ошибка!',
-                language === 'az' ? 'Uzatma zamanı xəta baş verdi' : 'Произошла ошибка при продлении'
-              );
-            }
+                language === 'az' ? 'Uzatma zamanı xəta baş verdi' : 'Произошла ошибка при продлении',
+    )}
           },
         },
       ]
@@ -1286,20 +1285,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginLeft: 4,
   },
-<<<<<<< HEAD
-});olor: Colors.success,
-    fontSize: 10,
-    fontWeight: '500',
-    marginLeft: 4,
-  },
-});7, 94, 0.1)',
-  },
-  discountButtonText: {
-    color: Colors.success,
-    fontSize: 10,
-    fontWeight: '500',
-    marginLeft: 4,
-=======
   viewOffersButton: {
     backgroundColor: Colors.primary,
     flexDirection: 'row',
@@ -1315,36 +1300,36 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: 'white',
   },
-  quickActionCard: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.card,
-    borderRadius: 12,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  quickActionIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
-  },
-  quickActionInfo: {
-    flex: 1,
-  },
-  quickActionLabel: {
-    fontSize: 12,
-    color: Colors.textSecondary,
-    marginBottom: 2,
-  },
-  quickActionValue: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.text,
->>>>>>> origin/main
-  },
+  // quickActionCard: {
+  //   flex: 1,
+  //   flexDirection: 'row',
+  //   alignItems: 'center',
+  //   backgroundColor: Colors.card,
+  //   borderRadius: 12,
+  //   padding: 12,
+  //   borderWidth: 1,
+  //   borderColor: Colors.border,
+  // },
+  // quickActionIcon: {
+  //   width: 40,
+  //   height: 40,
+  //   borderRadius: 20,
+  //   justifyContent: 'center',
+  //   alignItems: 'center',
+  //   marginRight: 10,
+  //       flex: 1,
+  // },
+  // quickActionInfo: {
+  //   flex: 1,
+  // },
+  // quickActionLabel: {
+  //   fontSize: 12,
+  //   color: Colors.textSecondary,
+  //   marginBottom: 2,
+  // },
+  // quickActionValue: {
+  //   fontSize: 16,
+  //   fontWeight: '600',
+  //   color: Colors.text,
+  // },
 });

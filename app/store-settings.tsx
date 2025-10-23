@@ -139,15 +139,15 @@ export default function StoreSettingsScreen() {
   const { currentUser } = useUserStore();
   const { themeMode, colorTheme } = useThemeStore();
   const colors = getColors(themeMode, colorTheme);
-  const { 
-    stores, 
+  const {
+    stores,
     getAllUserStores,
     getActiveStoreForUser,
     switchActiveStore,
     getUserStoreSettings,
     updateUserStoreSettings,
-    editStore, 
-    renewStore, 
+    editStore,
+    renewStore,
     getExpirationInfo,
     deleteStore,
     reactivateStore,
@@ -167,13 +167,15 @@ export default function StoreSettingsScreen() {
     website: '',
     whatsapp: ''
   });
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Get user stores and current store
   const userStores = getAllUserStores(currentUser?.id || '');
-  const currentStore = storeId 
-    ? stores.find(s => s.id === storeId && s.userId === currentUser?.id) 
+  const currentStore = storeId
+    ? stores.find(s => s.id === storeId && s.userId === currentUser?.id)
     : getActiveStoreForUser(currentUser?.id || '');
-  
+
   // Settings state - load from store-specific settings
   const [settings, setSettings] = useState({
     notifications: true,
@@ -193,15 +195,16 @@ export default function StoreSettingsScreen() {
   // Load settings for current store
   useEffect(() => {
     if (currentUser?.id && currentStore?.id) {
-      logger.info('[StoreSettings] Loading settings for store:', { 
-        userId: currentUser.id, 
-        storeId: currentStore.id 
+      logger.info('[StoreSettings] Loading settings for store:', {
+        userId: currentUser.id,
+        storeId: currentStore.id
       });
-      
+
       const storeSettings = getUserStoreSettings(currentUser.id, currentStore.id);
       setSettings(storeSettings as typeof settings);
-      
-      logger.info('[StoreSettings] Settings loaded successfully');\n    } else {\n      logger.warn('[StoreSettings] Cannot load settings - missing user or store:', {\n        hasUser: !!currentUser?.id,\n        hasStore: !!currentStore?.id\n      });\n    }
+
+      logger.info('[StoreSettings] Settings loaded successfully'); 
+    } else {logger.warn('[StoreSettings] Cannot load settings - missing user or store:', { hasUser: !!currentUser?.id, hasStore: !!currentStore?.id});}
   }, [currentUser?.id, currentStore?.id, getUserStoreSettings]);
 
   const store = currentStore;
@@ -209,65 +212,37 @@ export default function StoreSettingsScreen() {
 
   // Handle settings updates
   const handleSettingToggle = async (key: string, value: boolean) => {
-<<<<<<< HEAD
-    if (!store) {
-      logger.error('[StoreSettings] No store for settings update');
-      return;
-    }
-    
-    if (!currentUser?.id) {
-      logger.error('[StoreSettings] No current user for settings update');
-      return;
-    }
-    
-    logger.info('[StoreSettings] Toggling setting:', { storeId: store.id, setting: key, value });
-    
-    const newSettings = { ...settings, [key]: value };
-    setSettings(newSettings);
-    
-    try {
-      await updateUserStoreSettings(currentUser.id, store.id, { [key]: value });
-      logger.info('[StoreSettings] Setting updated successfully:', { setting: key, value });
-    } catch (error) {
-      logger.error('[StoreSettings] Failed to update setting:', error);
-      // Revert on error
-      setSettings(settings);
-      Alert.alert(
-        language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' ? 'Tənzimləmə yenilənə bilmədi' : 'Не удалось обновить настройку'
-      );
-=======
     // ✅ VALIDATION START
-    
+
     // 1. Check if already saving
     if (isSavingSettings) {
       return;
     }
-    
+
     // 2. Validate key
     if (!key || typeof key !== 'string' || key.trim().length === 0) {
       Alert.alert('Xəta', 'Düzgün olmayan tənzimləmə açarı');
       return;
     }
-    
+
     // 3. Validate value type
     if (typeof value !== 'boolean') {
       Alert.alert('Xəta', 'Düzgün olmayan tənzimləmə dəyəri');
       return;
     }
-    
+
     // 4. Check authentication
     if (!currentUser || !currentUser.id) {
       Alert.alert('Xəta', 'Daxil olmamısınız');
       return;
     }
-    
+
     // 5. Check store
     if (!store || !store.id) {
       Alert.alert('Xəta', 'Mağaza tapılmadı');
       return;
     }
-    
+
     // 6. Check ownership
     if (store.userId !== currentUser.id) {
       Alert.alert(
@@ -276,26 +251,26 @@ export default function StoreSettingsScreen() {
       );
       return;
     }
-    
+
     // ✅ VALIDATION END
-    
+
     // Optimistic update
     const previousSettings = { ...settings };
     const newSettings = { ...settings, [key]: value };
     setSettings(newSettings);
-    
+
     setIsSavingSettings(true);
-    
+
     try {
       await updateUserStoreSettings(currentUser.id, store.id, { [key]: value });
-      
+
       // Success (silent - no alert needed for settings toggle)
     } catch (error) {
       // Rollback on error
       setSettings(previousSettings);
-      
+
       let errorMessage = 'Tənzimləmə yadda saxlanmadı';
-      
+
       if (error instanceof Error) {
         if (error.message.includes('tapılmadı') || error.message.includes('not found')) {
           errorMessage = 'Mağaza tapılmadı';
@@ -305,11 +280,10 @@ export default function StoreSettingsScreen() {
           errorMessage = 'Düzgün olmayan məlumat';
         }
       }
-      
+
       Alert.alert('Xəta', errorMessage);
     } finally {
       setIsSavingSettings(false);
->>>>>>> origin/main
     }
   };
 
@@ -318,28 +292,28 @@ export default function StoreSettingsScreen() {
       logger.error('[StoreSettings] No current user for store switch');
       return;
     }
-    
+
     if (!selectedStoreId || typeof selectedStoreId !== 'string') {
       logger.error('[StoreSettings] Invalid store ID for switch:', selectedStoreId);
       return;
     }
-    
-    logger.info('[StoreSettings] Switching active store:', { 
-      userId: currentUser.id, 
+
+    logger.info('[StoreSettings] Switching active store:', {
+      userId: currentUser.id,
       newStoreId: selectedStoreId,
       currentStoreId: store?.id
     });
-    
+
     try {
       await switchActiveStore(currentUser.id, selectedStoreId);
-      
+
       logger.info('[StoreSettings] Active store switched successfully:', selectedStoreId);
       setShowStoreSelector(false);
-      
+
       // Reload settings for new store
       const newSettings = getUserStoreSettings(currentUser.id, selectedStoreId);
       setSettings(newSettings as typeof settings);
-      
+
       logger.info('[StoreSettings] Settings loaded for new store');
     } catch (error) {
       logger.error('[StoreSettings] Failed to switch store:', error);
@@ -358,13 +332,13 @@ export default function StoreSettingsScreen() {
           <Store size={64} color={colors.textSecondary} />
           <Text style={[styles.noStoreTitle, { color: colors.text }]}>Mağaza tapılmadı</Text>
           <Text style={[styles.noStoreSubtitle, { color: colors.textSecondary }]}>
-            {userStores.length === 0 
+            {userStores.length === 0
               ? 'Hələ mağazanız yoxdur. Yeni mağaza yaradın.'
               : 'Bu mağazaya giriş icazəniz yoxdur.'
             }
           </Text>
           {userStores.length === 0 && canUserCreateNewStore(currentUser?.id || '') && (
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.createStoreButton, { backgroundColor: colors.primary }]}
               onPress={() => router.push('/store/create')}
             >
@@ -382,9 +356,9 @@ export default function StoreSettingsScreen() {
       logger.error('[StoreSettings] No store for editing');
       return;
     }
-    
+
     logger.info('[StoreSettings] Opening edit modal:', { storeId: store.id, storeName: store.name });
-    
+
     setEditForm({
       name: store.name,
       description: store.description || '',
@@ -397,121 +371,58 @@ export default function StoreSettingsScreen() {
   };
 
   const handleSaveEdit = async () => {
-<<<<<<< HEAD
-    if (!store) {
-      logger.error('[StoreSettings] No store for saving edits');
-      return;
-    }
-    
-    logger.info('[StoreSettings] Saving store edits:', { storeId: store.id, storeName: editForm.name });
-    
-    // ✅ Validate store name
-    const nameValidation = validateStoreName(editForm.name);
-    if (!nameValidation.isValid) {
-      logger.warn('[StoreSettings] Invalid store name:', { name: editForm.name, error: nameValidation.error });
-      Alert.alert(
-        language === 'az' ? 'Xəta' : 'Ошибка',
-        nameValidation.error || 'Mağaza adı düzgün deyil'
-=======
     // ✅ VALIDATION START
-    
+
     // 1. Check if already saving
     if (isLoading) {
       Alert.alert('Xəta', 'Məlumatlar artıq yadda saxlanılır');
       return;
     }
-    
+
     // 2. Check authentication
     if (!currentUser || !currentUser.id) {
       Alert.alert('Xəta', 'Daxil olmamısınız');
       return;
     }
-    
+
     // 3. Check store
     if (!store || !store.id) {
       Alert.alert('Xəta', 'Mağaza tapılmadı');
       return;
     }
-    
+
     // 4. Check ownership
     if (store.userId !== currentUser.id) {
       Alert.alert(
         'İcazə yoxdur',
         'Siz bu mağazanı redaktə edə bilməzsiniz'
->>>>>>> origin/main
       );
       return;
     }
-    
-<<<<<<< HEAD
-    // ✅ Validate email (optional but must be valid if provided)
-    if (editForm.email.trim() && !validateEmail(editForm.email.trim())) {
-      Alert.alert(
-        language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' 
-          ? 'Email formatı düzgün deyil (məsələn: info@magaza.az)' 
-          : 'Неверный формат email'
-      );
-      return;
-    }
-    
-    // ✅ Validate phone (optional but must be valid if provided)
-    if (editForm.phone.trim() && !validateAzerbaijanPhone(editForm.phone.trim(), false)) {
-      Alert.alert(
-        language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az'
-          ? 'Telefon formatı düzgün deyil (məsələn: +994501234567 və ya 0501234567)'
-          : 'Неверный формат телефона'
-      );
-      return;
-    }
-    
-    // ✅ Validate WhatsApp (optional but must be valid if provided)
-    if (editForm.whatsapp.trim() && !validateAzerbaijanPhone(editForm.whatsapp.trim(), false)) {
-      Alert.alert(
-        language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az'
-          ? 'WhatsApp nömrəsi formatı düzgün deyil'
-          : 'Неверный формат WhatsApp'
-      );
-      return;
-    }
-    
-    // ✅ Validate website URL (optional but must be valid if provided)
-    if (editForm.website.trim() && !validateWebsiteURL(editForm.website.trim(), false)) {
-      Alert.alert(
-        language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az'
-          ? 'Website URL formatı düzgün deyil (məsələn: https://magaza.az)'
-          : 'Неверный формат URL'
-      );
-      return;
-    }
-    
-=======
+
     // 5. Validate store name
     if (!editForm.name || typeof editForm.name !== 'string') {
       Alert.alert('Xəta', 'Mağaza adı düzgün deyil');
       return;
     }
-    
+
     const trimmedName = editForm.name.trim();
-    
+
     if (trimmedName.length === 0) {
       Alert.alert('Xəta', 'Mağaza adı daxil edilməlidir');
       return;
     }
-    
+
     if (trimmedName.length < 3) {
       Alert.alert('Xəta', 'Mağaza adı ən azı 3 simvol olmalıdır');
       return;
     }
-    
+
     if (trimmedName.length > 50) {
       Alert.alert('Xəta', 'Mağaza adı maksimum 50 simvol ola bilər');
       return;
     }
-    
+
     // 6. Validate description
     if (editForm.description && typeof editForm.description === 'string') {
       const trimmedDescription = editForm.description.trim();
@@ -520,7 +431,7 @@ export default function StoreSettingsScreen() {
         return;
       }
     }
-    
+
     // 7. Validate email if provided
     if (editForm.email && typeof editForm.email === 'string') {
       const trimmedEmail = editForm.email.trim();
@@ -536,7 +447,7 @@ export default function StoreSettingsScreen() {
         }
       }
     }
-    
+
     // 8. Validate phone if provided
     if (editForm.phone && typeof editForm.phone === 'string') {
       const phoneDigits = editForm.phone.replace(/\D/g, '');
@@ -545,7 +456,7 @@ export default function StoreSettingsScreen() {
         return;
       }
     }
-    
+
     // 9. Validate WhatsApp if provided
     if (editForm.whatsapp && typeof editForm.whatsapp === 'string') {
       const whatsappDigits = editForm.whatsapp.replace(/\D/g, '');
@@ -554,7 +465,7 @@ export default function StoreSettingsScreen() {
         return;
       }
     }
-    
+
     // 10. Validate website if provided
     if (editForm.website && typeof editForm.website === 'string') {
       const trimmedWebsite = editForm.website.trim();
@@ -579,12 +490,11 @@ export default function StoreSettingsScreen() {
         }
       }
     }
-    
+
     // ✅ VALIDATION END
-    
+
     setIsLoading(true);
-    
->>>>>>> origin/main
+
     try {
       logger.info('[StoreSettings] Updating store:', {
         storeId: store.id,
@@ -592,34 +502,8 @@ export default function StoreSettingsScreen() {
         hasEmail: !!editForm.email.trim(),
         hasPhone: !!editForm.phone.trim()
       });
-      
+
       await editStore(store.id, {
-<<<<<<< HEAD
-        name: editForm.name.trim(),
-        description: editForm.description.trim(),
-        contactInfo: {
-          ...store.contactInfo,
-          phone: editForm.phone.trim(),
-          email: editForm.email.trim().toLowerCase(),
-          website: editForm.website.trim(),
-          whatsapp: editForm.whatsapp.trim()
-        }
-      });
-      
-      logger.info('[StoreSettings] Store updated successfully:', store.id);
-      setShowEditModal(false);
-      
-      Alert.alert(
-        language === 'az' ? 'Uğurlu' : 'Успешно',
-        language === 'az' ? 'Mağaza məlumatları yeniləndi' : 'Данные магазина обновлены'
-      );
-    } catch (error) {
-      logger.error('[StoreSettings] Failed to update store:', error);
-      Alert.alert(
-        language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' ? 'Məlumatlar yenilənə bilmədi' : 'Не удалось обновить данные'
-      );
-=======
         name: trimmedName,
         description: editForm.description?.trim() || '',
         contactInfo: {
@@ -630,17 +514,17 @@ export default function StoreSettingsScreen() {
           whatsapp: editForm.whatsapp?.trim() || undefined
         }
       });
-      
+
       setShowEditModal(false);
       Alert.alert(
-        'Uğurlu', 
+        'Uğurlu',
         `"${trimmedName}" mağazasının məlumatları yeniləndi`,
         [{ text: 'OK' }],
         { cancelable: false }
       );
     } catch (error) {
       let errorMessage = 'Məlumatlar yenilənə bilmədi';
-      
+
       if (error instanceof Error) {
         if (error.message.includes('tapılmadı') || error.message.includes('not found')) {
           errorMessage = 'Mağaza tapılmadı';
@@ -650,38 +534,28 @@ export default function StoreSettingsScreen() {
           errorMessage = 'Düzgün olmayan məlumat';
         }
       }
-      
+
       Alert.alert('Xəta', errorMessage);
     } finally {
       setIsLoading(false);
->>>>>>> origin/main
     }
   };
 
   const handleDeleteStore = () => {
-<<<<<<< HEAD
-    if (!store) {
-      logger.error('[StoreSettings] No store for deletion');
-      return;
-    }
-    
-    logger.warn('[StoreSettings] Delete store confirmation requested:', { storeId: store.id, storeName: store.name });
-    
-=======
     // ✅ VALIDATION START
-    
+
     // 1. Check authentication
     if (!currentUser || !currentUser.id) {
       Alert.alert('Xəta', 'Daxil olmamısınız');
       return;
     }
-    
+
     // 2. Check store
     if (!store || !store.id) {
       Alert.alert('Xəta', 'Mağaza tapılmadı');
       return;
     }
-    
+
     // 3. Check ownership
     if (store.userId !== currentUser.id) {
       Alert.alert(
@@ -690,51 +564,37 @@ export default function StoreSettingsScreen() {
       );
       return;
     }
-    
+
     // 4. Check if already being deleted
     if (isLoading) {
       Alert.alert('Xəta', 'Əməliyyat artıq icra olunur');
       return;
     }
-    
+
     // 5. Check if store is already deleted
     if (store.status === 'archived' || store.archivedAt) {
       Alert.alert('Xəta', 'Mağaza artıq silinib');
       return;
     }
-    
+
     // ✅ VALIDATION END
-    
+
     // Get store data for confirmation
     const followersCount = Array.isArray(store.followers) ? store.followers.length : 0;
-    
+
     // First confirmation
->>>>>>> origin/main
     Alert.alert(
       '⚠️ Mağazanı Sil',
       `"${store.name}" mağazasını silmək istədiyinizə əminsiniz?\n\n⚠️ Bu əməliyyat geri qaytarıla bilməz!\n• Bütün məlumatlar silinəcək\n• ${followersCount} izləyici bildiriş alacaq\n• Mağazaya giriş mümkün olmayacaq`,
       [
-        { 
-          text: 'Ləğv et', 
+        {
+          text: 'Ləğv et',
           style: 'cancel',
           onPress: () => logger.info('[StoreSettings] Delete cancelled')
         },
         {
           text: 'Davam et',
           style: 'destructive',
-<<<<<<< HEAD
-          onPress: async () => {
-            logger.info('[StoreSettings] Deleting store:', store.id);
-            try {
-              await deleteStore(store.id);
-              logger.info('[StoreSettings] Store deleted successfully:', store.id);
-              router.back();
-              Alert.alert('Uğurlu', 'Mağaza silindi');
-            } catch (error) {
-              logger.error('[StoreSettings] Failed to delete store:', error);
-              Alert.alert('Xəta', 'Mağaza silinə bilmədi');
-            }
-=======
           onPress: () => {
             // Second confirmation after 300ms
             setTimeout(() => {
@@ -748,10 +608,10 @@ export default function StoreSettingsScreen() {
                     style: 'destructive',
                     onPress: async () => {
                       setIsLoading(true);
-                      
+
                       try {
                         await deleteStore(store.id);
-                        
+
                         Alert.alert(
                           '✅ Uğurlu!',
                           `"${store.name}" mağazası silindi.\n\n${followersCount > 0 ? `${followersCount} izləyiciyə bildiriş göndərildi.\n\n` : ''}Siz indi yeni mağaza yarada bilərsiniz.`,
@@ -760,7 +620,7 @@ export default function StoreSettingsScreen() {
                         );
                       } catch (error) {
                         let errorMessage = 'Mağaza silinə bilmədi';
-                        
+
                         if (error instanceof Error) {
                           if (error.message.includes('tapılmadı') || error.message.includes('not found')) {
                             errorMessage = 'Mağaza tapılmadı';
@@ -776,7 +636,7 @@ export default function StoreSettingsScreen() {
                             errorMessage = 'Düzgün olmayan məlumat';
                           }
                         }
-                        
+
                         Alert.alert('Xəta', errorMessage);
                       } finally {
                         setIsLoading(false);
@@ -786,7 +646,6 @@ export default function StoreSettingsScreen() {
                 ]
               );
             }, 300);
->>>>>>> origin/main
           }
         }
       ]
@@ -798,32 +657,32 @@ export default function StoreSettingsScreen() {
       logger.error('[StoreSettings] No store for renewal');
       return;
     }
-    
+
     if (!packageId || typeof packageId !== 'string') {
       logger.error('[StoreSettings] Invalid package ID:', packageId);
       return;
     }
-    
+
     const renewalPackage = renewalPackages.find(p => p.id === packageId);
     if (!renewalPackage) {
       logger.error('[StoreSettings] Renewal package not found:', packageId);
       return;
     }
-    
-    logger.info('[StoreSettings] Initiating renewal:', { 
-      storeId: store.id, 
-      packageId, 
+
+    logger.info('[StoreSettings] Initiating renewal:', {
+      storeId: store.id,
+      packageId,
       packageName: renewalPackage.name,
-      price: renewalPackage.discountedPrice 
+      price: renewalPackage.discountedPrice
     });
-    
+
     try {
       // In a real app, this would handle payment
       await renewStore(store.id, store.plan.id);
-      
+
       logger.info('[StoreSettings] Store renewed successfully:', store.id);
       setShowRenewalModal(false);
-      
+
       Alert.alert('Uğurlu', 'Mağaza yeniləndi');
     } catch (error) {
       logger.error('[StoreSettings] Failed to renew store:', error);
@@ -1187,10 +1046,10 @@ export default function StoreSettingsScreen() {
             <Text style={[styles.urgentText, { color: '#FFFFFF' }]}>Təcili</Text>
           </View>
         )}
-        
+
         <Text style={[styles.packageName, { color: colors.text }]}>{pkg.name}</Text>
         <Text style={[styles.packageDescription, { color: colors.textSecondary }]}>{pkg.description}</Text>
-        
+
         <View style={styles.priceContainer}>
           {pkg.discount > 0 && (
             <Text style={[styles.originalPrice, { color: colors.textSecondary }]}>{pkg.originalPrice} AZN</Text>
@@ -1202,7 +1061,7 @@ export default function StoreSettingsScreen() {
             </View>
           )}
         </View>
-        
+
         <View style={styles.featuresContainer}>
           {pkg.features.map((feature, index) => (
             <View key={index} style={styles.featureItem}>
@@ -1216,14 +1075,14 @@ export default function StoreSettingsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <Stack.Screen 
-        options={{ 
+      <Stack.Screen
+        options={{
           title: 'Mağaza Tənzimləmələri',
           headerStyle: { backgroundColor: colors.card },
           headerTintColor: colors.text
-        }} 
+        }}
       />
-      
+
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Multi-Store Selector */}
         {userStores.length > 1 && (
@@ -1234,26 +1093,26 @@ export default function StoreSettingsScreen() {
                 {userStores.length} mağazadan {getUserStoreLimit(currentUser?.id || '')} limit
               </Text>
             </View>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={[styles.currentStoreButton, { backgroundColor: colors.background, borderColor: colors.border }]}
               onPress={() => setShowStoreSelector(true)}
             >
               <View style={styles.currentStoreInfo}>
                 <Text style={[styles.currentStoreName, { color: colors.text }]}>{store.name}</Text>
-                <Text style={[styles.currentStoreStatus, { 
-                  color: store.status === 'active' ? colors.success : 
-                         store.status === 'grace_period' ? colors.warning : colors.error 
+                <Text style={[styles.currentStoreStatus, {
+                  color: store.status === 'active' ? colors.success :
+                    store.status === 'grace_period' ? colors.warning : colors.error
                 }]}>
-                  {store.status === 'active' ? 'Aktiv' : 
-                   store.status === 'grace_period' ? 'Güzəşt müddəti' : 'Qeyri-aktiv'}
+                  {store.status === 'active' ? 'Aktiv' :
+                    store.status === 'grace_period' ? 'Güzəşt müddəti' : 'Qeyri-aktiv'}
                 </Text>
               </View>
               <ArrowUpDown size={20} color={colors.textSecondary} />
             </TouchableOpacity>
-            
+
             {canUserCreateNewStore(currentUser?.id || '') && (
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[styles.addStoreButton, { borderColor: colors.primary }]}
                 onPress={() => router.push('/store/create')}
               >
@@ -1277,17 +1136,17 @@ export default function StoreSettingsScreen() {
               </Text>
             </View>
           </View>
-          
+
           {expirationInfo && (
             <View style={styles.expirationInfo}>
               <Clock size={16} color={expirationInfo.daysUntilExpiration && expirationInfo.daysUntilExpiration <= 7 ? colors.warning : colors.textSecondary} />
-              <Text style={[styles.expirationText, { 
-                color: expirationInfo.daysUntilExpiration && expirationInfo.daysUntilExpiration <= 7 ? colors.warning : colors.textSecondary 
+              <Text style={[styles.expirationText, {
+                color: expirationInfo.daysUntilExpiration && expirationInfo.daysUntilExpiration <= 7 ? colors.warning : colors.textSecondary
               }]}>
                 {expirationInfo.nextAction}
               </Text>
               {expirationInfo.daysUntilExpiration && expirationInfo.daysUntilExpiration <= 7 && (
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={[styles.urgentButton, { backgroundColor: colors.warning }]}
                   onPress={() => setShowRenewalModal(true)}
                 >
@@ -1296,7 +1155,7 @@ export default function StoreSettingsScreen() {
               )}
             </View>
           )}
-          
+
           <View style={[styles.storeStats, { borderTopColor: colors.border }]}>
             <View style={styles.statItem}>
               <Text style={[styles.statValue, { color: colors.text }]}>{store.adsUsed}</Text>
@@ -1340,7 +1199,7 @@ export default function StoreSettingsScreen() {
               <Text style={[styles.closeButtonText, { color: colors.primary }]}>Bağla</Text>
             </TouchableOpacity>
           </View>
-          
+
           <ScrollView style={styles.modalContent}>
             {renewalPackages.map(renderRenewalPackage)}
           </ScrollView>
@@ -1363,7 +1222,7 @@ export default function StoreSettingsScreen() {
               <Text style={[styles.closeButtonText, { color: colors.primary }]}>Ləğv et</Text>
             </TouchableOpacity>
           </View>
-          
+
           <ScrollView style={styles.modalContent}>
             <View style={styles.formGroup}>
               <Text style={[styles.formLabel, { color: colors.text }]}>Mağaza Adı</Text>
@@ -1375,7 +1234,7 @@ export default function StoreSettingsScreen() {
                 placeholderTextColor={colors.placeholder}
               />
             </View>
-            
+
             <View style={styles.formGroup}>
               <Text style={[styles.formLabel, { color: colors.text }]}>Təsvir</Text>
               <TextInput
@@ -1388,7 +1247,7 @@ export default function StoreSettingsScreen() {
                 numberOfLines={4}
               />
             </View>
-            
+
             <View style={styles.formGroup}>
               <Text style={[styles.formLabel, { color: colors.text }]}>Telefon</Text>
               <TextInput
@@ -1400,7 +1259,7 @@ export default function StoreSettingsScreen() {
                 keyboardType="phone-pad"
               />
             </View>
-            
+
             <View style={styles.formGroup}>
               <Text style={[styles.formLabel, { color: colors.text }]}>Email</Text>
               <TextInput
@@ -1413,7 +1272,7 @@ export default function StoreSettingsScreen() {
                 autoCapitalize="none"
               />
             </View>
-            
+
             <View style={styles.formGroup}>
               <Text style={[styles.formLabel, { color: colors.text }]}>Vebsayt</Text>
               <TextInput
@@ -1426,7 +1285,7 @@ export default function StoreSettingsScreen() {
                 autoCapitalize="none"
               />
             </View>
-            
+
             <View style={styles.formGroup}>
               <Text style={[styles.formLabel, { color: colors.text }]}>WhatsApp</Text>
               <TextInput
@@ -1438,7 +1297,7 @@ export default function StoreSettingsScreen() {
                 keyboardType="phone-pad"
               />
             </View>
-            
+
             <TouchableOpacity
               style={[styles.saveButton, { backgroundColor: colors.primary }]}
               onPress={handleSaveEdit}
@@ -1465,7 +1324,7 @@ export default function StoreSettingsScreen() {
               <Text style={[styles.closeButtonText, { color: colors.primary }]}>Bağla</Text>
             </TouchableOpacity>
           </View>
-          
+
           <FlatList
             data={userStores}
             keyExtractor={(item) => item.id}
@@ -1489,14 +1348,15 @@ export default function StoreSettingsScreen() {
                   <View style={styles.storeListItemRight}>
                     <View style={[
                       styles.storeListItemStatus,
-                      { backgroundColor: 
-                        item.status === 'active' ? colors.success : 
-                        item.status === 'grace_period' ? colors.warning : colors.error 
+                      {
+                        backgroundColor:
+                          item.status === 'active' ? colors.success :
+                            item.status === 'grace_period' ? colors.warning : colors.error
                       }
                     ]}>
                       <Text style={[styles.storeListItemStatusText, { color: '#FFFFFF' }]}>
-                        {item.status === 'active' ? 'Aktiv' : 
-                         item.status === 'grace_period' ? 'Güzəşt' : 'Qeyri-aktiv'}
+                        {item.status === 'active' ? 'Aktiv' :
+                          item.status === 'grace_period' ? 'Güzəşt' : 'Qeyri-aktiv'}
                       </Text>
                     </View>
                     {item.id === store.id && (

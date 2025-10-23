@@ -181,28 +181,28 @@ export default function ModerationScreen() {
           <View style={styles.statsGrid}>
             <StatCard
               title={language === 'az' ? 'Gözləyən şikayətlər' : 'Ожидающие жалобы'}
-              value={pendingReports?.length || 0} {/* ✅ Null-safe */}
+              value={pendingReports?.length || 0}
               icon={Clock}
               color="#F59E0B"
               onPress={() => showComingSoon(language === 'az' ? 'Şikayətlər' : 'Жалобы')}
             />
             <StatCard
               title={language === 'az' ? 'Açıq biletlər' : 'Открытые тикеты'}
-              value={(openTickets?.length || 0) + (inProgressTickets?.length || 0)} {/* ✅ Null-safe */}
+              value={(openTickets?.length || 0) + (inProgressTickets?.length || 0)}
               icon={HelpCircle}
               color="#3B82F6"
               onPress={() => showComingSoon(language === 'az' ? 'Dəstək biletləri' : 'Тикеты поддержки')}
             />
             <StatCard
               title={language === 'az' ? 'Moderatorlar' : 'Модераторы'}
-              value={moderators?.length || 0} {/* ✅ Null-safe */}
+              value={moderators?.length || 0} 
               icon={UserCheck}
               color="#10B981"
               onPress={() => showComingSoon(language === 'az' ? 'Moderatorlar' : 'Модераторы')}
             />
             <StatCard
               title={language === 'az' ? 'Həll edilmiş' : 'Решенные'}
-              value={stats?.resolvedReports || 0} {/* ✅ Null-safe */}
+              value={stats?.resolvedReports || 0}
               icon={CheckCircle}
               color="#059669"
             />

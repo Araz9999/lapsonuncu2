@@ -11,6 +11,12 @@ const getBaseUrl = () => {
     return process.env.EXPO_PUBLIC_RORK_API_BASE_URL;
   }
 
+  // Fallback to localhost for development
+  if (__DEV__) {
+    console.warn('EXPO_PUBLIC_RORK_API_BASE_URL not set, using localhost:3001');
+    return 'http://localhost:3001';
+  }
+
   throw new Error(
     "No base url found, please set EXPO_PUBLIC_RORK_API_BASE_URL"
   );
@@ -68,6 +74,22 @@ export const trpcClient = trpc.createClient({
       },
     }),
   ],
+  // Add error handling for network issues
+  queryClientConfig: {
+    defaultOptions: {
+      queries: {
+        retry: (failureCount, error) => {
+          // Don't retry on network errors to prevent infinite loops
+          if (error?.message?.includes('fetch')) {
+            return false;
+          }
+          return failureCount < 2;
+        },
+        staleTime: 1000 * 60 * 5, // 5 minutes
+        cacheTime: 1000 * 60 * 30, // 30 minutes
+      },
+    },
+  },
 });
 
 // Export function to clear auth cache when needed

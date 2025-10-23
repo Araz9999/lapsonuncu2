@@ -178,6 +178,8 @@ export interface PayriffTopupResponse {
 }
 
 export interface PayriffWalletHistory {
+  description: any;
+  createdAt: any;
   id: number;
   active: boolean;
   balance: number;

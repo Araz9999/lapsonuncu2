@@ -58,31 +58,10 @@ export default function PromoteListingScreen() {
   }
   
   const handlePromote = async () => {
-<<<<<<< HEAD
-    if (!selectedPackage) {
-      logger.error('[PromoteListing] No package selected');
-      return;
-    }
-    
-    if (!currentUser) {
-      logger.error('[PromoteListing] No current user');
-      Alert.alert(
-        language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' ? 'İstifadəçi məlumatları tapılmadı' : 'Информация о пользователе не найдена'
-      );
-      return;
-    }
-    
-    logger.info('[PromoteListing] Promoting listing:', { listingId: listing.id, packageId: selectedPackage.id, price: selectedPackage.price });
-    
-    const totalBalance = getTotalBalance();
-    if (totalBalance < selectedPackage.price) {
-=======
     // ✅ VALIDATION START
     
     // 1. Check authentication
     if (!currentUser) {
->>>>>>> origin/main
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Daxil olmamısınız' : 'Вы не вошли в систему'
@@ -186,19 +165,6 @@ export default function PromoteListingScreen() {
     // Check if listing expires before package duration
     const currentDate = new Date();
     const listingExpiryDate = new Date(listing.expiresAt);
-<<<<<<< HEAD
-    
-    // ✅ Validate date
-    if (isNaN(listingExpiryDate.getTime())) {
-      Alert.alert(
-        language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' ? 'Elanın müddəti düzgün deyil' : 'Неверная дата истечения объявления'
-      );
-      return;
-    }
-    
-=======
->>>>>>> origin/main
     const daysUntilExpiry = Math.max(0, Math.ceil((listingExpiryDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24)));
     
     let confirmMessage = language === 'az'
@@ -212,14 +178,7 @@ export default function PromoteListingScreen() {
     }
     
     const approved = await confirm(confirmMessage, language === 'az' ? 'Təsdiq edin' : 'Подтвердите');
-<<<<<<< HEAD
-    if (!approved) {
-      logger.info('[PromoteListing] User cancelled promotion');
-      return;
-    }
-=======
     if (!approved) return;
->>>>>>> origin/main
     
     setIsProcessing(true);
     
@@ -230,40 +189,24 @@ export default function PromoteListingScreen() {
     let spentFromWalletAmount = 0;
     
     try {
-<<<<<<< HEAD
-      // ✅ Use spendFromBalance for automatic bonus → wallet ordering
-      const paymentSuccess = spendFromBalance(selectedPackage.price);
-      
-      if (!paymentSuccess) {
-        logger.error('[PromoteListing] Payment failed:', { price: selectedPackage.price, balance: getTotalBalance() });
-        Alert.alert(
-          language === 'az' ? 'Xəta' : 'Ошибка',
-          language === 'az' ? 'Ödəniş uğursuz oldu' : 'Платеж не удался'
-        );
-        return;
-      }
-      
-      logger.info('[PromoteListing] Payment successful:', { price: selectedPackage.price });
-=======
       // Process payment
       let remainingAmount = selectedPackage.price;
       
       if (bonusBalance > 0) {
         spentFromBonusAmount = Math.min(bonusBalance, remainingAmount);
-        spendFromBonus(spentFromBonusAmount);
+        spendFromBalance(spentFromBonusAmount);
         remainingAmount -= spentFromBonusAmount;
         logger.info('[handlePromote] Spent from bonus:', spentFromBonusAmount);
       }
       
       if (remainingAmount > 0) {
         spentFromWalletAmount = remainingAmount;
-        spendFromWallet(remainingAmount);
+        spendFromBalance(remainingAmount);
         logger.info('[handlePromote] Spent from wallet:', spentFromWalletAmount);
       }
       
       logger.info('[handlePromote] Total payment:', selectedPackage.price, 'Bonus:', spentFromBonusAmount, 'Wallet:', spentFromWalletAmount);
       
->>>>>>> origin/main
       const promotionEndDate = new Date(Math.max(
         listingExpiryDate.getTime(),
         currentDate.getTime() + (selectedPackage.duration * 24 * 60 * 60 * 1000)
@@ -282,12 +225,6 @@ export default function PromoteListingScreen() {
       }
       
       Alert.alert(language === 'az' ? 'Uğurlu!' : 'Успешно!', successMessage);
-<<<<<<< HEAD
-      logger.info('[PromoteListing] Promotion successful');
-      router.back();
-    } catch (error) {
-      logger.error('[PromoteListing] Promotion failed:', error);
-=======
       
       // Clear selection after success
       setSelectedPackage(null);
@@ -297,15 +234,15 @@ export default function PromoteListingScreen() {
       // ✅ Payment rollback
       logger.error('[handlePromote] Error, rolling back payment:', error);
       
-      const { addToWallet, addToBonus } = useUserStore.getState();
+      const userStoreState = useUserStore.getState() as any;
       
-      if (spentFromBonusAmount > 0) {
-        addToBonus(spentFromBonusAmount);
+      if (spentFromBonusAmount > 0 && typeof userStoreState.addToBonus === 'function') {
+        userStoreState.addToBonus(spentFromBonusAmount);
         logger.info('[handlePromote] Rolled back bonus:', spentFromBonusAmount);
       }
       
-      if (spentFromWalletAmount > 0) {
-        addToWallet(spentFromWalletAmount);
+      if (spentFromWalletAmount > 0 && typeof userStoreState.addToWallet === 'function') {
+        userStoreState.addToWallet(spentFromWalletAmount);
         logger.info('[handlePromote] Rolled back wallet:', spentFromWalletAmount);
       }
       
@@ -332,7 +269,6 @@ export default function PromoteListingScreen() {
         ? '\n\nÖdənişiniz geri qaytarıldı.' 
         : '\n\nВаш платеж был возвращен.';
       
->>>>>>> origin/main
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         errorMessage
@@ -359,23 +295,7 @@ export default function PromoteListingScreen() {
   };
   
   const handlePurchaseEffects = async () => {
-<<<<<<< HEAD
-    if (selectedEffects.length === 0) {
-      logger.warn('[PromoteListing] No effects selected');
-      return;
-    }
-    
-    if (!currentUser) {
-      logger.error('[PromoteListing] No current user for effects purchase');
-      Alert.alert(
-        language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' ? 'İstifadəçi məlumatları tapılmadı' : 'Информация о пользователе не найдена'
-      );
-      return;
-    }
-=======
     // ===== VALIDATION START =====
->>>>>>> origin/main
     
     // 1. Check user authentication
     if (!currentUser) {
@@ -451,11 +371,6 @@ export default function PromoteListingScreen() {
     
     // 5. Calculate total price and validate
     const totalPrice = selectedEffects.reduce((sum, effect) => sum + effect.price, 0);
-<<<<<<< HEAD
-    logger.info('[PromoteListing] Purchasing effects:', { count: selectedEffects.length, totalPrice });
-    
-    const totalBalance = getTotalBalance();
-=======
     
     if (!isFinite(totalPrice) || totalPrice <= 0) {
       Alert.alert(
@@ -475,7 +390,6 @@ export default function PromoteListingScreen() {
     
     // 6. Check balance
     const totalBalance = walletBalance + bonusBalance;
->>>>>>> origin/main
     
     if (totalBalance < totalPrice) {
       Alert.alert(
@@ -492,19 +406,6 @@ export default function PromoteListingScreen() {
     // Check if any effect duration exceeds listing expiry
     const currentDate = new Date();
     const listingExpiryDate = new Date(listing.expiresAt);
-<<<<<<< HEAD
-    
-    // ✅ Validate date
-    if (isNaN(listingExpiryDate.getTime())) {
-      Alert.alert(
-        language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' ? 'Elanın müddəti düzgün deyil' : 'Неверная дата истечения объявления'
-      );
-      return;
-    }
-    
-=======
->>>>>>> origin/main
     const daysUntilExpiry = Math.max(0, Math.ceil((listingExpiryDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24)));
     
     const longestEffect = selectedEffects.reduce((longest, effect) => 
@@ -522,59 +423,36 @@ export default function PromoteListingScreen() {
     }
     
     const approved = await confirm(confirmMessage, language === 'az' ? 'Təsdiq edin' : 'Подтвердите');
-<<<<<<< HEAD
-    if (!approved) {
-      logger.info('[PromoteListing] User cancelled effects purchase');
-      return;
-    }
-=======
     if (!approved) return;
->>>>>>> origin/main
     
     setIsProcessing(true);
     
     // Store original balance for rollback
     const originalWalletBalance = walletBalance;
     const originalBonusBalance = bonusBalance;
+    let spentFromBonus = 0;
+    let spentFromWallet = 0;
     
     try {
-<<<<<<< HEAD
-      // ✅ Use spendFromBalance for automatic bonus → wallet ordering
-      const paymentSuccess = spendFromBalance(totalPrice);
-      
-      if (!paymentSuccess) {
-        logger.error('[PromoteListing] Effects payment failed:', { totalPrice, balance: getTotalBalance() });
-        Alert.alert(
-          language === 'az' ? 'Xəta' : 'Ошибка',
-          language === 'az' ? 'Ödəniş uğursuz oldu' : 'Платеж не удался'
-        );
-        return;
-      }
-      
-      logger.info('[PromoteListing] Effects payment successful:', { totalPrice });
-=======
       // Process payment
       let remainingAmount = totalPrice;
-      let spentFromBonus = 0;
-      let spentFromWallet = 0;
       
       if (bonusBalance > 0) {
         spentFromBonus = Math.min(bonusBalance, remainingAmount);
-        spendFromBonus(spentFromBonus);
+        spendFromBalance(spentFromBonus);
         remainingAmount -= spentFromBonus;
         logger.info('[PurchaseEffects] Spent from bonus:', spentFromBonus);
       }
       
       if (remainingAmount > 0) {
         spentFromWallet = remainingAmount;
-        spendFromWallet(remainingAmount);
+        spendFromBalance(remainingAmount);
         logger.info('[PurchaseEffects] Spent from wallet:', spentFromWallet);
       }
       
       logger.info('[PurchaseEffects] Total payment:', totalPrice, 'Bonus:', spentFromBonus, 'Wallet:', spentFromWallet);
       
       // Calculate effect end dates
->>>>>>> origin/main
       const effectEndDates = selectedEffects.map(effect => {
         const effectDuration = Math.max(1, effect.duration); // Ensure at least 1 day
         const effectEndDate = new Date(Math.max(
@@ -589,11 +467,7 @@ export default function PromoteListingScreen() {
       let successMessage = language === 'az'
         ? `Kreativ effektlər elanınıza tətbiq edildi!`
         : `Креативные эффекты применены к вашему объявлению!`;
-<<<<<<< HEAD
-      if (daysUntilExpiry < longestEffect.duration && effectEndDates.length > 0) {
-=======
       if (longestEffect && longestEffect.duration && daysUntilExpiry < longestEffect.duration && effectEndDates.length > 0) {
->>>>>>> origin/main
         const latestEndDate = effectEndDates.reduce((latest, item) => 
           item.endDate > latest ? item.endDate : latest
         , effectEndDates[0].endDate);
@@ -602,12 +476,6 @@ export default function PromoteListingScreen() {
           : `\n\nЭффекты будут активны до ${latestEndDate.toLocaleDateString('ru-RU')}.`;
       }
       Alert.alert(language === 'az' ? 'Uğurlu!' : 'Успешно!', successMessage);
-<<<<<<< HEAD
-      logger.info('[PromoteListing] Effects applied successfully');
-      router.back();
-    } catch (error) {
-      logger.error('[PromoteListing] Effects application failed:', error);
-=======
       
       // Clear selected effects after successful purchase
       setSelectedEffects([]);
@@ -618,15 +486,15 @@ export default function PromoteListingScreen() {
       logger.error('[PurchaseEffects] Error applying effects, rolling back payment:', error);
       
       // Rollback: Add money back to user's balance
-      const { addToWallet, addToBonus } = useUserStore.getState();
+      const userStoreState = useUserStore.getState() as any;
       
-      if (spentFromBonus > 0) {
-        addToBonus(spentFromBonus);
+      if (spentFromBonus > 0 && typeof userStoreState.addToBonus === 'function') {
+        userStoreState.addToBonus(spentFromBonus);
         logger.info('[PurchaseEffects] Rolled back bonus:', spentFromBonus);
       }
       
-      if (spentFromWallet > 0) {
-        addToWallet(spentFromWallet);
+      if (spentFromWallet > 0 && typeof userStoreState.addToWallet === 'function') {
+        userStoreState.addToWallet(spentFromWallet);
         logger.info('[PurchaseEffects] Rolled back wallet:', spentFromWallet);
       }
       
@@ -649,7 +517,6 @@ export default function PromoteListingScreen() {
         ? '\n\nÖdənişiniz geri qaytarıldı.' 
         : '\n\nВаш платеж был возвращен.';
       
->>>>>>> origin/main
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         errorMessage
@@ -660,12 +527,6 @@ export default function PromoteListingScreen() {
   };
   
   const handlePurchaseViews = async () => {
-<<<<<<< HEAD
-    if (!selectedViewPackage) {
-      logger.error('[PromoteListing] No view package selected');
-      return;
-    }
-=======
     // ✅ VALIDATION START
     
     // 1. Check authentication
@@ -724,7 +585,6 @@ export default function PromoteListingScreen() {
     }
     
     // ✅ VALIDATION END
->>>>>>> origin/main
     
     if (!currentUser) {
       logger.error('[PromoteListing] No current user for views purchase');
@@ -751,19 +611,6 @@ export default function PromoteListingScreen() {
     // Check if listing will expire before all views are consumed
     const currentDate = new Date();
     const listingExpiryDate = new Date(listing.expiresAt);
-<<<<<<< HEAD
-    
-    // ✅ Validate date
-    if (isNaN(listingExpiryDate.getTime())) {
-      Alert.alert(
-        language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' ? 'Elanın müddəti düzgün deyil' : 'Неверная дата истечения объявления'
-      );
-      return;
-    }
-    
-=======
->>>>>>> origin/main
     const daysUntilExpiry = Math.max(0, Math.ceil((listingExpiryDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24)));
     const targetViews = listing.views + selectedViewPackage.views;
     
@@ -784,39 +631,19 @@ export default function PromoteListingScreen() {
     }
     
     const approved = await confirm(confirmMessage, language === 'az' ? 'Təsdiq edin' : 'Подтвердите');
-<<<<<<< HEAD
-    if (!approved) {
-      logger.info('[PromoteListing] User cancelled views purchase');
-      return;
-    }
-=======
     if (!approved) return;
->>>>>>> origin/main
     
     setIsProcessing(true);
     
     // ✅ Store original balance for rollback
     const originalWalletBalance = walletBalance;
     const originalBonusBalance = bonusBalance;
+    const spendFromBonus = spendFromBalance;
+  const spendFromWallet = spendFromBalance;   // For clarity in this context
     let spentFromBonusAmount = 0;
     let spentFromWalletAmount = 0;
     
     try {
-<<<<<<< HEAD
-      // ✅ Use spendFromBalance for automatic bonus → wallet ordering
-      const paymentSuccess = spendFromBalance(selectedViewPackage.price);
-      
-      if (!paymentSuccess) {
-        logger.error('[PromoteListing] Views payment failed:', { price: selectedViewPackage.price, balance: getTotalBalance() });
-        Alert.alert(
-          language === 'az' ? 'Xəta' : 'Ошибка',
-          language === 'az' ? 'Ödəniş uğursuz oldu' : 'Платеж не удался'
-        );
-        return;
-      }
-      
-      logger.info('[PromoteListing] Views payment successful:', { price: selectedViewPackage.price });
-=======
       // Process payment
       let remainingAmount = selectedViewPackage.price;
       
@@ -835,7 +662,6 @@ export default function PromoteListingScreen() {
       
       logger.info('[handlePurchaseViews] Total payment:', selectedViewPackage.price, 'Bonus:', spentFromBonusAmount, 'Wallet:', spentFromWalletAmount);
       
->>>>>>> origin/main
       await purchaseViews(listing.id, selectedViewPackage.views);
       
       let successMessage = language === 'az'
@@ -849,12 +675,6 @@ export default function PromoteListingScreen() {
       }
       
       Alert.alert(language === 'az' ? 'Uğurlu!' : 'Успешно!', successMessage);
-<<<<<<< HEAD
-      logger.info('[PromoteListing] Views purchased successfully');
-      router.back();
-    } catch (error) {
-      logger.error('[PromoteListing] Views purchase failed:', error);
-=======
       
       // Clear selection after success
       setSelectedViewPackage(null);
@@ -864,15 +684,15 @@ export default function PromoteListingScreen() {
       // ✅ Payment rollback
       logger.error('[handlePurchaseViews] Error, rolling back payment:', error);
       
-      const { addToWallet, addToBonus } = useUserStore.getState();
+      const userStoreState = useUserStore.getState() as any;
       
-      if (spentFromBonusAmount > 0) {
-        addToBonus(spentFromBonusAmount);
+      if (spentFromBonusAmount > 0 && typeof userStoreState.addToBonus === 'function') {
+        userStoreState.addToBonus(spentFromBonusAmount);
         logger.info('[handlePurchaseViews] Rolled back bonus:', spentFromBonusAmount);
       }
       
-      if (spentFromWalletAmount > 0) {
-        addToWallet(spentFromWalletAmount);
+      if (spentFromWalletAmount > 0 && typeof userStoreState.addToWallet === 'function') {
+        userStoreState.addToWallet(spentFromWalletAmount);
         logger.info('[handlePurchaseViews] Rolled back wallet:', spentFromWalletAmount);
       }
       
@@ -899,7 +719,6 @@ export default function PromoteListingScreen() {
         ? '\n\nÖdənişiniz geri qaytarıldı.' 
         : '\n\nВаш платеж был возвращен.';
       
->>>>>>> origin/main
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         errorMessage

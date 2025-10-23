@@ -512,229 +512,231 @@ export default function PaymentHistoryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  headerButton: {
-    padding: 8,
-    marginLeft: 8,
-  },
-  summaryCard: {
-    backgroundColor: colors.card,
-    margin: 16,
-    padding: 20,
-    borderRadius: 12,
-    ...Platform.select({
-      ios: {
-        shadowColor: colors.shadow || '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
-  },
-  summaryHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  summaryTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.textSecondary,
-  },
-  summaryAmount: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 4,
-  },
-  summarySubtitle: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  filterContainer: {
-    backgroundColor: colors.card,
-    paddingVertical: 16,
-    marginBottom: 8,
-  },
-  filterScrollContent: {
-    paddingHorizontal: 16,
-  },
-  filterTab: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginRight: 12,
-    borderRadius: 20,
-    backgroundColor: colors.background,
-  },
-  activeFilterTab: {
-    backgroundColor: colors.primary,
-  },
-  filterTabText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: colors.textSecondary,
-  },
-  activeFilterTabText: {
-    color: '#FFFFFF',
-  },
-  paymentList: {
-    backgroundColor: colors.card,
-    marginBottom: 8,
-  },
-  paymentItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  paymentLeft: {
-    flexDirection: 'row',
-    flex: 1,
-  },
-  statusIconContainer: {
-    marginRight: 12,
-    marginTop: 2,
-  },
-  paymentContent: {
-    flex: 1,
-  },
-  paymentDescription: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: colors.text,
-    marginBottom: 4,
-  },
-  paymentType: {
-    fontSize: 12,
-    color: colors.primary,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  paymentMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  paymentDate: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginRight: 16,
-  },
-  paymentMethod: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  methodText: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginLeft: 4,
-  },
-  storeName: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    fontStyle: 'italic',
-  },
-  paymentRight: {
-    alignItems: 'flex-end',
-    marginLeft: 12,
-  },
-  paymentAmount: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginBottom: 4,
-  },
-  statusText: {
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  transactionId: {
-    fontSize: 10,
-    color: colors.textSecondary,
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-  },
-  emptyState: {
-    alignItems: 'center',
-    padding: 40,
-  },
-  emptyStateTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text,
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  emptyStateText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  monthlySection: {
-    backgroundColor: colors.card,
-    padding: 16,
-    marginBottom: 8,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 16,
-  },
-  monthlyGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  monthlyItem: {
-    width: '50%',
-    alignItems: 'center',
-    paddingVertical: 12,
-  },
-  monthlyValue: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.primary,
-  },
-  monthlyLabel: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginTop: 4,
-  },
-  helpSection: {
-    backgroundColor: colors.card,
-    padding: 16,
-    marginBottom: 16,
-  },
-  helpItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  helpText: {
-    fontSize: 16,
-    color: colors.text,
-    marginLeft: 12,
-  },
-});
+function createStyles(colors: any) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+    },
+    scrollView: {
+      flex: 1,
+    },
+    headerActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    headerButton: {
+      padding: 8,
+      marginLeft: 8,
+    },
+    summaryCard: {
+      backgroundColor: colors.card,
+      margin: 16,
+      padding: 20,
+      borderRadius: 12,
+      ...Platform.select({
+        ios: {
+          shadowColor: colors.shadow || '#000000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
+        },
+        android: {
+          elevation: 3,
+        },
+      }),
+    },
+    summaryHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 12,
+    },
+    summaryTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: colors.textSecondary,
+    },
+    summaryAmount: {
+      fontSize: 32,
+      fontWeight: 'bold',
+      color: colors.text,
+      marginBottom: 4,
+    },
+    summarySubtitle: {
+      fontSize: 14,
+      color: colors.textSecondary,
+    },
+    filterContainer: {
+      backgroundColor: colors.card,
+      paddingVertical: 16,
+      marginBottom: 8,
+    },
+    filterScrollContent: {
+      paddingHorizontal: 16,
+    },
+    filterTab: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      marginRight: 12,
+      borderRadius: 20,
+      backgroundColor: colors.background,
+    },
+    activeFilterTab: {
+      backgroundColor: colors.primary,
+    },
+    filterTabText: {
+      fontSize: 14,
+      fontWeight: '500',
+      color: colors.textSecondary,
+    },
+    activeFilterTabText: {
+      color: '#FFFFFF',
+    },
+    paymentList: {
+      backgroundColor: colors.card,
+      marginBottom: 8,
+    },
+    paymentItem: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      padding: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    paymentLeft: {
+      flexDirection: 'row',
+      flex: 1,
+    },
+    statusIconContainer: {
+      marginRight: 12,
+      marginTop: 2,
+    },
+    paymentContent: {
+      flex: 1,
+    },
+    paymentDescription: {
+      fontSize: 16,
+      fontWeight: '500',
+      color: colors.text,
+      marginBottom: 4,
+    },
+    paymentType: {
+      fontSize: 12,
+      color: colors.primary,
+      fontWeight: '600',
+      marginBottom: 8,
+    },
+    paymentMeta: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 4,
+    },
+    paymentDate: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      marginRight: 16,
+    },
+    paymentMethod: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    methodText: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      marginLeft: 4,
+    },
+    storeName: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      fontStyle: 'italic',
+    },
+    paymentRight: {
+      alignItems: 'flex-end',
+      marginLeft: 12,
+    },
+    paymentAmount: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      marginBottom: 4,
+    },
+    statusBadge: {
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 12,
+      marginBottom: 4,
+    },
+    statusText: {
+      fontSize: 10,
+      fontWeight: '600',
+    },
+    transactionId: {
+      fontSize: 10,
+      color: colors.textSecondary,
+      fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    },
+    emptyState: {
+      alignItems: 'center',
+      padding: 40,
+    },
+    emptyStateTitle: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: colors.text,
+      marginTop: 16,
+      marginBottom: 8,
+    },
+    emptyStateText: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      textAlign: 'center',
+      lineHeight: 20,
+    },
+    monthlySection: {
+      backgroundColor: colors.card,
+      padding: 16,
+      marginBottom: 8,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: colors.text,
+      marginBottom: 16,
+    },
+    monthlyGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+    },
+    monthlyItem: {
+      width: '50%',
+      alignItems: 'center',
+      paddingVertical: 12,
+    },
+    monthlyValue: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: colors.primary,
+    },
+    monthlyLabel: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      marginTop: 4,
+    },
+    helpSection: {
+      backgroundColor: colors.card,
+      padding: 16,
+      marginBottom: 16,
+    },
+    helpItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    helpText: {
+      fontSize: 16,
+      color: colors.text,
+      marginLeft: 12,
+    },
+  });
+}

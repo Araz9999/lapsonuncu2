@@ -14,13 +14,8 @@ import {
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { trpc } from '@/lib/trpc';
 import { Lock, Eye, EyeOff } from 'lucide-react-native';
-<<<<<<< HEAD
+import { logger } from '@/utils/logger';
 import { useLanguageStore } from '@/store/languageStore';
-import { logger } from '@/utils/logger';
-import Colors from '@/constants/colors';
-=======
-import { logger } from '@/utils/logger';
->>>>>>> origin/main
 
 export default function ResetPasswordScreen() {
   const { token } = useLocalSearchParams<{ token: string }>();
@@ -33,66 +28,6 @@ export default function ResetPasswordScreen() {
   const resetMutation = trpc.auth.resetPassword.useMutation();
 
   const handleResetPassword = async () => {
-<<<<<<< HEAD
-    // ✅ Validate token exists
-    if (!token) {
-      Alert.alert(
-        language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' 
-          ? 'Şifrə sıfırlama linki etibarsızdır. Zəhmət olmasa yenidən cəhd edin.'
-          : 'Ссылка для сброса пароля недействительна. Пожалуйста, попробуйте снова.'
-      );
-      router.replace('/auth/forgot-password');
-      return;
-    }
-
-    if (!password || !confirmPassword) {
-      Alert.alert(
-        language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' ? 'Bütün xanaları doldurun' : 'Заполните все поля'
-      );
-      return;
-    }
-
-    // ✅ Match registration requirements (8+ chars, uppercase, lowercase, number)
-    if (password.length < 8) {
-      Alert.alert(
-        language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' 
-          ? 'Şifrə ən az 8 simvol olmalıdır'
-          : 'Пароль должен содержать минимум 8 символов'
-      );
-      return;
-    }
-
-    if (!/[A-Z]/.test(password)) {
-      Alert.alert(
-        language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' 
-          ? 'Şifrə ən azı 1 böyük hərf olmalıdır'
-          : 'Пароль должен содержать минимум 1 заглавную букву'
-      );
-      return;
-    }
-
-    if (!/[a-z]/.test(password)) {
-      Alert.alert(
-        language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' 
-          ? 'Şifrə ən azı 1 kiçik hərf olmalıdır'
-          : 'Пароль должен содержать минимум 1 строчную букву'
-      );
-      return;
-    }
-
-    if (!/[0-9]/.test(password)) {
-      Alert.alert(
-        language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' 
-          ? 'Şifrə ən azı 1 rəqəm olmalıdır'
-          : 'Пароль должен содержать минимум 1 цифру'
-      );
-=======
     // ===== VALIDATION START =====
     
     // 1. Token validation
@@ -107,7 +42,6 @@ export default function ResetPasswordScreen() {
     // 2. Password required
     if (!password || typeof password !== 'string' || password.trim().length === 0) {
       Alert.alert('Xəta', 'Şifrə daxil edin');
->>>>>>> origin/main
       return;
     }
     
@@ -168,15 +102,8 @@ export default function ResetPasswordScreen() {
       logger.info('Password reset successful');
 
       Alert.alert(
-<<<<<<< HEAD
-        language === 'az' ? 'Uğurlu!' : 'Успешно!',
-        language === 'az' 
-          ? 'Şifrəniz uğurla dəyişdirildi'
-          : 'Ваш пароль успешно изменен',
-=======
         'Uğurlu!',
         'Şifrəniz uğurla dəyişdirildi. İndi yeni şifrənizlə daxil ola bilərsiniz.',
->>>>>>> origin/main
         [
           {
             text: language === 'az' ? 'Giriş et' : 'Войти',
@@ -186,14 +113,6 @@ export default function ResetPasswordScreen() {
       );
     } catch (error: any) {
       logger.error('Password reset error:', error);
-<<<<<<< HEAD
-      Alert.alert(
-        language === 'az' ? 'Xəta' : 'Ошибка',
-        error.message || (language === 'az' 
-          ? 'Şifrə dəyişdirilə bilmədi. Zəhmət olmasa yenidən cəhd edin.'
-          : 'Не удалось изменить пароль. Пожалуйста, попробуйте снова.')
-      );
-=======
       
       // User-friendly error messages
       let errorMessage = 'Şifrə dəyişdirilə bilmədi';
@@ -209,12 +128,9 @@ export default function ResetPasswordScreen() {
       }
       
       Alert.alert('Xəta', errorMessage);
->>>>>>> origin/main
     }
   };
-  };
-
-  return (
+   return (
     <>
       <Stack.Screen options={{ 
         title: language === 'az' ? 'Şifrə Sıfırlama' : 'Сброс пароля', 
@@ -314,7 +230,9 @@ export default function ResetPasswordScreen() {
       </KeyboardAvoidingView>
     </>
   );
-}
+  };
+
+ 
 
 const styles = StyleSheet.create({
   container: {

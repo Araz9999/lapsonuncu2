@@ -1,6 +1,48 @@
 import { Language, useLanguageStore } from '@/store/languageStore';
 
 export const translations = {
+
+  // ✅ ADD THESE MISSING KEYS FOR THE LOGIN SCREEN
+  emailRequired: {
+    az: 'Email tələb olunur',
+    ru: 'Требуется электронная почта',
+    en: 'Email is required',
+  },
+  invalidEmail: {
+    az: 'Düzgün email daxil edin',
+    ru: 'Введите действующий email',
+    en: 'Please enter a valid email',
+  },
+  emailTooLong: {
+    az: 'Email çox uzundur (maks 255 simvol)',
+    ru: 'Email слишком длинный (макс 255 символов)',
+    en: 'Email is too long (max 255 chars)',
+  },
+  passwordRequired: {
+    az: 'Şifrə tələb olunur',
+    ru: 'Требуется пароль',
+    en: 'Password is required',
+  },
+  passwordTooShort: {
+    az: 'Şifrə ən azı 6 simvol olmalıdır',
+    ru: 'Пароль должен быть не менее 6 символов',
+    en: 'Password must be at least 6 characters',
+  },
+  passwordTooLong: {
+    az: 'Şifrə çox uzundur (maks 128 simvol)',
+    ru: 'Пароль слишком длинный (макс 128 символов)',
+    en: 'Password is too long (max 128 chars)',
+  },
+  loginError: {
+    az: 'Giriş zamanı xəta baş verdi. Yenidən cəhd edin.',
+    ru: 'Произошла ошибка при входе. Попробуйте снова.',
+    en: 'An error occurred during login. Please try again.',
+  },
+  invalidCredentials: {
+    az: 'Email və ya şifrə səhvdir',
+    ru: 'Неверный email или пароль',
+    en: 'Incorrect email or password',
+  },
   home: {
     az: 'Ana səhifə',
     ru: 'Главная',
