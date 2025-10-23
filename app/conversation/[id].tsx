@@ -48,6 +48,7 @@ import { Audio } from 'expo-av';
 import UserActionModal from '@/components/UserActionModal';
 
 import { logger } from '@/utils/logger';
+import { size } from 'zod';
 const { width: screenWidth } = Dimensions.get('window');
 
 const ChatInput = memo(({ 
@@ -180,11 +181,10 @@ export default function ConversationScreen() {
   const [inputText, setInputText] = useState<string>('');
   const [isRecording, setIsRecording] = useState<boolean>(false);
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
-<<<<<<< HEAD
-  const [recordingDuration, setRecordingDuration] = useState<number>(0);
-=======
-  const [recordingTimer, setRecordingTimer] = useState<NodeJS.Timeout | null>(null); // ✅ Max duration timer
->>>>>>> origin/main
+  // Use platform-safe return types for timers so setTimeout/setInterval return values are accepted
+  const [recordingTimer, setRecordingTimer] = useState<ReturnType<typeof setTimeout> | null>(null); // ✅ Max duration timer
+  const [recordingDuration, setRecordingDuration] = useState<number>(0); // ✅ Track current recording duration in seconds
+  const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null); // ✅ Interval ref used to update recordingDuration
   const [showAttachmentModal, setShowAttachmentModal] = useState<boolean>(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [playingAudio, setPlayingAudio] = useState<string | null>(null);
@@ -192,14 +192,8 @@ export default function ConversationScreen() {
   const [showUserActionModal, setShowUserActionModal] = useState<boolean>(false);
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
-<<<<<<< HEAD
-  
-  // ✅ Track recording timer
-  const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
-=======
   const [isDeletingMessage, setIsDeletingMessage] = useState<boolean>(false);
   const [isUploadingFile, setIsUploadingFile] = useState<boolean>(false);
->>>>>>> origin/main
 
   
   const flatListRef = useRef<FlatList>(null);
@@ -285,23 +279,12 @@ export default function ConversationScreen() {
           .catch(err => logger.warn('Error cleaning up sound:', err));
       }
       
-<<<<<<< HEAD
-      // Cleanup recording if still active
-=======
       // ✅ Cleanup recording if still active
->>>>>>> origin/main
       if (recording) {
         recording.stopAndUnloadAsync()
           .catch(err => logger.warn('Error cleaning up recording:', err));
       }
       
-<<<<<<< HEAD
-      // ✅ Cleanup recording timer
-      if (recordingTimerRef.current) {
-        clearInterval(recordingTimerRef.current);
-        recordingTimerRef.current = null;
-      }
-=======
       // ✅ Clear recording timer
       if (recordingTimer) {
         clearTimeout(recordingTimer);
@@ -312,7 +295,6 @@ export default function ConversationScreen() {
         allowsRecordingIOS: false,
         playsInSilentModeIOS: false,
       }).catch(err => logger.warn('Error resetting audio mode on unmount:', err));
->>>>>>> origin/main
     };
   }, [sound, recording, recordingTimer]);
   
@@ -387,11 +369,7 @@ export default function ConversationScreen() {
       }
 
       const newMessage: Message = {
-<<<<<<< HEAD
-        id: `${Date.now()}_${Math.random().toString(36).substring(2, 11)}`, // ✅ Consistent ID format
-=======
         id: `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`, // ✅ Use substring()
->>>>>>> origin/main
         senderId: currentUser.id,
         receiverId: otherUser.id,
         listingId: currentConversation.listingId,
@@ -482,23 +460,6 @@ export default function ConversationScreen() {
         allowsEditing: false,
       });
 
-<<<<<<< HEAD
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        // Send each image as a separate message
-        for (const asset of result.assets) {
-          const attachment: MessageAttachment = {
-            id: `${Date.now()}_${Math.random().toString(36).substring(2, 11)}`, // ✅ Consistent ID format
-            type: 'image',
-            uri: asset.uri,
-            name: asset.fileName || 'image.jpg',
-            size: asset.fileSize || 0,
-            mimeType: 'image/jpeg',
-          };
-          
-          await sendMessage('', 'image', [attachment]);
-          // Small delay between messages to ensure proper ordering
-          await new Promise(resolve => setTimeout(resolve, 100));
-=======
       // ✅ Validate result
       if (result.canceled) {
         logger.debug('[pickImage] User cancelled image selection');
@@ -590,7 +551,6 @@ export default function ConversationScreen() {
         // ✅ Small delay between messages to ensure proper ordering
         if (i < result.assets.length - 1) {
           await new Promise(resolve => setTimeout(resolve, 150));
->>>>>>> origin/main
         }
       }
 
@@ -639,27 +599,11 @@ export default function ConversationScreen() {
         multiple: false, // Can be changed to true if needed
       });
 
-<<<<<<< HEAD
-      // BUG FIX: Check if assets array exists and has elements
-      if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0]) {
-        const asset = result.assets[0];
-        const attachment: MessageAttachment = {
-          id: `${Date.now()}_${Math.random().toString(36).substring(2, 11)}`, // ✅ Consistent ID format
-          type: 'file',
-          uri: asset.uri,
-          name: asset.name,
-          size: asset.size || 0,
-          mimeType: asset.mimeType || 'application/octet-stream',
-        };
-        
-        await sendMessage('', 'file', [attachment]);
-=======
       // ✅ Validate result
       if (result.canceled) {
         logger.debug('[pickDocument] User cancelled document selection');
         setShowAttachmentModal(false);
         return;
->>>>>>> origin/main
       }
 
       if (!result.assets || result.assets.length === 0) {
@@ -814,19 +758,9 @@ export default function ConversationScreen() {
         return;
       }
 
-<<<<<<< HEAD
-      // ✅ Prevent multiple recordings at once
-      if (recording || isRecording) {
-        logger.warn('Recording already in progress');
-        return;
-      }
-
-      const { status } = await Audio.requestPermissionsAsync();
-=======
       // ✅ 3. Request and verify permission
       const { status, canAskAgain } = await Audio.requestPermissionsAsync();
       
->>>>>>> origin/main
       if (status !== 'granted') {
         Alert.alert(
           language === 'az' ? 'İcazə lazımdır' : 'Требуется разрешение',
@@ -841,18 +775,6 @@ export default function ConversationScreen() {
         return;
       }
 
-<<<<<<< HEAD
-      // ✅ Enhanced audio mode configuration
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
-        staysActiveInBackground: false,
-        interruptionModeIOS: 1, // Do not mix with others
-        shouldDuckAndroid: true,
-        playThroughEarpieceAndroid: false,
-      });
-
-=======
       // ✅ 4. Set audio mode with error handling
       try {
         await Audio.setAudioModeAsync({
@@ -866,21 +788,12 @@ export default function ConversationScreen() {
       }
 
       // ✅ 5. Create recording
->>>>>>> origin/main
       const { recording: newRecording } = await Audio.Recording.createAsync(
         Audio.RecordingOptionsPresets.HIGH_QUALITY
       );
       
       setRecording(newRecording);
       setIsRecording(true);
-<<<<<<< HEAD
-      setRecordingDuration(0);
-      
-      // ✅ Start recording duration timer
-      recordingTimerRef.current = setInterval(() => {
-        setRecordingDuration(prev => prev + 1);
-      }, 1000);
-=======
       
       // ✅ 6. Set max duration timer (5 minutes)
       const MAX_DURATION_MS = 5 * 60 * 1000;
@@ -896,13 +809,10 @@ export default function ConversationScreen() {
       }, MAX_DURATION_MS);
       
       setRecordingTimer(timer);
->>>>>>> origin/main
       
       logger.info('Recording started successfully');
     } catch (error) {
       logger.error('Failed to start recording:', error);
-<<<<<<< HEAD
-=======
       
       // ✅ Cleanup on error
       setIsRecording(false);
@@ -917,7 +827,6 @@ export default function ConversationScreen() {
         logger.error('Failed to reset audio mode:', resetError);
       }
       
->>>>>>> origin/main
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Səs yazma başladıla bilmədi' : 'Не удалось начать запись'
@@ -932,9 +841,6 @@ export default function ConversationScreen() {
 
   const stopRecording = async () => {
     // ✅ Early return with proper validation
-<<<<<<< HEAD
-    if (!recording || Platform.OS === 'web') return;
-=======
     if (!recording || Platform.OS === 'web') {
       // ✅ Clear timer even if recording is null
       if (recordingTimer) {
@@ -943,7 +849,6 @@ export default function ConversationScreen() {
       }
       return;
     }
->>>>>>> origin/main
 
     try {
       // ✅ Stop recording timer
@@ -954,33 +859,12 @@ export default function ConversationScreen() {
       
       setIsRecording(false);
       
-<<<<<<< HEAD
-      // ✅ Check minimum recording duration (at least 1 second)
-      if (recordingDuration < 1) {
-        await recording.stopAndUnloadAsync();
-        setRecording(null);
-        setRecordingDuration(0);
-        
-        Alert.alert(
-          language === 'az' ? 'Xəbərdarlıq' : 'Предупреждение',
-          language === 'az' 
-            ? 'Səs yazma çox qısa oldu. Ən azı 1 saniyə danışın.'
-            : 'Запись слишком короткая. Говорите хотя бы 1 секунду.'
-        );
-        return;
-      }
-      
-      // ✅ Get recording status for file size
-      const status = await recording.getStatusAsync();
-      
-=======
       // ✅ Clear max duration timer
       if (recordingTimer) {
         clearTimeout(recordingTimer);
         setRecordingTimer(null);
       }
       
->>>>>>> origin/main
       // ✅ Proper cleanup sequence
       await recording.stopAndUnloadAsync();
       
@@ -996,17 +880,6 @@ export default function ConversationScreen() {
         const uriParts = uri.split('.');
         const fileType = uriParts[uriParts.length - 1];
         
-<<<<<<< HEAD
-        // ✅ Get actual file size if available
-        const fileSize = status?.durationMillis ? Math.floor(status.durationMillis / 10) : 0;
-        
-        const attachment: MessageAttachment = {
-          id: `${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
-          type: 'audio',
-          uri,
-          name: `voice_${Date.now()}.${fileType}`,
-          size: fileSize,
-=======
         // ✅ Validate URI
         if (!uri || typeof uri !== 'string' || uri.trim().length === 0) {
           logger.error('Invalid audio URI');
@@ -1047,12 +920,11 @@ export default function ConversationScreen() {
           uri: uri.trim(),
           name: `recording_${Date.now()}.${fileType}`,
           size: 0, // ⚠️ TODO - Get actual file size
->>>>>>> origin/main
           mimeType: `audio/${fileType}`,
           duration: durationSeconds, // ✅ Store duration
         };
         
-        logger.info(`Sending voice message: ${recordingDuration}s, ${fileSize} bytes`);
+        logger.info(`Sending voice message: ${recordingDuration}s, ${size} bytes`);
         await sendMessage('', 'audio', [attachment]);
       }
       
@@ -1067,17 +939,10 @@ export default function ConversationScreen() {
       setRecording(null);
       setRecordingDuration(0);
       
-<<<<<<< HEAD
-      // ✅ Stop timer
-      if (recordingTimerRef.current) {
-        clearInterval(recordingTimerRef.current);
-        recordingTimerRef.current = null;
-=======
       // ✅ Clear timer on error
       if (recordingTimer) {
         clearTimeout(recordingTimer);
         setRecordingTimer(null);
->>>>>>> origin/main
       }
       
       // ✅ Try to reset audio mode even if recording failed
@@ -1134,13 +999,9 @@ export default function ConversationScreen() {
   };
 
   const playAudio = async (uri: string, messageId: string) => {
-<<<<<<< HEAD
-    // ✅ Platform check
-=======
     // ===== VALIDATION START =====
     
     // ✅ 1. Platform check
->>>>>>> origin/main
     if (Platform.OS === 'web') {
       Alert.alert(
         language === 'az' ? 'Xəbərdarlıq' : 'Предупреждение',
@@ -1177,11 +1038,7 @@ export default function ConversationScreen() {
     }
 
     try {
-<<<<<<< HEAD
-      // ✅ Toggle playback if already playing this audio
-=======
       // ✅ 4. Toggle playback if already playing
->>>>>>> origin/main
       if (playingAudio === messageId) {
         if (sound) {
           await sound.stopAsync();
@@ -1193,11 +1050,7 @@ export default function ConversationScreen() {
         return;
       }
 
-<<<<<<< HEAD
-      // ✅ Stop and cleanup previous sound
-=======
       // ✅ 5. Stop and cleanup previous sound
->>>>>>> origin/main
       if (sound) {
         try {
           await sound.stopAsync();
@@ -1208,11 +1061,7 @@ export default function ConversationScreen() {
         setSound(null);
       }
 
-<<<<<<< HEAD
-      // ✅ Set proper audio mode for playback
-=======
       // ✅ 6. Set proper audio mode
->>>>>>> origin/main
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: false,
         playsInSilentModeIOS: true,

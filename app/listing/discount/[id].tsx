@@ -113,16 +113,6 @@ export default function ListingDiscountScreen() {
   }
   
   const handleCreateDiscount = () => {
-<<<<<<< HEAD
-    logger.info('[ListingDiscount] Creating discount:', { listingId: listing.id, storeId: listing.storeId, type: discountType, value: discountValue });
-    
-    // ✅ Sanitize title and description
-    const sanitizedTitle = listing.storeId ? sanitizeTextInput(discountTitle) : '';
-    const sanitizedDescription = listing.storeId ? sanitizeTextInput(discountDescription) : '';
-    
-    if (listing.storeId && !sanitizedTitle) {
-      logger.error('[ListingDiscount] Validation failed: Missing title for store discount');
-=======
     logger.debug('[handleCreateDiscount] Button clicked');
     logger.debug('[handleCreateDiscount] Listing storeId:', listing.storeId);
     logger.debug('[handleCreateDiscount] Discount title:', discountTitle);
@@ -135,7 +125,6 @@ export default function ListingDiscountScreen() {
     // 1. Store discount title validation
     if (listing.storeId && !discountTitle.trim()) {
       logger.debug('[handleCreateDiscount] Validation failed: Missing title');
->>>>>>> origin/main
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Endirim başlığını daxil edin' : 'Введите название скидки'
@@ -143,12 +132,7 @@ export default function ListingDiscountScreen() {
       return;
     }
     
-<<<<<<< HEAD
-    if (!discountValue.trim() || isNaN(Number(discountValue))) {
-      logger.error('[ListingDiscount] Validation failed: Invalid discount value');
-=======
     if (listing.storeId && discountTitle.trim().length > 100) {
->>>>>>> origin/main
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Başlıq maksimum 100 simvol ola bilər' : 'Заголовок не должен превышать 100 символов'
@@ -156,14 +140,8 @@ export default function ListingDiscountScreen() {
       return;
     }
     
-<<<<<<< HEAD
-    const value = Number(discountValue);
-    if (value <= 0 || (discountType === 'percentage' && value >= 100)) {
-      logger.error('[ListingDiscount] Validation failed: Value out of range');
-=======
     // 2. Description validation
     if (discountDescription.trim().length > 500) {
->>>>>>> origin/main
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Təsvir maksimum 500 simvol ola bilər' : 'Описание не должно превышать 500 символов'
@@ -171,40 +149,16 @@ export default function ListingDiscountScreen() {
       return;
     }
     
-<<<<<<< HEAD
-    // ✅ Validate timer title if enabled
-    const sanitizedTimerTitle = (enableTimerBar && showTimerBar) ? sanitizeTextInput(timerTitle) : '';
-    
-    if (enableTimerBar && showTimerBar && !sanitizedTimerTitle) {
-      Alert.alert(
-        language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' ? 'Sayğac başlığını daxil edin' : 'Введите заголовок таймера'
-      );
-      logger.error('[ListingDiscount] Validation failed: Empty timer title after sanitization');
-      return;
-    }
-    
-    logger.info('[ListingDiscount] Validation passed, showing confirmation dialog');
-    // Validate timer bar settings if enabled
-    if (enableTimerBar && showTimerBar && !timerTitle.trim()) {
-      logger.error('[ListingDiscount] Validation failed: Missing timer title');
-      Alert.alert(
-        language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' ? 'Sayğac başlığını daxil edin' : 'Введите заголовок таймера'
-=======
     // 3. Discount value validation
     if (!discountValue || typeof discountValue !== 'string' || discountValue.trim().length === 0) {
       logger.debug('[handleCreateDiscount] Validation failed: Missing value');
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Endirim dəyəri daxil edin' : 'Введите значение скидки'
->>>>>>> origin/main
       );
       return;
     }
     
-<<<<<<< HEAD
-=======
     const value = parseFloat(discountValue.trim());
     
     if (isNaN(value) || !isFinite(value)) {
@@ -314,7 +268,6 @@ export default function ListingDiscountScreen() {
     
     logger.debug('[handleCreateDiscount] Validation passed, showing confirmation dialog');
     
->>>>>>> origin/main
     Alert.alert(
       language === 'az' ? 'Endirim tətbiq edilsin?' : 'Применить скидку?',
       language === 'az' 
@@ -415,14 +368,6 @@ export default function ListingDiscountScreen() {
       
       if (discountType === 'percentage') {
         discountPercentage = value;
-<<<<<<< HEAD
-        finalPrice = originalPrice * (1 - value / 100);
-        logger.info('[ListingDiscount] Percentage discount - Final price:', finalPrice);
-      } else if (discountType === 'fixed_amount') {
-        finalPrice = Math.max(0, originalPrice - value);
-        discountPercentage = originalPrice > 0 ? ((originalPrice - finalPrice) / originalPrice) * 100 : 0;
-        logger.info('[ListingDiscount] Fixed amount discount:', {
-=======
         // Use precise calculation, round to 2 decimals
         finalPrice = parseFloat((originalPrice * (1 - value / 100)).toFixed(2));
         logger.debug('[handleCreateIndividualDiscount] Percentage discount - Final price:', finalPrice);
@@ -431,7 +376,6 @@ export default function ListingDiscountScreen() {
         finalPrice = parseFloat(Math.max(0, originalPrice - value).toFixed(2));
         discountPercentage = originalPrice > 0 ? parseFloat((((originalPrice - finalPrice) / originalPrice) * 100).toFixed(2)) : 0;
         logger.debug('[handleCreateIndividualDiscount] Fixed amount discount:', {
->>>>>>> origin/main
           originalPrice,
           discountAmount: value,
           finalPrice,
@@ -459,16 +403,6 @@ export default function ListingDiscountScreen() {
         discountEndDate: chosenEndDate.toISOString(),
         discountPercentage: discountType === 'percentage' ? value : discountPercentage,
         // Timer bar settings
-<<<<<<< HEAD
-        timerBarEnabled: enableTimerBar && showTimerBar,
-        timerBarTitle: sanitizedTimerTitle,
-        timerBarColor: enableTimerBar && showTimerBar ? timerBarColor : undefined,
-        timerBarEndDate: enableTimerBar && showTimerBar ? timerEndDate.toISOString() : undefined,
-      };
-      
-      logger.info('[ListingDiscount] Update data:', updateData);
-      
-=======
         timerBarEnabled: enableTimerBar,
         timerBarTitle: enableTimerBar ? timerTitle.trim() : undefined,
         timerBarColor: enableTimerBar ? timerBarColor : undefined,
@@ -476,7 +410,6 @@ export default function ListingDiscountScreen() {
       };
       
       logger.debug('[handleCreateIndividualDiscount] Update data:', updateData);
->>>>>>> origin/main
       updateListing(listing.id, updateData);
       
       logger.info('[ListingDiscount] Listing updated successfully');
@@ -798,14 +731,9 @@ export default function ListingDiscountScreen() {
             onChangeText={handleDiscountValueChange}
             placeholder={discountType === 'percentage' ? '10' : '50'}
             placeholderTextColor={Colors.textSecondary}
-<<<<<<< HEAD
-            keyboardType="decimal-pad"
-            maxLength={discountType === 'percentage' ? 5 : 8}
-=======
             keyboardType="numeric"
             returnKeyType="done"
             onSubmitEditing={Keyboard.dismiss}
->>>>>>> origin/main
           />
         </View>
         
@@ -980,14 +908,10 @@ export default function ListingDiscountScreen() {
                     <TextInput
                       style={styles.compactTimeInput}
                       value={customDays}
-<<<<<<< HEAD
-                      onChangeText={(text) => handleTimeInputChange(text, setCustomDays, 365)}
-=======
                       onChangeText={(text) => {
                         const numericValue = text.replace(/[^0-9]/g, '');
                         setCustomDays(numericValue);
                       }}
->>>>>>> origin/main
                       placeholder="0"
                       placeholderTextColor={Colors.textSecondary}
                       keyboardType="number-pad"
@@ -1003,9 +927,6 @@ export default function ListingDiscountScreen() {
                     <TextInput
                       style={styles.compactTimeInput}
                       value={customHours}
-<<<<<<< HEAD
-                      onChangeText={(text) => handleTimeInputChange(text, setCustomHours, 23)}
-=======
                       onChangeText={(text) => {
                         const numericValue = text.replace(/[^0-9]/g, '');
                         const hours = parseInt(numericValue) || 0;
@@ -1013,7 +934,6 @@ export default function ListingDiscountScreen() {
                           setCustomHours(numericValue);
                         }
                       }}
->>>>>>> origin/main
                       placeholder="0"
                       placeholderTextColor={Colors.textSecondary}
                       keyboardType="number-pad"
@@ -1029,9 +949,6 @@ export default function ListingDiscountScreen() {
                     <TextInput
                       style={styles.compactTimeInput}
                       value={customMinutes}
-<<<<<<< HEAD
-                      onChangeText={(text) => handleTimeInputChange(text, setCustomMinutes, 59)}
-=======
                       onChangeText={(text) => {
                         const numericValue = text.replace(/[^0-9]/g, '');
                         const minutes = parseInt(numericValue) || 0;
@@ -1039,7 +956,6 @@ export default function ListingDiscountScreen() {
                           setCustomMinutes(numericValue);
                         }
                       }}
->>>>>>> origin/main
                       placeholder="0"
                       placeholderTextColor={Colors.textSecondary}
                       keyboardType="number-pad"

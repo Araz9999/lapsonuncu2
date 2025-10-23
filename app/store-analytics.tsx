@@ -118,25 +118,6 @@ export default function StoreAnalyticsScreen() {
   useEffect(() => {
     // ✅ Simulate loading analytics data based on time range
     const loadAnalytics = () => {
-<<<<<<< HEAD
-      logger.info('[StoreAnalytics] Loading analytics data:', { timeRange: selectedTimeRange, storeId: store?.id });
-      
-      // In a real app, this would fetch data from API
-      const multiplier = selectedTimeRange === '7d' ? 0.3 : 
-                        selectedTimeRange === '30d' ? 1 : 
-                        selectedTimeRange === '90d' ? 2.5 : 8;
-      
-      setAnalyticsData(prev => ({
-        ...prev,
-        views: Math.floor(prev.views * multiplier),
-        favorites: Math.floor(prev.favorites * multiplier),
-        messages: Math.floor(prev.messages * multiplier),
-        sales: Math.floor(prev.sales * multiplier),
-        revenue: Math.floor(prev.revenue * multiplier)
-      }));
-      
-      logger.info('[StoreAnalytics] Analytics data loaded successfully');
-=======
       try {
         // In a real app, this would fetch data from API
         const multiplier = selectedTimeRange === '7d' ? 0.3 : 
@@ -162,7 +143,6 @@ export default function StoreAnalyticsScreen() {
         // ✅ Fallback on error
         setAnalyticsData(prev => prev);
       }
->>>>>>> origin/main
     };
 
     loadAnalytics();
@@ -402,15 +382,6 @@ Dövr: ${timeRanges.find(r => r.id === selectedTimeRange)?.label || selectedTime
   };
 
   const renderChart = () => {
-<<<<<<< HEAD
-    // ✅ Prevent division by zero and empty array
-    if (viewsChartData.length === 0) {
-      logger.warn('[StoreAnalytics] No chart data available');
-      return (
-        <View style={styles.chartContainer}>
-          <Text style={styles.chartTitle}>Həftəlik Baxışlar</Text>
-          <Text style={styles.emptyChartText}>Məlumat yoxdur</Text>
-=======
     // ✅ Handle empty data
     if (!viewsChartData || viewsChartData.length === 0) {
       return (
@@ -419,17 +390,12 @@ Dövr: ${timeRanges.find(r => r.id === selectedTimeRange)?.label || selectedTime
           <Text style={[styles.statTitle, { textAlign: 'center', marginTop: 20 }]}>
             Məlumat yoxdur
           </Text>
->>>>>>> origin/main
         </View>
       );
     }
     
-<<<<<<< HEAD
-    const maxValue = Math.max(...viewsChartData.map(d => d.value), 1); // ✅ Min 1 to prevent division by zero
-=======
     // ✅ Prevent division by zero
     const maxValue = Math.max(...viewsChartData.map(d => d.value), 1);
->>>>>>> origin/main
     
     return (
       <View style={styles.chartContainer}>
@@ -496,21 +462,11 @@ Dövr: ${timeRanges.find(r => r.id === selectedTimeRange)?.label || selectedTime
               <View style={styles.listingRank}>
                 <Text style={styles.rankText}>{index + 1}</Text>
               </View>
-<<<<<<< HEAD
-              <View style={styles.statItem}>
-                <Heart size={14} color={colors.textSecondary} />
-                <Text style={styles.statText}>
-                  {'favorites' in listing && typeof (listing as any).favorites === 'number' 
-                    ? (listing as any).favorites 
-                    : 0}
-                </Text>
-=======
               <View style={styles.listingContent}>
                 <Text style={styles.listingTitle} numberOfLines={1}>
                   {title}
                 </Text>
                 <Text style={styles.listingPrice}>{price.toFixed(2)} AZN</Text>
->>>>>>> origin/main
               </View>
               <View style={styles.listingStats}>
                 <View style={styles.statItem}>

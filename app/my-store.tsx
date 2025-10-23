@@ -86,19 +86,7 @@ export default function MyStoreScreen() {
     : [];
   
   const handleDeleteStore = () => {
-<<<<<<< HEAD
-    if (!userStore) {
-      logger.warn('[MyStore] Delete attempt without store');
-      return;
-    }
-    
-    logger.info('[MyStore] Delete store initiated:', { 
-      storeId: userStore.id,
-      storeName: userStore.name
-    });
-=======
     // ✅ VALIDATION START
->>>>>>> origin/main
     
     // 1. Check authentication
     if (!currentUser || !currentUser.id) {
@@ -174,18 +162,10 @@ export default function MyStoreScreen() {
         {
           text: language === 'az' ? 'Davam et' : 'Продолжить',
           style: 'destructive',
-<<<<<<< HEAD
-          onPress: async () => {
-            try {
-              logger.info('[MyStore] Deleting store:', { storeId: userStore.id });
-              await deleteStore(userStore.id);
-              logger.info('[MyStore] Store deleted successfully:', { storeId: userStore.id });
-=======
           onPress: () => {
             // Delay for emphatic second confirmation
             setTimeout(() => {
               // Second confirmation (more emphatic)
->>>>>>> origin/main
               Alert.alert(
                 language === 'az' ? '🔴 SON XƏBƏRDARLIQ' : '🔴 ПОСЛЕДНЕЕ ПРЕДУПРЕЖДЕНИЕ',
                 language === 'az'
@@ -254,18 +234,7 @@ export default function MyStoreScreen() {
                   }
                 ]
               );
-<<<<<<< HEAD
-              router.back();
-            } catch (error) {
-              logger.error('[MyStore] Store deletion failed:', error);
-              Alert.alert(
-                language === 'az' ? 'Xəta' : 'Ошибка',
-                language === 'az' ? 'Mağaza silinərkən xəta baş verdi' : 'Ошибка при удалении магазина'
-              );
-            }
-=======
             }, 300); // Delay for emphasis
->>>>>>> origin/main
           }
         }
       ]

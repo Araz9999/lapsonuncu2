@@ -18,7 +18,7 @@ import { useLanguageStore } from '@/store/languageStore';
 import { useStoreStore } from '@/store/storeStore';
 import { useUserStore } from '@/store/userStore';
 import Colors from '@/constants/colors';
-import { logger } from '@/utils/logger';
+// import { logger } from '@/utils/logger';
 import {
   ArrowLeft,
   Store,
@@ -80,35 +80,6 @@ export default function EditStoreScreen() {
   };
   
   useEffect(() => {
-<<<<<<< HEAD
-    if (store) {
-      logger.info('[EditStore] Loading store data:', { storeId: store.id, storeName: store.name });\n      \n      setFormData({
-        name: store.name,
-        categoryName: store.categoryName,
-        address: store.address,
-        description: store.description || '',
-        contactInfo: {
-          phone: store.contactInfo.phone || '',
-          email: store.contactInfo.email || '',
-          website: store.contactInfo.website || '',
-          whatsapp: store.contactInfo.whatsapp || ''
-        }
-      });\n      \n      logger.info('[EditStore] Form data initialized successfully');\n    } else {\n      logger.warn('[EditStore] No store found for ID:', id);\n    }
-  }, [store, id]);
-  
-  const handleSave = async () => {
-    if (!store || !currentUser) {
-      logger.error('[EditStore] Missing store or user:', { hasStore: !!store, hasUser: !!currentUser });
-      return;
-    }
-    
-    logger.info('[EditStore] Saving store changes:', { storeId: store.id, storeName: formData.name });
-    
-    // ✅ Validate store name
-    const nameValidation = validateStoreName(formData.name);
-    if (!nameValidation.isValid) {
-      logger.warn('[EditStore] Invalid store name:', { name: formData.name, error: nameValidation.error });
-=======
     try {
       if (store) {
         // ✅ Validate store data
@@ -180,16 +151,16 @@ export default function EditStoreScreen() {
     }
     
     // Validation: Store name
-    if (!formData.name.trim()) {
->>>>>>> origin/main
-      Alert.alert(
-        language === 'az' ? 'Xəta' : 'Ошибка',
-        nameValidation.error || (language === 'az' ? 'Mağaza adı düzgün deyil' : 'Неверное название магазина')
-      );
-      return;
-    }
-    
-    if (formData.name.trim().length < 3) {
+        const nameValidation = validateStoreName(formData.name.trim());
+        if (!formData.name.trim() || !nameValidation?.isValid) {
+          Alert.alert(
+            language === 'az' ? 'Xəta' : 'Ошибка',
+            (nameValidation && nameValidation.error) || (language === 'az' ? 'Mağaza adı düzgün deyil' : 'Неверное название магазина')
+          );
+          return;
+        }
+        
+        if (formData.name.trim().length < 3) {
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Mağaza adı ən azı 3 simvol olmalıdır' : 'Название магазина должно быть не менее 3 символов'
@@ -215,69 +186,23 @@ export default function EditStoreScreen() {
       return;
     }
     
-<<<<<<< HEAD
-    // ✅ Validate email (optional but must be valid if provided)
-    if (formData.contactInfo.email.trim() && !validateEmail(formData.contactInfo.email.trim())) {
-      logger.warn('[EditStore] Invalid email format:', formData.contactInfo.email);
-      Alert.alert(
-        language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' 
-          ? 'Email formatı düzgün deyil (məsələn: info@magaza.az)' 
-          : 'Неверный формат email'
-=======
     if (formData.address.trim().length < 5) {
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Ünvan ən azı 5 simvol olmalıdır' : 'Адрес должен быть не менее 5 символов'
->>>>>>> origin/main
       );
       return;
     }
     
-<<<<<<< HEAD
-    // ✅ Validate phone (optional but must be valid if provided)
-    if (formData.contactInfo.phone.trim() && !validateAzerbaijanPhone(formData.contactInfo.phone.trim(), false)) {
-      logger.warn('[EditStore] Invalid phone format:', formData.contactInfo.phone);
-      Alert.alert(
-        language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az'
-          ? 'Telefon formatı düzgün deyil (məsələn: +994501234567)'
-          : 'Неверный формат телефона'
-=======
     // ✅ Validation: Description length if provided
     if (formData.description.trim() && formData.description.trim().length > 1000) {
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Təsvir maksimum 1000 simvol ola bilər' : 'Описание не должно превышать 1000 символов'
->>>>>>> origin/main
       );
       return;
     }
     
-<<<<<<< HEAD
-    // ✅ Validate WhatsApp (optional but must be valid if provided)
-    if (formData.contactInfo.whatsapp.trim() && !validateAzerbaijanPhone(formData.contactInfo.whatsapp.trim(), false)) {
-      logger.warn('[EditStore] Invalid WhatsApp format:', formData.contactInfo.whatsapp);
-      Alert.alert(
-        language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az'
-          ? 'WhatsApp nömrəsi formatı düzgün deyil'
-          : 'Неверный формат WhatsApp'
-      );
-      return;
-    }
-    
-    // ✅ Validate website URL (optional but must be valid if provided)
-    if (formData.contactInfo.website.trim() && !validateWebsiteURL(formData.contactInfo.website.trim(), false)) {
-      logger.warn('[EditStore] Invalid website URL:', formData.contactInfo.website);
-      Alert.alert(
-        language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az'
-          ? 'Website URL formatı düzgün deyil (məsələn: https://magaza.az)'
-          : 'Неверный формат URL'
-      );
-      return;
-=======
     // ✅ Validation: Email format if provided (enhanced regex)
     const emailTrimmed = formData.contactInfo.email.trim();
     if (emailTrimmed) {
@@ -354,27 +279,15 @@ export default function EditStoreScreen() {
         );
         return;
       }
->>>>>>> origin/main
     }
     
     setIsLoading(true);
     
     try {
-<<<<<<< HEAD
-      logger.info('[EditStore] Updating store:', {
-        storeId: store.id,
-        name: formData.name.trim(),
-        hasEmail: !!formData.contactInfo.email.trim(),
-        hasPhone: !!formData.contactInfo.phone.trim()
-      });
-      
-      await editStore(store.id, {
-=======
       logger.debug('[EditStoreScreen] Saving store:', store.id);
       
       // ✅ Prepare update data
       const updateData = {
->>>>>>> origin/main
         name: formData.name.trim(),
         categoryName: formData.categoryName.trim(),
         address: formData.address.trim(),
@@ -405,9 +318,6 @@ export default function EditStoreScreen() {
         { cancelable: false }
       );
     } catch (error) {
-<<<<<<< HEAD
-      logger.error('[EditStore] Failed to update store:', error);
-=======
       logger.error('[EditStoreScreen] Error updating store:', error);
       
       let errorMessage = language === 'az' 
@@ -430,7 +340,6 @@ export default function EditStoreScreen() {
         }
       }
       
->>>>>>> origin/main
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         errorMessage
@@ -488,8 +397,8 @@ export default function EditStoreScreen() {
   }
   
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
+    <KeyboardAvoidingView
+      style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
@@ -500,8 +409,8 @@ export default function EditStoreScreen() {
         <Text style={styles.headerTitle}>
           {language === 'az' ? 'Mağazanı redaktə et' : 'Редактировать магазин'}
         </Text>
-        <TouchableOpacity 
-          onPress={handleSave} 
+        <TouchableOpacity
+          onPress={handleSave}
           style={styles.saveButton}
           disabled={isLoading}
         >
@@ -512,407 +421,390 @@ export default function EditStoreScreen() {
           )}
         </TouchableOpacity>
       </View>
-      
+
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={{ flex: 1 }}>
-          <ScrollView 
-            style={styles.content} 
+          <ScrollView
+            style={styles.content}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
-        {/* Store Basic Info */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            {language === 'az' ? 'Əsas məlumatlar' : 'Основная информация'}
-          </Text>
-          
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>
-              {language === 'az' ? 'Mağaza adı' : 'Название магазина'} *
-            </Text>
-            <TextInput
-              style={[
-                styles.textInput,
-                validationErrors.name && styles.textInputError
-              ]}
-              value={formData.name}
-              onChangeText={(text) => {
-                setFormData(prev => ({ ...prev, name: text }));
-                setHasUnsavedChanges(true);
-                
-                // ✅ Real-time validation
-                if (text.trim().length > 0 && text.trim().length < 3) {
-                  setValidationErrors(prev => ({ 
-                    ...prev, 
-                    name: language === 'az' ? 'Minimum 3 simvol' : 'Минимум 3 символа' 
-                  }));
-                } else {
-                  setValidationErrors(prev => {
-                    const { name, ...rest } = prev;
-                    return rest;
-                  });
-                }
-              }}
-              placeholder={language === 'az' ? 'Mağaza adını daxil edin' : 'Введите название магазина'}
-              placeholderTextColor={Colors.textSecondary}
-              maxLength={50}
-              returnKeyType="next"
-              blurOnSubmit={false}
-            />
-            {validationErrors.name && (
-              <Text style={styles.errorText}>{validationErrors.name}</Text>
-            )}
-          </View>
-          
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>
-              {language === 'az' ? 'Kateqoriya' : 'Категория'}
-            </Text>
-            <TextInput
-              style={styles.textInput}
-              value={formData.categoryName}
-              onChangeText={(text) => {
-                setFormData(prev => ({ ...prev, categoryName: text }));
-                setHasUnsavedChanges(true);
-              }}
-              placeholder={language === 'az' ? 'Kateqoriya adını daxil edin' : 'Введите название категории'}
-              placeholderTextColor={Colors.textSecondary}
-              maxLength={50}
-              returnKeyType="next"
-              blurOnSubmit={false}
-            />
-          </View>
-          
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>
-              {language === 'az' ? 'Ünvan' : 'Адрес'} *
-            </Text>
-            <View style={styles.inputWithIcon}>
-              <MapPin size={20} color={Colors.textSecondary} style={styles.inputIcon} />
+            {/* Store Basic Info */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>
+                {language === 'az' ? 'Əsas məlumatlar' : 'Основная информация'}
+              </Text>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>
+                  {language === 'az' ? 'Mağaza adı' : 'Название магазина'} *
+                </Text>
+                <TextInput
+                  style={[
+                    styles.textInput,
+                    validationErrors.name && styles.textInputError
+                  ]}
+                  value={formData.name}
+                  onChangeText={(text) => {
+                    setFormData(prev => ({ ...prev, name: text }));
+                    setHasUnsavedChanges(true);
+
+                    // ✅ Real-time validation
+                    if (text.trim().length > 0 && text.trim().length < 3) {
+                      setValidationErrors(prev => ({
+                        ...prev,
+                        name: language === 'az' ? 'Minimum 3 simvol' : 'Минимум 3 символа'
+                      }));
+                    } else {
+                      setValidationErrors(prev => {
+                        const { name, ...rest } = prev;
+                        return rest;
+                      });
+                    }
+                  } }
+                  placeholder={language === 'az' ? 'Mağaza adını daxil edin' : 'Введите название магазина'}
+                  placeholderTextColor={Colors.textSecondary}
+                  maxLength={50}
+                  returnKeyType="next"
+                  blurOnSubmit={false} />
+                {validationErrors.name && (
+                  <Text style={styles.errorText}>{validationErrors.name}</Text>
+                )}
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>
+                  {language === 'az' ? 'Kateqoriya' : 'Категория'}
+                </Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={formData.categoryName}
+                  onChangeText={(text) => {
+                    setFormData(prev => ({ ...prev, categoryName: text }));
+                    setHasUnsavedChanges(true);
+                  } }
+                  placeholder={language === 'az' ? 'Kateqoriya adını daxil edin' : 'Введите название категории'}
+                  placeholderTextColor={Colors.textSecondary}
+                  maxLength={50}
+                  returnKeyType="next"
+                  blurOnSubmit={false} />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>
+                  {language === 'az' ? 'Ünvan' : 'Адрес'} *
+                </Text>
+                <View style={styles.inputWithIcon}>
+                  <MapPin size={20} color={Colors.textSecondary} style={styles.inputIcon} />
+                  <TextInput
+                    style={[
+                      styles.textInput,
+                      styles.textInputWithIcon,
+                      validationErrors.address && styles.textInputError
+                    ]}
+                    value={formData.address}
+                    onChangeText={(text) => {
+                      setFormData(prev => ({ ...prev, address: text }));
+                      setHasUnsavedChanges(true);
+
+                      // ✅ Real-time validation
+                      if (text.trim().length > 0 && text.trim().length < 5) {
+                        setValidationErrors(prev => ({
+                          ...prev,
+                          address: language === 'az' ? 'Minimum 5 simvol' : 'Минимум 5 символов'
+                        }));
+                      } else {
+                        setValidationErrors(prev => {
+                          const { address, ...rest } = prev;
+                          return rest;
+                        });
+                      }
+                    } }
+                    placeholder={language === 'az' ? 'Mağaza ünvanını daxil edin' : 'Введите адрес магазина'}
+                    placeholderTextColor={Colors.textSecondary}
+                    multiline
+                    maxLength={200}
+                    returnKeyType="next"
+                    blurOnSubmit={false} />
+                </View>
+                {validationErrors.address && (
+                  <Text style={styles.errorText}>{validationErrors.address}</Text>
+                )}
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>
+                {language === 'az' ? 'Təsvir' : 'Описание'}
+              </Text>
               <TextInput
-                style={[
-                  styles.textInput, 
-                  styles.textInputWithIcon,
-                  validationErrors.address && styles.textInputError
-                ]}
-                value={formData.address}
+                style={[styles.textInput, styles.textArea]}
+                value={formData.description}
                 onChangeText={(text) => {
-                  setFormData(prev => ({ ...prev, address: text }));
+                  setFormData(prev => ({ ...prev, description: text }));
                   setHasUnsavedChanges(true);
-                  
-                  // ✅ Real-time validation
-                  if (text.trim().length > 0 && text.trim().length < 5) {
-                    setValidationErrors(prev => ({ 
-                      ...prev, 
-                      address: language === 'az' ? 'Minimum 5 simvol' : 'Минимум 5 символов' 
-                    }));
-                  } else {
-                    setValidationErrors(prev => {
-                      const { address, ...rest } = prev;
-                      return rest;
-                    });
-                  }
-                }}
-                placeholder={language === 'az' ? 'Mağaza ünvanını daxil edin' : 'Введите адрес магазина'}
+                } }
+                placeholder={language === 'az' ? 'Mağaza haqqında məlumat' : 'Информация о магазине'}
                 placeholderTextColor={Colors.textSecondary}
                 multiline
-                maxLength={200}
+                numberOfLines={4}
+                maxLength={1000}
                 returnKeyType="next"
-                blurOnSubmit={false}
-              />
+                blurOnSubmit={false} />
+              <Text style={styles.charCount}>
+                {formData.description.length}/1000 {language === 'az' ? 'simvol' : 'символов'}
+              </Text>
             </View>
-            {validationErrors.address && (
-              <Text style={styles.errorText}>{validationErrors.address}</Text>
-            )}"}
-            </View>
-          </View>
-          
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>
-              {language === 'az' ? 'Təsvir' : 'Описание'}
-            </Text>
-            <TextInput
-              style={[styles.textInput, styles.textArea]}
-              value={formData.description}
-              onChangeText={(text) => {
-                setFormData(prev => ({ ...prev, description: text }));
-                setHasUnsavedChanges(true);
-              }}
-              placeholder={language === 'az' ? 'Mağaza haqqında məlumat' : 'Информация о магазине'}
-              placeholderTextColor={Colors.textSecondary}
-              multiline
-              numberOfLines={4}
-              maxLength={1000}
-              returnKeyType="next"
-              blurOnSubmit={false}
-            />
-            <Text style={styles.charCount}>
-              {formData.description.length}/1000 {language === 'az' ? 'simvol' : 'символов'}
-            </Text>
-          </View>
-        </View>
-        
-        {/* Contact Information */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            {language === 'az' ? 'Əlaqə məlumatları' : 'Контактная информация'}
-          </Text>
-          
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>
-              {language === 'az' ? 'Telefon' : 'Телефон'}
-            </Text>
-            <View style={styles.inputWithIcon}>
-              <Phone size={20} color={Colors.textSecondary} style={styles.inputIcon} />
-              <TextInput
-                style={[
-                  styles.textInput, 
-                  styles.textInputWithIcon,
-                  validationErrors.phone && styles.textInputError
-                ]}
-                value={formData.contactInfo.phone}
-                onChangeText={(text) => {
-                  // ✅ Filter to allow only digits, +, -, (, ), space
-                  const filtered = text.replace(/[^0-9+\-() ]/g, '');
-                  setFormData(prev => ({
-                    ...prev,
-                    contactInfo: { ...prev.contactInfo, phone: filtered }
-                  }));
-                  setHasUnsavedChanges(true);
-                  
-                  // ✅ Real-time phone validation
-                  if (filtered.trim().length > 0) {
-                    const phoneDigits = filtered.replace(/\D/g, '');
-                    if (phoneDigits.length < 9) {
-                      setValidationErrors(prev => ({ 
-                        ...prev, 
-                        phone: language === 'az' ? 'Minimum 9 rəqəm' : 'Минимум 9 цифр' 
+
+            {/* Contact Information */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>
+                {language === 'az' ? 'Əlaqə məlumatları' : 'Контактная информация'}
+              </Text>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>
+                  {language === 'az' ? 'Telefon' : 'Телефон'}
+                </Text>
+                <View style={styles.inputWithIcon}>
+                  <Phone size={20} color={Colors.textSecondary} style={styles.inputIcon} />
+                  <TextInput
+                    style={[
+                      styles.textInput,
+                      styles.textInputWithIcon,
+                      validationErrors.phone && styles.textInputError
+                    ]}
+                    value={formData.contactInfo.phone}
+                    onChangeText={(text) => {
+                      const filtered = text.replace(/[^0-9+\-() ]/g, '');
+                      setFormData(prev => ({
+                        ...prev,
+                        contactInfo: { ...prev.contactInfo, phone: filtered }
                       }));
-                    } else {
-                      setValidationErrors(prev => {
-                        const { phone, ...rest } = prev;
-                        return rest;
-                      });
-                    }
-                  } else {
-                    setValidationErrors(prev => {
-                      const { phone, ...rest } = prev;
-                      return rest;
-                    });
-                  }
-                }}
-                placeholder={language === 'az' ? 'Telefon nömrəsi' : 'Номер телефона'}
-                placeholderTextColor={Colors.textSecondary}
-                keyboardType="phone-pad"
-                maxLength={20}
-                returnKeyType="next"
-                blurOnSubmit={false}
-              />
-            </View>
-            {validationErrors.phone && (
-              <Text style={styles.errorText}>{validationErrors.phone}</Text>
-            )}"}, {"old_string": "      logger.info('[EditStoreScreen] Store updated successfully:', store.id);\n      \n      Alert.alert(\n        language === 'az' ? 'Uğurlu!' : 'Успешно!',\n        language === 'az' \n          ? `\"${formData.name.trim()}\" mağazası yeniləndi` \n          : `Магазин \"${formData.name.trim()}\" обновлен`,\n        [{\n          text: 'OK',\n          onPress: () => router.back()\n        }],\n        { cancelable: false }\n      );", "new_string": "      logger.info('[EditStoreScreen] Store updated successfully:', store.id);\n      \n      // ✅ Reset unsaved changes flag\n      setHasUnsavedChanges(false);\n      \n      Alert.alert(\n        language === 'az' ? 'Uğurlu!' : 'Успешно!',\n        language === 'az' \n          ? `\"${formData.name.trim()}\" mağazası yeniləndi` \n          : `Магазин \"${formData.name.trim()}\" обновлен`,\n        [{\n          text: 'OK',\n          onPress: () => router.back()\n        }],\n        { cancelable: false }\n      );"}]
-            </View>
-          </View>
-          
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>
-              {language === 'az' ? 'E-poçt' : 'Email'}
-            </Text>
-            <View style={styles.inputWithIcon}>
-              <Mail size={20} color={Colors.textSecondary} style={styles.inputIcon} />
-              <TextInput
-                style={[
-                  styles.textInput, 
-                  styles.textInputWithIcon,
-                  validationErrors.email && styles.textInputError
-                ]}
-                value={formData.contactInfo.email}
-                onChangeText={(text) => {
-                  setFormData(prev => ({
-                    ...prev,
-                    contactInfo: { ...prev.contactInfo, email: text }
-                  }));
-                  setHasUnsavedChanges(true);
-                  
-                  // ✅ Real-time email validation
-                  if (text.trim().length > 0) {
-                    const emailRegex = /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
-                    if (!emailRegex.test(text.trim())) {
-                      setValidationErrors(prev => ({ 
-                        ...prev, 
-                        email: language === 'az' ? 'Düzgün email formatı' : 'Корректный формат email' 
+                      setHasUnsavedChanges(true);
+
+                      if (filtered.trim().length > 0) {
+                        const phoneDigits = filtered.replace(/\D/g, '');
+                        if (phoneDigits.length < 9) {
+                          setValidationErrors(prev => ({
+                            ...prev,
+                            phone: language === 'az' ? 'Minimum 9 rəqəm' : 'Минимум 9 цифр'
+                          }));
+                        } else {
+                          setValidationErrors(prev => {
+                            const { phone, ...rest } = prev;
+                            return rest;
+                          });
+                        }
+                      } else {
+                        setValidationErrors(prev => {
+                          const { phone, ...rest } = prev;
+                          return rest;
+                        });
+                      }
+                    } }
+                    placeholder={language === 'az' ? 'Telefon nömrəsi' : 'Номер телефона'}
+                    placeholderTextColor={Colors.textSecondary}
+                    keyboardType="phone-pad"
+                    maxLength={20}
+                    returnKeyType="next"
+                    blurOnSubmit={false} />
+                </View>
+                {validationErrors.phone && (
+                  <Text style={styles.errorText}>{validationErrors.phone}</Text>
+                )}
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>
+                  {language === 'az' ? 'E-poçt' : 'Email'}
+                </Text>
+                <View style={styles.inputWithIcon}>
+                  <Mail size={20} color={Colors.textSecondary} style={styles.inputIcon} />
+                  <TextInput
+                    style={[
+                      styles.textInput,
+                      styles.textInputWithIcon,
+                      validationErrors.email && styles.textInputError
+                    ]}
+                    value={formData.contactInfo.email}
+                    onChangeText={(text) => {
+                      setFormData(prev => ({
+                        ...prev,
+                        contactInfo: { ...prev.contactInfo, email: text }
                       }));
-                    } else {
-                      setValidationErrors(prev => {
-                        const { email, ...rest } = prev;
-                        return rest;
-                      });
-                    }
-                  } else {
-                    setValidationErrors(prev => {
-                      const { email, ...rest } = prev;
-                      return rest;
-                    });
-                  }
-                }}
-                placeholder={language === 'az' ? 'E-poçt ünvanı' : 'Email адрес'}
-                placeholderTextColor={Colors.textSecondary}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-                maxLength={255}
-                returnKeyType="next"
-                blurOnSubmit={false}
-              />
-            </View>
-            {validationErrors.email && (
-              <Text style={styles.errorText}>{validationErrors.email}</Text>
-            )}"}
-            </View>
-          </View>
-          
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>
-              {language === 'az' ? 'Veb sayt' : 'Веб-сайт'}
-            </Text>
-            <View style={styles.inputWithIcon}>
-              <Globe size={20} color={Colors.textSecondary} style={styles.inputIcon} />
-              <TextInput
-                style={[
-                  styles.textInput, 
-                  styles.textInputWithIcon,
-                  validationErrors.website && styles.textInputError
-                ]}
-                value={formData.contactInfo.website}
-                onChangeText={(text) => {
-                  setFormData(prev => ({
-                    ...prev,
-                    contactInfo: { ...prev.contactInfo, website: text }
-                  }));
-                  setHasUnsavedChanges(true);
-                  
-                  // ✅ Real-time website validation
-                  if (text.trim().length > 0) {
-                    if (!text.trim().match(/^https?:\/\/.+/)) {
-                      setValidationErrors(prev => ({ 
-                        ...prev, 
-                        website: language === 'az' ? 'http:// və ya https:// ilə başlamalıdır' : 'Должен начинаться с http:// или https://' 
+                      setHasUnsavedChanges(true);
+
+                      if (text.trim().length > 0) {
+                        const emailRegex = /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+                        if (!emailRegex.test(text.trim())) {
+                          setValidationErrors(prev => ({
+                            ...prev,
+                            email: language === 'az' ? 'Düzgün email formatı' : 'Корректный формат email'
+                          }));
+                        } else {
+                          setValidationErrors(prev => {
+                            const { email, ...rest } = prev;
+                            return rest;
+                          });
+                        }
+                      } else {
+                        setValidationErrors(prev => {
+                          const { email, ...rest } = prev;
+                          return rest;
+                        });
+                      }
+                    } }
+                    placeholder={language === 'az' ? 'E-poçt ünvanı' : 'Email адрес'}
+                    placeholderTextColor={Colors.textSecondary}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    maxLength={255}
+                    returnKeyType="next"
+                    blurOnSubmit={false} />
+                </View>
+                {validationErrors.email && (
+                  <Text style={styles.errorText}>{validationErrors.email}</Text>
+                )}
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>
+                  {language === 'az' ? 'Veb sayt' : 'Веб-сайт'}
+                </Text>
+                <View style={styles.inputWithIcon}>
+                  <Globe size={20} color={Colors.textSecondary} style={styles.inputIcon} />
+                  <TextInput
+                    style={[
+                      styles.textInput,
+                      styles.textInputWithIcon,
+                      validationErrors.website && styles.textInputError
+                    ]}
+                    value={formData.contactInfo.website}
+                    onChangeText={(text) => {
+                      setFormData(prev => ({
+                        ...prev,
+                        contactInfo: { ...prev.contactInfo, website: text }
                       }));
-                    } else {
-                      setValidationErrors(prev => {
-                        const { website, ...rest } = prev;
-                        return rest;
-                      });
-                    }
-                  } else {
-                    setValidationErrors(prev => {
-                      const { website, ...rest } = prev;
-                      return rest;
-                    });
-                  }
-                }}
-                placeholder={language === 'az' ? 'Veb sayt ünvanı' : 'Адрес веб-сайта'}
-                placeholderTextColor={Colors.textSecondary}
-                keyboardType="url"
-                autoCapitalize="none"
-                autoCorrect={false}
-                maxLength={2083}
-                returnKeyType="next"
-                blurOnSubmit={false}
-              />
-            </View>
-            {validationErrors.website && (
-              <Text style={styles.errorText}>{validationErrors.website}</Text>
-            )}"}
-            </View>
-          </View>
-          
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>
-              {language === 'az' ? 'WhatsApp' : 'WhatsApp'}
-            </Text>
-            <View style={styles.inputWithIcon}>
-              <MessageCircle size={20} color={Colors.textSecondary} style={styles.inputIcon} />
-              <TextInput
-                style={[
-                  styles.textInput, 
-                  styles.textInputWithIcon,
-                  validationErrors.whatsapp && styles.textInputError
-                ]}
-                value={formData.contactInfo.whatsapp}
-                onChangeText={(text) => {
-                  // ✅ Filter to allow only digits, +, -, (, ), space
-                  const filtered = text.replace(/[^0-9+\-() ]/g, '');
-                  setFormData(prev => ({
-                    ...prev,
-                    contactInfo: { ...prev.contactInfo, whatsapp: filtered }
-                  }));
-                  setHasUnsavedChanges(true);
-                  
-                  // ✅ Real-time WhatsApp validation
-                  if (filtered.trim().length > 0) {
-                    const whatsappDigits = filtered.replace(/\D/g, '');
-                    if (whatsappDigits.length < 9) {
-                      setValidationErrors(prev => ({ 
-                        ...prev, 
-                        whatsapp: language === 'az' ? 'Minimum 9 rəqəm' : 'Минимум 9 цифр' 
+                      setHasUnsavedChanges(true);
+
+                      if (text.trim().length > 0) {
+                        if (!text.trim().match(/^https?:\/\/.+/)) {
+                          setValidationErrors(prev => ({
+                            ...prev,
+                            website: language === 'az' ? 'http:// və ya https:// ilə başlamalıdır' : 'Должен начинаться с http:// или https://'
+                          }));
+                        } else {
+                          setValidationErrors(prev => {
+                            const { website, ...rest } = prev;
+                            return rest;
+                          });
+                        }
+                      } else {
+                        setValidationErrors(prev => {
+                          const { website, ...rest } = prev;
+                          return rest;
+                        });
+                      }
+                    } }
+                    placeholder={language === 'az' ? 'Veb sayt ünvanı' : 'Адрес веб-сайта'}
+                    placeholderTextColor={Colors.textSecondary}
+                    keyboardType="url"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    maxLength={2083}
+                    returnKeyType="next"
+                    blurOnSubmit={false} />
+                </View>
+                {validationErrors.website && (
+                  <Text style={styles.errorText}>{validationErrors.website}</Text>
+                )}
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>
+                  {language === 'az' ? 'WhatsApp' : 'WhatsApp'}
+                </Text>
+                <View style={styles.inputWithIcon}>
+                  <MessageCircle size={20} color={Colors.textSecondary} style={styles.inputIcon} />
+                  <TextInput
+                    style={[
+                      styles.textInput,
+                      styles.textInputWithIcon,
+                      validationErrors.whatsapp && styles.textInputError
+                    ]}
+                    value={formData.contactInfo.whatsapp}
+                    onChangeText={(text) => {
+                      const filtered = text.replace(/[^0-9+\-() ]/g, '');
+                      setFormData(prev => ({
+                        ...prev,
+                        contactInfo: { ...prev.contactInfo, whatsapp: filtered }
                       }));
-                    } else {
-                      setValidationErrors(prev => {
-                        const { whatsapp, ...rest } = prev;
-                        return rest;
-                      });
-                    }
-                  } else {
-                    setValidationErrors(prev => {
-                      const { whatsapp, ...rest } = prev;
-                      return rest;
-                    });
+                      setHasUnsavedChanges(true);
+
+                      if (filtered.trim().length > 0) {
+                        const whatsappDigits = filtered.replace(/\D/g, '');
+                        if (whatsappDigits.length < 9) {
+                          setValidationErrors(prev => ({
+                            ...prev,
+                            whatsapp: language === 'az' ? 'Minimum 9 rəqəm' : 'Минимум 9 цифр'
+                          }));
+                        } else {
+                          setValidationErrors(prev => {
+                            const { whatsapp, ...rest } = prev;
+                            return rest;
+                          });
+                        }
+                      } else {
+                        setValidationErrors(prev => {
+                          const { whatsapp, ...rest } = prev;
+                          return rest;
+                        });
+                      }
+                    } }
+                    placeholder={language === 'az' ? 'WhatsApp nömrəsi' : 'Номер WhatsApp'}
+                    placeholderTextColor={Colors.textSecondary}
+                    keyboardType="phone-pad"
+                    maxLength={20}
+                    returnKeyType="done"
+                    onSubmitEditing={Keyboard.dismiss} />
+                </View>
+                {validationErrors.whatsapp && (
+                  <Text style={styles.errorText}>{validationErrors.whatsapp}</Text>
+                )}
+              </View>
+
+            </View>
+
+            {/* Save Button */}
+            <View style={styles.section}>
+              <TouchableOpacity 
+                style={[
+                  styles.saveButtonLarge, 
+                  isLoading && styles.saveButtonDisabled,
+                  !hasUnsavedChanges && styles.saveButtonDisabled
+                ]}
+                onPress={handleSave}
+                disabled={isLoading || !hasUnsavedChanges || Object.keys(validationErrors).length > 0}
+              >
+                {isLoading ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <Save size={20} color="white" />
+                )}
+                <Text style={styles.saveButtonText}>
+                  {isLoading 
+                    ? (language === 'az' ? 'Yadda saxlanılır...' : 'Сохранение...')
+                    : !hasUnsavedChanges
+                      ? (language === 'az' ? 'Dəyişiklik yoxdur' : 'Нет изменений')
+                      : (language === 'az' ? 'Dəyişiklikləri yadda saxla' : 'Сохранить изменения')
                   }
-                }}
-                placeholder={language === 'az' ? 'WhatsApp nömrəsi' : 'Номер WhatsApp'}
-                placeholderTextColor={Colors.textSecondary}
-                keyboardType="phone-pad"
-                maxLength={20}
-                returnKeyType="done"
-                onSubmitEditing={Keyboard.dismiss}
-              />
+                </Text>
+              </TouchableOpacity>
             </View>
-            {validationErrors.whatsapp && (
-              <Text style={styles.errorText}>{validationErrors.whatsapp}</Text>
-            )}"}
-            </View>
-          </View>
-        </View>
-        
-        {/* Save Button */}
-        <View style={styles.section}>
-          <TouchableOpacity 
-            style={[
-              styles.saveButtonLarge, 
-              isLoading && styles.saveButtonDisabled,
-              !hasUnsavedChanges && styles.saveButtonDisabled
-            ]}
-            onPress={handleSave}
-            disabled={isLoading || !hasUnsavedChanges || Object.keys(validationErrors).length > 0}
-          >
-            {isLoading ? (
-              <ActivityIndicator size="small" color="white" />
-            ) : (
-              <Save size={20} color="white" />
-            )}
-            <Text style={styles.saveButtonText}>
-              {isLoading 
-                ? (language === 'az' ? 'Yadda saxlanılır...' : 'Сохранение...')
-                : !hasUnsavedChanges
-                  ? (language === 'az' ? 'Dəyişiklik yoxdur' : 'Нет изменений')
-                  : (language === 'az' ? 'Dəyişiklikləri yadda saxla' : 'Сохранить изменения')
-              }
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+
+          </ScrollView>
         </View>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>

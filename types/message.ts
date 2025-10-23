@@ -7,7 +7,10 @@ export interface MessageAttachment {
   name: string;
   size: number;
   mimeType: string;
-  duration?: number; // ✅ Audio duration in seconds (for audio type)
+  duration?: number;// ✅ Audio duration in seconds (for audio type)
+  width?:number ;
+  height?:number ;
+  filesize?:number ;
 }
 
 export interface Message {

@@ -927,11 +927,10 @@ export default function EditListingScreen() {
           {/* ✅ Filtered locations */}
           <FlatList
             data={locationSearchQuery
-              ? locations.filter(loc =>
-                  loc.name[language as keyof typeof loc.name]
-                    .toLowerCase()
-                    .includes(locationSearchQuery.toLowerCase())
-                )
+              ? locations.filter(loc => {
+                  const nameForLang = loc.name?.[language as keyof typeof loc.name] ?? '';
+                  return nameForLang.toLowerCase().includes(locationSearchQuery.toLowerCase());
+                })
               : locations
             }
             keyExtractor={(item) => item.id}
@@ -965,7 +964,7 @@ export default function EditListingScreen() {
                   styles.categoryItemText,
                   formData.locationId === item.id && styles.selectedCategoryItemText
                 ]}>
-                  {item.name[language as keyof typeof item.name]}
+                  {item.name?.[language as keyof typeof item.name] ?? ''}
                 </Text>
                 {formData.locationId === item.id && (
                   <Text style={styles.selectedIndicator}>✓</Text>

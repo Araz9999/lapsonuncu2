@@ -38,10 +38,7 @@ import { useUserStore } from '@/store/userStore';
 import { useNotificationStore } from '@/store/notificationStore';
 import { useLanguageStore } from '@/store/languageStore';
 import { User } from '@/types/user';
-<<<<<<< HEAD
-=======
-import { Share } from 'react-native';
->>>>>>> origin/main
+// import { Share } from 'react-native';
 import { logger } from '@/utils/logger';
 interface UserActionModalProps {
   visible: boolean;
@@ -287,33 +284,21 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
   };
 
   const handleBlock = () => {
-<<<<<<< HEAD
-    if (!user?.id) {
-      logger.error('[UserActionModal] No user for block');
-      Alert.alert(
-        language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' ? 'İstifadəçi məlumatı tapılmadı' : 'Информация о пользователе не найдена'
-=======
     // ✅ Validate user
     if (!user || !user.id || !user.name) {
       logger.error('[UserActionModal] Invalid user for blocking');
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Yanlış istifadəçi' : 'Неверный пользователь'
->>>>>>> origin/main
       );
       return;
     }
     
-<<<<<<< HEAD
-    logger.warn('[UserActionModal] Block confirmation requested:', { userId: user.id, userName: user.name });
-=======
     // ✅ Check if already loading
     if (isLoading) {
       logger.warn('[UserActionModal] Action already in progress');
       return;
     }
->>>>>>> origin/main
     
     Alert.alert(
       language === 'az' ? 'Blok et' : 'Заблокировать',
@@ -329,21 +314,6 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
         {
           text: t.yes,
           style: 'destructive',
-<<<<<<< HEAD
-          onPress: () => {
-            try {
-              logger.info('[UserActionModal] Blocking user:', { userId: user.id });
-              blockUser(user.id);
-              logger.info('[UserActionModal] Block successful:', { userId: user.id });
-              Alert.alert('', t.blockSuccess);
-              onClose();
-            } catch (error) {
-              logger.error('[UserActionModal] Block error:', error);
-              Alert.alert(
-                language === 'az' ? 'Xəta' : 'Ошибка',
-                language === 'az' ? 'Blok etmə uğursuz oldu' : 'Не удалось заблокировать'
-              );
-=======
           onPress: async () => {
             setIsLoading(true);
             
@@ -385,7 +355,6 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
               );
             } finally {
               setIsLoading(false);
->>>>>>> origin/main
             }
           },
         },
@@ -394,33 +363,21 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
   };
 
   const handleUnblock = () => {
-<<<<<<< HEAD
-    if (!user?.id) {
-      logger.error('[UserActionModal] No user for unblock');
-      Alert.alert(
-        language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' ? 'İstifadəçi məlumatı tapılmadı' : 'Информация о пользователе не найдена'
-=======
     // ✅ Validate user
     if (!user || !user.id || !user.name) {
       logger.error('[UserActionModal] Invalid user for unblocking');
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Yanlış istifadəçi' : 'Неверный пользователь'
->>>>>>> origin/main
       );
       return;
     }
     
-<<<<<<< HEAD
-    logger.info('[UserActionModal] Unblock confirmation requested:', { userId: user.id, userName: user.name });
-=======
     // ✅ Check if already loading
     if (isLoading) {
       logger.warn('[UserActionModal] Action already in progress');
       return;
     }
->>>>>>> origin/main
     
     Alert.alert(
       language === 'az' ? 'Blokdan çıxar' : 'Разблокировать',
@@ -435,21 +392,6 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
         },
         {
           text: t.yes,
-<<<<<<< HEAD
-          onPress: () => {
-            try {
-              logger.info('[UserActionModal] Unblocking user:', { userId: user.id });
-              unblockUser(user.id);
-              logger.info('[UserActionModal] Unblock successful:', { userId: user.id });
-              Alert.alert('', t.unblockSuccess);
-              onClose();
-            } catch (error) {
-              logger.error('[UserActionModal] Unblock error:', error);
-              Alert.alert(
-                language === 'az' ? 'Xəta' : 'Ошибка',
-                language === 'az' ? 'Blokdan çıxarma uğursuz oldu' : 'Не удалось разблокировать'
-              );
-=======
           onPress: async () => {
             setIsLoading(true);
             
@@ -487,7 +429,6 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
               );
             } finally {
               setIsLoading(false);
->>>>>>> origin/main
             }
           },
         },
@@ -684,35 +625,6 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
   };
 
   const handleShare = async () => {
-<<<<<<< HEAD
-    if (!user?.id || !user?.name) {
-      logger.error('[UserActionModal] No user for share');
-      Alert.alert(
-        language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' ? 'İstifadəçi məlumatı tapılmadı' : 'Информация о пользователе не найдена'
-      );
-      return;
-    }
-    
-    logger.info('[UserActionModal] Sharing user profile:', { userId: user.id, userName: user.name });
-    
-    try {
-      const result = await Share.share({
-        message: `${user.name} profilini görün - ${user.location?.[language] || user.location?.az || ''}`,
-        title: user.name,
-      });
-      
-      if (result.action === Share.sharedAction) {
-        logger.info('[UserActionModal] Profile shared successfully:', { userId: user.id, sharedWith: result.activityType });
-      } else if (result.action === Share.dismissedAction) {
-        logger.info('[UserActionModal] Share dismissed:', { userId: user.id });
-      }
-    } catch (error) {
-      logger.error('[UserActionModal] Share error:', error);
-      Alert.alert(
-        language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' ? 'Profil paylaşıla bilmədi' : 'Не удалось поделиться профилем'
-=======
     // ✅ Validate user
     if (!user || !user.name) {
       logger.error('[handleShare] Invalid user object');
@@ -747,7 +659,6 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Paylaşma zamanı xəta baş verdi' : 'Произошла ошибка при попытке поделиться'
->>>>>>> origin/main
       );
     }
   };
@@ -1183,7 +1094,8 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
                   <TouchableOpacity
                     style={[styles.noteButton, styles.cancelNoteButton]}
                     onPress={() => {
-                      logger.info('[UserActionModal] Note input cancelled');\n                      setShowNoteInput(false);
+                      logger.info('[UserActionModal] Note input cancelled');                 
+                      setShowNoteInput(false);
                       setNoteText('');
                     }}
                   >
@@ -1215,7 +1127,8 @@ export default function UserActionModal({ visible, onClose, user }: UserActionMo
                   <TouchableOpacity
                     style={[styles.noteButton, styles.cancelNoteButton]}
                     onPress={() => {
-                      logger.info('[UserActionModal] Report input cancelled');\n                      setShowReportInput(false);
+                      logger.info('[UserActionModal] Report input cancelled');                     
+                      setShowReportInput(false);
                       setReportText('');
                     }}
                   >
