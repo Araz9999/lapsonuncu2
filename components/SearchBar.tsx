@@ -17,18 +17,6 @@ function SearchBar() {
     // ✅ Trim and validate search query
     const trimmedQuery = localQuery.trim();
     
-<<<<<<< HEAD
-    // ✅ If empty, clear existing search
-    if (trimmedQuery.length === 0) {
-      if (searchQuery.length > 0) {
-        handleClear();
-      }
-      return; // ✅ Don't set empty query
-    }
-    
-    // ✅ Only set query if not empty
-    setSearchQuery(trimmedQuery);
-=======
     // ✅ Prevent searching with only whitespace
     if (trimmedQuery.length === 0 && searchQuery.length > 0) {
       handleClear();
@@ -48,7 +36,6 @@ function SearchBar() {
       .replace(/[<>"']/g, ''); // Remove dangerous chars
     
     setSearchQuery(sanitized);
->>>>>>> origin/main
     applyFilters();
   };
 

@@ -71,27 +71,6 @@ export default function NotificationsScreen() {
   const t = texts[language];
 
   const formatTime = (dateString: string) => {
-<<<<<<< HEAD
-    const now = new Date();
-    const date = new Date(dateString);
-    
-    // ✅ BUG FIX: Validate date to prevent NaN
-    if (isNaN(date.getTime())) {
-      return t.now; // Fallback for invalid dates
-    }
-    
-    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-    
-    // ✅ BUG FIX: Handle future dates (negative difference)
-    if (diffInMinutes < 0) {
-      return t.now;
-    }
-
-    if (diffInMinutes < 1) return t.now;
-    if (diffInMinutes < 60) return `${diffInMinutes} ${t.minutesAgo}`;
-    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)} ${t.hoursAgo}`;
-    return `${Math.floor(diffInMinutes / 1440)} ${t.daysAgo}`;
-=======
     try {
       const now = new Date();
       const date = new Date(dateString);
@@ -128,7 +107,6 @@ export default function NotificationsScreen() {
     } catch (error) {
       return t.now; // Fallback for any errors
     }
->>>>>>> origin/main
   };
 
   const handleClearAll = () => {
@@ -146,73 +124,6 @@ export default function NotificationsScreen() {
     );
   };
 
-<<<<<<< HEAD
-  // ✅ Handle notification press with navigation
-  const handleNotificationPress = (item: Notification) => {
-    // Mark as read
-    if (!item.isRead) {
-      markAsRead(item.id);
-    }
-
-    // Navigate to relevant screen
-    try {
-      const path = getNavigationPath(item);
-      if (path) {
-        logger.debug('Navigating to:', path);
-        router.push(path as any);
-      }
-    } catch (error) {
-      logger.error('Navigation error:', error);
-      Alert.alert(
-        language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' ? 'Səhifə açıla bilmədi' : 'Не удалось открыть страницу'
-      );
-    }
-  };
-
-  const renderNotification = ({ item }: { item: Notification }) => (
-    <TouchableOpacity
-      style={[
-        styles.notificationCard, 
-        { backgroundColor: colors.card },
-        !item.isRead && { backgroundColor: `${colors.primary}10`, borderLeftColor: colors.primary }
-      ]}
-      onPress={() => handleNotificationPress(item)}
-    >
-      <View style={styles.notificationContent}>
-        {item.fromUserAvatar && (
-          <Image source={{ uri: item.fromUserAvatar }} style={styles.avatar} />
-        )}
-        <View style={styles.notificationText}>
-          <Text style={[styles.notificationTitle, { color: colors.text }]}>
-            {item.title || (
-              <>
-                {item.fromUserName && (
-                  <Text style={styles.userName}>{item.fromUserName} </Text>
-                )}
-                {item.type === 'nudge' && t.nudgeNotification}
-                {item.type === 'message' && t.messageNotification}
-                {item.type === 'call' && t.callNotification}
-              </>
-            )}
-          </Text>
-          {/* ✅ Enhanced message display with validation */}
-          {item.message && item.message.trim() && (
-            <Text 
-              style={[styles.notificationMessage, { color: colors.textSecondary }]}
-              numberOfLines={2}
-              ellipsizeMode="tail"
-            >
-              {item.message}
-            </Text>
-          )}
-          <Text style={[styles.notificationTime, { color: colors.textSecondary }]}>
-            {formatTime(item.createdAt)}
-          </Text>
-        </View>
-        {!item.isRead && <View style={[styles.unreadDot, { backgroundColor: colors.primary }]} />}
-      </View>
-=======
   const renderNotification = ({ item }: { item: Notification }) => {
     // \u2705 Null-safety checks
     const hasAvatar = item.fromUserAvatar && typeof item.fromUserAvatar === 'string' && item.fromUserAvatar.trim().length > 0;
@@ -230,7 +141,6 @@ export default function NotificationsScreen() {
     };
     
     return (
->>>>>>> origin/main
       <TouchableOpacity
         style={[
           styles.notificationCard, 
@@ -248,7 +158,7 @@ export default function NotificationsScreen() {
             <Image 
               source={{ uri: item.fromUserAvatar }} 
               style={styles.avatar}
-              defaultSource={require('@/assets/images/default-avatar.png')}
+              // defaultSource={require('@/assets/images/default-avatar.png')}
               onError={() => {
                 // \u2705 Fallback if image fails to load
               }}

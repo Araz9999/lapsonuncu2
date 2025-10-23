@@ -259,19 +259,6 @@ export default function AutoRenewalManager({ listing, onUpdate }: AutoRenewalMan
       // Check if we should refund the payment based on grace period
       const gracePeriodEnd = listing.gracePeriodEnd ? new Date(listing.gracePeriodEnd) : null;
       
-<<<<<<< HEAD
-      // ✅ Validate date
-      if (gracePeriodEnd && isNaN(gracePeriodEnd.getTime())) {
-        logger.error('[AutoRenewal] Invalid grace period date:', listing.gracePeriodEnd);
-        Alert.alert(
-          language === 'az' ? 'Xəta' : 'Ошибка',
-          language === 'az' ? 'Güzəşt müddəti düzgün deyil' : 'Неверная дата льготного периода'
-        );
-        return;
-      }
-      
-      const shouldRefund = listing.autoRenewalPaid && !listing.autoRenewalUsed && gracePeriodEnd && now <= gracePeriodEnd;
-=======
       // Validation: Grace period date
       if (gracePeriodEnd && isNaN(gracePeriodEnd.getTime())) {
         logger.error('[AutoRenewal] Invalid grace period date:', listing.gracePeriodEnd);
@@ -283,7 +270,6 @@ export default function AutoRenewalManager({ listing, onUpdate }: AutoRenewalMan
                           gracePeriodEnd && 
                           !isNaN(gracePeriodEnd.getTime()) && 
                           now <= gracePeriodEnd;
->>>>>>> origin/main
       let refundMessage = '';
       
       if (shouldRefund && listing.autoRenewalPrice && listing.autoRenewalPrice > 0) {

@@ -93,6 +93,7 @@ export const useCallStore = create<CallStore>((set, get) => ({
   ringtoneInterval: null,
   dialToneInterval: null,
   incomingCallTimeouts: new Map(), // ✅ Initialize timeout map
+  outgoingCallTimeouts: new Map(), // ✅ Initialize outgoing call timeout map
   
   initiateCall: async (currentUserId: string, receiverId: string, listingId: string, type: CallType) => {
     logger.info('CallStore - initiating call to:', receiverId);
@@ -141,7 +142,8 @@ export const useCallStore = create<CallStore>((set, get) => ({
         set((state) => ({
           calls: state.calls.map(call => 
             call.id === callId 
-              ? { ...call, status: 'active' as CallStatus }
+              ? { ...call, status: 'active' as CallStatus }     
+
               : call
           ),
         }));
@@ -155,7 +157,7 @@ export const useCallStore = create<CallStore>((set, get) => ({
     
     // ✅ Store timeout for potential cleanup
     set((state) => ({
-      outgoingCallTimeouts: new Map(state.outgoingCallTimeouts).set(callId, answerTimeout)
+ outgoingCallTimeouts: new Map(state.outgoingCallTimeouts).set(callId, answerTimeout as unknown as NodeJS.Timeout)
     }));
     
     return callId;
@@ -367,7 +369,7 @@ export const useCallStore = create<CallStore>((set, get) => ({
         }, 1000);
         
         // Store interval for cleanup
-        set({ ringtoneInterval });
+        set({ ringtoneInterval: ringtoneInterval as unknown as NodeJS.Timeout });
       } else {
         logger.warn('Haptics not available, using console notification');
       }
@@ -402,7 +404,7 @@ export const useCallStore = create<CallStore>((set, get) => ({
         }, 2000);
         
         // Store interval for cleanup
-        set({ dialToneInterval });
+        set({ dialToneInterval: dialToneInterval as unknown as NodeJS.Timeout });
       } else {
         logger.warn('Haptics not available, using console notification');
       }
@@ -478,14 +480,14 @@ export const useCallStore = create<CallStore>((set, get) => ({
     
     // ✅ Clear all incoming call timeouts
     const incomingTimeouts = get().incomingCallTimeouts;
-    incomingTimeouts.forEach((timeout) => clearTimeout(timeout));
+    incomingTimeouts.forEach((timeout) => clearTimeout(timeout as NodeJS.Timeout));
     
     // ✅ Clear all outgoing call timeouts
     const outgoingTimeouts = get().outgoingCallTimeouts;
-    outgoingTimeouts.forEach((timeout) => clearTimeout(timeout));
+    outgoingTimeouts.forEach((timeout) => clearTimeout(timeout as NodeJS.Timeout));
     
     set({ 
-      ringtoneSound: null, 
+      ringtoneSound: null,
       dialToneSound: null, 
       ringtoneInterval: null, 
       dialToneInterval: null,
@@ -570,20 +572,10 @@ export const useCallStore = create<CallStore>((set, get) => ({
       newTimeouts.delete(callId);
       set({ incomingCallTimeouts: newTimeouts });
     }, 30000);
-    
+
     // ✅ Store timeout for potential cleanup
     set((state) => ({
-      incomingCallTimeouts: new Map(state.incomingCallTimeouts).set(callId, timeout)
-    }));
-  },
-}));
-      newTimeouts.delete(callId);
-      set({ incomingCallTimeouts: newTimeouts });
-    }, 30000);
-    
-    // ✅ Store timeout for potential cleanup
-    set((state) => ({
-      incomingCallTimeouts: new Map(state.incomingCallTimeouts).set(callId, timeout)
+      incomingCallTimeouts: new Map(state.incomingCallTimeouts).set(callId, timeout as unknown as NodeJS.Timeout)
     }));
   },
 }));

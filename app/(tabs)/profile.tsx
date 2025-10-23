@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Alert, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from '@/constants/translations';
 import { useUserStore } from '@/store/userStore';
@@ -20,37 +20,23 @@ export default function ProfileScreen() {
   const { listings } = useListingStore();
   const { getUserStore } = useStoreStore();
   const { liveChats, getAvailableOperators } = useSupportStore();
-  
+
   const [showLiveChat, setShowLiveChat] = React.useState<boolean>(false);
-<<<<<<< HEAD
-  const [isDeleting, setIsDeleting] = React.useState<boolean>(false); // ✅ Loading state
-  
+  const [isDeletingAccount, setIsDeletingAccount] = React.useState<boolean>(false); // ✅ Loading state
+
   // ✅ Use real currentUser from useUserStore (not mock data)
   const userStore = currentUser ? getUserStore(currentUser.id) : null;
-=======
-  const [isDeletingAccount, setIsDeletingAccount] = React.useState<boolean>(false);
-  const [isDeletingAccount, setIsDeletingAccount] = useState<boolean>(false);
-  
-  // ✅ Get current user safely with validation
-  const currentUserFromStore = useUserStore.getState().currentUser;
-  const currentUser = currentUserFromStore || users[0]; // Fallback to mock user
-  
-  // ✅ Validate current user
-  if (!currentUser || !currentUser.id) {
-    logger.error('[ProfileScreen] Invalid current user');
-  }
-  const userStore = getUserStore(currentUser.id);
->>>>>>> origin/main
-  
+
   // Get user's active chats for live support
-  const userChats = isAuthenticated ? liveChats.filter(chat => 
-    chat.userId === currentUser.id && chat.status !== 'closed'
+  const userChats = isAuthenticated ? liveChats.filter(chat =>
+    chat.userId === currentUser?.id && chat.status !== 'closed'
   ) : [];
   const availableOperators = getAvailableOperators();
   const hasActiveChat = userChats.length > 0;
-  
+
   const favoriteListings = listings.filter(listing => favorites.includes(listing.id));
-  const userListings = listings.filter(listing => listing.userId === currentUser.id);
+  // Safely build userListings only when currentUser exists to avoid accessing .id on null
+  const userListings = currentUser ? listings.filter(listing => listing.userId === currentUser.id) : [];
 
   const handleLogin = () => {
     router.push('/auth/login');
@@ -62,24 +48,6 @@ export default function ProfileScreen() {
   };
 
   const handleDeleteProfile = () => {
-<<<<<<< HEAD
-    // ✅ Validate user exists
-    if (!currentUser) {
-      Alert.alert(
-        t('error'),
-        language === 'az' ? 'İstifadəçi tapılmadı' : 'Пользователь не найден'
-      );
-      return;
-    }
-    
-    // ✅ Prevent deletion if already in progress
-    if (isDeleting) {
-      logger.debug('[handleDeleteProfile] Deletion already in progress, ignoring');
-      return;
-    }
-    
-    logger.debug('[handleDeleteProfile] Delete profile button pressed');
-=======
     // ✅ Validate user is authenticated
     if (!isAuthenticated || !currentUser) {
       logger.error('[handleDeleteProfile] User not authenticated');
@@ -100,7 +68,7 @@ export default function ProfileScreen() {
     const activeListingsCount = userListings.filter(l => !l.deletedAt).length;
     const totalBalance = (typeof walletBalance === 'number' && isFinite(walletBalance) ? walletBalance : 0);
     const totalBonus = (typeof bonusBalance === 'number' && isFinite(bonusBalance) ? bonusBalance : 0);
-    
+
     logger.debug('[handleDeleteProfile] Delete profile button pressed', {
       userId: currentUser.id,
       activeListings: activeListingsCount,
@@ -108,12 +76,11 @@ export default function ProfileScreen() {
       bonusBalance: totalBonus,
       hasStore: !!userStore,
     });
-    
+
     // ✅ First confirmation with actual user data
->>>>>>> origin/main
     Alert.alert(
       t('deleteProfile'),
-      language === 'az' 
+      language === 'az'
         ? `Profilinizi silmək istədiyinizə əminsiniz? Bu əməliyyat geri qaytarıla bilməz.\n\nSilinəcək:\n• ${activeListingsCount} elanınız\n• Bütün mesajlarınız\n• ${totalBalance.toFixed(2)} AZN balans\n• ${totalBonus.toFixed(2)} AZN bonus\n• ${userStore ? '1 mağazanız' : 'Heç bir mağaza yoxdur'}\n• Bütün şəxsi məlumatlarınız`
         : `Вы уверены, что хотите удалить свой профиль? Это действие нельзя отменить.\n\nБудет удалено:\n• ${activeListingsCount} объявлений\n• Все ваши сообщения\n• ${totalBalance.toFixed(2)} AZN баланс\n• ${totalBonus.toFixed(2)} AZN бонус\n• ${userStore ? '1 магазин' : 'Нет магазинов'}\n• Все личные данные`,
       [
@@ -127,64 +94,7 @@ export default function ProfileScreen() {
           style: 'destructive',
           onPress: () => {
             logger.debug('[handleDeleteProfile] First confirmation accepted, showing second confirmation');
-<<<<<<< HEAD
-            // ✅ No setTimeout needed - show second confirmation immediately
-            Alert.alert(
-              t('confirmDelete'),
-              t('areYouSure'),
-              [
-                {
-                  text: t('cancel'),
-                  style: 'cancel',
-                  onPress: () => logger.debug('[handleDeleteProfile] Second confirmation cancelled')
-                },
-                {
-                  text: t('yes'),
-                  style: 'destructive',
-                  onPress: async () => {
-                    setIsDeleting(true); // ✅ Set loading state
-                    logger.debug('[handleDeleteProfile] Profile deletion confirmed, calling API');
-                    
-                    try {
-                      await authService.deleteAccount();
-                      logout();
-                      logger.debug('[handleDeleteProfile] Account deleted and logged out, navigating to login');
-                      
-                      // ✅ Show success and auto-navigate
-                      Alert.alert(
-                        t('success'),
-                        language === 'az' 
-                          ? 'Profil uğurla silindi. Giriş səhifəsinə yönləndirilirsiniz...' 
-                          : 'Профиль успешно удален. Перенаправление на страницу входа...',
-                        [],
-                        { cancelable: false }
-                      );
-                      
-                      // ✅ Auto-navigate after 2 seconds
-                      setTimeout(() => {
-                        logger.debug('[handleDeleteProfile] Navigating to login screen');
-                        router.push('/auth/login');
-                      }, 2000);
-                    } catch (error) {
-                      logger.error('[handleDeleteProfile] Error during profile deletion:', error);
-                      
-                      // ✅ Show detailed error message
-                      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-                      Alert.alert(
-                        t('error'),
-                        language === 'az' 
-                          ? `Profil silinərkən xəta baş verdi: ${errorMessage}` 
-                          : `Произошла ошибка при удалении профиля: ${errorMessage}`
-                      );
-                    } finally {
-                      setIsDeleting(false); // ✅ Reset loading state
-                    }
-                  },
-                },
-              ]
-            );
-=======
-            
+
             // ✅ Second confirmation with delay
             setTimeout(() => {
               Alert.alert(
@@ -203,10 +113,10 @@ export default function ProfileScreen() {
                     style: 'destructive',
                     onPress: async () => {
                       logger.debug('[handleDeleteProfile] Profile deletion confirmed, starting deletion process');
-                      
+
                       // ✅ Set loading state
                       setIsDeletingAccount(true);
-                      
+
                       try {
                         // ✅ Validate auth service availability
                         if (!authService || typeof authService.deleteAccount !== 'function') {
@@ -215,12 +125,12 @@ export default function ProfileScreen() {
 
                         logger.debug('[handleDeleteProfile] Calling authService.deleteAccount()');
                         await authService.deleteAccount();
-                        
+
                         logger.debug('[handleDeleteProfile] Account deleted, calling logout');
                         logout();
-                        
+
                         logger.debug('[handleDeleteProfile] Logout successful, showing success message');
-                        
+
                         Alert.alert(
                           t('success'),
                           language === 'az' ? 'Profiliniz uğurla silindi. Sizi görməyə ümid edirik!' : 'Ваш профиль успешно удален. Надеемся увидеть вас снова!',
@@ -237,10 +147,10 @@ export default function ProfileScreen() {
                         );
                       } catch (error) {
                         logger.error('[handleDeleteProfile] Error during profile deletion:', error);
-                        
+
                         // ✅ Provide specific error messages
-                        let errorMessage = language === 'az' 
-                          ? 'Profil silinərkən xəta baş verdi' 
+                        let errorMessage = language === 'az'
+                          ? 'Profil silinərkən xəta baş verdi'
                           : 'Произошла ошибка при удалении профиля';
 
                         if (error instanceof Error) {
@@ -254,7 +164,7 @@ export default function ProfileScreen() {
                               : 'Ошибка сети. Проверьте подключение к интернету.';
                           }
                         }
-                        
+
                         Alert.alert(
                           t('error'),
                           errorMessage
@@ -268,7 +178,6 @@ export default function ProfileScreen() {
                 ]
               );
             }, 300);
->>>>>>> origin/main
           },
         },
       ]
@@ -281,27 +190,27 @@ export default function ProfileScreen() {
       logger.warn('[formatDate] Invalid date string:', dateString);
       return language === 'az' ? 'Tarix yoxdur' : 'Дата отсутствует';
     }
-    
+
     try {
       const date = new Date(dateString);
-      
+
       // ✅ Check if date is valid
       if (isNaN(date.getTime())) {
         logger.warn('[formatDate] Invalid date:', dateString);
         return language === 'az' ? 'Yanlış tarix' : 'Неверная дата';
       }
-      
+
       const month = date.toLocaleString(language === 'az' ? 'az-AZ' : 'ru-RU', { month: 'long' });
       const year = date.getFullYear();
-      
+
       // ✅ Validate year is reasonable
       if (year < 2000 || year > 2100) {
         logger.warn('[formatDate] Suspicious year:', year);
         return language === 'az' ? 'Yanlış tarix' : 'Неверная дата';
       }
-      
-      return language === 'az' 
-        ? `${month} ${year}` 
+
+      return language === 'az'
+        ? `${month} ${year}`
         : `${month} ${year}`;
     } catch (error) {
       logger.error('[formatDate] Error formatting date:', error);
@@ -315,7 +224,7 @@ export default function ProfileScreen() {
         <Text style={styles.authTitle}>
           {t('loginToAccessProfile')}
         </Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.authButton}
           onPress={handleLogin}
         >
@@ -334,26 +243,26 @@ export default function ProfileScreen() {
         language === 'az' ? 'Profil şəklini dəyişdirmək istəyirsiniz?' : 'Хотите изменить фото профиля?',
         [
           { text: language === 'az' ? 'Ləğv et' : 'Отмена', style: 'cancel' },
-          { 
-            text: language === 'az' ? 'Kameradan çək' : 'Сделать фото', 
+          {
+            text: language === 'az' ? 'Kameradan çək' : 'Сделать фото',
             onPress: () => {
               logger.info('[handleAvatarPress] Camera photo option selected');
               Alert.alert(
                 language === 'az' ? 'Kamera' : 'Камера',
-                language === 'az' 
-                  ? 'Kamera funksiyası hazırlanır. Tezliklə əlavə olunacaq.' 
+                language === 'az'
+                  ? 'Kamera funksiyası hazırlanır. Tezliklə əlavə olunacaq.'
                   : 'Функция камеры в разработке. Скоро будет добавлена.'
               );
             }
           },
-          { 
-            text: language === 'az' ? 'Qalereyadan seç' : 'Выбрать из галереи', 
+          {
+            text: language === 'az' ? 'Qalereyadan seç' : 'Выбрать из галереи',
             onPress: () => {
               logger.info('[handleAvatarPress] Gallery photo option selected');
               Alert.alert(
                 language === 'az' ? 'Qalereya' : 'Галерея',
-                language === 'az' 
-                  ? 'Qalereya funksiyası hazırlanır. Tezliklə əlavə olunacaq.' 
+                language === 'az'
+                  ? 'Qalereya funksiyası hazırlanır. Tezliklə əlavə olunacaq.'
                   : 'Функция галереи в разработке. Скоро будет добавлена.'
               );
             }
@@ -372,21 +281,25 @@ export default function ProfileScreen() {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={handleAvatarPress} activeOpacity={0.7}>
-          <Image source={{ uri: currentUser.avatar }} style={styles.avatar} />
-        </TouchableOpacity>
-        <View style={styles.userInfo}>
-          <Text style={styles.userName}>{currentUser.name}</Text>
-          <View style={styles.ratingContainer}>
-            <Star size={16} color={Colors.secondary} fill={Colors.secondary} />
-            <Text style={styles.rating}>{currentUser.rating}</Text>
+        {currentUser && (
+          <TouchableOpacity onPress={handleAvatarPress} activeOpacity={0.7}>
+            <Image source={{ uri: currentUser.avatar }} style={{ width: 50, height: 50, borderRadius: 25 }} />
+          </TouchableOpacity>
+        )}
+        {currentUser && (
+          <View style={styles.userInfo}>
+            <Text style={styles.userName}>{currentUser.name}</Text>
+            <View style={styles.ratingContainer}>
+              <Star size={16} color={Colors.secondary} fill={Colors.secondary} />
+              <Text style={styles.rating}>{currentUser.rating}</Text>
+            </View>
+            <Text style={styles.memberSince}>
+              {t('memberSince')} {formatDate(currentUser.memberSince)}
+            </Text>
           </View>
-          <Text style={styles.memberSince}>
-            {t('memberSince')} {formatDate(currentUser.memberSince)}
-          </Text>
-        </View>
+        )}
       </View>
-      
+
       <View style={styles.statsContainer}>
         <View style={styles.statItem}>
           <Text style={styles.statValue}>{userListings.length}</Text>
@@ -409,9 +322,9 @@ export default function ProfileScreen() {
           </Text>
         </View>
       </View>
-      
+
       <View style={styles.section}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.menuItem}
           onPress={() => router.push('/wallet')}
         >
@@ -428,8 +341,8 @@ export default function ProfileScreen() {
           </View>
           <ChevronRight size={20} color={Colors.textSecondary} />
         </TouchableOpacity>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={styles.menuItem}
           onPress={() => router.push('/my-listings')}
         >
@@ -441,8 +354,8 @@ export default function ProfileScreen() {
           </Text>
           <ChevronRight size={20} color={Colors.textSecondary} />
         </TouchableOpacity>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={styles.menuItem}
           onPress={() => router.push('/favorites')}
         >
@@ -454,8 +367,8 @@ export default function ProfileScreen() {
           </Text>
           <ChevronRight size={20} color={Colors.textSecondary} />
         </TouchableOpacity>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={styles.menuItem}
           onPress={() => router.push('/store-management')}
         >
@@ -474,8 +387,8 @@ export default function ProfileScreen() {
           </View>
           <ChevronRight size={20} color={Colors.textSecondary} />
         </TouchableOpacity>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={styles.menuItem}
           onPress={() => {
             logger.debug('Navigating to messages from profile');
@@ -490,8 +403,8 @@ export default function ProfileScreen() {
           </Text>
           <ChevronRight size={20} color={Colors.textSecondary} />
         </TouchableOpacity>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={styles.menuItem}
           onPress={() => router.push('/live-chat')}
         >
@@ -503,7 +416,7 @@ export default function ProfileScreen() {
           </Text>
           <ChevronRight size={20} color={Colors.textSecondary} />
         </TouchableOpacity>
-        
+
         <TouchableOpacity style={styles.menuItem}>
           <View style={styles.menuIconContainer}>
             <Bell size={20} color={Colors.primary} />
@@ -513,8 +426,8 @@ export default function ProfileScreen() {
           </Text>
           <ChevronRight size={20} color={Colors.textSecondary} />
         </TouchableOpacity>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={styles.menuItem}
           onPress={() => router.push('/about')}
         >
@@ -526,8 +439,8 @@ export default function ProfileScreen() {
           </Text>
           <ChevronRight size={20} color={Colors.textSecondary} />
         </TouchableOpacity>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={styles.menuItem}
           onPress={() => router.push('/settings')}
         >
@@ -539,10 +452,10 @@ export default function ProfileScreen() {
           </Text>
           <ChevronRight size={20} color={Colors.textSecondary} />
         </TouchableOpacity>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={[
-            styles.menuItem, 
+            styles.menuItem,
             { borderBottomWidth: 0 },
             isDeletingAccount && styles.menuItemDisabled
           ]}
@@ -559,7 +472,7 @@ export default function ProfileScreen() {
             )}
           </View>
           <Text style={[styles.menuItemText, { color: Colors.error }]}>
-            {isDeletingAccount 
+            {isDeletingAccount
               ? (language === 'az' ? 'Silinir...' : 'Удаление...')
               : t('deleteProfile')
             }
@@ -567,14 +480,14 @@ export default function ProfileScreen() {
           {!isDeletingAccount && <ChevronRight size={20} color={Colors.error} />}
         </TouchableOpacity>
       </View>
-      
+
       <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
         <LogOut size={20} color={Colors.error} />
         <Text style={styles.logoutText}>
           {t('logout')}
         </Text>
       </TouchableOpacity>
-      
+
       <LiveChatWidget
         visible={showLiveChat}
         onClose={() => setShowLiveChat(false)}
@@ -757,3 +670,5 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 });
+
+// setIsDeletingAccount is implemented via React.useState above

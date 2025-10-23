@@ -1,10 +1,5 @@
-<<<<<<< HEAD
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, TextInput, ActivityIndicator, RefreshControl, Linking, Platform } from 'react-native';
-=======
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, TextInput, ActivityIndicator, RefreshControl, Linking, Platform, KeyboardAvoidingView, Keyboard, TouchableWithoutFeedback } from 'react-native';
->>>>>>> origin/main
 import { Stack } from 'expo-router';
 import { useLanguageStore } from '@/store/languageStore';
 import { useUserStore } from '@/store/userStore';
@@ -18,11 +13,7 @@ import { sanitizeNumericInput } from '@/utils/inputValidation';
 
 export default function WalletScreen() {
   const { language } = useLanguageStore();
-<<<<<<< HEAD
-  const { currentUser, walletBalance, bonusBalance, addToWallet, addBonus } = useUserStore();
-=======
   const { walletBalance, bonusBalance, addToWallet, addBonus, currentUser } = useUserStore();
->>>>>>> origin/main
   
   const [showTopUp, setShowTopUp] = useState(false);
   const [topUpAmount, setTopUpAmount] = useState('');
@@ -116,14 +107,6 @@ export default function WalletScreen() {
   };
 
   const handleTopUp = async () => {
-<<<<<<< HEAD
-    // ✅ Validate current user
-    if (!currentUser) {
-      logger.error('[Wallet] No current user for top-up');
-      Alert.alert(
-        language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' ? 'İstifadəçi məlumatları tapılmadı' : 'Информация о пользователе не найдена'
-=======
     // ===== VALIDATION START =====
     
     // 0. Check if user is authenticated
@@ -131,18 +114,12 @@ export default function WalletScreen() {
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Daxil olmamısınız' : 'Вы не вошли в систему'
->>>>>>> origin/main
       );
       return;
     }
     
-<<<<<<< HEAD
-    // ✅ Validate amount
-    if (!topUpAmount || topUpAmount.trim() === '') {
-=======
     // 1. Check if amount is entered
     if (!topUpAmount || typeof topUpAmount !== 'string' || topUpAmount.trim().length === 0) {
->>>>>>> origin/main
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Məbləğ daxil edin' : 'Введите сумму'
@@ -150,17 +127,11 @@ export default function WalletScreen() {
       return;
     }
     
-<<<<<<< HEAD
-    const amount = parseFloat(topUpAmount);
-    
-    if (isNaN(amount) || amount <= 0) {
-=======
     // 2. Parse amount
     const amount = parseFloat(topUpAmount.trim());
     
     // 3. Check if amount is a valid number
     if (isNaN(amount) || !isFinite(amount)) {
->>>>>>> origin/main
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Düzgün məbləğ daxil edin' : 'Введите корректную сумму'
@@ -168,13 +139,6 @@ export default function WalletScreen() {
       return;
     }
     
-<<<<<<< HEAD
-    // ✅ Add minimum amount check
-    if (amount < 1) {
-      Alert.alert(
-        language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' ? 'Minimum məbləğ 1 AZN olmalıdır' : 'Минимальная сумма должна быть 1 AZN'
-=======
     // 4. Check if amount is positive
     if (amount <= 0) {
       Alert.alert(
@@ -189,23 +153,10 @@ export default function WalletScreen() {
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Minimum məbləğ 1 AZN olmalıdır' : 'Минимальная сумма 1 AZN'
->>>>>>> origin/main
       );
       return;
     }
     
-<<<<<<< HEAD
-    // ✅ Add maximum amount check
-    if (amount > 10000) {
-      Alert.alert(
-        language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' ? 'Maksimum məbləğ 10,000 AZN olmalıdır' : 'Максимальная сумма должна быть 10,000 AZN'
-      );
-      return;
-    }
-
-    if (!selectedPaymentMethod) {
-=======
     // 6. Check maximum amount (10,000 AZN)
     if (amount > 10000) {
       Alert.alert(
@@ -227,7 +178,6 @@ export default function WalletScreen() {
     
     // 8. Check payment method selected
     if (!selectedPaymentMethod || typeof selectedPaymentMethod !== 'string') {
->>>>>>> origin/main
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Ödəniş üsulunu seçin' : 'Выберите способ оплаты'
@@ -235,11 +185,7 @@ export default function WalletScreen() {
       return;
     }
     
-<<<<<<< HEAD
-    logger.info('[Wallet] Initiating top-up:', { amount, userId: currentUser.id });
-=======
     // ===== VALIDATION END =====
->>>>>>> origin/main
     
     try {
       setIsProcessing(true);
@@ -254,14 +200,9 @@ export default function WalletScreen() {
         operation: 'PURCHASE',
         metadata: {
           type: 'wallet_topup',
-<<<<<<< HEAD
-          userId: currentUser.id,
-          amount: amount.toFixed(2),
-=======
           userId: useUserStore.getState().currentUser?.id || 'guest',
           amount: amount.toFixed(2),
           timestamp: new Date().toISOString(),
->>>>>>> origin/main
         },
       });
 
@@ -301,11 +242,6 @@ export default function WalletScreen() {
         );
       }
     } catch (error) {
-<<<<<<< HEAD
-      logger.error('[Wallet] Top-up error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('Error details:', errorMessage);
-=======
       logger.error('[WalletTopUp] Error:', error);
       
       // User-friendly error messages
@@ -334,7 +270,6 @@ export default function WalletScreen() {
             : 'Вы не авторизованы. Войдите снова.';
         }
       }
->>>>>>> origin/main
       
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
@@ -512,18 +447,11 @@ export default function WalletScreen() {
                   amountError && styles.inputError
                 ]}
                 value={topUpAmount}
-<<<<<<< HEAD
-                onChangeText={(text) => setTopUpAmount(sanitizeNumericInput(text))}
-                placeholder="0.00"
-                keyboardType="decimal-pad"
-                maxLength={10}
-=======
                 onChangeText={handleAmountChange}
                 placeholder="0.00"
                 keyboardType="decimal-pad"
                 returnKeyType="done"
                 onSubmitEditing={Keyboard.dismiss}
->>>>>>> origin/main
                 placeholderTextColor={Colors.placeholder}
               />
               
@@ -1033,20 +961,20 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginBottom: 4,
   },
-  bonusInfoText: {
-    fontSize: 13,
-    color: Colors.secondary,
-    fontWeight: '600',
-  },
+  // bonusInfoText: {
+  //   fontSize: 13,
+  //   color: Colors.secondary,
+  //   fontWeight: '600',
+  // },
   inputError: {
     borderColor: Colors.error,
     borderWidth: 2,
   },
-  errorText: {
-    fontSize: 12,
-    color: Colors.error,
-    marginTop: 4,
-  },
+  // errorText: {
+  //   fontSize: 12,
+  //   color: Colors.error,
+  //   marginTop: 4,
+  // },
   hintText: {
     fontSize: 12,
     color: Colors.textSecondary,

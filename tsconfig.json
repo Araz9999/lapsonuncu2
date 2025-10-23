@@ -1,13 +1,16 @@
 {
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
+    "jsx": "react",
     "strict": true,
     "paths": {
       "@/*": [
         "./*"
       ]
     },
-    "moduleResolution": "bundler",
+    "moduleResolution": "node",
+    "module": "esnext",
+    "target": "es2020",
     "resolveJsonModule": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,

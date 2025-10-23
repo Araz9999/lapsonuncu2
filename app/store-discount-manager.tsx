@@ -66,20 +66,8 @@ export default function DiscountAnalyticsScreen() {
   const totalConversions = activeCampaigns.reduce((sum, campaign) => sum + campaign.analytics.conversions, 0);
 
   const handleQuickDiscount = (percentage: number) => {
-<<<<<<< HEAD
-    // ✅ Validate inputs
-    if (!currentStore) {
-      logger.error('[DiscountManager] No current store for quick discount');
-      Alert.alert('Xəta', 'Mağaza seçilməyib');
-      return;
-    }
-    
-    if (percentage < 1 || percentage > 99) {
-      logger.error('[DiscountManager] Invalid percentage:', percentage);
-=======
     // Validation: Percentage range
     if (percentage < 1 || percentage > 99) {
->>>>>>> origin/main
       Alert.alert('Xəta', 'Endirim faizi 1-99 arasında olmalıdır');
       return;
     }

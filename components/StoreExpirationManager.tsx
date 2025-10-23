@@ -107,12 +107,7 @@ export default function StoreExpirationManager({ storeId, showCompact = false }:
         await reactivateStore(storeId, selectedPlanId);
         logger.info('[StoreExpiration] Store reactivated successfully');
       } else {
-<<<<<<< HEAD
-        await renewStore(storeId, selectedPlanId);
-        logger.info('[StoreExpiration] Store renewed successfully');
-=======
         await renewStore(storeId, selectedPlanId, applyDiscount);
->>>>>>> origin/main
       }
       setShowRenewModal(false);
       

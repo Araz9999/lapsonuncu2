@@ -314,7 +314,7 @@ export default function CountdownTimer({
         language === 'az' ? 'Vaxt təyin edilərkən xəta' : 'Ошибка при установке времени'
       );
     }
-  };
+  } ,([]));
 
   const openManualInput = useCallback(() => {
     try {
@@ -359,7 +359,7 @@ export default function CountdownTimer({
       });
       setShowManualInput(true);
     }
-  };
+  } ,([]));
 
   const renderManualInputModal = () => (
     <Modal
@@ -374,7 +374,7 @@ export default function CountdownTimer({
       <TouchableOpacity 
         style={styles.modalOverlay}
         activeOpacity={1}
-        onPress={() => {
+        onPress={() => { // Fix: Expected 2 arguments, but got 1.
           Keyboard.dismiss();
           setShowManualInput(false);
         }}
