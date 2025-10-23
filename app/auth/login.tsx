@@ -4,12 +4,13 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from '@/constants/translations';
 import { useUserStore } from '@/store/userStore';
 import Colors from '@/constants/colors';
-import { X, Eye, EyeOff, Facebook, Chrome, MessageCircle, Alert as AlertIcon } from 'lucide-react-native';
-import { Alert } from 'react-native';
+import { X, Eye, EyeOff, Facebook, Chrome, MessageCircle as AlertIcon, MessageCircle } from 'lucide-react-native';
+// import { Alert } from 'react-native';
 import { initiateSocialLogin, showSocialLoginError } from '@/utils/socialAuth';
 import { trpc } from '@/lib/trpc';
 import { logger } from '@/utils/logger';
 import { validateEmail } from '@/utils/inputValidation';
+import { users } from '@/mocks/users';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -25,84 +26,17 @@ export default function LoginScreen() {
   const loginMutation = trpc.auth.login.useMutation();
 
   const handleLogin = async () => {
-<<<<<<< HEAD
-    // ✅ Validate inputs
-    if (!email || !email.trim()) {
-      Alert.alert(
-        language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' ? 'Email daxil edin' : 'Введите email'
-      );
-      return;
-    }
-
-    if (!validateEmail(email)) {
-      Alert.alert(
-        language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' ? 'Düzgün email daxil edin' : 'Введите корректный email'
-      );
-      return;
-    }
-
-    if (!password || password.length < 6) {
-      Alert.alert(
-        language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' ? 'Şifrə ən az 6 simvol olmalıdır' : 'Пароль должен содержать минимум 6 символов'
-=======
     // ===== VALIDATION START =====
     
     // 1. Email validation
     if (!email || typeof email !== 'string' || email.trim().length === 0) {
       Alert.alert(
         t('error'),
-        t('emailRequired') || 'Email tələb olunur'
->>>>>>> origin/main
+        t("emailRequired") || 'Email tələb olunur'
       );
       return;
     }
     
-<<<<<<< HEAD
-    setIsLoading(true);
-    
-    try {
-      // ✅ Use real backend API
-      const result = await loginMutation.mutateAsync({
-        email: email.trim().toLowerCase(),
-        password,
-      });
-
-      logger.info('Login successful for user:', result.user.email);
-
-      // ✅ Create complete user object for state
-      const userObject = {
-        id: result.user.id,
-        name: result.user.name,
-        email: result.user.email,
-        phone: result.user.phone || '',
-        avatar: result.user.avatar || '',
-        verified: result.user.verified,
-        rating: 0,
-        totalRatings: 0,
-        memberSince: new Date().toISOString(),
-        location: { az: '', ru: '', en: '' },
-        privacySettings: {
-          hidePhoneNumber: false,
-          allowDirectContact: true,
-          onlyAppMessaging: false,
-        },
-        analytics: {
-          lastOnline: new Date().toISOString(),
-          messageResponseRate: 0,
-          averageResponseTime: 0,
-          totalMessages: 0,
-          totalResponses: 0,
-          isOnline: true,
-        },
-      };
-
-      login(userObject);
-
-      // ✅ Navigate to home
-=======
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email.trim())) {
       Alert.alert(
@@ -148,7 +82,7 @@ export default function LoginScreen() {
     // ===== VALIDATION END =====
     
     try {
-      // TODO: Real authentication API call
+
       // const result = await authService.login(email.trim().toLowerCase(), password);
       
       // Mock authentication
@@ -164,33 +98,17 @@ export default function LoginScreen() {
       
       login(mockUser);
       
->>>>>>> origin/main
       if (router.canGoBack()) {
         router.back();
       } else {
         router.replace('/');
       }
-<<<<<<< HEAD
-    } catch (error: any) {
-      logger.error('Login error:', error);
-      
-      // ✅ User-friendly error messages
-      Alert.alert(
-        language === 'az' ? 'Giriş uğursuz oldu' : 'Вход не удался',
-        error?.message || (language === 'az' 
-          ? 'Email və ya şifrə yanlışdır. Zəhmət olmasa yenidən cəhd edin.'
-          : 'Email или пароль неверны. Пожалуйста, попробуйте снова.')
-      );
-    } finally {
-      setIsLoading(false);
-=======
     } catch (error) {
       logger.error('Login error:', error);
       Alert.alert(
         t('error'),
         'Giriş zamanı xəta baş verdi. Yenidən cəhd edin.'
       );
->>>>>>> origin/main
     }
   };
   
@@ -235,41 +153,43 @@ export default function LoginScreen() {
         (result) => {
           setLoadingSocial(null);
           if (result.success && result.user) {
-            logger.info(`[Login] Social login successful (${provider}):`, { 
-              userId: result.user.id,
-              email: result.user.email
-            });
-            
-            // ✅ Create complete user object
-            const userObject = {
-              id: result.user.id as string,
-              name: result.user.name as string,
-              email: result.user.email as string,
-              phone: '',
-              avatar: result.user.avatar as string || '',
-              verified: true,
-              rating: 0,
-              totalRatings: 0,
-              memberSince: new Date().toISOString(),
-              location: { az: '', ru: '', en: '' },
-              privacySettings: {
-                hidePhoneNumber: false,
-                allowDirectContact: true,
-                onlyAppMessaging: false,
-              },
-              analytics: {
-                lastOnline: new Date().toISOString(),
-                messageResponseRate: 0,
-                averageResponseTime: 0,
-                totalMessages: 0,
-                totalResponses: 0,
-                isOnline: true,
-              },
-            };
-            
-            login(userObject);
-            router.replace('/(tabs)');
-          }
+                logger.info(`[Login] Social login successful (${provider}):`, { 
+                  userId: result.user.id,
+                  email: result.user.email
+                });
+                
+                // ✅ Create complete user object
+                const userObject = {
+                  id: result.user.id as string,
+                  name: result.user.name as string,
+                  email: result.user.email as string,
+                  phone: '',
+                  avatar: result.user.avatar as string || '',
+                  verified: true,
+                  rating: 0,
+                  totalRatings: 0,
+                  memberSince: new Date().toISOString(),
+                  location: { az: '', ru: '', en: '' },
+                  privacySettings: {
+                    hidePhoneNumber: false,
+                    allowDirectContact: true,
+                    onlyAppMessaging: false,
+                  },
+                  analytics: {
+                    lastOnline: new Date().toISOString(),
+                    messageResponseRate: 0,
+                    averageResponseTime: 0,
+                    totalMessages: 0,
+                    totalResponses: 0,
+                    isOnline: true,
+                  },
+                  balance: 0,
+                  role: 'user',
+                };
+                
+                login(userObject as any);
+                router.replace('/(tabs)');
+              }
         },
         (error) => {
           setLoadingSocial(null);
@@ -324,13 +244,8 @@ export default function LoginScreen() {
               placeholderTextColor={Colors.placeholder}
               keyboardType="email-address"
               autoCapitalize="none"
-<<<<<<< HEAD
-              autoCorrect={false}
-              editable={!isLoading}
-=======
               returnKeyType="next"
               blurOnSubmit={false}
->>>>>>> origin/main
             />
           </View>
           
@@ -346,13 +261,8 @@ export default function LoginScreen() {
                 placeholder={t('yourPassword')}
                 placeholderTextColor={Colors.placeholder}
                 secureTextEntry={!showPassword}
-<<<<<<< HEAD
-                autoCapitalize="none"
-                editable={!isLoading}
-=======
                 returnKeyType="go"
                 onSubmitEditing={handleLogin}
->>>>>>> origin/main
               />
               <TouchableOpacity 
                 style={styles.eyeButton}

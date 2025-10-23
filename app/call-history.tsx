@@ -64,13 +64,6 @@ export default function CallHistoryScreen() {
   };
 
   const formatDate = (dateString: string) => {
-<<<<<<< HEAD
-    const date = new Date(dateString);
-    
-    // ✅ Validate date
-    if (isNaN(date.getTime())) {
-      return language === 'az' ? 'Tarix məlum deyil' : 'Дата неизвестна';
-=======
     try {
       const date = new Date(dateString);
       
@@ -94,43 +87,10 @@ export default function CallHistoryScreen() {
       }
     } catch (error) {
       return language === 'az' ? 'Naməlum' : 'Неизвестно';
->>>>>>> origin/main
     }
+  }
     
     const now = new Date();
-    
-    // ✅ Check if same day (not time difference, but calendar day)
-    const isSameDay = 
-      date.getDate() === now.getDate() &&
-      date.getMonth() === now.getMonth() &&
-      date.getFullYear() === now.getFullYear();
-    
-    if (isSameDay) {
-      return language === 'az' ? 'Bu gün' : 'Сегодня';
-    }
-    
-    // ✅ Check if yesterday
-    const yesterday = new Date(now);
-    yesterday.setDate(yesterday.getDate() - 1);
-    const isYesterday = 
-      date.getDate() === yesterday.getDate() &&
-      date.getMonth() === yesterday.getMonth() &&
-      date.getFullYear() === yesterday.getFullYear();
-    
-    if (isYesterday) {
-      return language === 'az' ? 'Dünən' : 'Вчера';
-    }
-    
-    // ✅ For other days, calculate difference
-    const diffTime = now.getTime() - date.getTime();
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    
-    if (diffDays > 0 && diffDays <= 7) {
-      return `${diffDays} ${language === 'az' ? 'gün əvvəl' : 'дней назад'}`;
-    }
-    
-    return date.toLocaleDateString(language === 'az' ? 'az-AZ' : 'ru-RU');
-  };
 
   const getCallIcon = (call: Call) => {
     const isIncoming = call.receiverId === currentUser?.id;
@@ -181,55 +141,10 @@ export default function CallHistoryScreen() {
   };
 
   const handleCallPress = async (call: Call) => {
-<<<<<<< HEAD
-    logger.info('[CallHistory] Call item pressed:', { 
-      callId: call.id, 
-      type: call.type,
-      status: call.status,
-      isRead: call.isRead
-    });
-    
-    if (!call.isRead) {
-      logger.info('[CallHistory] Marking call as read:', { callId: call.id });
-      markCallAsRead(call.id);
-    }
-
-    const otherUserId = call.callerId === currentUser?.id ? call.receiverId : call.callerId;
-    const otherUser = users.find(u => u.id === otherUserId);
-    
-    logger.info('[CallHistory] Other user found:', { 
-      otherUserId, 
-      hasPrivacySettings: !!otherUser?.privacySettings,
-      hidePhoneNumber: otherUser?.privacySettings?.hidePhoneNumber 
-    });
-    
-    if (otherUser?.privacySettings.hidePhoneNumber) {
-      logger.info('[CallHistory] Phone number hidden, initiating app call');
-      // Initiate app call with same type as previous call
-      try {
-        if (!currentUser?.id) {
-          logger.error('No current user for call initiation');
-          Alert.alert(
-            language === 'az' ? 'Xəta' : 'Ошибка',
-            language === 'az' ? 'Zəng başlatmaq üçün giriş edin' : 'Войдите для совершения звонка'
-          );
-          return;
-        }
-        const callId = await initiateCall(currentUser.id, otherUserId, call.listingId, call.type);
-        logger.info('[CallHistory] Call initiated successfully:', { callId, type: call.type });
-        router.push(`/call/${callId}`);
-      } catch (error) {
-        logger.error('Failed to initiate call:', error);
-        Alert.alert(
-          language === 'az' ? 'Zəng Xətası' : 'Ошибка звонка',
-          language === 'az' ? 'Zəng başlatmaq mümkün olmadı' : 'Не удалось начать звонок'
-        );
-=======
     try {
       if (!call || !call.id) {
         logger.error('Invalid call object');
         return;
->>>>>>> origin/main
       }
       
       if (!call.isRead) {
@@ -252,7 +167,17 @@ export default function CallHistoryScreen() {
       if (otherUser?.privacySettings?.hidePhoneNumber) {
         // Initiate app call with same type as previous call
         try {
-          const callId = await initiateCall(otherUserId, call.listingId, call.type);
+          // Ensure current user exists before initiating the call
+          if (!currentUser?.id) {
+            logger.error('No current user for initiating call');
+            Alert.alert(
+              language === 'az' ? 'Xəta' : 'Ошибка',
+              language === 'az' ? 'Zəng başlatmaq üçün daxil olun' : 'Войдите, чтобы начать звонок'
+            );
+            return;
+          }
+
+          const callId = await initiateCall(currentUser.id, otherUserId, call.listingId, call.type);
           router.push(`/call/${callId}`);
         } catch (error) {
           logger.error('Failed to initiate call:', error);
@@ -389,7 +314,7 @@ export default function CallHistoryScreen() {
           <Image 
             source={{ uri: otherUser?.avatar || 'https://via.placeholder.com/50' }} 
             style={styles.avatar}
-            defaultSource={require('@/assets/images/default-avatar.png')}
+            // defaultSource={require('@/assets/images/default-avatar.png')}
             onError={() => {
               // ✅ Fallback if image fails to load
               logger.debug('Avatar image failed to load for user:', otherUserId);

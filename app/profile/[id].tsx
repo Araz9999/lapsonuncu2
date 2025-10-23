@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, FlatList } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, FlatList, Alert } from 'react-native';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { useLanguageStore } from '@/store/languageStore';
 import { useUserStore } from '@/store/userStore';
@@ -168,7 +168,7 @@ export default function UserProfileScreen() {
               // Check if user has hidden phone number
               if (user.privacySettings?.hidePhoneNumber) {
                 // Use in-app calling
-                const callId = await initiateCall(user.id, '', 'voice');
+                const callId = await initiateCall(user.id, '', 'voice', 'video');
                 router.push(`/call/${callId}`);
               } else {
                 // Use regular phone call

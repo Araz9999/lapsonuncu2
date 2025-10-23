@@ -197,37 +197,37 @@ export default function RenewalOffersScreen() {
                 { cancelable: false }
               );
             } catch (error) {
-              // Rollback payment
-              const { addToWallet, addToBonus } = useUserStore.getState();
-              
-              if (spentFromBonusAmount > 0) {
-                addToBonus(spentFromBonusAmount);
-              }
-              
-              if (spentFromWalletAmount > 0) {
-                addToWallet(spentFromWalletAmount);
-              }
-              
-              let errorMessage = language === 'az' 
-                ? 'Elan yenilənə bilmədi' 
-                : 'Не удалось продлить объявление';
-              
-              if (error instanceof Error) {
-                if (error.message.includes('tapılmadı') || error.message.includes('not found')) {
-                  errorMessage = language === 'az' ? 'Elan tapılmadı' : 'Объявление не найдено';
-                } else if (error.message.includes('network') || error.message.includes('timeout')) {
-                  errorMessage = language === 'az' ? 'Şəbəkə xətası. Yenidən cəhd edin.' : 'Ошибка сети. Попробуйте снова.';
-                }
-              }
-              
-              errorMessage += language === 'az' 
-                ? '\n\nÖdənişiniz geri qaytarıldı.'
-                : '\n\nВаш платеж был возвращен.';
-              
-              Alert.alert(
-                language === 'az' ? 'Xəta' : 'Ошибка',
-                errorMessage
-              );
+              // Rollback payment (use any to avoid missing type definitions)
+                            const userState = useUserStore.getState() as any;
+                            
+                            if (spentFromBonusAmount > 0 && typeof userState.addToBonus === 'function') {
+                              userState.addToBonus(spentFromBonusAmount);
+                            }
+                            
+                            if (spentFromWalletAmount > 0 && typeof userState.addToWallet === 'function') {
+                              userState.addToWallet(spentFromWalletAmount);
+                            }
+                            
+                            let errorMessage = language === 'az' 
+                              ? 'Elan yenilənə bilmədi' 
+                              : 'Не удалось продлить объявление';
+                            
+                            if (error instanceof Error) {
+                              if (error.message.includes('tapılmadı') || error.message.includes('not found')) {
+                                errorMessage = language === 'az' ? 'Elan tapılmadı' : 'Объявление не найдено';
+                              } else if (error.message.includes('network') || error.message.includes('timeout')) {
+                                errorMessage = language === 'az' ? 'Şəbəkə xətası. Yenidən cəhd edin.' : 'Ошибка сети. Попробуйте снова.';
+                              }
+                            }
+                            
+                            errorMessage += language === 'az' 
+                              ? '\n\nÖdənişiniz geri qaytarıldı.'
+                              : '\n\nВаш платеж был возвращен.';
+                            
+                            Alert.alert(
+                              language === 'az' ? 'Xəta' : 'Ошибка',
+                              errorMessage
+                            );
             } finally {
               setIsRenewing(null);
             }
@@ -369,7 +369,7 @@ export default function RenewalOffersScreen() {
                   <Image
                     source={{ uri: listing.images[0] || 'https://via.placeholder.com/80' }}
                     style={styles.offerImage}
-                    defaultSource={require('@/assets/images/placeholder.png')}
+                    // defaultSource={require('@/assets/images/placeholder.png')}
                   />
                   
                   <View style={styles.offerInfo}>

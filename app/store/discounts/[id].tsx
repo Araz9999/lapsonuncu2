@@ -62,17 +62,6 @@ export default function StoreDiscountsScreen() {
   const [excludeListings, setExcludeListings] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   
-<<<<<<< HEAD
-  const handleApplyDiscount = async () => {
-    if (!selectedListing || !store) {
-      logger.error('[StoreDiscounts] Missing selectedListing or store');
-      return;
-    }
-    
-    // ✅ Single validation check (removed duplicate)
-    const discount = parseFloat(discountPercentage.trim());
-    if (isNaN(discount) || discount < 1 || discount > 99) {
-=======
   // ✅ Helper: Validate discount percentage (removed duplicate)
   const validateDiscountPercentage = (value: string): number | null => {
     if (!value || typeof value !== 'string' || value.trim().length === 0) {
@@ -94,17 +83,11 @@ export default function StoreDiscountsScreen() {
     }
     
     if (discount < 1 || discount > 99) {
->>>>>>> origin/main
       Alert.alert(
         language === 'az' ? 'Xəta' : 'Ошибка',
         language === 'az' ? 'Endirim faizi 1-99 arasında olmalıdır' : 'Процент скидки должен быть от 1 до 99'
       );
-<<<<<<< HEAD
-      logger.error('[StoreDiscounts] Invalid discount percentage:', discountPercentage);
-      return;
-=======
       return null;
->>>>>>> origin/main
     }
     
     return discount;
@@ -230,20 +213,8 @@ export default function StoreDiscountsScreen() {
       return;
     }
     
-<<<<<<< HEAD
-    const discount = parseFloat(storeWideDiscount.trim());
-    if (isNaN(discount) || discount < 1 || discount > 99) {
-      Alert.alert(
-        language === 'az' ? 'Xəta' : 'Ошибка',
-        language === 'az' ? 'Endirim faizi 1-99 arasında olmalıdır' : 'Процент скидки должен быть от 1 до 99'
-      );
-      logger.error('[StoreDiscounts] Invalid store-wide discount:', storeWideDiscount);
-      return;
-    }
-=======
     const discount = validateDiscountPercentage(storeWideDiscount);
     if (discount === null) return;
->>>>>>> origin/main
     
     const applicableListings = storeListings.filter(l => 
       !excludeListings.includes(l.id) && !l.priceByAgreement

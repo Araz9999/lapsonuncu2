@@ -103,20 +103,8 @@ export default function CreateStoreScreen() {
     
     // Step 2: Store information validation
     if (currentStep === 2) {
-<<<<<<< HEAD
-      storeLogger.info('[CreateStore] Validating step 2 (store info):', {
-        hasName: !!storeData.name.trim(),
-        hasCategory: !!storeData.categoryName.trim(),
-        hasLogo: !!storeData.logo,
-        hasCoverImage: !!storeData.coverImage
-      });
-      
-      if (!storeData.name.trim() || !storeData.categoryName.trim()) {
-        storeLogger.warn('[CreateStore] Step 2 validation failed: Missing required fields');
-=======
       // Validation: Store name
       if (!storeData.name.trim()) {
->>>>>>> origin/main
         Alert.alert(
           language === 'az' ? 'Xəta' : 'Ошибка',
           language === 'az' ? 'Mağaza adı daxil edin' : 'Введите название магазина'
@@ -167,7 +155,7 @@ export default function CreateStoreScreen() {
       }
       
       // Validation: Email format if provided
-      if (storeData.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(storeData.email.trim())) {
+      if (storeData.contactInfo.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(storeData.contactInfo.email.trim())) {
         Alert.alert(
           language === 'az' ? 'Xəta' : 'Ошибка',
           language === 'az' ? 'Düzgün email formatı daxil edin' : 'Введите корректный формат email'
@@ -176,7 +164,7 @@ export default function CreateStoreScreen() {
       }
       
       // Validation: Phone number if provided
-      if (storeData.phone.trim() && storeData.phone.trim().length < 9) {
+      if (storeData.contactInfo.phone.trim() && storeData.contactInfo.phone.trim().length < 9) {
         Alert.alert(
           language === 'az' ? 'Xəta' : 'Ошибка',
           language === 'az' ? 'Telefon nömrəsi ən azı 9 rəqəm olmalıdır' : 'Номер телефона должен содержать не менее 9 цифр'
@@ -185,7 +173,7 @@ export default function CreateStoreScreen() {
       }
       
       // Validation: Website URL if provided
-      if (storeData.website.trim() && !storeData.website.trim().match(/^https?:\/\/.+/)) {
+      if (storeData.contactInfo.website.trim() && !storeData.contactInfo.website.trim().match(/^https?:\/\/.+/)) {
         Alert.alert(
           language === 'az' ? 'Xəta' : 'Ошибка',
           language === 'az' ? 'Vebsayt http:// və ya https:// ilə başlamalıdır' : 'Веб-сайт должен начинаться с http:// или https://'
@@ -214,7 +202,7 @@ export default function CreateStoreScreen() {
       }
       
       // ✅ Validate phone if provided
-      if (storeData.contactInfo.phone && !validateAzerbaijanPhone(storeData.contactInfo.phone, false)) {
+      if (storeData.contactInfo.phone && !validateAzerbaijanPhone(storeData.contactInfo.phone)) {
         storeLogger.warn('[CreateStore] Invalid phone:', { phone: storeData.contactInfo.phone });
         Alert.alert(
           language === 'az' ? 'Telefon nömrəsi düzgün deyil' : 'Неверный номер телефона',
@@ -224,7 +212,7 @@ export default function CreateStoreScreen() {
       }
       
       // ✅ Validate WhatsApp if provided
-      if (storeData.contactInfo.whatsapp && !validateAzerbaijanPhone(storeData.contactInfo.whatsapp, false)) {
+      if (storeData.contactInfo.whatsapp && !validateAzerbaijanPhone(storeData.contactInfo.whatsapp)) {
         storeLogger.warn('[CreateStore] Invalid WhatsApp:', { whatsapp: storeData.contactInfo.whatsapp });
         Alert.alert(
           language === 'az' ? 'WhatsApp nömrəsi düzgün deyil' : 'Неверный номер WhatsApp',

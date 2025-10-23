@@ -104,20 +104,15 @@ class NotificationService {
     }
 
     try {
-<<<<<<< HEAD
-      // ✅ FIX: Better error handling and validation
-      if (!Notifications.getExpoPushTokenAsync) {
-        logger.debug('Push token API not available');
-=======
       // Check if we can get push token (only in development builds, not Expo Go)
       if (Notifications.getExpoPushTokenAsync) {
         logger.debug('Attempting to get push token...');
         
-        // \u2705 Use projectId from config instead of hardcoded value
-        const projectId = config.EXPO_PROJECT_ID || process.env.EXPO_PUBLIC_PROJECT_ID;
+        // Get projectId from environment (EXPO_PUBLIC_PROJECT_ID is standard for Expo)
+        const projectId = process.env.EXPO_PUBLIC_PROJECT_ID;
         
         if (!projectId || projectId.includes('your-')) {
-          logger.debug('Expo project ID not configured');
+          logger.debug('Expo project ID not configured - skipping push token');
           return null;
         }
         
@@ -127,25 +122,9 @@ class NotificationService {
         logger.debug('Push token obtained');
         return token.data;
       } else {
-        logger.debug('Push token API not available in Expo Go');
->>>>>>> origin/main
+        logger.debug('Push token API not available in this Expo environment (e.g., Expo Go SDK 53+)');
         return null;
       }
-
-      // ✅ Get projectId from environment or config
-      const projectId = process.env.EXPO_PROJECT_ID || this.expoPushToken;
-      
-      if (!projectId || projectId.includes('your-')) {
-        logger.debug('Project ID not configured - skipping push token');
-        return null;
-      }
-
-      logger.debug('Attempting to get push token...');
-      const token = await Notifications.getExpoPushTokenAsync({
-        projectId,
-      });
-      logger.debug('Push token obtained');
-      return token.data;
     } catch (error) {
       // This is expected in Expo Go SDK 53+ and some environments
       logger.debug('Push tokens not available in current environment:', error);
@@ -320,18 +299,6 @@ class NotificationService {
 
       if (Platform.OS === 'web') {
         if ('Notification' in window && Notification.permission === 'granted') {
-<<<<<<< HEAD
-          // ✅ FIX: Use proper icon path or fallback
-          const iconPath = typeof window !== 'undefined' && window.location 
-            ? `${window.location.origin}/icon.png`
-            : undefined;
-          
-          new Notification(sanitizedTitle, {
-            body: sanitizedBody,
-            icon: iconPath,
-            // ✅ Add timestamp for better UX
-            timestamp: Date.now(),
-=======
           new Notification(notification.title.trim(), {
             body: notification.body.trim(),
             icon: '/assets/images/icon.png',
@@ -339,7 +306,6 @@ class NotificationService {
             data: notification.data,
             requireInteraction: false,
             silent: !notification.sound,
->>>>>>> origin/main
           });
           logger.info('[NotificationService] Web notification sent:', sanitizedTitle);
         } else {
@@ -354,13 +320,8 @@ class NotificationService {
         try {
           await Notifications.scheduleNotificationAsync({
             content: {
-<<<<<<< HEAD
-              title: sanitizedTitle,
-              body: sanitizedBody,
-=======
               title: notification.title.trim(),
               body: notification.body.trim(),
->>>>>>> origin/main
               data: notification.data,
               sound: notification.sound !== false ? 'default' : false,
               badge: notification.badge,

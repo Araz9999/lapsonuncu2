@@ -154,13 +154,14 @@ export default function ArchivedListingsScreen() {
               );
             } catch (error) {
               // Rollback payment
-              const { addToWallet, addToBonus } = useUserStore.getState();
+              const { addToWallet, addToBonus } = useUserStore.getState() as any;
               
-              if (spentFromBonusAmount > 0) {
+              // call rollback functions only if they exist to avoid runtime/type errors
+              if (spentFromBonusAmount > 0 && typeof addToBonus === 'function') {
                 addToBonus(spentFromBonusAmount);
               }
               
-              if (spentFromWalletAmount > 0) {
+              if (spentFromWalletAmount > 0 && typeof addToWallet === 'function') {
                 addToWallet(spentFromWalletAmount);
               }
               
@@ -247,7 +248,7 @@ export default function ArchivedListingsScreen() {
         <Image
           source={{ uri: item.images[0] || 'https://via.placeholder.com/100' }}
           style={styles.listingImage}
-          defaultSource={require('@/assets/images/placeholder.png')}
+          // defaultSource={require('@/assets/images/placeholder.png')}
         />
         
         <View style={styles.listingInfo}>
