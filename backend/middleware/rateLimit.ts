@@ -18,7 +18,7 @@ interface RequestInfo {
  */
 class RateLimiter {
   private requests: Map<string, RequestInfo> = new Map();
-  private cleanupInterval: NodeJS.Timeout;
+  private cleanupInterval: ReturnType<typeof setInterval>;
 
   constructor() {
     // Clean up expired entries every minute
