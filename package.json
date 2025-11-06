@@ -8,14 +8,18 @@
     "start:dev": "expo start --dev-client",
     "start:web": "cross-env EXPO_ROUTER_APP_ROOT=./app EXPO_ROUTER_IMPORT_MODE=eager expo start --web --clear",
     "start:web:dev": "DEBUG=expo* expo start --web",
-    "build:web": "expo export --platform web",
+    "build:web": "expo export --platform web && node scripts/fix-web-index-module.js",
     "build:android": "eas build --platform android",
     "build:ios": "eas build --platform ios",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
-    "preview": "expo export --platform web && npx serve dist",
+    "preview": "expo export --platform web && node scripts/fix-web-index-module.js && npx serve dist",
     "dev": "npm run start",
-    "prod": "npm run build:web"
+    "prod": "npm run build:web",
+    "server": "node server.js",
+    "build:backend": "tsc -p backend/tsconfig.backend.json",
+    "start:backend": "node backend/dist/server.js",
+    "server:ts": "node backend/run-ts.cjs"
   },
   "dependencies": {
     "@expo/metro-runtime": "~5.0.5",
@@ -32,7 +36,8 @@
     "@trpc/server": "^11.6.0",
     "@types/jsonwebtoken": "^9.0.10",
     "cookie": "^1.0.2",
-    "expo": "53.0.23",
+    "dotenv": "^17.2.3",
+    "expo": "^53.0.4",
     "expo-av": "~15.1.7",
     "expo-blur": "~14.1.4",
     "expo-camera": "~16.1.11",
@@ -85,6 +90,7 @@
     "eslint-plugin-react-hooks": "^7.0.0",
     "pm2": "^5.3.0",
     "serve": "^14.2.1",
+    "ts-node": "^10.9.2",
     "typescript": "~5.8.3"
   },
   "private": true
