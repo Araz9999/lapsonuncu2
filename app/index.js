@@ -1,10 +1,13 @@
-// app/index.js
+// app/index.jsu
 import { View, Text } from "react-native";
 
+import { useEffect } from 'react';
+import { router } from 'expo-router';
+
 export default function Page() {
-  return (
-    <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-      <Text>Welcome to Naxtap</Text>
-    </View>
-  );
+  useEffect(() => {
+    // Replace so there's no "Back" history entry
+    router.replace('/(tabs)');
+  }, []);
+  return null;
 }
