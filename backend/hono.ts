@@ -61,10 +61,8 @@ app.use("*", cors({
     // Check if origin is in allowed list
     if (ALLOWED_ORIGINS.includes(origin)) return origin;
     
-    // In development, allow localhost with any port
-    if (process.env.NODE_ENV !== 'production' && origin.startsWith('http://localhost')) {
-      return origin;
-    }
+    // Always allow localhost with any port for local development flows
+    if (origin.startsWith('http://localhost')) return origin;
     
     logger.warn(`[CORS] Rejected origin: ${origin}`);
     return null;
