@@ -15,14 +15,30 @@ export interface SocialAuthConfig {
   vk: boolean;
 }
 
+// A robust function to get the API base URL, respecting environment variables.
+function getApiBaseUrl() {
+  const envUrl = process.env.EXPO_PUBLIC_RORK_API_BASE_URL;
+  if (envUrl) {
+    logger.debug(`[getApiBaseUrl] Using base URL from environment: ${envUrl}`);
+    return envUrl;
+  }
+
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    logger.debug(`[getApiBaseUrl] Using base URL from window.location.origin: ${window.location.origin}`);
+    return window.location.origin;
+  }
+  
+  // Fallback for native development or when other methods fail
+  const fallbackUrl = 'http://localhost:3001';
+  logger.debug(`[getApiBaseUrl] Using fallback base URL: ${fallbackUrl}`);
+  return fallbackUrl;
+}
+
 export async function checkSocialAuthStatus(): Promise<SocialAuthConfig> {
   logger.info('[SocialAuth] Checking social auth status');
   
   try {
-    const baseUrl = Platform.select({
-      web: typeof window !== 'undefined' && window.location ? window.location.origin : 'https://1r36dhx42va8pxqbqz5ja.rork.app',
-      default: 'https://1r36dhx42va8pxqbqz5ja.rork.app'
-    });
+    const baseUrl = getApiBaseUrl();
     
     logger.info('[SocialAuth] Fetching status from:', `${baseUrl}/api/auth/status`);
     const response = await fetch(`${baseUrl}/api/auth/status`);
@@ -62,10 +78,7 @@ export async function initiateSocialLogin(
   });
   
   try {
-    const baseUrl = Platform.select({
-      web: typeof window !== 'undefined' && window.location ? window.location.origin : 'https://1r36dhx42va8pxqbqz5ja.rork.app',
-      default: 'https://1r36dhx42va8pxqbqz5ja.rork.app'
-    });
+    const baseUrl = getApiBaseUrl();
     const authUrl = `${baseUrl}/api/auth/${provider}/login`;
     
     logger.info(`[SocialAuth] Opening auth URL:`, { provider, authUrl });
@@ -83,10 +96,10 @@ export async function initiateSocialLogin(
       logger.info(`[SocialAuth] Auth session result:`, { 
         provider,
         type: result.type,
-        hasUrl: !!result.url
+        hasUrl: 'url' in result
       });
 
-      if (result.type === 'success' && result.url) {
+      if (result.type === 'success' && 'url' in result) {
         logger.info(`[SocialAuth] Auth session successful`, { provider });
         
         const url = new URL(result.url);

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Alert } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, Link } from 'expo-router';
 import { useTranslation } from '@/constants/translations';
 import { useUserStore } from '@/store/userStore';
 import Colors from '@/constants/colors';
@@ -121,6 +121,7 @@ export default function LoginScreen() {
   };
   
   const handleRegister = () => {
+    logger.info('[Login] Navigating to /auth/register');
     router.push('/auth/register');
   };
   
@@ -136,6 +137,7 @@ export default function LoginScreen() {
       
       // ✅ Use environment variable or config for base URL
       const baseUrl = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://1r36dhx42va8pxqbqz5ja.rork.app';
+
       const statusResponse = await fetch(`${baseUrl}/api/auth/status`);
       
       if (statusResponse.ok) {
@@ -372,11 +374,14 @@ export default function LoginScreen() {
             <Text style={styles.footerText}>
               {t('noAccount')}
             </Text>
-            <TouchableOpacity onPress={handleRegister} disabled={isLoading}>
-              <Text style={styles.registerText}>
-                {t('registerNow')}
-              </Text>
-            </TouchableOpacity>
+            {/* Use Link for reliable client-side navigation on web */}
+            <Link href="/auth/register" asChild>
+              <TouchableOpacity onPress={handleRegister} disabled={isLoading}>
+                <Text style={styles.registerText}>
+                  {t('registerNow')}
+                </Text>
+              </TouchableOpacity>
+            </Link>
           </View>
         </View>
       </ScrollView>

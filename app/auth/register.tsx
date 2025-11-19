@@ -271,7 +271,11 @@ export default function RegisterScreen() {
     try {
       setLoadingSocial(provider);
       
-      const baseUrl = 'https://1r36dhx42va8pxqbqz5ja.rork.app';
+      const baseUrl =
+        process.env.EXPO_PUBLIC_RORK_API_BASE_URL ||
+        (Platform.OS === 'web' && typeof window !== 'undefined'
+          ? window.location.origin
+          : 'http://localhost:3001');
       const statusResponse = await fetch(`${baseUrl}/api/auth/status`);
       
       if (statusResponse.ok) {
@@ -336,11 +340,196 @@ export default function RegisterScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        <Text>Register Screen - TODO: Complete UI</Text>
+        <Text style={styles.title}>
+          {t('registerNow')}
+        </Text>
+
+        {/* Avatar preview + pick image */}
+        <View style={styles.avatarWrapper}>
+          <Image
+            source={{ uri: profileImage || 'https://placehold.co/100x100?text=Avatar' }}
+            style={styles.avatar}
+          />
+          <View style={styles.avatarButtonsRow}>
+            <TouchableOpacity style={styles.smallButton} onPress={pickImage}>
+              <Text style={styles.smallButtonText}>{language === 'az' ? 'Şəkil seç' : 'Выбрать'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.smallButton} onPress={takePhoto}>
+              <Text style={styles.smallButtonText}>{language === 'az' ? 'Kamera' : 'Камера'}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Name */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>{t('name' as any) || (language === 'az' ? 'Ad' : 'Имя')}</Text>
+          <TextInput
+            style={styles.input}
+            value={name}
+            onChangeText={setName}
+            placeholder={language === 'az' ? 'Adınız' : 'Ваше имя'}
+            placeholderTextColor="#9CA3AF"
+            autoCapitalize="words"
+          />
+        </View>
+
+        {/* Email */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>{t('email')}</Text>
+          <TextInput
+            style={styles.input}
+            value={email}
+            onChangeText={setEmail}
+            placeholder={t('emailAddress')}
+            placeholderTextColor="#9CA3AF"
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
+        </View>
+
+        {/* Phone */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>{t('phone') || (language === 'az' ? 'Telefon' : 'Телефон')}</Text>
+          <TextInput
+            style={styles.input}
+            value={phone}
+            onChangeText={setPhone}
+            placeholder="+994 XX XXX XX XX"
+            placeholderTextColor="#9CA3AF"
+            keyboardType="phone-pad"
+          />
+        </View>
+
+        {/* Password */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>{t('password')}</Text>
+          <View style={styles.passwordContainer}>
+            <TextInput
+              style={styles.passwordInput}
+              value={password}
+              onChangeText={setPassword}
+              placeholder={t('yourPassword')}
+              placeholderTextColor="#9CA3AF"
+              secureTextEntry={!showPassword}
+              autoCapitalize="none"
+            />
+            <TouchableOpacity
+              style={styles.eyeButton}
+              onPress={() => setShowPassword(!showPassword)}
+            >
+              {showPassword ? <EyeOff size={20} color="#6B7280" /> : <Eye size={20} color="#6B7280" />}
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Confirm Password */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>{t('confirmPassword') || (language === 'az' ? 'Şifrəni təsdiqlə' : 'Подтвердите пароль')}</Text>
+          <View style={styles.passwordContainer}>
+            <TextInput
+              style={styles.passwordInput}
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              placeholder={t('confirmPassword') || ''}
+              placeholderTextColor="#9CA3AF"
+              secureTextEntry={!showConfirmPassword}
+              autoCapitalize="none"
+            />
+            <TouchableOpacity
+              style={styles.eyeButton}
+              onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+            >
+              {showConfirmPassword ? <EyeOff size={20} color="#6B7280" /> : <Eye size={20} color="#6B7280" />}
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Terms */}
+        <TouchableOpacity style={styles.termsRow} onPress={() => setAgreeToTerms(!agreeToTerms)}>
+          <View style={[styles.termsBox, agreeToTerms && styles.termsBoxChecked]}>
+            {agreeToTerms && <Check size={14} color="#fff" />}
+          </View>
+          <Text style={styles.termsText}>
+            {t('agreeToTerms')}
+          </Text>
+        </TouchableOpacity>
+
+        {/* Register Button */}
+        <TouchableOpacity
+          style={[styles.registerButton, (!agreeToTerms || isLoading) && styles.disabledButton]}
+          onPress={handleRegister}
+          disabled={!agreeToTerms || isLoading}
+        >
+          {isLoading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.registerButtonText}>{t('registerNow')}</Text>
+          )}
+        </TouchableOpacity>
+
+        {/* Divider */}
+        <View style={styles.divider}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerText}>{t('or')}</Text>
+          <View style={styles.dividerLine} />
+        </View>
+
+        {/* Social buttons */}
+        <View style={styles.socialButtons}>
+          <TouchableOpacity
+            style={[styles.socialButton, styles.googleButton]}
+            onPress={() => handleSocialLogin('google')}
+            disabled={loadingSocial !== null || isLoading}
+          >
+            {loadingSocial === 'google' ? (
+              <ActivityIndicator size="small" color="white" />
+            ) : (
+              <>
+                <Chrome size={20} color="white" />
+                <Text style={styles.socialButtonText}>Google</Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.socialButton, styles.facebookButton]}
+            onPress={() => handleSocialLogin('facebook')}
+            disabled={loadingSocial !== null || isLoading}
+          >
+            {loadingSocial === 'facebook' ? (
+              <ActivityIndicator size="small" color="white" />
+            ) : (
+              <>
+                <Facebook size={20} color="white" />
+                <Text style={styles.socialButtonText}>Facebook</Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.socialButton, styles.vkButton]}
+            onPress={() => handleSocialLogin('vk')}
+            disabled={loadingSocial !== null || isLoading}
+          >
+            {loadingSocial === 'vk' ? (
+              <ActivityIndicator size="small" color="white" />
+            ) : (
+              <>
+                <MessageCircle size={20} color="white" />
+                <Text style={styles.socialButtonText}>VK</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {/* Already have an account */}
+        <TouchableOpacity onPress={handleLogin} style={styles.loginLink}>
+          <Text style={styles.loginLinkText}>{t('login')}</Text>
+        </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -356,6 +545,13 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'center',
   },
+  title: {
+    fontSize: 24,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 20,
+    color: Colors?.text || '#111827',
+  },
   input: {
     borderWidth: 1,
     borderColor: '#e0e0e0',
@@ -363,9 +559,41 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 12,
   },
+  inputGroup: {
+    marginBottom: 12,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginBottom: 6,
+    color: Colors?.text || '#111827',
+  },
   avatarWrapper: {
     alignItems: 'center',
     marginBottom: 16,
+  },
+  avatar: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: '#E5E7EB',
+    marginBottom: 8,
+  },
+  avatarButtonsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  smallButton: {
+    backgroundColor: Colors?.card || '#F3F4F6',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  smallButtonText: {
+    color: Colors?.text || '#111827',
+    fontSize: 12,
   },
   button: {
     backgroundColor: Colors && Colors.primary ? Colors.primary : '#007AFF',
@@ -376,5 +604,106 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#fff',
     fontWeight: '600',
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 8,
+    backgroundColor: Colors?.card || '#FFFFFF',
+  },
+  passwordInput: {
+    flex: 1,
+    padding: 12,
+    fontSize: 16,
+    color: Colors?.text || '#111827',
+  },
+  eyeButton: {
+    padding: 12,
+  },
+  termsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    marginBottom: 12,
+  },
+  termsBox: {
+    width: 18,
+    height: 18,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#9CA3AF',
+    marginRight: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  termsBoxChecked: {
+    backgroundColor: Colors?.primary || '#0EA5A7',
+    borderColor: Colors?.primary || '#0EA5A7',
+  },
+  termsText: {
+    color: Colors?.textSecondary || '#6B7280',
+    flex: 1,
+  },
+  registerButton: {
+    backgroundColor: Colors?.primary || '#0EA5A7',
+    padding: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  registerButtonText: {
+    color: '#fff',
+    fontWeight: '700',
+  },
+  disabledButton: {
+    backgroundColor: Colors?.border || '#D1D5DB',
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 16,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: Colors?.border || '#E5E7EB',
+  },
+  dividerText: {
+    marginHorizontal: 12,
+    color: Colors?.textSecondary || '#6B7280',
+  },
+  socialButtons: {
+    gap: 10,
+    marginBottom: 16,
+  },
+  socialButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  googleButton: {
+    backgroundColor: '#DB4437',
+  },
+  facebookButton: {
+    backgroundColor: '#1877F2',
+  },
+  vkButton: {
+    backgroundColor: '#0077FF',
+  },
+  socialButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  loginLink: {
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  loginLinkText: {
+    color: Colors?.primary || '#0EA5A7',
+    fontWeight: '500',
   },
 });
